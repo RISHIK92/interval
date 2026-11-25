@@ -1,0 +1,1755 @@
+{
+  "slug": "client-stack",
+  "title": "HTTP client layers",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": [
+    "decorator-pattern",
+    "retries-with-backoff",
+    "circuit-breakers",
+    "caching"
+  ],
+  "interface": {
+    "class": "ClientStack",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "script",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          },
+          {
+            "name": "statuses",
+            "type": "list<int>"
+          },
+          {
+            "name": "latenciesMs",
+            "type": "list<int>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "wrap",
+        "params": [
+          {
+            "name": "layer",
+            "type": "string"
+          },
+          {
+            "name": "param",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "fetch",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "upstreamCalls",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "elapsedMs",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/a", [503, 503, 200], [10, 10, 10]]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 2]
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 1000]
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 400]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 405]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 500]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 1409]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 1410]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/b", [500, 500, 500, 200], [5, 5, 5, 5]]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 2]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 3]
+          },
+          {
+            "method": "fetch",
+            "args": ["/b", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/b", 2000]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/x", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/x", [200, 404, 503], [1, 2, 3]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/x", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/x", 1]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/x", 2]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/x", 3]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/x", 4]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["", [200], [1]]
+          },
+          {
+            "method": "script",
+            "args": ["/y", [], []]
+          },
+          {
+            "method": "script",
+            "args": ["/y", [200], []]
+          },
+          {
+            "method": "script",
+            "args": ["/y", [200, 201], [1]]
+          },
+          {
+            "method": "script",
+            "args": ["/y", [99], [1]]
+          },
+          {
+            "method": "script",
+            "args": ["/y", [600], [1]]
+          },
+          {
+            "method": "script",
+            "args": ["/y", [200], [-1]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/y", 0]
+          },
+          {
+            "method": "script",
+            "args": ["/y", [100, 599], [0, 1000000]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/y", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/y", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/x", [204], [7]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/x", 9]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "wrap",
+            "args": ["Retry", 1]
+          },
+          {
+            "method": "wrap",
+            "args": ["", 1]
+          },
+          {
+            "method": "wrap",
+            "args": ["timeout", 1]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 0]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 6]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", -1]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 0]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 0]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 5]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 1]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 1]
+          },
+          {
+            "method": "script",
+            "args": ["/p", [200], [3]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/p", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/p", 3]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/p", 4]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": [
+              "/r",
+              [500, 502, 599, 503, 504, 404, 500],
+              [1, 2, 3, 4, 5, 6, 7]
+            ]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 5]
+          },
+          {
+            "method": "fetch",
+            "args": ["/r", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/r", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/r", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/r", [500], [10]]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 1]
+          },
+          {
+            "method": "fetch",
+            "args": ["/r", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 2]
+          },
+          {
+            "method": "fetch",
+            "args": ["/r", 50]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/s", [499], [1]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/s", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/c", [200, 201, 200, 500, 200], [50, 1, 20, 1, 1]]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 100]
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 49]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 50]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 149]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 150]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 160]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 170]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 190]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 191]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 290]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 291]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 292]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/d", [200], [0]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/d", 5]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/d", 5]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/d", 104]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/d", 105]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": [
+              "/k",
+              [500, 200, 500, 500, 500, 500, 200, 500, 200],
+              [10, 10, 10, 10, 10, 10, 10, 10, 10]
+            ]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 2]
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 100]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 110]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 1109]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 1110]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 1200]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 2209]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 2210]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 2220]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 2230]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 2240]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/k", [503, 503, 503, 200], [0, 0, 0, 0]]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 3]
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 999]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 1000]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/k", 1000]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/o", [200], [10]]
+          },
+          {
+            "method": "script",
+            "args": ["/p", [500], [5]]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 1]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 500]
+          },
+          {
+            "method": "fetch",
+            "args": ["/o", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/p", 20]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/o", 30]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/p", 40]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/o", [200], [10]]
+          },
+          {
+            "method": "script",
+            "args": ["/p", [500], [5]]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 500]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 1]
+          },
+          {
+            "method": "fetch",
+            "args": ["/o", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/p", 20]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/o", 30]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/p", 40]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/q", [500, 500, 500, 500, 200], [10, 10, 10, 10, 10]]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 1]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 5]
+          },
+          {
+            "method": "fetch",
+            "args": ["/q", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/q", 5000]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/q", [500, 500, 500, 500, 200], [10, 10, 10, 10, 10]]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 5]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 1]
+          },
+          {
+            "method": "fetch",
+            "args": ["/q", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/q", 5000]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/a", [200], [5]]
+          },
+          {
+            "method": "script",
+            "args": ["/b", [500], [5]]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 1000]
+          },
+          {
+            "method": "wrap",
+            "args": ["breaker", 1]
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/b", 10]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 20]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/b", 30]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 1015]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/a", 1016]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "hedge",
+        "params": [
+          {
+            "name": "afterMs",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/h", [200, 201, 202, 203], [300, 50, 100, 100]]
+          },
+          {
+            "method": "hedge",
+            "args": [100]
+          },
+          {
+            "method": "fetch",
+            "args": ["/h", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/h", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/h", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "hedge",
+            "args": [-1]
+          },
+          {
+            "method": "script",
+            "args": ["/i", [200, 500], [150, 40]]
+          },
+          {
+            "method": "fetch",
+            "args": ["/i", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/t", [200, 201, 202, 203], [80, 30, 50, 50]]
+          },
+          {
+            "method": "hedge",
+            "args": [50]
+          },
+          {
+            "method": "fetch",
+            "args": ["/t", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/t", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/t", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/r", [503, 200, 200, 200], [100, 10, 10, 10]]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 1]
+          },
+          {
+            "method": "hedge",
+            "args": [150]
+          },
+          {
+            "method": "fetch",
+            "args": ["/r", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/r", [503, 200, 200, 200], [100, 10, 10, 10]]
+          },
+          {
+            "method": "hedge",
+            "args": [50]
+          },
+          {
+            "method": "wrap",
+            "args": ["retry", 1]
+          },
+          {
+            "method": "fetch",
+            "args": ["/r", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/c", [200, 500, 200], [10, 100, 100]]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 1000]
+          },
+          {
+            "method": "hedge",
+            "args": [50]
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 5]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "script",
+            "args": ["/c", [200, 200], [500, 20]]
+          },
+          {
+            "method": "hedge",
+            "args": [0]
+          },
+          {
+            "method": "wrap",
+            "args": ["cache", 100]
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 0]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 19]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 20]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 119]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          },
+          {
+            "method": "fetch",
+            "args": ["/c", 120]
+          },
+          {
+            "method": "elapsedMs",
+            "args": []
+          },
+          {
+            "method": "upstreamCalls",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}
