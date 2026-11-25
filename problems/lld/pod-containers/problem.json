@@ -1,0 +1,999 @@
+{
+  "slug": "pod-containers",
+  "title": "Pods and containers",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["object-composition"],
+  "interface": {
+    "class": "PodRegistry",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "createPod",
+        "params": [
+          {
+            "name": "pod",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "addContainer",
+        "params": [
+          {
+            "name": "pod",
+            "type": "string"
+          },
+          {
+            "name": "container",
+            "type": "string"
+          },
+          {
+            "name": "image",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "removePod",
+        "params": [
+          {
+            "name": "pod",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "podOf",
+        "params": [
+          {
+            "name": "container",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "images",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["web"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["web", "app", "shop:1.4"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["web", "proxy", "envoy:1.30"]
+          },
+          {
+            "method": "createPod",
+            "args": ["jobs"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["jobs", "app", "shop:1.4"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["jobs", "worker", "shop:1.4"]
+          },
+          {
+            "method": "podOf",
+            "args": ["proxy"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "removePod",
+            "args": ["web"]
+          },
+          {
+            "method": "podOf",
+            "args": ["proxy"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "addContainer",
+            "args": ["jobs", "app", "shop:1.5"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addContainer",
+            "args": ["db", "pg", "postgres:16"]
+          },
+          {
+            "method": "podOf",
+            "args": ["pg"]
+          },
+          {
+            "method": "createPod",
+            "args": ["db"]
+          },
+          {
+            "method": "createPod",
+            "args": ["db"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["db", "pg", "postgres:16"]
+          },
+          {
+            "method": "removePod",
+            "args": ["db"]
+          },
+          {
+            "method": "removePod",
+            "args": ["db"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": [""]
+          },
+          {
+            "method": "addContainer",
+            "args": ["", "c", "i"]
+          },
+          {
+            "method": "createPod",
+            "args": ["p"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "", "i"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c", ""]
+          },
+          {
+            "method": "removePod",
+            "args": [""]
+          },
+          {
+            "method": "podOf",
+            "args": [""]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "podOf",
+            "args": ["c"]
+          },
+          {
+            "method": "removePod",
+            "args": ["nope"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["nope", "c", "i"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c", "i"]
+          },
+          {
+            "method": "podOf",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "createPod",
+            "args": ["b"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "x", "i1"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["b", "x", "i2"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "x", "i3"]
+          },
+          {
+            "method": "podOf",
+            "args": ["x"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "removePod",
+            "args": ["a"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["b", "x", "i2"]
+          },
+          {
+            "method": "podOf",
+            "args": ["x"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["e"]
+          },
+          {
+            "method": "removePod",
+            "args": ["e"]
+          },
+          {
+            "method": "createPod",
+            "args": ["e"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["e", "c", "i"]
+          },
+          {
+            "method": "removePod",
+            "args": ["e"]
+          },
+          {
+            "method": "podOf",
+            "args": ["c"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["p"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c1", "redis:7"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c2", "Nginx"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c3", "busybox"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c4", "redis:7"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c5", "alpine"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c6", "Alpine"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "createPod",
+            "args": ["b"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "a1", "img"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["b", "b1", "img"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "a2", "only-a"]
+          },
+          {
+            "method": "removePod",
+            "args": ["a"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "podOf",
+            "args": ["a1"]
+          },
+          {
+            "method": "podOf",
+            "args": ["a2"]
+          },
+          {
+            "method": "podOf",
+            "args": ["b1"]
+          },
+          {
+            "method": "removePod",
+            "args": ["b"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["api"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["api", "api", "api:2"]
+          },
+          {
+            "method": "podOf",
+            "args": ["api"]
+          },
+          {
+            "method": "createPod",
+            "args": ["api"]
+          },
+          {
+            "method": "removePod",
+            "args": ["api"]
+          },
+          {
+            "method": "podOf",
+            "args": ["api"]
+          },
+          {
+            "method": "createPod",
+            "args": ["api"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["P"]
+          },
+          {
+            "method": "createPod",
+            "args": ["p"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["P", "C", "i"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c", "i"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "C", "j"]
+          },
+          {
+            "method": "podOf",
+            "args": ["C"]
+          },
+          {
+            "method": "podOf",
+            "args": ["c"]
+          },
+          {
+            "method": "removePod",
+            "args": ["P"]
+          },
+          {
+            "method": "podOf",
+            "args": ["C"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["big"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c0", "img0"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c1", "img1"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c2", "img2"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c3", "img0"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c4", "img1"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c5", "img2"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c6", "img0"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c7", "img1"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c8", "img2"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c9", "img0"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["big", "c10", "img1"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "removePod",
+            "args": ["big"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "podOf",
+            "args": ["c7"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "x", "i"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "x", "j"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "addContainer",
+            "args": ["ghost", "y", "k"]
+          },
+          {
+            "method": "podOf",
+            "args": ["y"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "removePod",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "createPod",
+            "args": ["b"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "1", "i"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "2", "i"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["b", "3", "i"]
+          },
+          {
+            "method": "removePod",
+            "args": ["b"]
+          },
+          {
+            "method": "removePod",
+            "args": ["a"]
+          },
+          {
+            "method": "podOf",
+            "args": ["1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["p"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "c", "i"]
+          },
+          {
+            "method": "removePod",
+            "args": ["p"]
+          },
+          {
+            "method": "createPod",
+            "args": ["p"]
+          },
+          {
+            "method": "podOf",
+            "args": ["c"]
+          },
+          {
+            "method": "removePod",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["x"]
+          },
+          {
+            "method": "createPod",
+            "args": ["y"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["y", "a", "m"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["x", "b", "n"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["y", "c", "o"]
+          },
+          {
+            "method": "podOf",
+            "args": ["a"]
+          },
+          {
+            "method": "podOf",
+            "args": ["b"]
+          },
+          {
+            "method": "podOf",
+            "args": ["c"]
+          },
+          {
+            "method": "removePod",
+            "args": ["y"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["x", "a", "z"]
+          },
+          {
+            "method": "podOf",
+            "args": ["a"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "removePod",
+            "args": ["x"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "sidecar",
+        "params": [
+          {
+            "name": "container",
+            "type": "string"
+          },
+          {
+            "name": "image",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["old"]
+          },
+          {
+            "method": "sidecar",
+            "args": ["proxy", "envoy:1.30"]
+          },
+          {
+            "method": "createPod",
+            "args": ["web"]
+          },
+          {
+            "method": "podOf",
+            "args": ["web-proxy"]
+          },
+          {
+            "method": "podOf",
+            "args": ["old-proxy"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "addContainer",
+            "args": ["web", "app", "shop:1"]
+          },
+          {
+            "method": "removePod",
+            "args": ["web"]
+          },
+          {
+            "method": "podOf",
+            "args": ["web-proxy"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "sidecar",
+            "args": ["", "i"]
+          },
+          {
+            "method": "sidecar",
+            "args": ["c", ""]
+          },
+          {
+            "method": "sidecar",
+            "args": ["log", "fluent"]
+          },
+          {
+            "method": "sidecar",
+            "args": ["log", "other"]
+          },
+          {
+            "method": "sidecar",
+            "args": ["mesh", "linkerd"]
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "podOf",
+            "args": ["a-log"]
+          },
+          {
+            "method": "podOf",
+            "args": ["a-mesh"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "removePod",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createPod",
+            "args": ["p"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["p", "q-log", "x"]
+          },
+          {
+            "method": "sidecar",
+            "args": ["mesh", "m"]
+          },
+          {
+            "method": "sidecar",
+            "args": ["log", "l"]
+          },
+          {
+            "method": "createPod",
+            "args": ["q"]
+          },
+          {
+            "method": "podOf",
+            "args": ["q-mesh"]
+          },
+          {
+            "method": "removePod",
+            "args": ["q"]
+          },
+          {
+            "method": "removePod",
+            "args": ["p"]
+          },
+          {
+            "method": "createPod",
+            "args": ["q"]
+          },
+          {
+            "method": "podOf",
+            "args": ["q-mesh"]
+          },
+          {
+            "method": "podOf",
+            "args": ["q-log"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "sidecar",
+            "args": ["s", "i"]
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "b-s", "x"]
+          },
+          {
+            "method": "createPod",
+            "args": ["b"]
+          },
+          {
+            "method": "addContainer",
+            "args": ["a", "a-s", "y"]
+          },
+          {
+            "method": "createPod",
+            "args": ["b-s"]
+          },
+          {
+            "method": "podOf",
+            "args": ["b-s-s"]
+          },
+          {
+            "method": "images",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "sidecar",
+            "args": ["x", "img"]
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "createPod",
+            "args": ["b"]
+          },
+          {
+            "method": "removePod",
+            "args": ["a"]
+          },
+          {
+            "method": "podOf",
+            "args": ["b-x"]
+          },
+          {
+            "method": "images",
+            "args": []
+          },
+          {
+            "method": "addContainer",
+            "args": ["b", "a-x", "z"]
+          },
+          {
+            "method": "createPod",
+            "args": ["a"]
+          },
+          {
+            "method": "removePod",
+            "args": ["b"]
+          }
+        ]
+      }
+    ]
+  }
+}

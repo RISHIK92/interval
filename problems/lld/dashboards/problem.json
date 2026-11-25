@@ -1,0 +1,1008 @@
+{
+  "slug": "dashboards",
+  "title": "Dashboards and saved queries",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["object-composition", "aggregation"],
+  "interface": {
+    "class": "Dashboards",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "saveQuery",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "expr",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "addPanel",
+        "params": [
+          {
+            "name": "dashboard",
+            "type": "string"
+          },
+          {
+            "name": "panel",
+            "type": "string"
+          },
+          {
+            "name": "query",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "dropDashboard",
+        "params": [
+          {
+            "name": "dashboard",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "dropQuery",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "usage",
+        "params": [
+          {
+            "name": "query",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["p99", "histogram_quantile(0.99, latency)"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["errors", "rate(5xx[5m])"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["api", "latency", "p99"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["api", "errors", "errors"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["checkout", "latency", "p99"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["api", "latency", "errors"]
+          },
+          {
+            "method": "usage",
+            "args": ["p99"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["p99"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["api"]
+          },
+          {
+            "method": "usage",
+            "args": ["errors"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["errors"]
+          },
+          {
+            "method": "usage",
+            "args": ["p99"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPanel",
+            "args": ["ops", "cpu", "cpu"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["ops"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["cpu", "avg(cpu)"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["cpu", "max(cpu)"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["ops", "cpu", "cpu"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["mem"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["ops"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["cpu"]
+          },
+          {
+            "method": "usage",
+            "args": ["cpu"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["", "e"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", ""]
+          },
+          {
+            "method": "addPanel",
+            "args": ["", "p", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", ""]
+          },
+          {
+            "method": "dropDashboard",
+            "args": [""]
+          },
+          {
+            "method": "dropQuery",
+            "args": [""]
+          },
+          {
+            "method": "usage",
+            "args": [""]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "q"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "nope"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "q"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["x", "main", "a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["y", "main", "b"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["z", "main", "a"]
+          },
+          {
+            "method": "usage",
+            "args": ["a"]
+          },
+          {
+            "method": "usage",
+            "args": ["b"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["x"]
+          },
+          {
+            "method": "usage",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["ops", "b", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["Ops", "z", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["ops", "A", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["api", "x", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["ops", "a", "q"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d1", "p", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d2", "p", "q"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d1"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d2"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "new"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p0", "b"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p1", "a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p2", "b"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p3", "a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p4", "b"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p5", "a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p6", "b"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p7", "a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["big", "p8", "b"]
+          },
+          {
+            "method": "usage",
+            "args": ["b"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["big"]
+          },
+          {
+            "method": "usage",
+            "args": ["a"]
+          },
+          {
+            "method": "usage",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "r", "a"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "s", "a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "a"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["cpu", "avg(cpu)"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["cpu", "cpu", "cpu"]
+          },
+          {
+            "method": "usage",
+            "args": ["cpu"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["cpu"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["cpu"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["cpu"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["cpu"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["Q", "1"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "2"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["D", "P", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "Q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["D", "p", "Q"]
+          },
+          {
+            "method": "usage",
+            "args": ["Q"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["D"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          },
+          {
+            "method": "usage",
+            "args": ["Q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "top", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "bottom", "q"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "f"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "r"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["e"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          },
+          {
+            "method": "usage",
+            "args": ["r"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["lat", "l"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["err", "e"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["sat", "s"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["web", "1", "lat"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["web", "2", "err"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["db", "1", "sat"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["db", "2", "lat"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["sat"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["err"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["web"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["err"]
+          },
+          {
+            "method": "usage",
+            "args": ["lat"]
+          },
+          {
+            "method": "usage",
+            "args": ["sat"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["db"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["sat"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "duplicate",
+        "params": [
+          {
+            "name": "dashboard",
+            "type": "string"
+          },
+          {
+            "name": "newName",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["p99", "l"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["err", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["api", "latency", "p99"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["api", "errors", "err"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["api", "api-copy"]
+          },
+          {
+            "method": "usage",
+            "args": ["p99"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["api-copy", "extra", "err"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["api"]
+          },
+          {
+            "method": "usage",
+            "args": ["err"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["api-copy"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["p99"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "duplicate",
+            "args": ["", "x"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["nope", "x"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["d", "p", "q"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["d", ""]
+          },
+          {
+            "method": "duplicate",
+            "args": ["d", "d"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["e", "p", "q"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["d", "e"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["e"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["d", "e"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["a", "p", "q"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["b", "c"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["a"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["b", "p", "q"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["c", "r", "q"]
+          },
+          {
+            "method": "usage",
+            "args": ["q"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["b"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["c"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q1", "1"]
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q2", "2"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["src", "a", "q1"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["src", "b", "q2"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["src", "c", "q1"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["src", "dst"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["dst"]
+          },
+          {
+            "method": "usage",
+            "args": ["q1"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["src"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveQuery",
+            "args": ["q", "e"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["a", "p", "q"]
+          },
+          {
+            "method": "duplicate",
+            "args": ["a", "A"]
+          },
+          {
+            "method": "addPanel",
+            "args": ["a", "z", "q"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["A"]
+          },
+          {
+            "method": "dropDashboard",
+            "args": ["a"]
+          },
+          {
+            "method": "dropQuery",
+            "args": ["q"]
+          }
+        ]
+      }
+    ]
+  }
+}

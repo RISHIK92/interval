@@ -1,0 +1,1113 @@
+{
+  "slug": "org-chart",
+  "title": "Org chart",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["aggregation", "association"],
+  "interface": {
+    "class": "OrgChart",
+    "constructor": {
+      "params": [
+        {
+          "name": "ceo",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "hire",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "manager",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "reassign",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "manager",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "leave",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "chain",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "span",
+        "params": [
+          {
+            "name": "manager",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ada"]
+          },
+          {
+            "method": "hire",
+            "args": ["bo", "ada"]
+          },
+          {
+            "method": "hire",
+            "args": ["cy", "bo"]
+          },
+          {
+            "method": "hire",
+            "args": ["dee", "bo"]
+          },
+          {
+            "method": "chain",
+            "args": ["dee"]
+          },
+          {
+            "method": "span",
+            "args": ["bo"]
+          },
+          {
+            "method": "reassign",
+            "args": ["bo", "cy"]
+          },
+          {
+            "method": "reassign",
+            "args": ["cy", "ada"]
+          },
+          {
+            "method": "chain",
+            "args": ["dee"]
+          },
+          {
+            "method": "leave",
+            "args": ["bo"]
+          },
+          {
+            "method": "chain",
+            "args": ["dee"]
+          },
+          {
+            "method": "span",
+            "args": ["ada"]
+          },
+          {
+            "method": "leave",
+            "args": ["ada"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["root"]
+          },
+          {
+            "method": "hire",
+            "args": ["x", "nobody"]
+          },
+          {
+            "method": "hire",
+            "args": ["root", "root"]
+          },
+          {
+            "method": "hire",
+            "args": ["x", "root"]
+          },
+          {
+            "method": "hire",
+            "args": ["x", "root"]
+          },
+          {
+            "method": "span",
+            "args": ["root"]
+          },
+          {
+            "method": "span",
+            "args": ["y"]
+          },
+          {
+            "method": "chain",
+            "args": ["root"]
+          },
+          {
+            "method": "reassign",
+            "args": ["root", "x"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", ""]
+          },
+          {
+            "method": "reassign",
+            "args": ["", "ceo"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", ""]
+          },
+          {
+            "method": "leave",
+            "args": [""]
+          },
+          {
+            "method": "chain",
+            "args": [""]
+          },
+          {
+            "method": "span",
+            "args": [""]
+          },
+          {
+            "method": "chain",
+            "args": ["a"]
+          },
+          {
+            "method": "leave",
+            "args": ["a"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "reassign",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "chain",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "hire",
+            "args": ["c", "b"]
+          },
+          {
+            "method": "hire",
+            "args": ["d", "c"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "a"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "d"]
+          },
+          {
+            "method": "reassign",
+            "args": ["b", "d"]
+          },
+          {
+            "method": "chain",
+            "args": ["d"]
+          },
+          {
+            "method": "reassign",
+            "args": ["d", "a"]
+          },
+          {
+            "method": "chain",
+            "args": ["d"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["c"]
+          },
+          {
+            "method": "reassign",
+            "args": ["c", "d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "reassign",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          },
+          {
+            "method": "chain",
+            "args": ["b"]
+          },
+          {
+            "method": "reassign",
+            "args": ["b", "ceo"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a1", "a"]
+          },
+          {
+            "method": "hire",
+            "args": ["a2", "a"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "chain",
+            "args": ["a2"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["m1", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["m2", "m1"]
+          },
+          {
+            "method": "hire",
+            "args": ["e1", "m2"]
+          },
+          {
+            "method": "hire",
+            "args": ["e2", "m2"]
+          },
+          {
+            "method": "hire",
+            "args": ["e3", "m2"]
+          },
+          {
+            "method": "leave",
+            "args": ["m2"]
+          },
+          {
+            "method": "span",
+            "args": ["m1"]
+          },
+          {
+            "method": "chain",
+            "args": ["e3"]
+          },
+          {
+            "method": "span",
+            "args": ["m2"]
+          },
+          {
+            "method": "chain",
+            "args": ["m2"]
+          },
+          {
+            "method": "leave",
+            "args": ["m1"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["e1"]
+          },
+          {
+            "method": "leave",
+            "args": ["m1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "leave",
+            "args": ["a"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "chain",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          },
+          {
+            "method": "reassign",
+            "args": ["b", "a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "leave",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          },
+          {
+            "method": "leave",
+            "args": ["b"]
+          },
+          {
+            "method": "chain",
+            "args": ["a"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "ceo"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Boss"]
+          },
+          {
+            "method": "hire",
+            "args": ["boss", "Boss"]
+          },
+          {
+            "method": "hire",
+            "args": ["ann", "boss"]
+          },
+          {
+            "method": "hire",
+            "args": ["Ann", "Boss"]
+          },
+          {
+            "method": "chain",
+            "args": ["ann"]
+          },
+          {
+            "method": "chain",
+            "args": ["Ann"]
+          },
+          {
+            "method": "leave",
+            "args": ["boss"]
+          },
+          {
+            "method": "chain",
+            "args": ["ann"]
+          },
+          {
+            "method": "span",
+            "args": ["Boss"]
+          },
+          {
+            "method": "leave",
+            "args": ["Boss"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e0", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e1", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e2", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e3", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e4", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e5", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e6", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e7", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e8", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["e9", "ceo"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          },
+          {
+            "method": "reassign",
+            "args": ["e1", "e0"]
+          },
+          {
+            "method": "reassign",
+            "args": ["e2", "e0"]
+          },
+          {
+            "method": "reassign",
+            "args": ["e3", "e0"]
+          },
+          {
+            "method": "reassign",
+            "args": ["e4", "e0"]
+          },
+          {
+            "method": "reassign",
+            "args": ["e5", "e0"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          },
+          {
+            "method": "span",
+            "args": ["e0"]
+          },
+          {
+            "method": "leave",
+            "args": ["e0"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["e3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["l", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["r", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["l1", "l"]
+          },
+          {
+            "method": "hire",
+            "args": ["r1", "r"]
+          },
+          {
+            "method": "hire",
+            "args": ["r2", "r1"]
+          },
+          {
+            "method": "reassign",
+            "args": ["l", "r2"]
+          },
+          {
+            "method": "chain",
+            "args": ["l1"]
+          },
+          {
+            "method": "reassign",
+            "args": ["r", "l1"]
+          },
+          {
+            "method": "reassign",
+            "args": ["r2", "ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["l1"]
+          },
+          {
+            "method": "span",
+            "args": ["r1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "leave",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["c", "a"]
+          },
+          {
+            "method": "hire",
+            "args": ["d", "a"]
+          },
+          {
+            "method": "hire",
+            "args": ["e", "c"]
+          },
+          {
+            "method": "leave",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["e"]
+          },
+          {
+            "method": "leave",
+            "args": ["c"]
+          },
+          {
+            "method": "chain",
+            "args": ["e"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "promote",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["vp", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["ann", "vp"]
+          },
+          {
+            "method": "hire",
+            "args": ["bob", "vp"]
+          },
+          {
+            "method": "hire",
+            "args": ["cat", "ann"]
+          },
+          {
+            "method": "promote",
+            "args": ["ann"]
+          },
+          {
+            "method": "chain",
+            "args": ["cat"]
+          },
+          {
+            "method": "chain",
+            "args": ["bob"]
+          },
+          {
+            "method": "chain",
+            "args": ["vp"]
+          },
+          {
+            "method": "span",
+            "args": ["ann"]
+          },
+          {
+            "method": "span",
+            "args": ["vp"]
+          },
+          {
+            "method": "span",
+            "args": ["ceo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "promote",
+            "args": [""]
+          },
+          {
+            "method": "promote",
+            "args": ["ceo"]
+          },
+          {
+            "method": "promote",
+            "args": ["x"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "ceo"]
+          },
+          {
+            "method": "promote",
+            "args": ["a"]
+          },
+          {
+            "method": "chain",
+            "args": ["ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["b"]
+          },
+          {
+            "method": "leave",
+            "args": ["a"]
+          },
+          {
+            "method": "leave",
+            "args": ["ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "hire",
+            "args": ["c", "b"]
+          },
+          {
+            "method": "promote",
+            "args": ["c"]
+          },
+          {
+            "method": "chain",
+            "args": ["b"]
+          },
+          {
+            "method": "promote",
+            "args": ["c"]
+          },
+          {
+            "method": "chain",
+            "args": ["b"]
+          },
+          {
+            "method": "chain",
+            "args": ["a"]
+          },
+          {
+            "method": "promote",
+            "args": ["c"]
+          },
+          {
+            "method": "chain",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["c"]
+          },
+          {
+            "method": "reassign",
+            "args": ["ceo", "a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a1", "a"]
+          },
+          {
+            "method": "hire",
+            "args": ["a2", "a"]
+          },
+          {
+            "method": "hire",
+            "args": ["x", "a1"]
+          },
+          {
+            "method": "hire",
+            "args": ["y", "a1"]
+          },
+          {
+            "method": "promote",
+            "args": ["a1"]
+          },
+          {
+            "method": "span",
+            "args": ["a1"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          },
+          {
+            "method": "chain",
+            "args": ["y"]
+          },
+          {
+            "method": "chain",
+            "args": ["a2"]
+          },
+          {
+            "method": "promote",
+            "args": ["a"]
+          },
+          {
+            "method": "chain",
+            "args": ["x"]
+          },
+          {
+            "method": "span",
+            "args": ["a1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "hire",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "promote",
+            "args": ["b"]
+          },
+          {
+            "method": "reassign",
+            "args": ["a", "ceo"]
+          },
+          {
+            "method": "span",
+            "args": ["b"]
+          },
+          {
+            "method": "promote",
+            "args": ["a"]
+          },
+          {
+            "method": "chain",
+            "args": ["ceo"]
+          },
+          {
+            "method": "chain",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  }
+}

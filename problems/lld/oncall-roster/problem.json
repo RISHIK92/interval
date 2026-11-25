@@ -1,0 +1,1168 @@
+{
+  "slug": "oncall-roster",
+  "title": "On-call roster",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["association", "aggregation"],
+  "interface": {
+    "class": "OncallRoster",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addEngineer",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "addTeam",
+        "params": [
+          {
+            "name": "team",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "join",
+        "params": [
+          {
+            "name": "team",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "disband",
+        "params": [
+          {
+            "name": "team",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "teamsOf",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["ana"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["bo"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["payments"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["infra"]
+          },
+          {
+            "method": "join",
+            "args": ["payments", "ana"]
+          },
+          {
+            "method": "join",
+            "args": ["infra", "ana"]
+          },
+          {
+            "method": "join",
+            "args": ["payments", "bo"]
+          },
+          {
+            "method": "join",
+            "args": ["payments", "ana"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["ana"]
+          },
+          {
+            "method": "disband",
+            "args": ["payments"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["ana"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["bo"]
+          },
+          {
+            "method": "disband",
+            "args": ["payments"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["cy"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["search"]
+          },
+          {
+            "method": "join",
+            "args": ["search", "dee"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["cy"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["cy"]
+          },
+          {
+            "method": "join",
+            "args": ["search", "cy"]
+          },
+          {
+            "method": "disband",
+            "args": ["search"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["search"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["cy"]
+          },
+          {
+            "method": "join",
+            "args": ["search", "cy"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["cy"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": [""]
+          },
+          {
+            "method": "addTeam",
+            "args": [""]
+          },
+          {
+            "method": "join",
+            "args": ["", "x"]
+          },
+          {
+            "method": "join",
+            "args": ["x", ""]
+          },
+          {
+            "method": "disband",
+            "args": [""]
+          },
+          {
+            "method": "teamsOf",
+            "args": [""]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["nobody"]
+          },
+          {
+            "method": "disband",
+            "args": ["nothing"]
+          },
+          {
+            "method": "join",
+            "args": ["nothing", "nobody"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["x"]
+          },
+          {
+            "method": "join",
+            "args": ["nothing", "x"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "disband",
+            "args": ["t"]
+          },
+          {
+            "method": "disband",
+            "args": ["t"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["core"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["core"]
+          },
+          {
+            "method": "join",
+            "args": ["core", "core"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["core"]
+          },
+          {
+            "method": "disband",
+            "args": ["core"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["core"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["core"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["e"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["beta"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["Zulu"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["alpha"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["Beta"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["beta", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["Zulu", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["alpha", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["Beta", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["a", "e"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["b"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["c"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["x"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["y"]
+          },
+          {
+            "method": "join",
+            "args": ["x", "a"]
+          },
+          {
+            "method": "join",
+            "args": ["x", "b"]
+          },
+          {
+            "method": "join",
+            "args": ["y", "b"]
+          },
+          {
+            "method": "join",
+            "args": ["y", "c"]
+          },
+          {
+            "method": "disband",
+            "args": ["x"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["b"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["c"]
+          },
+          {
+            "method": "join",
+            "args": ["y", "a"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["x", "a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "ghost"]
+          },
+          {
+            "method": "join",
+            "args": ["ghost", "a"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["Ana"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["ana"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["Ops"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["ops"]
+          },
+          {
+            "method": "join",
+            "args": ["Ops", "ana"]
+          },
+          {
+            "method": "join",
+            "args": ["ops", "Ana"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["ana"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["Ana"]
+          },
+          {
+            "method": "disband",
+            "args": ["OPS"]
+          },
+          {
+            "method": "disband",
+            "args": ["Ops"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["ana"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["Ana"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["e"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t1"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t2"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t3"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t4"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t5"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t6"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t7"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t8"]
+          },
+          {
+            "method": "join",
+            "args": ["t1", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["t2", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["t3", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["t4", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["t5", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["t6", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["t7", "e"]
+          },
+          {
+            "method": "join",
+            "args": ["t8", "e"]
+          },
+          {
+            "method": "disband",
+            "args": ["t3"]
+          },
+          {
+            "method": "disband",
+            "args": ["t7"]
+          },
+          {
+            "method": "disband",
+            "args": ["t1"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["e"]
+          },
+          {
+            "method": "join",
+            "args": ["t3", "e"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t3"]
+          },
+          {
+            "method": "join",
+            "args": ["t3", "e"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["b"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "disband",
+            "args": ["t"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["b"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["a"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["solo"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["solo"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["solo"]
+          },
+          {
+            "method": "disband",
+            "args": ["t"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["solo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addTeam",
+            "args": ["empty"]
+          },
+          {
+            "method": "disband",
+            "args": ["empty"]
+          },
+          {
+            "method": "disband",
+            "args": ["empty"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["empty"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["empty"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["p"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["q"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["m"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["n"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["o"]
+          },
+          {
+            "method": "join",
+            "args": ["o", "p"]
+          },
+          {
+            "method": "join",
+            "args": ["m", "p"]
+          },
+          {
+            "method": "join",
+            "args": ["n", "q"]
+          },
+          {
+            "method": "join",
+            "args": ["m", "q"]
+          },
+          {
+            "method": "join",
+            "args": ["n", "p"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["p"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["q"]
+          },
+          {
+            "method": "disband",
+            "args": ["m"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["p"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["q"]
+          },
+          {
+            "method": "join",
+            "args": ["n", "q"]
+          },
+          {
+            "method": "join",
+            "args": ["o", "q"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["q"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "rotate",
+        "params": [
+          {
+            "name": "team",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["b"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["c"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "c"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rotate",
+            "args": [""]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["b"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "disband",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["b"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["c"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["x"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["y"]
+          },
+          {
+            "method": "join",
+            "args": ["x", "a"]
+          },
+          {
+            "method": "join",
+            "args": ["x", "b"]
+          },
+          {
+            "method": "join",
+            "args": ["y", "c"]
+          },
+          {
+            "method": "join",
+            "args": ["y", "a"]
+          },
+          {
+            "method": "rotate",
+            "args": ["x"]
+          },
+          {
+            "method": "rotate",
+            "args": ["y"]
+          },
+          {
+            "method": "rotate",
+            "args": ["x"]
+          },
+          {
+            "method": "rotate",
+            "args": ["x"]
+          },
+          {
+            "method": "rotate",
+            "args": ["y"]
+          },
+          {
+            "method": "rotate",
+            "args": ["y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addEngineer",
+            "args": ["a"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["b"]
+          },
+          {
+            "method": "addEngineer",
+            "args": ["c"]
+          },
+          {
+            "method": "addTeam",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "join",
+            "args": ["t", "c"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "rotate",
+            "args": ["t"]
+          },
+          {
+            "method": "teamsOf",
+            "args": ["c"]
+          }
+        ]
+      }
+    ]
+  }
+}

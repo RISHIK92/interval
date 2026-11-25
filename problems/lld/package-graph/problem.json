@@ -1,0 +1,979 @@
+{
+  "slug": "package-graph",
+  "title": "Package dependencies",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["dependency-relationship", "association"],
+  "interface": {
+    "class": "PackageGraph",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "add",
+        "params": [
+          {
+            "name": "pkg",
+            "type": "string"
+          },
+          {
+            "name": "deps",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "remove",
+        "params": [
+          {
+            "name": "pkg",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "dependents",
+        "params": [
+          {
+            "name": "pkg",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "installOrder",
+        "params": [
+          {
+            "name": "pkg",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["log", []]
+          },
+          {
+            "method": "add",
+            "args": ["net", []]
+          },
+          {
+            "method": "add",
+            "args": ["web", ["log"]]
+          },
+          {
+            "method": "add",
+            "args": ["db", ["log", "net"]]
+          },
+          {
+            "method": "add",
+            "args": ["app", ["web", "db"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["app"]
+          },
+          {
+            "method": "dependents",
+            "args": ["log"]
+          },
+          {
+            "method": "remove",
+            "args": ["log"]
+          },
+          {
+            "method": "remove",
+            "args": ["app"]
+          },
+          {
+            "method": "dependents",
+            "args": ["web"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["db"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", ["b"]]
+          },
+          {
+            "method": "add",
+            "args": ["b", []]
+          },
+          {
+            "method": "add",
+            "args": ["a", ["b"]]
+          },
+          {
+            "method": "add",
+            "args": ["a", ["b"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["c"]
+          },
+          {
+            "method": "dependents",
+            "args": ["c"]
+          },
+          {
+            "method": "add",
+            "args": ["c", ["a", "a"]]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["", []]
+          },
+          {
+            "method": "add",
+            "args": ["a", [""]]
+          },
+          {
+            "method": "remove",
+            "args": [""]
+          },
+          {
+            "method": "dependents",
+            "args": [""]
+          },
+          {
+            "method": "installOrder",
+            "args": [""]
+          },
+          {
+            "method": "installOrder",
+            "args": ["a"]
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "installOrder",
+            "args": ["a"]
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["s", ["s"]]
+          },
+          {
+            "method": "add",
+            "args": ["s", []]
+          },
+          {
+            "method": "add",
+            "args": ["s", ["s"]]
+          },
+          {
+            "method": "add",
+            "args": ["t", ["s", "s"]]
+          },
+          {
+            "method": "add",
+            "args": ["t", ["s"]]
+          },
+          {
+            "method": "dependents",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "add",
+            "args": ["b", ["a", "zz"]]
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["b"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "add",
+            "args": ["b", ["a"]]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "add",
+            "args": ["b", ["a"]]
+          },
+          {
+            "method": "add",
+            "args": ["c", ["a"]]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["b"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["c"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["core", []]
+          },
+          {
+            "method": "add",
+            "args": ["zeta", ["core"]]
+          },
+          {
+            "method": "add",
+            "args": ["Beta", ["core"]]
+          },
+          {
+            "method": "add",
+            "args": ["alpha", ["core"]]
+          },
+          {
+            "method": "add",
+            "args": ["beta", ["core"]]
+          },
+          {
+            "method": "add",
+            "args": ["Zed", ["core"]]
+          },
+          {
+            "method": "dependents",
+            "args": ["core"]
+          },
+          {
+            "method": "dependents",
+            "args": ["zeta"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "add",
+            "args": ["b", ["a"]]
+          },
+          {
+            "method": "add",
+            "args": ["c", ["b"]]
+          },
+          {
+            "method": "add",
+            "args": ["d", ["c", "a"]]
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          },
+          {
+            "method": "dependents",
+            "args": ["b"]
+          },
+          {
+            "method": "dependents",
+            "args": ["c"]
+          },
+          {
+            "method": "dependents",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["x", []]
+          },
+          {
+            "method": "add",
+            "args": ["y", []]
+          },
+          {
+            "method": "add",
+            "args": ["z", ["y", "x"]]
+          },
+          {
+            "method": "add",
+            "args": ["w", ["x", "y"]]
+          },
+          {
+            "method": "add",
+            "args": ["top", ["z", "w"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["top"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["w"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["p0", []]
+          },
+          {
+            "method": "add",
+            "args": ["p1", ["p0"]]
+          },
+          {
+            "method": "add",
+            "args": ["p2", ["p1"]]
+          },
+          {
+            "method": "add",
+            "args": ["p3", ["p2"]]
+          },
+          {
+            "method": "add",
+            "args": ["p4", ["p3"]]
+          },
+          {
+            "method": "add",
+            "args": ["p5", ["p4"]]
+          },
+          {
+            "method": "add",
+            "args": ["p6", ["p5"]]
+          },
+          {
+            "method": "add",
+            "args": ["p7", ["p6"]]
+          },
+          {
+            "method": "add",
+            "args": ["p8", ["p7"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["p8"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["p0"]
+          },
+          {
+            "method": "remove",
+            "args": ["p4"]
+          },
+          {
+            "method": "remove",
+            "args": ["p8"]
+          },
+          {
+            "method": "remove",
+            "args": ["p7"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["p6"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["base", []]
+          },
+          {
+            "method": "add",
+            "args": ["left", ["base"]]
+          },
+          {
+            "method": "add",
+            "args": ["right", ["base"]]
+          },
+          {
+            "method": "add",
+            "args": ["util", []]
+          },
+          {
+            "method": "add",
+            "args": ["top", ["right", "util", "left"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["top"]
+          },
+          {
+            "method": "dependents",
+            "args": ["base"]
+          },
+          {
+            "method": "remove",
+            "args": ["top"]
+          },
+          {
+            "method": "dependents",
+            "args": ["util"]
+          },
+          {
+            "method": "remove",
+            "args": ["util"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "add",
+            "args": ["b", []]
+          },
+          {
+            "method": "add",
+            "args": ["c", ["a"]]
+          },
+          {
+            "method": "remove",
+            "args": ["c"]
+          },
+          {
+            "method": "add",
+            "args": ["c", ["b"]]
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          },
+          {
+            "method": "dependents",
+            "args": ["b"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["c"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["A", []]
+          },
+          {
+            "method": "add",
+            "args": ["a", ["A"]]
+          },
+          {
+            "method": "add",
+            "args": ["B", ["a"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["B"]
+          },
+          {
+            "method": "remove",
+            "args": ["A"]
+          },
+          {
+            "method": "dependents",
+            "args": ["A"]
+          },
+          {
+            "method": "add",
+            "args": ["b", ["B", "A"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["lib0", []]
+          },
+          {
+            "method": "add",
+            "args": ["lib1", []]
+          },
+          {
+            "method": "add",
+            "args": ["lib2", []]
+          },
+          {
+            "method": "add",
+            "args": ["lib3", []]
+          },
+          {
+            "method": "add",
+            "args": ["lib4", []]
+          },
+          {
+            "method": "add",
+            "args": ["lib5", []]
+          },
+          {
+            "method": "add",
+            "args": ["mid", ["lib3", "lib1"]]
+          },
+          {
+            "method": "add",
+            "args": ["app", ["lib5", "mid", "lib1", "lib0"]]
+          },
+          {
+            "method": "installOrder",
+            "args": ["app"]
+          },
+          {
+            "method": "dependents",
+            "args": ["lib1"]
+          },
+          {
+            "method": "remove",
+            "args": ["lib2"]
+          },
+          {
+            "method": "installOrder",
+            "args": ["mid"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "pin",
+        "params": [
+          {
+            "name": "pkg",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "unused",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["log", []]
+          },
+          {
+            "method": "add",
+            "args": ["web", ["log"]]
+          },
+          {
+            "method": "add",
+            "args": ["cli", []]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "pin",
+            "args": ["cli"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "pin",
+            "args": ["cli"]
+          },
+          {
+            "method": "remove",
+            "args": ["web"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "remove",
+            "args": ["cli"]
+          },
+          {
+            "method": "add",
+            "args": ["cli", []]
+          },
+          {
+            "method": "unused",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "pin",
+            "args": [""]
+          },
+          {
+            "method": "pin",
+            "args": ["a"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "pin",
+            "args": ["a"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["b", ["a"]]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "pin",
+            "args": ["b"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["z", []]
+          },
+          {
+            "method": "add",
+            "args": ["A", []]
+          },
+          {
+            "method": "add",
+            "args": ["m", []]
+          },
+          {
+            "method": "add",
+            "args": ["a", ["m"]]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "pin",
+            "args": ["A"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "pin",
+            "args": ["m"]
+          },
+          {
+            "method": "remove",
+            "args": ["m"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "add",
+            "args": ["b", ["a"]]
+          },
+          {
+            "method": "add",
+            "args": ["c", ["b"]]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "remove",
+            "args": ["c"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "remove",
+            "args": ["b"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "pin",
+            "args": ["a"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", []]
+          },
+          {
+            "method": "pin",
+            "args": ["a"]
+          },
+          {
+            "method": "add",
+            "args": ["b", ["a"]]
+          },
+          {
+            "method": "remove",
+            "args": ["b"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["c", ["a"]]
+          },
+          {
+            "method": "pin",
+            "args": ["c"]
+          },
+          {
+            "method": "unused",
+            "args": []
+          },
+          {
+            "method": "dependents",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  }
+}

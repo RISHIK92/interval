@@ -1,0 +1,918 @@
+{
+  "slug": "incident-room",
+  "title": "Incident room",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["association", "object-composition"],
+  "interface": {
+    "class": "IncidentRoom",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "declareIncident",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "commander",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "joinIncident",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "responder",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "note",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "author",
+            "type": "string"
+          },
+          {
+            "name": "text",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "handOff",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "to",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "timeline",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["INC-1", "ana", 1000]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["INC-1", "bo", 1500]
+          },
+          {
+            "method": "note",
+            "args": ["INC-1", "bo", "db failover started", 2000]
+          },
+          {
+            "method": "note",
+            "args": ["INC-1", "cy", "looking too", 2100]
+          },
+          {
+            "method": "handOff",
+            "args": ["INC-1", "bo", 3000]
+          },
+          {
+            "method": "handOff",
+            "args": ["INC-1", "bo", 3100]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["INC-1", "ana", 3200]
+          },
+          {
+            "method": "timeline",
+            "args": ["INC-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["INC-2", "dee", 50]
+          },
+          {
+            "method": "handOff",
+            "args": ["INC-2", "eve", 60]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["INC-2", "eve", 40]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["INC-2", "eve", 60]
+          },
+          {
+            "method": "handOff",
+            "args": ["INC-2", "eve", 60]
+          },
+          {
+            "method": "note",
+            "args": ["INC-2", "dee", "still here", 70]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["INC-2", "eve", 80]
+          },
+          {
+            "method": "timeline",
+            "args": ["INC-2"]
+          },
+          {
+            "method": "timeline",
+            "args": ["INC-3"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["", "a", 0]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "", 0]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", -1]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 1000000000000001]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", 0]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "x", 0]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "a", 0]
+          },
+          {
+            "method": "timeline",
+            "args": [""]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 1000000000000000]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 0]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["", "b", 0]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "", 0]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "", 0]
+          },
+          {
+            "method": "note",
+            "args": ["i", "", "t", 0]
+          },
+          {
+            "method": "note",
+            "args": ["", "a", "t", 0]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "", 0]
+          },
+          {
+            "method": "handOff",
+            "args": ["", "a", 0]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", -1]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "t", 1000000000000001]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 100]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", 100]
+          },
+          {
+            "method": "note",
+            "args": ["i", "b", "x", 99]
+          },
+          {
+            "method": "note",
+            "args": ["i", "z", "x", 99]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", 99]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "a", 99]
+          },
+          {
+            "method": "note",
+            "args": ["i", "b", "y", 100]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 10]
+          },
+          {
+            "method": "note",
+            "args": ["i", "x", "nope", 500]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", 20]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", 600]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "a", 700]
+          },
+          {
+            "method": "note",
+            "args": ["i", "b", "ok", 30]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["a", "x", 5]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["b", "y", 1]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["b", "x", 2]
+          },
+          {
+            "method": "note",
+            "args": ["a", "y", "wrong room", 6]
+          },
+          {
+            "method": "note",
+            "args": ["b", "x", "right room", 3]
+          },
+          {
+            "method": "handOff",
+            "args": ["a", "y", 7]
+          },
+          {
+            "method": "handOff",
+            "args": ["b", "x", 4]
+          },
+          {
+            "method": "timeline",
+            "args": ["a"]
+          },
+          {
+            "method": "timeline",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 0]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", 1]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "c", 2]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "b", 3]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "c", 4]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "c", 5]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "a", 6]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "a", 7]
+          },
+          {
+            "method": "note",
+            "args": ["i", "c", "done", 8]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "cmd", 0]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "cmd", 1]
+          },
+          {
+            "method": "note",
+            "args": ["i", "cmd", "first", 1]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "cmd", 2]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 7]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "p99 is 4s: rolling back", 7]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", " spaces kept ", 9]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "a: b", 9]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["I", "Ann", 0]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "ann", 0]
+          },
+          {
+            "method": "note",
+            "args": ["I", "ann", "x", 1]
+          },
+          {
+            "method": "note",
+            "args": ["i", "Ann", "y", 1]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["I", "ann", 2]
+          },
+          {
+            "method": "handOff",
+            "args": ["I", "ann", 3]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "Ann", 3]
+          },
+          {
+            "method": "timeline",
+            "args": ["I"]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["big", "a", 999999999999990]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["big", "r0", 999999999999991]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["big", "r1", 999999999999992]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["big", "r2", 999999999999993]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["big", "r3", 999999999999994]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["big", "r4", 999999999999995]
+          },
+          {
+            "method": "note",
+            "args": ["big", "r4", "late", 1000000000000000]
+          },
+          {
+            "method": "note",
+            "args": ["big", "r3", "too late", 1000000000000001]
+          },
+          {
+            "method": "timeline",
+            "args": ["big"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["a", "x", 1000]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["b", "x", 0]
+          },
+          {
+            "method": "note",
+            "args": ["b", "x", "early", 1]
+          },
+          {
+            "method": "note",
+            "args": ["a", "x", "later", 999]
+          },
+          {
+            "method": "note",
+            "args": ["a", "x", "later", 1000]
+          },
+          {
+            "method": "timeline",
+            "args": ["a"]
+          },
+          {
+            "method": "timeline",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 5]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "b", 9]
+          },
+          {
+            "method": "note",
+            "args": ["i", "b", "x", 9]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "b", 9]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "resolve",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "durationMs",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 1000]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "b", 2000]
+          },
+          {
+            "method": "durationMs",
+            "args": ["i"]
+          },
+          {
+            "method": "resolve",
+            "args": ["i", 61000]
+          },
+          {
+            "method": "resolve",
+            "args": ["i", 62000]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "postmortem", 63000]
+          },
+          {
+            "method": "joinIncident",
+            "args": ["i", "c", 64000]
+          },
+          {
+            "method": "handOff",
+            "args": ["i", "b", 65000]
+          },
+          {
+            "method": "durationMs",
+            "args": ["i"]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "resolve",
+            "args": ["", 0]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", 0]
+          },
+          {
+            "method": "durationMs",
+            "args": [""]
+          },
+          {
+            "method": "durationMs",
+            "args": ["x"]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["x", "a", 50]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", 49]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", -1]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", 1000000000000001]
+          },
+          {
+            "method": "durationMs",
+            "args": ["x"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", 50]
+          },
+          {
+            "method": "durationMs",
+            "args": ["x"]
+          },
+          {
+            "method": "timeline",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 0]
+          },
+          {
+            "method": "resolve",
+            "args": ["i", 1000000000000000]
+          },
+          {
+            "method": "durationMs",
+            "args": ["i"]
+          },
+          {
+            "method": "resolve",
+            "args": ["i", 999999999999999]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "x", 1000000000000000]
+          },
+          {
+            "method": "timeline",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["a", "x", 10]
+          },
+          {
+            "method": "declareIncident",
+            "args": ["b", "x", 20]
+          },
+          {
+            "method": "resolve",
+            "args": ["b", 25]
+          },
+          {
+            "method": "note",
+            "args": ["a", "x", "still open", 30]
+          },
+          {
+            "method": "note",
+            "args": ["b", "x", "closed", 30]
+          },
+          {
+            "method": "durationMs",
+            "args": ["b"]
+          },
+          {
+            "method": "resolve",
+            "args": ["a", 100]
+          },
+          {
+            "method": "durationMs",
+            "args": ["a"]
+          },
+          {
+            "method": "timeline",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "declareIncident",
+            "args": ["i", "a", 5]
+          },
+          {
+            "method": "note",
+            "args": ["i", "a", "x", 9]
+          },
+          {
+            "method": "resolve",
+            "args": ["i", 8]
+          },
+          {
+            "method": "resolve",
+            "args": ["i", 9]
+          },
+          {
+            "method": "resolve",
+            "args": ["i", 7]
+          },
+          {
+            "method": "durationMs",
+            "args": ["i"]
+          }
+        ]
+      }
+    ]
+  }
+}

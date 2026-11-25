@@ -1,0 +1,1134 @@
+{
+  "slug": "review-requests",
+  "title": "Pull request reviewers",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["association"],
+  "interface": {
+    "class": "ReviewQueue",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "open",
+        "params": [
+          {
+            "name": "pr",
+            "type": "string"
+          },
+          {
+            "name": "author",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "request",
+        "params": [
+          {
+            "name": "pr",
+            "type": "string"
+          },
+          {
+            "name": "reviewer",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "approve",
+        "params": [
+          {
+            "name": "pr",
+            "type": "string"
+          },
+          {
+            "name": "reviewer",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "pendingFor",
+        "params": [
+          {
+            "name": "reviewer",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "approvals",
+        "params": [
+          {
+            "name": "pr",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["pr-1", "ana"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-1", "bo"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-1", "ana"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-1", "cy"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["bo"]
+          },
+          {
+            "method": "approve",
+            "args": ["pr-1", "bo"]
+          },
+          {
+            "method": "approve",
+            "args": ["pr-1", "dee"]
+          },
+          {
+            "method": "approve",
+            "args": ["pr-1", "bo"]
+          },
+          {
+            "method": "approvals",
+            "args": ["pr-1"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["bo"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["cy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["pr-7", "bo"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-3", "ana"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-7", "cy"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-3", "cy"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-3", "cy"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["cy"]
+          },
+          {
+            "method": "approve",
+            "args": ["pr-3", "ana"]
+          },
+          {
+            "method": "approvals",
+            "args": ["pr-3"]
+          },
+          {
+            "method": "approvals",
+            "args": ["pr-9"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-7", "cy"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["p", ""]
+          },
+          {
+            "method": "request",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "pendingFor",
+            "args": [""]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["nobody"]
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["p", ""]
+          },
+          {
+            "method": "approve",
+            "args": ["p", ""]
+          },
+          {
+            "method": "approvals",
+            "args": [""]
+          },
+          {
+            "method": "request",
+            "args": ["", "b"]
+          },
+          {
+            "method": "approve",
+            "args": ["", "b"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["a"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "A"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["A"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "A"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["z", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["m", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["y", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["m", "r"]
+          },
+          {
+            "method": "request",
+            "args": ["z", "r"]
+          },
+          {
+            "method": "request",
+            "args": ["y", "r"]
+          },
+          {
+            "method": "request",
+            "args": ["b", "r"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["r"]
+          },
+          {
+            "method": "approve",
+            "args": ["z", "r"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["r"]
+          },
+          {
+            "method": "approve",
+            "args": ["b", "r"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["r"]
+          },
+          {
+            "method": "request",
+            "args": ["z", "r"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "c"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "d"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "e"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "f"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "c"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "e"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "f"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "c"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["c"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["d"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "d"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p1", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["p2", "b"]
+          },
+          {
+            "method": "request",
+            "args": ["p1", "b"]
+          },
+          {
+            "method": "request",
+            "args": ["p2", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["p2", "b"]
+          },
+          {
+            "method": "approve",
+            "args": ["p1", "b"]
+          },
+          {
+            "method": "approve",
+            "args": ["p2", "b"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["a"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p1"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p1", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["p2", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["p1", "r"]
+          },
+          {
+            "method": "request",
+            "args": ["p2", "r"]
+          },
+          {
+            "method": "approve",
+            "args": ["p2", "r"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p1"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p2"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["r"]
+          },
+          {
+            "method": "approve",
+            "args": ["p1", "s"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["P", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["p", "A"]
+          },
+          {
+            "method": "request",
+            "args": ["P", "A"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["A"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["a"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "A"]
+          },
+          {
+            "method": "approve",
+            "args": ["P", "A"]
+          },
+          {
+            "method": "approvals",
+            "args": ["P"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["pr-1", "dev"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-2", "dev"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-3", "dev"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-4", "dev"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-5", "dev"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-6", "dev"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-7", "dev"]
+          },
+          {
+            "method": "open",
+            "args": ["pr-8", "dev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-5", "rev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-2", "rev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-8", "rev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-1", "rev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-7", "rev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-3", "rev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-6", "rev"]
+          },
+          {
+            "method": "request",
+            "args": ["pr-4", "rev"]
+          },
+          {
+            "method": "approve",
+            "args": ["pr-8", "rev"]
+          },
+          {
+            "method": "approve",
+            "args": ["pr-5", "rev"]
+          },
+          {
+            "method": "approve",
+            "args": ["pr-4", "rev"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["rev"]
+          },
+          {
+            "method": "approvals",
+            "args": ["pr-8"]
+          },
+          {
+            "method": "approvals",
+            "args": ["pr-2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["q", "b"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "approve",
+            "args": ["q", "b"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "open",
+            "args": ["q", "b"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "c"]
+          },
+          {
+            "method": "request",
+            "args": ["q", "c"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "c"]
+          },
+          {
+            "method": "approve",
+            "args": ["q", "c"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["c"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          },
+          {
+            "method": "approvals",
+            "args": ["q"]
+          },
+          {
+            "method": "request",
+            "args": ["q", "a"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "codeowner",
+        "params": [
+          {
+            "name": "pathPrefix",
+            "type": "string"
+          },
+          {
+            "name": "reviewer",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "touch",
+        "params": [
+          {
+            "name": "pr",
+            "type": "string"
+          },
+          {
+            "name": "path",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "codeowner",
+            "args": ["src/", "ana"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["src/db/", "bo"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["docs/", "cy"]
+          },
+          {
+            "method": "open",
+            "args": ["p", "dee"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "src/db/schema.sql"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["ana"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["bo"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["cy"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "src/app.ts"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "docs/a.md"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "cy"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "codeowner",
+            "args": ["", "a"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["x", ""]
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", ""]
+          },
+          {
+            "method": "touch",
+            "args": ["", "x"]
+          },
+          {
+            "method": "touch",
+            "args": ["q", "x"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["src", "a"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["src", "b"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["src", "b"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "srcmap.json"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "sr"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "lib/x"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["lib/", "b"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          },
+          {
+            "method": "open",
+            "args": ["q", "c"]
+          },
+          {
+            "method": "touch",
+            "args": ["q", "lib/y"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "lib/x"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "request",
+            "args": ["p", "b"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["a/", "b"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["a/", "c"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["a/b/", "c"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["a/b/", "d"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "a/b/c"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "a/b/c"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["c"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["d"]
+          },
+          {
+            "method": "approve",
+            "args": ["p", "d"]
+          },
+          {
+            "method": "approvals",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["p", "a"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["A/", "b"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "a/x"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "A/x"]
+          },
+          {
+            "method": "codeowner",
+            "args": ["a/", "z"]
+          },
+          {
+            "method": "touch",
+            "args": ["p", "A/x"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["z"]
+          },
+          {
+            "method": "pendingFor",
+            "args": ["b"]
+          }
+        ]
+      }
+    ]
+  }
+}

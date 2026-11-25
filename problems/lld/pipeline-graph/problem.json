@@ -1,0 +1,1155 @@
+{
+  "slug": "pipeline-graph",
+  "title": "CI pipeline graph",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["object-composition", "association", "dependency-relationship"],
+  "interface": {
+    "class": "Pipeline",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "stage",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "job",
+        "params": [
+          {
+            "name": "stage",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "needs",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "fail",
+        "params": [
+          {
+            "name": "job",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "run",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "removeStage",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["build"]
+          },
+          {
+            "method": "stage",
+            "args": ["test"]
+          },
+          {
+            "method": "stage",
+            "args": ["deploy"]
+          },
+          {
+            "method": "job",
+            "args": ["build", "compile", []]
+          },
+          {
+            "method": "job",
+            "args": ["build", "assets", []]
+          },
+          {
+            "method": "job",
+            "args": ["test", "unit", ["compile"]]
+          },
+          {
+            "method": "job",
+            "args": ["test", "e2e", ["compile", "assets"]]
+          },
+          {
+            "method": "job",
+            "args": ["test", "lint", []]
+          },
+          {
+            "method": "job",
+            "args": ["deploy", "ship", ["unit", "e2e"]]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["assets"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["build"]
+          },
+          {
+            "method": "removeStage",
+            "args": ["deploy"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["a"]
+          },
+          {
+            "method": "stage",
+            "args": ["b"]
+          },
+          {
+            "method": "job",
+            "args": ["a", "x", []]
+          },
+          {
+            "method": "job",
+            "args": ["a", "y", ["x"]]
+          },
+          {
+            "method": "job",
+            "args": ["b", "x", []]
+          },
+          {
+            "method": "job",
+            "args": ["b", "z", ["x", "w"]]
+          },
+          {
+            "method": "job",
+            "args": ["b", "z", ["x"]]
+          },
+          {
+            "method": "job",
+            "args": ["c", "q", []]
+          },
+          {
+            "method": "stage",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": [""]
+          },
+          {
+            "method": "job",
+            "args": ["", "j", []]
+          },
+          {
+            "method": "removeStage",
+            "args": [""]
+          },
+          {
+            "method": "fail",
+            "args": [""]
+          },
+          {
+            "method": "removeStage",
+            "args": ["s"]
+          },
+          {
+            "method": "fail",
+            "args": ["j"]
+          },
+          {
+            "method": "stage",
+            "args": ["s"]
+          },
+          {
+            "method": "job",
+            "args": ["s", "", []]
+          },
+          {
+            "method": "job",
+            "args": ["s", "j", [""]]
+          },
+          {
+            "method": "job",
+            "args": ["s", "j", []]
+          },
+          {
+            "method": "job",
+            "args": ["s", "k", ["j", "j"]]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["one"]
+          },
+          {
+            "method": "stage",
+            "args": ["two"]
+          },
+          {
+            "method": "job",
+            "args": ["two", "late", []]
+          },
+          {
+            "method": "job",
+            "args": ["one", "a", ["late"]]
+          },
+          {
+            "method": "job",
+            "args": ["one", "b", []]
+          },
+          {
+            "method": "job",
+            "args": ["one", "c", ["b"]]
+          },
+          {
+            "method": "job",
+            "args": ["two", "d", ["b", "late"]]
+          },
+          {
+            "method": "job",
+            "args": ["two", "e", ["b"]]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "stage",
+            "args": ["s3"]
+          },
+          {
+            "method": "stage",
+            "args": ["s4"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "b", ["a"]]
+          },
+          {
+            "method": "job",
+            "args": ["s3", "c", ["b"]]
+          },
+          {
+            "method": "job",
+            "args": ["s4", "d", ["c"]]
+          },
+          {
+            "method": "job",
+            "args": ["s4", "e", []]
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "b", ["a"]]
+          },
+          {
+            "method": "fail",
+            "args": ["b"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "b", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "c", ["b"]]
+          },
+          {
+            "method": "removeStage",
+            "args": ["s1"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["s2"]
+          },
+          {
+            "method": "removeStage",
+            "args": ["s1"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["x"]
+          },
+          {
+            "method": "job",
+            "args": ["x", "j", []]
+          },
+          {
+            "method": "fail",
+            "args": ["j"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["x"]
+          },
+          {
+            "method": "fail",
+            "args": ["j"]
+          },
+          {
+            "method": "stage",
+            "args": ["x"]
+          },
+          {
+            "method": "job",
+            "args": ["x", "j", []]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["c"]
+          },
+          {
+            "method": "stage",
+            "args": ["a"]
+          },
+          {
+            "method": "stage",
+            "args": ["b"]
+          },
+          {
+            "method": "job",
+            "args": ["b", "jb", []]
+          },
+          {
+            "method": "job",
+            "args": ["a", "ja", []]
+          },
+          {
+            "method": "job",
+            "args": ["c", "jc", []]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["a"]
+          },
+          {
+            "method": "stage",
+            "args": ["a"]
+          },
+          {
+            "method": "job",
+            "args": ["a", "ja2", ["jb", "jc"]]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["e1"]
+          },
+          {
+            "method": "stage",
+            "args": ["e2"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["e1"]
+          },
+          {
+            "method": "removeStage",
+            "args": ["e2"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["e1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "removeStage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "b", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "c", ["b"]]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "d", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "e", ["d"]]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s"]
+          },
+          {
+            "method": "job",
+            "args": ["s", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s", "b", ["a"]]
+          },
+          {
+            "method": "stage",
+            "args": ["t"]
+          },
+          {
+            "method": "job",
+            "args": ["t", "c", ["a"]]
+          },
+          {
+            "method": "job",
+            "args": ["t", "d", ["c"]]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["unit"]
+          },
+          {
+            "method": "stage",
+            "args": ["integ"]
+          },
+          {
+            "method": "stage",
+            "args": ["release"]
+          },
+          {
+            "method": "job",
+            "args": ["unit", "u0", []]
+          },
+          {
+            "method": "job",
+            "args": ["unit", "u1", []]
+          },
+          {
+            "method": "job",
+            "args": ["unit", "u2", []]
+          },
+          {
+            "method": "job",
+            "args": ["unit", "u3", []]
+          },
+          {
+            "method": "job",
+            "args": ["integ", "i0", ["u0", "u1"]]
+          },
+          {
+            "method": "job",
+            "args": ["integ", "i1", ["u2"]]
+          },
+          {
+            "method": "job",
+            "args": ["integ", "i2", ["u3"]]
+          },
+          {
+            "method": "job",
+            "args": ["release", "r", ["i0", "i1"]]
+          },
+          {
+            "method": "job",
+            "args": ["release", "notes", ["i2"]]
+          },
+          {
+            "method": "fail",
+            "args": ["u2"]
+          },
+          {
+            "method": "fail",
+            "args": ["i2"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["release"]
+          },
+          {
+            "method": "removeStage",
+            "args": ["integ"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["S"]
+          },
+          {
+            "method": "stage",
+            "args": ["s"]
+          },
+          {
+            "method": "job",
+            "args": ["S", "J", []]
+          },
+          {
+            "method": "job",
+            "args": ["s", "j", ["J"]]
+          },
+          {
+            "method": "job",
+            "args": ["s", "J", []]
+          },
+          {
+            "method": "fail",
+            "args": ["J"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["S"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "b", ["a"]]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "c", ["a"]]
+          },
+          {
+            "method": "removeStage",
+            "args": ["s2"]
+          },
+          {
+            "method": "removeStage",
+            "args": ["s1"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "allowFailure",
+        "params": [
+          {
+            "name": "job",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["build"]
+          },
+          {
+            "method": "stage",
+            "args": ["test"]
+          },
+          {
+            "method": "stage",
+            "args": ["deploy"]
+          },
+          {
+            "method": "job",
+            "args": ["build", "compile", []]
+          },
+          {
+            "method": "job",
+            "args": ["build", "assets", []]
+          },
+          {
+            "method": "job",
+            "args": ["test", "unit", ["compile"]]
+          },
+          {
+            "method": "job",
+            "args": ["test", "e2e", ["compile", "assets"]]
+          },
+          {
+            "method": "job",
+            "args": ["test", "lint", []]
+          },
+          {
+            "method": "job",
+            "args": ["deploy", "ship", ["unit", "e2e"]]
+          },
+          {
+            "method": "fail",
+            "args": ["lint"]
+          },
+          {
+            "method": "fail",
+            "args": ["unit"]
+          },
+          {
+            "method": "allowFailure",
+            "args": ["unit"]
+          },
+          {
+            "method": "job",
+            "args": ["deploy", "notify", ["lint"]]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "allowFailure",
+            "args": [""]
+          },
+          {
+            "method": "allowFailure",
+            "args": ["x"]
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "stage",
+            "args": ["s3"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "b", ["a"]]
+          },
+          {
+            "method": "job",
+            "args": ["s3", "c", ["b"]]
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "allowFailure",
+            "args": ["b"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "allowFailure",
+            "args": ["a"]
+          },
+          {
+            "method": "allowFailure",
+            "args": ["a"]
+          },
+          {
+            "method": "fail",
+            "args": ["b"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "b", ["a"]]
+          },
+          {
+            "method": "allowFailure",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "removeStage",
+            "args": ["s2"]
+          },
+          {
+            "method": "removeStage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "b", ["a"]]
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "ok", []]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "flaky", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "both", ["ok", "flaky"]]
+          },
+          {
+            "method": "fail",
+            "args": ["flaky"]
+          },
+          {
+            "method": "fail",
+            "args": ["ok"]
+          },
+          {
+            "method": "allowFailure",
+            "args": ["flaky"]
+          },
+          {
+            "method": "run",
+            "args": []
+          },
+          {
+            "method": "allowFailure",
+            "args": ["ok"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "stage",
+            "args": ["s1"]
+          },
+          {
+            "method": "stage",
+            "args": ["s2"]
+          },
+          {
+            "method": "stage",
+            "args": ["s3"]
+          },
+          {
+            "method": "job",
+            "args": ["s1", "a", []]
+          },
+          {
+            "method": "job",
+            "args": ["s2", "b", ["a"]]
+          },
+          {
+            "method": "job",
+            "args": ["s3", "c", ["b"]]
+          },
+          {
+            "method": "job",
+            "args": ["s3", "d", ["a"]]
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "fail",
+            "args": ["b"]
+          },
+          {
+            "method": "allowFailure",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1353 @@
+{
+  "slug": "resource-tree",
+  "title": "Cloud resource hierarchy",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "relationships",
+  "concepts": ["object-composition", "aggregation", "association", "rbac"],
+  "interface": {
+    "class": "ResourceTree",
+    "constructor": {
+      "params": [
+        {
+          "name": "org",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "addNode",
+        "params": [
+          {
+            "name": "parent",
+            "type": "string"
+          },
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "kind",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "attach",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "role",
+            "type": "string"
+          },
+          {
+            "name": "member",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "can",
+        "params": [
+          {
+            "name": "member",
+            "type": "string"
+          },
+          {
+            "name": "role",
+            "type": "string"
+          },
+          {
+            "name": "node",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "move",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "parent",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "remove",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["eng", "viewer", "ana"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "bucket"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "vm"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "editor", "bucket"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "ops"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "bucket"]
+          },
+          {
+            "method": "attach",
+            "args": ["ops", "viewer", "ana"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "bucket"]
+          },
+          {
+            "method": "remove",
+            "args": ["ops"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "eng"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["org"]
+          },
+          {
+            "method": "addNode",
+            "args": ["org", "p", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["org", "f", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["f", "f2", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["f", "p", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p", "r", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["f", "r2", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ghost", "x", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["f", "p", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p", "q", "bucket"]
+          },
+          {
+            "method": "move",
+            "args": ["r", "f"]
+          },
+          {
+            "method": "remove",
+            "args": ["org"]
+          },
+          {
+            "method": "remove",
+            "args": ["f"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["o"]
+          },
+          {
+            "method": "addNode",
+            "args": ["", "x", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["o", "", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["o", "x", ""]
+          },
+          {
+            "method": "addNode",
+            "args": ["o", "x", "organization"]
+          },
+          {
+            "method": "addNode",
+            "args": ["o", "x", "Folder"]
+          },
+          {
+            "method": "attach",
+            "args": ["", "r", "m"]
+          },
+          {
+            "method": "attach",
+            "args": ["o", "", "m"]
+          },
+          {
+            "method": "attach",
+            "args": ["o", "r", ""]
+          },
+          {
+            "method": "attach",
+            "args": ["nope", "r", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["", "r", "o"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "", "o"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", ""]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "nope"]
+          },
+          {
+            "method": "move",
+            "args": ["", "o"]
+          },
+          {
+            "method": "move",
+            "args": ["o", ""]
+          },
+          {
+            "method": "remove",
+            "args": [""]
+          },
+          {
+            "method": "remove",
+            "args": ["nope"]
+          },
+          {
+            "method": "remove",
+            "args": ["o"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "o"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["web", "editor", "bo"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "bucket"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "eng"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "acme"]
+          },
+          {
+            "method": "can",
+            "args": ["Bo", "editor", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "Editor", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "viewer", "web"]
+          },
+          {
+            "method": "attach",
+            "args": ["acme", "owner", "cy"]
+          },
+          {
+            "method": "can",
+            "args": ["cy", "owner", "vm"]
+          },
+          {
+            "method": "can",
+            "args": ["cy", "owner", "acme"]
+          },
+          {
+            "method": "can",
+            "args": ["cy", "editor", "vm"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "move",
+            "args": ["acme", "eng"]
+          },
+          {
+            "method": "move",
+            "args": ["eng", "acme"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "web"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "bucket"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "acme"]
+          },
+          {
+            "method": "move",
+            "args": ["bucket", "eng"]
+          },
+          {
+            "method": "move",
+            "args": ["bucket", "infra"]
+          },
+          {
+            "method": "move",
+            "args": ["ghost", "eng"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "ghost"]
+          },
+          {
+            "method": "move",
+            "args": ["eng", "ops"]
+          },
+          {
+            "method": "remove",
+            "args": ["infra"]
+          },
+          {
+            "method": "remove",
+            "args": ["web"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["web", "deployer", "ci"]
+          },
+          {
+            "method": "attach",
+            "args": ["bucket", "reader", "app"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "ops"]
+          },
+          {
+            "method": "can",
+            "args": ["ci", "deployer", "bucket"]
+          },
+          {
+            "method": "can",
+            "args": ["app", "reader", "bucket"]
+          },
+          {
+            "method": "remove",
+            "args": ["ops"]
+          },
+          {
+            "method": "can",
+            "args": ["ci", "deployer", "eng"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "can",
+            "args": ["ci", "deployer", "web"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "can",
+            "args": ["app", "reader", "bucket"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["o"]
+          },
+          {
+            "method": "addNode",
+            "args": ["o", "f", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["f", "p0", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["f", "p1", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["f", "p2", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p0", "r00", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p1", "r10", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p1", "r11", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p2", "r20", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p2", "r21", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p2", "r22", "resource"]
+          },
+          {
+            "method": "remove",
+            "args": ["p2"]
+          },
+          {
+            "method": "remove",
+            "args": ["f"]
+          },
+          {
+            "method": "remove",
+            "args": ["f"]
+          },
+          {
+            "method": "addNode",
+            "args": ["o", "p0", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["p0", "f", "project"]
+          },
+          {
+            "method": "remove",
+            "args": ["p0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["vm", "ssh", "ops-team"]
+          },
+          {
+            "method": "remove",
+            "args": ["vm"]
+          },
+          {
+            "method": "can",
+            "args": ["ops-team", "ssh", "infra"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "can",
+            "args": ["ops-team", "ssh", "vm"]
+          },
+          {
+            "method": "remove",
+            "args": ["vm"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["eng", "viewer", "a"]
+          },
+          {
+            "method": "attach",
+            "args": ["eng", "viewer", "a"]
+          },
+          {
+            "method": "attach",
+            "args": ["eng", "viewer", "b"]
+          },
+          {
+            "method": "attach",
+            "args": ["eng", "editor", "a"]
+          },
+          {
+            "method": "can",
+            "args": ["a", "viewer", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["b", "viewer", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["b", "editor", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["c", "viewer", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["a", "viewer", "ops"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["eng", "r", "x"]
+          },
+          {
+            "method": "attach",
+            "args": ["ops", "r", "y"]
+          },
+          {
+            "method": "move",
+            "args": ["infra", "eng"]
+          },
+          {
+            "method": "can",
+            "args": ["x", "r", "vm"]
+          },
+          {
+            "method": "can",
+            "args": ["y", "r", "vm"]
+          },
+          {
+            "method": "move",
+            "args": ["infra", "ops"]
+          },
+          {
+            "method": "can",
+            "args": ["x", "r", "vm"]
+          },
+          {
+            "method": "can",
+            "args": ["y", "r", "vm"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "ops"]
+          },
+          {
+            "method": "can",
+            "args": ["y", "r", "bucket"]
+          },
+          {
+            "method": "can",
+            "args": ["x", "r", "bucket"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["n"]
+          },
+          {
+            "method": "addNode",
+            "args": ["n", "n", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["n", "a", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["a", "a", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["a", "b", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["b", "a", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["b", "B", "resource"]
+          },
+          {
+            "method": "remove",
+            "args": ["B"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "eng", "resource"]
+          },
+          {
+            "method": "move",
+            "args": ["bucket", "eng"]
+          },
+          {
+            "method": "attach",
+            "args": ["nope", "r", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "bucket"]
+          },
+          {
+            "method": "remove",
+            "args": ["eng"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "db", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["bucket", "r", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "db"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "bucket"]
+          },
+          {
+            "method": "attach",
+            "args": ["web", "r", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "db"]
+          },
+          {
+            "method": "remove",
+            "args": ["bucket"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "db"]
+          },
+          {
+            "method": "remove",
+            "args": ["web"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "deny",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "role",
+            "type": "string"
+          },
+          {
+            "name": "member",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["acme", "viewer", "ana"]
+          },
+          {
+            "method": "deny",
+            "args": ["web", "viewer", "ana"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "bucket"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "eng"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "vm"]
+          },
+          {
+            "method": "attach",
+            "args": ["bucket", "viewer", "ana"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "bucket"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "ops"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "bucket"]
+          },
+          {
+            "method": "remove",
+            "args": ["web"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "web", "project"]
+          },
+          {
+            "method": "can",
+            "args": ["ana", "viewer", "web"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["o"]
+          },
+          {
+            "method": "deny",
+            "args": ["", "r", "m"]
+          },
+          {
+            "method": "deny",
+            "args": ["o", "", "m"]
+          },
+          {
+            "method": "deny",
+            "args": ["o", "r", ""]
+          },
+          {
+            "method": "deny",
+            "args": ["x", "r", "m"]
+          },
+          {
+            "method": "attach",
+            "args": ["o", "r", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "o"]
+          },
+          {
+            "method": "deny",
+            "args": ["o", "r", "m"]
+          },
+          {
+            "method": "deny",
+            "args": ["o", "r", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "o"]
+          },
+          {
+            "method": "attach",
+            "args": ["o", "r", "n"]
+          },
+          {
+            "method": "attach",
+            "args": ["o", "s", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["n", "r", "o"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "s", "o"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "deny",
+            "args": ["eng", "editor", "bo"]
+          },
+          {
+            "method": "attach",
+            "args": ["web", "editor", "bo"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "web"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "ops"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "bucket"]
+          },
+          {
+            "method": "move",
+            "args": ["web", "eng"]
+          },
+          {
+            "method": "can",
+            "args": ["bo", "editor", "bucket"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "attach",
+            "args": ["acme", "r", "m"]
+          },
+          {
+            "method": "deny",
+            "args": ["bucket", "r", "m"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "web"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "bucket"]
+          },
+          {
+            "method": "deny",
+            "args": ["vm", "r", "x"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "vm"]
+          },
+          {
+            "method": "remove",
+            "args": ["bucket"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "can",
+            "args": ["m", "r", "bucket"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "eng", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["acme", "ops", "folder"]
+          },
+          {
+            "method": "addNode",
+            "args": ["eng", "web", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["ops", "infra", "project"]
+          },
+          {
+            "method": "addNode",
+            "args": ["web", "bucket", "resource"]
+          },
+          {
+            "method": "addNode",
+            "args": ["infra", "vm", "resource"]
+          },
+          {
+            "method": "deny",
+            "args": ["acme", "admin", "eve"]
+          },
+          {
+            "method": "attach",
+            "args": ["vm", "admin", "eve"]
+          },
+          {
+            "method": "can",
+            "args": ["eve", "admin", "vm"]
+          },
+          {
+            "method": "attach",
+            "args": ["vm", "viewer", "eve"]
+          },
+          {
+            "method": "can",
+            "args": ["eve", "viewer", "vm"]
+          },
+          {
+            "method": "can",
+            "args": ["eve", "admin", "acme"]
+          }
+        ]
+      }
+    ]
+  }
+}

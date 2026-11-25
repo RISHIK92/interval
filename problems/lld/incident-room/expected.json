@@ -1,0 +1,862 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": [
+          "1000 declared by ana",
+          "1500 bo joined",
+          "2000 bo: db failover started",
+          "3000 ana handed off to bo"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "error": "ValueError: incident already declared"
+      },
+      {
+        "call": 8,
+        "value": [
+          "50 declared by dee",
+          "60 eve joined",
+          "60 dee handed off to eve",
+          "70 dee: still here"
+        ]
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown incident"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: nowMs must be within 0 and 10^15"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: nowMs must be within 0 and 10^15"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown incident"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown incident"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown incident"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown incident"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": ["1000000000000000 declared by a"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: nowMs must be within 0 and 10^15"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: nowMs must be within 0 and 10^15"
+      },
+      {
+        "call": 11,
+        "value": ["0 declared by a"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["100 declared by a", "100 b joined", "100 b: y"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["10 declared by a", "20 b joined", "30 b: ok"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["5 declared by x"]
+      },
+      {
+        "call": 9,
+        "value": [
+          "1 declared by y",
+          "2 x joined",
+          "3 x: right room",
+          "4 y handed off to x"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": [
+          "0 declared by a",
+          "1 b joined",
+          "2 c joined",
+          "3 a handed off to b",
+          "4 b handed off to c",
+          "6 c handed off to a",
+          "8 c: done"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": ["0 declared by cmd", "1 cmd: first"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": [
+          "7 declared by a",
+          "7 a: p99 is 4s: rolling back",
+          "9 a:  spaces kept ",
+          "9 a: a: b"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": [
+          "0 declared by Ann",
+          "2 ann joined",
+          "3 Ann handed off to ann"
+        ]
+      },
+      {
+        "call": 9,
+        "value": ["0 declared by ann"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "error": "ValueError: nowMs must be within 0 and 10^15"
+      },
+      {
+        "call": 9,
+        "value": [
+          "999999999999990 declared by a",
+          "999999999999991 r0 joined",
+          "999999999999992 r1 joined",
+          "999999999999993 r2 joined",
+          "999999999999994 r3 joined",
+          "999999999999995 r4 joined",
+          "1000000000000000 r4: late"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["1000 declared by x", "1000 x: later"]
+      },
+      {
+        "call": 7,
+        "value": ["0 declared by x", "1 x: early"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: incident already declared"
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": ["5 declared by a"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not resolved yet"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": 60000
+      },
+      {
+        "call": 10,
+        "value": [
+          "1000 declared by a",
+          "2000 b joined",
+          "61000 resolved",
+          "64000 c joined",
+          "65000 a handed off to b"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown incident"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: ids, names and notes are not empty"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown incident"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: nowMs must be within 0 and 10^15"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: nowMs must be within 0 and 10^15"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not resolved yet"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": ["50 declared by a", "50 resolved"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": 1000000000000000
+      },
+      {
+        "call": 4,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": ["0 declared by a", "1000000000000000 resolved"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": 5
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": 90
+      },
+      {
+        "call": 9,
+        "value": ["10 declared by x", "30 x: still open", "100 resolved"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 6,
+        "value": 4
+      }
+    ]
+  }
+]
