@@ -1,0 +1,1011 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "debug",
+          "DB_URL": "postgres://db/app"
+        }
+      },
+      {
+        "call": 6,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": {
+          "QUEUE": "jobs",
+          "LOG_LEVEL": "warn"
+        }
+      },
+      {
+        "call": 6,
+        "value": {
+          "QUEUE": "other"
+        }
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'unknown template'"
+      },
+      {
+        "call": 8,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": {
+          "QUEUE": "other",
+          "NEW": "1"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      },
+      {
+        "call": 7,
+        "value": {
+          "PORT": "9000",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app",
+          "EXTRA": "x"
+        }
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": {
+          "PORT": "9000",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app",
+          "EXTRA": "x"
+        }
+      },
+      {
+        "call": 11,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      },
+      {
+        "call": 12,
+        "value": {
+          "PORT": "7000",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": {
+          "A": "1"
+        }
+      },
+      {
+        "call": 8,
+        "value": {
+          "B": "2"
+        }
+      },
+      {
+        "call": 9,
+        "value": {}
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": {
+          "A": "2"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": {
+          "K": "v",
+          "k": "v"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'unknown template'"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'unknown template'"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: names, keys and values are not empty"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'unknown template'"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": {
+          "K": "v"
+        }
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 11,
+        "value": {
+          "K": "v"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": {
+          "K": "t"
+        }
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": {
+          "K": "t"
+        }
+      },
+      {
+        "call": 7,
+        "value": {
+          "K": "e"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": {
+          "K": "v"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: names, keys and values are not empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: names, keys and values are not empty"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: names, keys and values are not empty"
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'unknown template'"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "error": "ValueError: names, keys and values are not empty"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: names, keys and values are not empty"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 11,
+        "value": {
+          "K": "v"
+        }
+      },
+      {
+        "call": 12,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 13,
+        "error": "KeyError: 'unknown environment'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": {}
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": {
+          "A": "1",
+          "B": "2"
+        }
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": {}
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 23,
+        "value": true
+      },
+      {
+        "call": 24,
+        "value": true
+      },
+      {
+        "call": 25,
+        "value": true
+      },
+      {
+        "call": 26,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 27,
+        "value": true
+      },
+      {
+        "call": 28,
+        "value": true
+      },
+      {
+        "call": 29,
+        "value": false
+      },
+      {
+        "call": 30,
+        "value": true
+      },
+      {
+        "call": 31,
+        "value": false
+      },
+      {
+        "call": 32,
+        "value": true
+      },
+      {
+        "call": 33,
+        "value": false
+      },
+      {
+        "call": 34,
+        "value": true
+      },
+      {
+        "call": 35,
+        "value": false
+      },
+      {
+        "call": 36,
+        "value": true
+      },
+      {
+        "call": 37,
+        "value": false
+      },
+      {
+        "call": 38,
+        "value": true
+      },
+      {
+        "call": 39,
+        "value": false
+      },
+      {
+        "call": 40,
+        "value": true
+      },
+      {
+        "call": 41,
+        "value": false
+      },
+      {
+        "call": 42,
+        "value": true
+      },
+      {
+        "call": 43,
+        "value": {
+          "PORT": "v0",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app",
+          "QUEUE": "v1"
+        }
+      },
+      {
+        "call": 44,
+        "value": {
+          "QUEUE": "jobs",
+          "LOG_LEVEL": "v2",
+          "PORT": "v3"
+        }
+      },
+      {
+        "call": 45,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "v1",
+          "DB_URL": "postgres://db/app",
+          "QUEUE": "v0"
+        }
+      },
+      {
+        "call": 46,
+        "value": {
+          "QUEUE": "v3",
+          "LOG_LEVEL": "warn",
+          "PORT": "v2"
+        }
+      },
+      {
+        "call": 47,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "v0",
+          "DB_URL": "postgres://db/app"
+        }
+      },
+      {
+        "call": 48,
+        "value": {
+          "QUEUE": "v2",
+          "LOG_LEVEL": "warn"
+        }
+      },
+      {
+        "call": 49,
+        "value": {
+          "PORT": "v0",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      },
+      {
+        "call": 50,
+        "value": {
+          "QUEUE": "jobs",
+          "LOG_LEVEL": "v2"
+        }
+      },
+      {
+        "call": 51,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app",
+          "QUEUE": "v0"
+        }
+      },
+      {
+        "call": 52,
+        "value": {
+          "QUEUE": "jobs",
+          "LOG_LEVEL": "warn",
+          "PORT": "v2"
+        }
+      },
+      {
+        "call": 53,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      },
+      {
+        "call": 54,
+        "value": {
+          "QUEUE": "jobs",
+          "LOG_LEVEL": "warn"
+        }
+      },
+      {
+        "call": 55,
+        "value": {
+          "PORT": "8080",
+          "LOG_LEVEL": "info",
+          "DB_URL": "postgres://db/app"
+        }
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["+API_KEY=k", "~PORT=9000", "+ZONE=a"]
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["+API_KEY=k", "+ZONE=a"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["~A=2"]
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": ["+B=1", "+_=1", "+a=1"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'unknown environment'"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["+L=x"]
+      },
+      {
+        "call": 7,
+        "value": {
+          "K": "v",
+          "L": "x"
+        }
+      }
+    ]
+  }
+]

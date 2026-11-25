@@ -1,0 +1,1308 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 2
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": "conn-1"
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": 2
+      },
+      {
+        "call": 5,
+        "value": "conn-3"
+      },
+      {
+        "call": 6,
+        "value": "conn-4"
+      },
+      {
+        "call": 7,
+        "value": 4
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": false
+      },
+      {
+        "call": 14,
+        "error": "KeyError: 'not a connection this pool made'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": "conn-3"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "conn-2"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "conn-1"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": "conn-3"
+      },
+      {
+        "call": 4,
+        "value": "conn-4"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": "conn-1"
+      },
+      {
+        "call": 10,
+        "value": "conn-4"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": "conn-3"
+      },
+      {
+        "call": 13,
+        "value": "conn-2"
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": 4
+      },
+      {
+        "call": 16,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": "conn-1"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 8,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 11,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 12,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 13,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "conn-3"
+      },
+      {
+        "call": 6,
+        "value": 3
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": "conn-4"
+      },
+      {
+        "call": 11,
+        "value": 4
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": false
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 16,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 17,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": "conn-3"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "conn-2"
+      },
+      {
+        "call": 9,
+        "value": "conn-1"
+      },
+      {
+        "call": 10,
+        "value": "conn-4"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": 4
+      },
+      {
+        "call": 13,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": "conn-3"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "conn-3"
+      },
+      {
+        "call": 9,
+        "value": "conn-1"
+      },
+      {
+        "call": 10,
+        "value": "conn-4"
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: maxSize is 1 to 1000"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: maxSize is 1 to 1000"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: clients are named"
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": "conn-1"
+      },
+      {
+        "call": 4,
+        "value": "conn-2"
+      },
+      {
+        "call": 5,
+        "value": "conn-3"
+      },
+      {
+        "call": 6,
+        "value": "conn-4"
+      },
+      {
+        "call": 7,
+        "value": "conn-5"
+      },
+      {
+        "call": 8,
+        "value": "conn-6"
+      },
+      {
+        "call": 9,
+        "value": "conn-7"
+      },
+      {
+        "call": 10,
+        "value": "conn-8"
+      },
+      {
+        "call": 11,
+        "value": "conn-9"
+      },
+      {
+        "call": 12,
+        "value": "conn-10"
+      },
+      {
+        "call": 13,
+        "value": "conn-11"
+      },
+      {
+        "call": 14,
+        "value": "conn-12"
+      },
+      {
+        "call": 15,
+        "value": "conn-13"
+      },
+      {
+        "call": 16,
+        "value": "conn-14"
+      },
+      {
+        "call": 17,
+        "value": "conn-15"
+      },
+      {
+        "call": 18,
+        "value": "conn-16"
+      },
+      {
+        "call": 19,
+        "value": "conn-17"
+      },
+      {
+        "call": 20,
+        "value": "conn-18"
+      },
+      {
+        "call": 21,
+        "value": "conn-19"
+      },
+      {
+        "call": 22,
+        "value": "conn-20"
+      },
+      {
+        "call": 23,
+        "value": "conn-21"
+      },
+      {
+        "call": 24,
+        "value": "conn-22"
+      },
+      {
+        "call": 25,
+        "value": "conn-23"
+      },
+      {
+        "call": 26,
+        "value": "conn-24"
+      },
+      {
+        "call": 27,
+        "value": "conn-25"
+      },
+      {
+        "call": 28,
+        "value": "conn-26"
+      },
+      {
+        "call": 29,
+        "value": "conn-27"
+      },
+      {
+        "call": 30,
+        "value": "conn-28"
+      },
+      {
+        "call": 31,
+        "value": "conn-29"
+      },
+      {
+        "call": 32,
+        "value": "conn-30"
+      },
+      {
+        "call": 33,
+        "value": 30
+      },
+      {
+        "call": 34,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: maxSize is 1 to 1000"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 5,
+        "value": "conn-1"
+      },
+      {
+        "call": 6,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": "conn-2"
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 5,
+        "value": "conn-3"
+      },
+      {
+        "call": 6,
+        "value": "conn-4"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "conn-4"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": 1
+      },
+      {
+        "call": 13,
+        "value": "conn-4"
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": "conn-4"
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": "conn-4"
+      },
+      {
+        "call": 20,
+        "value": 0
+      },
+      {
+        "call": 21,
+        "value": null
+      },
+      {
+        "call": 22,
+        "value": true
+      },
+      {
+        "call": 23,
+        "value": "conn-4"
+      },
+      {
+        "call": 24,
+        "value": null
+      },
+      {
+        "call": 25,
+        "value": true
+      },
+      {
+        "call": 26,
+        "value": true
+      },
+      {
+        "call": 27,
+        "value": "conn-4"
+      },
+      {
+        "call": 28,
+        "value": "conn-5"
+      },
+      {
+        "call": 29,
+        "value": true
+      },
+      {
+        "call": 30,
+        "value": 1
+      },
+      {
+        "call": 31,
+        "value": "conn-4"
+      },
+      {
+        "call": 32,
+        "value": null
+      },
+      {
+        "call": 33,
+        "value": true
+      },
+      {
+        "call": 34,
+        "value": "conn-4"
+      },
+      {
+        "call": 35,
+        "value": null
+      },
+      {
+        "call": 36,
+        "value": true
+      },
+      {
+        "call": 37,
+        "value": "conn-4"
+      },
+      {
+        "call": 38,
+        "value": 0
+      },
+      {
+        "call": 39,
+        "value": null
+      },
+      {
+        "call": 40,
+        "value": true
+      },
+      {
+        "call": 41,
+        "value": "conn-4"
+      },
+      {
+        "call": 42,
+        "error": "KeyError: 'not a connection this pool made'"
+      },
+      {
+        "call": 43,
+        "value": null
+      },
+      {
+        "call": 44,
+        "value": true
+      },
+      {
+        "call": 45,
+        "value": "conn-4"
+      },
+      {
+        "call": 46,
+        "value": null
+      },
+      {
+        "call": 47,
+        "value": true
+      },
+      {
+        "call": 48,
+        "value": 1
+      },
+      {
+        "call": 49,
+        "value": "conn-4"
+      },
+      {
+        "call": 50,
+        "value": null
+      },
+      {
+        "call": 51,
+        "value": true
+      },
+      {
+        "call": 52,
+        "value": "conn-4"
+      },
+      {
+        "call": 53,
+        "value": null
+      },
+      {
+        "call": 54,
+        "value": true
+      },
+      {
+        "call": 55,
+        "value": "conn-4"
+      },
+      {
+        "call": 56,
+        "value": 0
+      },
+      {
+        "call": 57,
+        "value": null
+      },
+      {
+        "call": 58,
+        "value": true
+      },
+      {
+        "call": 59,
+        "value": true
+      },
+      {
+        "call": 60,
+        "value": "conn-4"
+      },
+      {
+        "call": 61,
+        "value": "conn-6"
+      },
+      {
+        "call": 62,
+        "value": true
+      },
+      {
+        "call": 63,
+        "value": "conn-4"
+      },
+      {
+        "call": 64,
+        "value": null
+      },
+      {
+        "call": 65,
+        "value": true
+      },
+      {
+        "call": 66,
+        "value": 1
+      },
+      {
+        "call": 67,
+        "value": "conn-4"
+      },
+      {
+        "call": 68,
+        "value": null
+      },
+      {
+        "call": 69,
+        "value": true
+      },
+      {
+        "call": 70,
+        "value": "conn-4"
+      },
+      {
+        "call": 71,
+        "value": null
+      },
+      {
+        "call": 72,
+        "value": true
+      },
+      {
+        "call": 73,
+        "value": 6
+      },
+      {
+        "call": 74,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": "conn-3"
+      },
+      {
+        "call": 4,
+        "value": "conn-4"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": "conn-2"
+      },
+      {
+        "call": 12,
+        "value": "conn-4"
+      },
+      {
+        "call": 13,
+        "value": "conn-5"
+      },
+      {
+        "call": 14,
+        "value": 5
+      },
+      {
+        "call": 15,
+        "value": false
+      },
+      {
+        "call": 16,
+        "value": false
+      },
+      {
+        "call": 17,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": "conn-1"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "error": "ValueError: maxIdle is not negative"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": "conn-1"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": "conn-3"
+      },
+      {
+        "call": 9,
+        "value": "conn-4"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": 4
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "conn-1"
+      },
+      {
+        "call": 2,
+        "value": "conn-2"
+      },
+      {
+        "call": 3,
+        "value": "conn-3"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": "conn-3"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": "conn-3"
+      },
+      {
+        "call": 12,
+        "value": 3
+      }
+    ]
+  }
+]

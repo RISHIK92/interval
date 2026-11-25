@@ -1,0 +1,858 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": "db-password#1"
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": "db-password#1"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": "api-key#1"
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": "db-password#2"
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": "api-key#1"
+      },
+      {
+        "call": 13,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": "tls-cert#3"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": "tls-cert#3"
+      },
+      {
+        "call": 9,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "db-password#1"
+      },
+      {
+        "call": 2,
+        "value": "api-key#1"
+      },
+      {
+        "call": 3,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 4,
+        "value": "db-password#1"
+      },
+      {
+        "call": 5,
+        "value": "api-key#1"
+      },
+      {
+        "call": 6,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 7,
+        "value": "db-password#1"
+      },
+      {
+        "call": 8,
+        "value": "api-key#1"
+      },
+      {
+        "call": 9,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 10,
+        "value": "db-password#1"
+      },
+      {
+        "call": 11,
+        "value": "api-key#1"
+      },
+      {
+        "call": 12,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 13,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "db-password#1"
+      },
+      {
+        "call": 2,
+        "value": "api-key#1"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "db-password#1"
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": "api-key#2"
+      },
+      {
+        "call": 7,
+        "value": 3
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": "api-key#5"
+      },
+      {
+        "call": 13,
+        "value": "api-key#5"
+      },
+      {
+        "call": 14,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": "db-password#1"
+      },
+      {
+        "call": 8,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 3,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 4,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: names are not empty"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: names are unique"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 4,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a#1"
+      },
+      {
+        "call": 2,
+        "value": "A#1"
+      },
+      {
+        "call": 3,
+        "value": "a b#1"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "A#2"
+      },
+      {
+        "call": 6,
+        "value": "a#1"
+      },
+      {
+        "call": 7,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "db-password#1"
+      },
+      {
+        "call": 2,
+        "value": "s3#1"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 5,
+        "value": "api-key#2"
+      },
+      {
+        "call": 6,
+        "value": 4
+      },
+      {
+        "call": 7,
+        "value": "db-password#1"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "s3#1"
+      },
+      {
+        "call": 10,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 11,
+        "value": "api-key#2"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": 4
+      },
+      {
+        "call": 14,
+        "value": "db-password#2"
+      },
+      {
+        "call": 15,
+        "value": "s3#2"
+      },
+      {
+        "call": 16,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": "api-key#2"
+      },
+      {
+        "call": 19,
+        "value": 6
+      },
+      {
+        "call": 20,
+        "value": "db-password#2"
+      },
+      {
+        "call": 21,
+        "value": "s3#2"
+      },
+      {
+        "call": 22,
+        "value": null
+      },
+      {
+        "call": 23,
+        "value": "tls-cert#2"
+      },
+      {
+        "call": 24,
+        "value": "api-key#3"
+      },
+      {
+        "call": 25,
+        "value": 8
+      },
+      {
+        "call": 26,
+        "value": "db-password#2"
+      },
+      {
+        "call": 27,
+        "value": null
+      },
+      {
+        "call": 28,
+        "value": "s3#2"
+      },
+      {
+        "call": 29,
+        "value": "tls-cert#2"
+      },
+      {
+        "call": 30,
+        "value": "api-key#3"
+      },
+      {
+        "call": 31,
+        "value": null
+      },
+      {
+        "call": 32,
+        "value": 8
+      },
+      {
+        "call": 33,
+        "value": "db-password#3"
+      },
+      {
+        "call": 34,
+        "value": "s3#3"
+      },
+      {
+        "call": 35,
+        "value": "tls-cert#2"
+      },
+      {
+        "call": 36,
+        "value": null
+      },
+      {
+        "call": 37,
+        "value": "api-key#3"
+      },
+      {
+        "call": 38,
+        "value": 10
+      },
+      {
+        "call": 39,
+        "value": "db-password#3"
+      },
+      {
+        "call": 40,
+        "value": "s3#3"
+      },
+      {
+        "call": 41,
+        "value": null
+      },
+      {
+        "call": 42,
+        "value": "tls-cert#3"
+      },
+      {
+        "call": 43,
+        "value": "api-key#4"
+      },
+      {
+        "call": 44,
+        "value": 12
+      },
+      {
+        "call": 45,
+        "value": "db-password#3"
+      },
+      {
+        "call": 46,
+        "value": null
+      },
+      {
+        "call": 47,
+        "value": "s3#3"
+      },
+      {
+        "call": 48,
+        "value": "tls-cert#3"
+      },
+      {
+        "call": 49,
+        "value": "api-key#4"
+      },
+      {
+        "call": 50,
+        "value": null
+      },
+      {
+        "call": 51,
+        "value": 12
+      },
+      {
+        "call": 52,
+        "value": "db-password#4"
+      },
+      {
+        "call": 53,
+        "value": "s3#4"
+      },
+      {
+        "call": 54,
+        "value": "tls-cert#3"
+      },
+      {
+        "call": 55,
+        "value": null
+      },
+      {
+        "call": 56,
+        "value": "api-key#4"
+      },
+      {
+        "call": 57,
+        "value": 14
+      },
+      {
+        "call": 58,
+        "value": "db-password#4"
+      },
+      {
+        "call": 59,
+        "value": "s3#4"
+      },
+      {
+        "call": 60,
+        "value": null
+      },
+      {
+        "call": 61,
+        "value": "tls-cert#4"
+      },
+      {
+        "call": 62,
+        "value": "api-key#5"
+      },
+      {
+        "call": 63,
+        "value": 16
+      },
+      {
+        "call": 64,
+        "value": 16
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 2
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": "db-password#1"
+      },
+      {
+        "call": 4,
+        "value": "api-key#1"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 7,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "api-key#1"
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": "tls-cert#2"
+      },
+      {
+        "call": 10,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown secret'"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": "tls-cert#1"
+      },
+      {
+        "call": 9,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": "api-key#2"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": "db-password#2"
+      },
+      {
+        "call": 8,
+        "value": "api-key#3"
+      },
+      {
+        "call": 9,
+        "value": 2
+      }
+    ]
+  }
+]

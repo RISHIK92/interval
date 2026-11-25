@@ -1,0 +1,1355 @@
+{
+  "slug": "conn-pool",
+  "title": "Connection pool",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["object-pool-pattern", "connection-pooling", "race-conditions"],
+  "interface": {
+    "class": "ConnPool",
+    "constructor": {
+      "params": [
+        {
+          "name": "maxSize",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "acquire",
+        "params": [
+          {
+            "name": "client",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "release",
+        "params": [
+          {
+            "name": "conn",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "invalidate",
+        "params": [
+          {
+            "name": "conn",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "created",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "idle",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "acquire",
+            "args": ["api"]
+          },
+          {
+            "method": "acquire",
+            "args": ["worker"]
+          },
+          {
+            "method": "acquire",
+            "args": ["cron"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["cron"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "acquire",
+            "args": ["d"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["e"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-9"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "created",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "acquire",
+            "args": ["d"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["x"]
+          },
+          {
+            "method": "acquire",
+            "args": ["y"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "acquire",
+            "args": ["z"]
+          },
+          {
+            "method": "acquire",
+            "args": ["w"]
+          },
+          {
+            "method": "acquire",
+            "args": ["v"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-0"]
+          },
+          {
+            "method": "release",
+            "args": ["Conn-1"]
+          },
+          {
+            "method": "release",
+            "args": [""]
+          },
+          {
+            "method": "release",
+            "args": ["conn-01"]
+          },
+          {
+            "method": "release",
+            "args": ["1"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["d"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-6"]
+          },
+          {
+            "method": "invalidate",
+            "args": [""]
+          },
+          {
+            "method": "created",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "acquire",
+            "args": ["d"]
+          },
+          {
+            "method": "acquire",
+            "args": ["e"]
+          },
+          {
+            "method": "acquire",
+            "args": ["f"]
+          },
+          {
+            "method": "acquire",
+            "args": ["g"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "acquire",
+            "args": ["x"]
+          },
+          {
+            "method": "acquire",
+            "args": ["y"]
+          },
+          {
+            "method": "acquire",
+            "args": ["z"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "created",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "acquire",
+            "args": [""]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["c0"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c1"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c2"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c3"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c5"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c6"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c7"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c8"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c9"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c10"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c11"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c12"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c13"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c14"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c15"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c16"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c17"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c18"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c19"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c20"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c21"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c22"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c23"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c24"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c25"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c26"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c27"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c28"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c29"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "acquire",
+            "args": ["first"]
+          },
+          {
+            "method": "created",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "acquire",
+            "args": ["client0"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client2"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client3"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client4"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-7"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client5"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client6"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client0"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client1"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client3"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client4"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client5"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client6"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client0"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client2"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client3"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client5"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client6"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client0"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client1"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-6"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client3"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client4"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client5"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client6"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client0"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client2"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client3"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client5"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client6"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client0"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["client1"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client3"]
+          },
+          {
+            "method": "acquire",
+            "args": ["client4"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "idle",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "shrink",
+        "params": [
+          {
+            "name": "maxIdle",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "acquire",
+            "args": ["d"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-4"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "shrink",
+            "args": [2]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["x"]
+          },
+          {
+            "method": "acquire",
+            "args": ["y"]
+          },
+          {
+            "method": "acquire",
+            "args": ["z"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "shrink",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "shrink",
+            "args": [0]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "shrink",
+            "args": [1]
+          },
+          {
+            "method": "shrink",
+            "args": [5]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "shrink",
+            "args": [-1]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "shrink",
+            "args": [0]
+          },
+          {
+            "method": "idle",
+            "args": []
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "acquire",
+            "args": ["d"]
+          },
+          {
+            "method": "acquire",
+            "args": ["e"]
+          },
+          {
+            "method": "created",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["conn-2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "acquire",
+            "args": ["a"]
+          },
+          {
+            "method": "acquire",
+            "args": ["b"]
+          },
+          {
+            "method": "acquire",
+            "args": ["c"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-1"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-2"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "shrink",
+            "args": [1]
+          },
+          {
+            "method": "acquire",
+            "args": ["x"]
+          },
+          {
+            "method": "release",
+            "args": ["conn-3"]
+          },
+          {
+            "method": "shrink",
+            "args": [1]
+          },
+          {
+            "method": "acquire",
+            "args": ["y"]
+          },
+          {
+            "method": "created",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

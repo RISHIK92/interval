@@ -1,0 +1,1104 @@
+{
+  "slug": "sink-factory",
+  "title": "Log sink factory",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["factory-method-pattern"],
+  "interface": {
+    "class": "SinkFactory",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "create",
+        "params": [
+          {
+            "name": "spec",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "kindOf",
+        "params": [
+          {
+            "name": "sink",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "writeLine",
+        "params": [
+          {
+            "name": "sink",
+            "type": "string"
+          },
+          {
+            "name": "line",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "created",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/var/log/app.log"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:logs.internal:514"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["file-1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", "started"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "started"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "ready"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-1", "disk full"]
+          },
+          {
+            "method": "created",
+            "args": ["file"]
+          },
+          {
+            "method": "created",
+            "args": ["kafka"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["file:/tmp/a"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/tmp/a"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "x"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "y"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "z"]
+          },
+          {
+            "method": "create",
+            "args": ["file:tmp"]
+          },
+          {
+            "method": "created",
+            "args": ["file"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["file-3"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "created",
+            "args": ["stdout"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": [""]
+          },
+          {
+            "method": "create",
+            "args": ["STDOUT"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout "]
+          },
+          {
+            "method": "create",
+            "args": ["stdout:"]
+          },
+          {
+            "method": "create",
+            "args": ["file:"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/"]
+          },
+          {
+            "method": "create",
+            "args": ["file:var/log"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/var/log/"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/a b"]
+          },
+          {
+            "method": "create",
+            "args": ["File:/x"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog::514"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:0"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:65536"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:0514"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:514:1"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h_1:514"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:5a"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:-1"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:100000"]
+          },
+          {
+            "method": "create",
+            "args": ["kafka:topic"]
+          },
+          {
+            "method": "create",
+            "args": ["file"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog"]
+          },
+          {
+            "method": "created",
+            "args": ["stdout"]
+          },
+          {
+            "method": "created",
+            "args": ["file"]
+          },
+          {
+            "method": "created",
+            "args": ["syslog"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["stdout-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["file:/x"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/a/b.c-d_e~"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:1"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:65535"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:10.0.0.1:6514"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:a-b.C:99"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "2"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-1", "3"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-2", "4"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-3", "5"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-4", "6"]
+          },
+          {
+            "method": "created",
+            "args": ["syslog"]
+          },
+          {
+            "method": "created",
+            "args": ["file"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["syslog-4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["file:/odd:name"]
+          },
+          {
+            "method": "create",
+            "args": ["file://double"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/!*'()"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "a"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "b"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-3", "c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:514"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:514"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/f"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:g:515"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["syslog-3"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["stdout-2"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["file-1"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["file-2"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["stdout-0"]
+          },
+          {
+            "method": "kindOf",
+            "args": ["Stdout-1"]
+          },
+          {
+            "method": "kindOf",
+            "args": [""]
+          },
+          {
+            "method": "created",
+            "args": ["syslog"]
+          },
+          {
+            "method": "created",
+            "args": ["stdout"]
+          },
+          {
+            "method": "created",
+            "args": ["file"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-2", "x"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-3", "y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["file:/a"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/b"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h:9"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "line 0"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "line 1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", "line 2"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "line 3"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "line 4"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "line 5"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "line 6"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-1", "line 7"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "line 8"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "line 9"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", "line 10"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-1", "line 11"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "line 12"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "line 13"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", ""]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-2", "x"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["", "x"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["nope", ""]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", " spaced  "]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", "x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "created",
+            "args": [""]
+          },
+          {
+            "method": "created",
+            "args": ["stdout"]
+          },
+          {
+            "method": "created",
+            "args": ["buffered"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "created",
+            "args": ["stdout"]
+          },
+          {
+            "method": "created",
+            "args": ["STDOUT"]
+          },
+          {
+            "method": "created",
+            "args": ["stdout-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "kindOf",
+            "args": ["stdout-1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "x"]
+          },
+          {
+            "method": "created",
+            "args": ["file"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", "e0"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/log/1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "e1"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h0:502"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-1", "e2"]
+          },
+          {
+            "method": "create",
+            "args": ["bad"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-1", "e3"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "e4"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/log/2"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-1", "e5"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h0:506"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-2", "e6"]
+          },
+          {
+            "method": "create",
+            "args": ["bad"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "e7"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-2", "e8"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/log/0"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-2", "e9"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h0:510"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-2", "e10"]
+          },
+          {
+            "method": "create",
+            "args": ["bad"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-2", "e11"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-3", "e12"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/log/1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-3", "e13"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h0:514"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-3", "e14"]
+          },
+          {
+            "method": "create",
+            "args": ["bad"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-3", "e15"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-3", "e16"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/log/2"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-3", "e17"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h0:518"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-4", "e18"]
+          },
+          {
+            "method": "create",
+            "args": ["bad"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-4", "e19"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-4", "e20"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/log/0"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-4", "e21"]
+          },
+          {
+            "method": "create",
+            "args": ["syslog:h0:522"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-4", "e22"]
+          },
+          {
+            "method": "create",
+            "args": ["bad"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["syslog-4", "e23"]
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["stdout-5", "e24"]
+          },
+          {
+            "method": "created",
+            "args": ["stdout"]
+          },
+          {
+            "method": "created",
+            "args": ["file"]
+          },
+          {
+            "method": "created",
+            "args": ["syslog"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "createBuffered",
+        "params": [
+          {
+            "name": "capacity",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "flush",
+        "params": [
+          {
+            "name": "sink",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createBuffered",
+            "args": [3]
+          },
+          {
+            "method": "kindOf",
+            "args": ["buffered-1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "a"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "b"]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-1"]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "c"]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-1"]
+          },
+          {
+            "method": "created",
+            "args": ["buffered"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createBuffered",
+            "args": [2]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "a"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "b"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "c"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "d"]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-1"]
+          },
+          {
+            "method": "createBuffered",
+            "args": [1]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-2", "x"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-2", "y"]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-2"]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createBuffered",
+            "args": [0]
+          },
+          {
+            "method": "createBuffered",
+            "args": [1001]
+          },
+          {
+            "method": "createBuffered",
+            "args": [-1]
+          },
+          {
+            "method": "created",
+            "args": ["buffered"]
+          },
+          {
+            "method": "createBuffered",
+            "args": [1000]
+          },
+          {
+            "method": "createBuffered",
+            "args": [1]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "l0"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "l1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "l2"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "l3"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", "l4"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["buffered-1", ""]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-1"]
+          },
+          {
+            "method": "created",
+            "args": ["buffered"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["stdout"]
+          },
+          {
+            "method": "create",
+            "args": ["file:/f"]
+          },
+          {
+            "method": "createBuffered",
+            "args": [5]
+          },
+          {
+            "method": "flush",
+            "args": ["stdout-1"]
+          },
+          {
+            "method": "flush",
+            "args": ["file-1"]
+          },
+          {
+            "method": "flush",
+            "args": ["nope"]
+          },
+          {
+            "method": "flush",
+            "args": [""]
+          },
+          {
+            "method": "kindOf",
+            "args": ["buffered-1"]
+          },
+          {
+            "method": "writeLine",
+            "args": ["file-1", "a"]
+          },
+          {
+            "method": "create",
+            "args": ["buffered"]
+          },
+          {
+            "method": "created",
+            "args": ["buffered"]
+          },
+          {
+            "method": "flush",
+            "args": ["buffered-1"]
+          }
+        ]
+      }
+    ]
+  }
+}

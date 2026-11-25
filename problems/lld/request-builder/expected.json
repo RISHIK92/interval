@@ -1,0 +1,751 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "POST https://api.example.com/v1/users?dry%20run=yes%26no",
+          "Content-Length: 14",
+          "Content-Type: application/json",
+          "X-Request-Id: abc-1",
+          "",
+          "{\"name\":\"ann\"}"
+        ]
+      },
+      {
+        "call": 6,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 7,
+        "value": [
+          "POST https://api.example.com/v1/users?dry%20run=yes%26no",
+          "Content-Length: 14",
+          "Content-Type: application/json",
+          "X-Request-Id: abc-1",
+          "",
+          "{\"name\":\"ann\"}"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "GET https://api.example.com/v1/users?page=2&page=3",
+          "Accept: */*",
+          "",
+          ""
+        ]
+      },
+      {
+        "call": 6,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 7,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 8,
+        "value": [
+          "GET https://api.example.com/v1/users?page=2&page=3",
+          "Accept: */*",
+          "",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["GET http://h", "", ""]
+      },
+      {
+        "call": 2,
+        "value": ["GET http://h", "", ""]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["OPTIONS http://x:8080/a.json", "", ""]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown method"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad url"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad url"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad url"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a header name is letters, digits and dashes"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a header name is letters, digits and dashes"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a header name is letters, digits and dashes"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: the length is set automatically"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: the length is set automatically"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a header name is letters, digits and dashes"
+      },
+      {
+        "call": 11,
+        "value": [
+          "PUT https://api.example.com/v1/users",
+          "-Lead: 3",
+          "A--B: 2",
+          "Etag: 4",
+          "X-B3-Traceid: 1",
+          "",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: not empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not empty"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": [
+          "POST https://api.example.com/v1/users",
+          "A: one two",
+          "B: y",
+          "C: z",
+          "",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not empty"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not empty"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "GET http://x/s?q=a%20b%2Bc%2Fd%3Fe%3Df%26g%23h&AZaz09-._~=%21%2A%27%28%29%25&k=~&Q=%22%3C%3E%5C%5E%60%7B%7C%7D",
+          "",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: this method takes no body"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: this method takes no body"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: this method takes no body"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["HEAD https://api.example.com/v1/users", "A: 1", "", ""]
+      },
+      {
+        "call": 3,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 4,
+        "value": ["HEAD https://api.example.com/v1/users", "A: 1", "", ""]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": [
+          "DELETE https://api.example.com/v1/users",
+          "Content-Length: 2",
+          "",
+          "{}"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not empty"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "PATCH https://api.example.com/v1/users",
+          "Content-Length: 6",
+          "Content-Type: text/plain",
+          "",
+          "second"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": [
+          "POST https://api.example.com/v1/users",
+          "Content-Length: 1",
+          "",
+          "a"
+        ]
+      },
+      {
+        "call": 3,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 4,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 5,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 6,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 7,
+        "value": [
+          "POST https://api.example.com/v1/users",
+          "Content-Length: 1",
+          "",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 14,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": [
+          "OPTIONS https://x?k0=0%200&k1=1%201&k2=2%202&k0=3%203&k1=4%204&k2=5%205",
+          "Content-Length: 1000",
+          "H0: v0",
+          "H1: v1",
+          "H10: v10",
+          "H11: v11",
+          "H2: v2",
+          "H3: v3",
+          "H4: v4",
+          "H5: v5",
+          "H6: v6",
+          "H7: v7",
+          "H8: v8",
+          "H9: v9",
+          "",
+          "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": [
+          "GET https://api.example.com/v1/users",
+          "Authorization: Bearer abc.def",
+          "",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "GET https://api.example.com/v1/users",
+          "Authorization: Basic 2",
+          "",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: not empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a token has no spaces"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": [
+          "POST https://api.example.com/v1/users",
+          "Authorization: Bearer replaced",
+          "",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["PUT https://api.example.com/v1/users", "", ""]
+      },
+      {
+        "call": 2,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 3,
+        "error": "RuntimeError: the request is built"
+      },
+      {
+        "call": 4,
+        "value": ["PUT https://api.example.com/v1/users", "", ""]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a token has no spaces"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": [
+          "GET https://api.example.com/v1/users",
+          "Authorization: Bearer tok",
+          "",
+          ""
+        ]
+      }
+    ]
+  }
+]

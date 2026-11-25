@@ -1,0 +1,1005 @@
+{
+  "slug": "settings-holder",
+  "title": "Process-wide settings",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["singleton-pattern", "lazy-initialization"],
+  "interface": {
+    "class": "SettingsHolder",
+    "constructor": {
+      "params": [
+        {
+          "name": "defaults",
+          "type": "map<string,string>"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "value",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "loads",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "overrideKey",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "reload",
+        "params": [],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["db.port"]
+          },
+          {
+            "method": "value",
+            "args": ["missing"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "overrideKey",
+            "args": ["log.level", "debug"]
+          },
+          {
+            "method": "value",
+            "args": ["log.level"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["log.level"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["feature.x", "on"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["feature.x"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["feature.x"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "overrideKey",
+            "args": ["db.host", "db1"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "value",
+            "args": ["nope"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["db.port"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "value",
+            "args": [""]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": [""]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["db.host", "db1"]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["db.host", "db2"]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["DB.HOST", "x"]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "value",
+            "args": ["DB.HOST"]
+          },
+          {
+            "method": "value",
+            "args": ["Db.host"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["region", "us-east-1"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["new.key", "v"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "value",
+            "args": ["new.key"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["db.port"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["region", "ap"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "overrideKey",
+            "args": ["region", "sa"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["", "x"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["region", ""]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["", ""]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": [""]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["region", "x"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "": "x"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": ""
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["a"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "overrideKey",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "value",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["b"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["a"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": "1",
+                "a ": "2",
+                " a": "3",
+                "A": "4"
+              }
+            ]
+          },
+          {
+            "method": "value",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["a "]
+          },
+          {
+            "method": "value",
+            "args": [" a"]
+          },
+          {
+            "method": "value",
+            "args": ["A"]
+          },
+          {
+            "method": "value",
+            "args": ["aa"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["x", "v2"]
+          },
+          {
+            "method": "value",
+            "args": ["log.level"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["log.level"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["x", "v7"]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "value",
+            "args": ["log.level"]
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["x", "v12"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "value",
+            "args": ["log.level"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["db.host"]
+          },
+          {
+            "method": "value",
+            "args": ["region"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["x", "v17"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "value",
+            "args": ["log.level"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "scoped",
+        "params": [
+          {
+            "name": "prefix",
+            "type": "string"
+          }
+        ],
+        "returns": "map<string,string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "scoped",
+            "args": ["db."]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "scoped",
+            "args": ["db."]
+          },
+          {
+            "method": "scoped",
+            "args": ["log"]
+          },
+          {
+            "method": "scoped",
+            "args": ["zzz"]
+          },
+          {
+            "method": "scoped",
+            "args": ["region"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["db.user", "app"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["db.host", "db1"]
+          },
+          {
+            "method": "scoped",
+            "args": ["db."]
+          },
+          {
+            "method": "value",
+            "args": ["db.user"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "scoped",
+            "args": ["db"]
+          },
+          {
+            "method": "scoped",
+            "args": ["DB."]
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "scoped",
+            "args": ["db."]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "db.host": "localhost",
+                "db.port": "5432",
+                "log.level": "info",
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "scoped",
+            "args": [""]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "scoped",
+            "args": ["d"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "reload",
+            "args": []
+          },
+          {
+            "method": "loads",
+            "args": []
+          },
+          {
+            "method": "scoped",
+            "args": ["db.port"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": "1",
+                "ab": "2",
+                "b": "3"
+              }
+            ]
+          },
+          {
+            "method": "scoped",
+            "args": ["a"]
+          },
+          {
+            "method": "scoped",
+            "args": ["ab"]
+          },
+          {
+            "method": "scoped",
+            "args": ["abc"]
+          },
+          {
+            "method": "scoped",
+            "args": ["b"]
+          },
+          {
+            "method": "overrideKey",
+            "args": ["abc", "4"]
+          },
+          {
+            "method": "scoped",
+            "args": ["ab"]
+          },
+          {
+            "method": "loads",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

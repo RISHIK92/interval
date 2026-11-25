@@ -1,0 +1,896 @@
+{
+  "slug": "secret-loader",
+  "title": "Lazy secret loader",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["lazy-initialization", "secrets-management"],
+  "interface": {
+    "class": "SecretLoader",
+    "constructor": {
+      "params": [
+        {
+          "name": "names",
+          "type": "list<string>"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "reveal",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "fetches",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "rotate",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "rotate",
+            "args": ["db-password"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "rotate",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "rotate",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["nope"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["DB-PASSWORD"]
+          },
+          {
+            "method": "reveal",
+            "args": [""]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password "]
+          },
+          {
+            "method": "rotate",
+            "args": ["nope"]
+          },
+          {
+            "method": "rotate",
+            "args": [""]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "rotate",
+            "args": ["tls"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["a", ""]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["a", "b", "a"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [[]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["a"]
+          },
+          {
+            "method": "rotate",
+            "args": ["a"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["a", "A", "a b"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["a"]
+          },
+          {
+            "method": "reveal",
+            "args": ["A"]
+          },
+          {
+            "method": "reveal",
+            "args": ["a b"]
+          },
+          {
+            "method": "rotate",
+            "args": ["A"]
+          },
+          {
+            "method": "reveal",
+            "args": ["A"]
+          },
+          {
+            "method": "reveal",
+            "args": ["a"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert", "s3"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "rotate",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["s3"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "rotate",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "rotate",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["s3"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "rotate",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "rotate",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["s3"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "rotate",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["s3"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "prefetch",
+        "params": [
+          {
+            "name": "names",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "prefetch",
+            "args": [["db-password", "api-key"]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "prefetch",
+            "args": [["api-key", "tls-cert", "db-password"]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "prefetch",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "rotate",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "prefetch",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "prefetch",
+            "args": [[]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "prefetch",
+            "args": [["api-key", "api-key"]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "prefetch",
+            "args": [["api-key", "nope"]]
+          },
+          {
+            "method": "prefetch",
+            "args": [["tls-cert", ""]]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          },
+          {
+            "method": "reveal",
+            "args": ["tls-cert"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["db-password", "api-key", "tls-cert"]]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "prefetch",
+            "args": [["api-key"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["api-key"]
+          },
+          {
+            "method": "rotate",
+            "args": ["db-password"]
+          },
+          {
+            "method": "prefetch",
+            "args": [["db-password", "api-key", "db-password"]]
+          },
+          {
+            "method": "reveal",
+            "args": ["db-password"]
+          },
+          {
+            "method": "reveal",
+            "args": ["api-key"]
+          },
+          {
+            "method": "fetches",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

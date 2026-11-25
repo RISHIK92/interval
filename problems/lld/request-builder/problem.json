@@ -1,0 +1,704 @@
+{
+  "slug": "request-builder",
+  "title": "HTTP request builder",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": [
+    "builder-pattern",
+    "immutability",
+    "http-methods-and-status-codes"
+  ],
+  "interface": {
+    "class": "RequestBuilder",
+    "constructor": {
+      "params": [
+        {
+          "name": "method",
+          "type": "string"
+        },
+        {
+          "name": "url",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "header",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "query",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "body",
+        "params": [
+          {
+            "name": "text",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "build",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["POST", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "header",
+            "args": ["content-type", "application/json"]
+          },
+          {
+            "method": "header",
+            "args": ["X-REQUEST-ID", "  abc-1 "]
+          },
+          {
+            "method": "query",
+            "args": ["dry run", "yes&no"]
+          },
+          {
+            "method": "body",
+            "args": ["{\"name\":\"ann\"}"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "header",
+            "args": ["accept", "*/*"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "query",
+            "args": ["page", "2"]
+          },
+          {
+            "method": "query",
+            "args": ["page", "3"]
+          },
+          {
+            "method": "header",
+            "args": ["Accept", "text/html"]
+          },
+          {
+            "method": "header",
+            "args": ["accept", "*/*"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "query",
+            "args": ["x", "y"]
+          },
+          {
+            "method": "body",
+            "args": ["late"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "http://h"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["OPTIONS", "http://x:8080/a.json"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["get", "https://api.example.com/v1/users"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "https://"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "http://x?a=1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "ftp://x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["PUT", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "header",
+            "args": ["x-b3-traceid", "1"]
+          },
+          {
+            "method": "header",
+            "args": ["a--B", "2"]
+          },
+          {
+            "method": "header",
+            "args": ["-lead", "3"]
+          },
+          {
+            "method": "header",
+            "args": ["ETAG", "4"]
+          },
+          {
+            "method": "header",
+            "args": ["x_y", "5"]
+          },
+          {
+            "method": "header",
+            "args": ["x y", "6"]
+          },
+          {
+            "method": "header",
+            "args": ["", "7"]
+          },
+          {
+            "method": "header",
+            "args": ["content-LENGTH", "8"]
+          },
+          {
+            "method": "header",
+            "args": ["Content-Length", "9"]
+          },
+          {
+            "method": "header",
+            "args": ["X:Y", "11"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["POST", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "header",
+            "args": ["A", "   "]
+          },
+          {
+            "method": "header",
+            "args": ["A", ""]
+          },
+          {
+            "method": "header",
+            "args": ["A", " one two "]
+          },
+          {
+            "method": "header",
+            "args": ["B", "x"]
+          },
+          {
+            "method": "header",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "header",
+            "args": ["C", "a  "]
+          },
+          {
+            "method": "header",
+            "args": ["c", "  z"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "http://x/s"]
+          },
+          {
+            "method": "query",
+            "args": ["q", "a b+c/d?e=f&g#h"]
+          },
+          {
+            "method": "query",
+            "args": ["AZaz09-._~", "!*'()%"]
+          },
+          {
+            "method": "query",
+            "args": ["k", "~"]
+          },
+          {
+            "method": "query",
+            "args": ["", "v"]
+          },
+          {
+            "method": "query",
+            "args": ["k", ""]
+          },
+          {
+            "method": "query",
+            "args": ["Q", "\"<>\\^`{|}"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "body",
+            "args": ["x"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "header",
+            "args": ["A", "1"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["HEAD", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "header",
+            "args": ["A", "1"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "query",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["DELETE", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "body",
+            "args": ["{}"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["PATCH", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "body",
+            "args": ["first body"]
+          },
+          {
+            "method": "body",
+            "args": [""]
+          },
+          {
+            "method": "body",
+            "args": ["second"]
+          },
+          {
+            "method": "header",
+            "args": ["Content-Type", "text/plain"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["POST", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "body",
+            "args": ["a"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "body",
+            "args": ["b"]
+          },
+          {
+            "method": "header",
+            "args": ["X", "1"]
+          },
+          {
+            "method": "query",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "header",
+            "args": ["", ""]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["OPTIONS", "https://x"]
+          },
+          {
+            "method": "header",
+            "args": ["h0", "v0"]
+          },
+          {
+            "method": "header",
+            "args": ["h1", "v1"]
+          },
+          {
+            "method": "header",
+            "args": ["h2", "v2"]
+          },
+          {
+            "method": "header",
+            "args": ["h3", "v3"]
+          },
+          {
+            "method": "header",
+            "args": ["h4", "v4"]
+          },
+          {
+            "method": "header",
+            "args": ["h5", "v5"]
+          },
+          {
+            "method": "header",
+            "args": ["h6", "v6"]
+          },
+          {
+            "method": "header",
+            "args": ["h7", "v7"]
+          },
+          {
+            "method": "header",
+            "args": ["h8", "v8"]
+          },
+          {
+            "method": "header",
+            "args": ["h9", "v9"]
+          },
+          {
+            "method": "header",
+            "args": ["h10", "v10"]
+          },
+          {
+            "method": "header",
+            "args": ["h11", "v11"]
+          },
+          {
+            "method": "query",
+            "args": ["k0", "0 0"]
+          },
+          {
+            "method": "query",
+            "args": ["k1", "1 1"]
+          },
+          {
+            "method": "query",
+            "args": ["k2", "2 2"]
+          },
+          {
+            "method": "query",
+            "args": ["k0", "3 3"]
+          },
+          {
+            "method": "query",
+            "args": ["k1", "4 4"]
+          },
+          {
+            "method": "query",
+            "args": ["k2", "5 5"]
+          },
+          {
+            "method": "body",
+            "args": [
+              "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            ]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "bearer",
+        "params": [
+          {
+            "name": "token",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "bearer",
+            "args": ["abc.def"]
+          },
+          {
+            "method": "bearer",
+            "args": ["other"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "header",
+            "args": ["authorization", "Basic xyz"]
+          },
+          {
+            "method": "bearer",
+            "args": ["abc"]
+          },
+          {
+            "method": "header",
+            "args": ["AUTHORIZATION", "Basic 2"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["POST", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "bearer",
+            "args": [""]
+          },
+          {
+            "method": "bearer",
+            "args": ["a b"]
+          },
+          {
+            "method": "bearer",
+            "args": ["t0k3n"]
+          },
+          {
+            "method": "header",
+            "args": ["Authorization", "Bearer replaced"]
+          },
+          {
+            "method": "bearer",
+            "args": ["x"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["PUT", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "bearer",
+            "args": ["abc"]
+          },
+          {
+            "method": "bearer",
+            "args": [""]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["GET", "https://api.example.com/v1/users"]
+          },
+          {
+            "method": "bearer",
+            "args": ["  "]
+          },
+          {
+            "method": "bearer",
+            "args": ["tok"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

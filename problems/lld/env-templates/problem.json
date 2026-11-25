@@ -1,0 +1,1064 @@
+{
+  "slug": "env-templates",
+  "title": "Environment templates",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["prototype-pattern"],
+  "interface": {
+    "class": "EnvTemplates",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "define",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "vars",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "fork",
+        "params": [
+          {
+            "name": "base",
+            "type": "string"
+          },
+          {
+            "name": "env",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "setVar",
+        "params": [
+          {
+            "name": "env",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "vars",
+        "params": [
+          {
+            "name": "env",
+            "type": "string"
+          }
+        ],
+        "returns": "map<string,string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "web",
+              {
+                "PORT": "8080",
+                "LOG_LEVEL": "info",
+                "DB_URL": "postgres://db/app"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-101"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-102"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-101", "LOG_LEVEL", "debug"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-101"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-102"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-101"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-102", "LOG_LEVEL", "info"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-102"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "worker",
+              {
+                "QUEUE": "jobs",
+                "LOG_LEVEL": "warn"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "w1"]
+          },
+          {
+            "method": "define",
+            "args": [
+              "worker",
+              {
+                "QUEUE": "other"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "w2"]
+          },
+          {
+            "method": "vars",
+            "args": ["w1"]
+          },
+          {
+            "method": "vars",
+            "args": ["w2"]
+          },
+          {
+            "method": "fork",
+            "args": ["nope", "w3"]
+          },
+          {
+            "method": "vars",
+            "args": ["w3"]
+          },
+          {
+            "method": "setVar",
+            "args": ["w2", "NEW", "1"]
+          },
+          {
+            "method": "vars",
+            "args": ["w2"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "web",
+              {
+                "PORT": "8080",
+                "LOG_LEVEL": "info",
+                "DB_URL": "postgres://db/app"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "a"]
+          },
+          {
+            "method": "setVar",
+            "args": ["a", "PORT", "9000"]
+          },
+          {
+            "method": "setVar",
+            "args": ["a", "EXTRA", "x"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "b"]
+          },
+          {
+            "method": "vars",
+            "args": ["b"]
+          },
+          {
+            "method": "vars",
+            "args": ["a"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "c"]
+          },
+          {
+            "method": "setVar",
+            "args": ["c", "PORT", "7000"]
+          },
+          {
+            "method": "vars",
+            "args": ["a"]
+          },
+          {
+            "method": "vars",
+            "args": ["b"]
+          },
+          {
+            "method": "vars",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "A": "1"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e1"]
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "B": "2"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e2"]
+          },
+          {
+            "method": "define",
+            "args": ["t", {}]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e3"]
+          },
+          {
+            "method": "vars",
+            "args": ["e1"]
+          },
+          {
+            "method": "vars",
+            "args": ["e2"]
+          },
+          {
+            "method": "vars",
+            "args": ["e3"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e1", "A", "1"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e1", "A", "2"]
+          },
+          {
+            "method": "vars",
+            "args": ["e1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "K": "v"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "K", "v"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "K", "V"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "K", "V"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "k", "v"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "k", "v"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "K", "v"]
+          },
+          {
+            "method": "vars",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "K": "v"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "fork",
+            "args": ["u", "e"]
+          },
+          {
+            "method": "fork",
+            "args": ["", "e"]
+          },
+          {
+            "method": "fork",
+            "args": ["t", ""]
+          },
+          {
+            "method": "fork",
+            "args": ["T", "f"]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "E"]
+          },
+          {
+            "method": "vars",
+            "args": ["E"]
+          },
+          {
+            "method": "vars",
+            "args": ["f"]
+          },
+          {
+            "method": "vars",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "same",
+              {
+                "K": "t"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["same", "same"]
+          },
+          {
+            "method": "vars",
+            "args": ["same"]
+          },
+          {
+            "method": "setVar",
+            "args": ["same", "K", "e"]
+          },
+          {
+            "method": "fork",
+            "args": ["same", "x"]
+          },
+          {
+            "method": "vars",
+            "args": ["x"]
+          },
+          {
+            "method": "vars",
+            "args": ["same"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "K": "v"
+              }
+            ]
+          },
+          {
+            "method": "vars",
+            "args": ["t"]
+          },
+          {
+            "method": "setVar",
+            "args": ["t", "K", "w"]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "vars",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "",
+              {
+                "K": "v"
+              }
+            ]
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "": "v"
+              }
+            ]
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "K": ""
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "K": "v"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "", "v"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "K", ""]
+          },
+          {
+            "method": "setVar",
+            "args": ["nope", "K", "v"]
+          },
+          {
+            "method": "setVar",
+            "args": ["", "K", "v"]
+          },
+          {
+            "method": "vars",
+            "args": ["e"]
+          },
+          {
+            "method": "vars",
+            "args": [""]
+          },
+          {
+            "method": "vars",
+            "args": ["nope"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": ["blank", {}]
+          },
+          {
+            "method": "fork",
+            "args": ["blank", "e"]
+          },
+          {
+            "method": "vars",
+            "args": ["e"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "A", "1"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "B", "2"]
+          },
+          {
+            "method": "vars",
+            "args": ["e"]
+          },
+          {
+            "method": "fork",
+            "args": ["blank", "f"]
+          },
+          {
+            "method": "vars",
+            "args": ["f"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "web",
+              {
+                "PORT": "8080",
+                "LOG_LEVEL": "info",
+                "DB_URL": "postgres://db/app"
+              }
+            ]
+          },
+          {
+            "method": "define",
+            "args": [
+              "worker",
+              {
+                "QUEUE": "jobs",
+                "LOG_LEVEL": "warn"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-0"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-0", "PORT", "v0"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-1"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-7", "QUEUE", "v1"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-2"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-1", "LOG_LEVEL", "v2"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-3"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-8", "PORT", "v3"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-4"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-2", "QUEUE", "v0"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-5"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-9", "LOG_LEVEL", "v1"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-6"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-3", "PORT", "v2"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-7"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-10", "QUEUE", "v3"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-8"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-4", "LOG_LEVEL", "v0"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-9"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-11", "PORT", "v1"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-10"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-5", "QUEUE", "v2"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-11"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-12", "LOG_LEVEL", "v3"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-12"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-6", "PORT", "v0"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-0"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-0", "QUEUE", "v1"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-1"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-7", "LOG_LEVEL", "v2"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-2"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-1", "PORT", "v3"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-3"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-8", "QUEUE", "v0"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-4"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-2", "LOG_LEVEL", "v1"]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "pr-5"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-9", "PORT", "v2"]
+          },
+          {
+            "method": "fork",
+            "args": ["worker", "pr-6"]
+          },
+          {
+            "method": "setVar",
+            "args": ["pr-3", "QUEUE", "v3"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-0"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-1"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-2"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-3"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-4"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-5"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-6"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-7"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-8"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-9"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-10"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-11"]
+          },
+          {
+            "method": "vars",
+            "args": ["pr-12"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "diff",
+        "params": [
+          {
+            "name": "env",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "web",
+              {
+                "PORT": "8080",
+                "LOG_LEVEL": "info",
+                "DB_URL": "postgres://db/app"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["web", "e"]
+          },
+          {
+            "method": "diff",
+            "args": ["e"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "PORT", "9000"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "ZONE", "a"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "API_KEY", "k"]
+          },
+          {
+            "method": "diff",
+            "args": ["e"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "PORT", "8080"]
+          },
+          {
+            "method": "diff",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "A": "1"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "A", "2"]
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "A": "2"
+              }
+            ]
+          },
+          {
+            "method": "diff",
+            "args": ["e"]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "f"]
+          },
+          {
+            "method": "diff",
+            "args": ["f"]
+          },
+          {
+            "method": "setVar",
+            "args": ["f", "B", "1"]
+          },
+          {
+            "method": "setVar",
+            "args": ["f", "a", "1"]
+          },
+          {
+            "method": "setVar",
+            "args": ["f", "_", "1"]
+          },
+          {
+            "method": "diff",
+            "args": ["f"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "diff",
+            "args": ["nope"]
+          },
+          {
+            "method": "diff",
+            "args": [""]
+          },
+          {
+            "method": "define",
+            "args": ["t", {}]
+          },
+          {
+            "method": "diff",
+            "args": ["t"]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "diff",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "define",
+            "args": [
+              "t",
+              {
+                "K": "v"
+              }
+            ]
+          },
+          {
+            "method": "fork",
+            "args": ["t", "e"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "K", "w"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "K", "v"]
+          },
+          {
+            "method": "setVar",
+            "args": ["e", "L", "x"]
+          },
+          {
+            "method": "diff",
+            "args": ["e"]
+          },
+          {
+            "method": "vars",
+            "args": ["e"]
+          }
+        ]
+      }
+    ]
+  }
+}
