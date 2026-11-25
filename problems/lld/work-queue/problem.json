@@ -1,0 +1,4768 @@
+{
+  "slug": "work-queue",
+  "title": "Bounded work queue",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["design-by-contract", "class-invariants"],
+  "interface": {
+    "class": "WorkQueue",
+    "constructor": {
+      "params": [
+        {
+          "name": "capacity",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "offer",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "take",
+        "params": [],
+        "returns": "string"
+      },
+      {
+        "name": "peekNext",
+        "params": [],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "size",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["build-41"]
+          },
+          {
+            "method": "offer",
+            "args": ["build-42"]
+          },
+          {
+            "method": "offer",
+            "args": ["build-43"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["build-43"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "offer",
+            "args": [""]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["a"]
+          },
+          {
+            "method": "offer",
+            "args": [""]
+          },
+          {
+            "method": "offer",
+            "args": ["b"]
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["c"]
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "offer",
+            "args": ["x"]
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["y"]
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "offer",
+            "args": ["a"]
+          },
+          {
+            "method": "offer",
+            "args": ["b"]
+          },
+          {
+            "method": "offer",
+            "args": ["a"]
+          },
+          {
+            "method": "offer",
+            "args": ["c"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "offer",
+            "args": ["1"]
+          },
+          {
+            "method": "offer",
+            "args": ["2"]
+          },
+          {
+            "method": "offer",
+            "args": ["3"]
+          },
+          {
+            "method": "offer",
+            "args": ["4"]
+          },
+          {
+            "method": "offer",
+            "args": ["5"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["6"]
+          },
+          {
+            "method": "offer",
+            "args": ["7"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "offer",
+            "args": ["j0"]
+          },
+          {
+            "method": "offer",
+            "args": ["k0"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j1"]
+          },
+          {
+            "method": "offer",
+            "args": ["k1"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j2"]
+          },
+          {
+            "method": "offer",
+            "args": ["k2"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j3"]
+          },
+          {
+            "method": "offer",
+            "args": ["k3"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j4"]
+          },
+          {
+            "method": "offer",
+            "args": ["k4"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j5"]
+          },
+          {
+            "method": "offer",
+            "args": ["k5"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j6"]
+          },
+          {
+            "method": "offer",
+            "args": ["k6"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j7"]
+          },
+          {
+            "method": "offer",
+            "args": ["k7"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j8"]
+          },
+          {
+            "method": "offer",
+            "args": ["k8"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["j9"]
+          },
+          {
+            "method": "offer",
+            "args": ["k9"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "offer",
+            "args": ["a"]
+          },
+          {
+            "method": "offer",
+            "args": ["b"]
+          },
+          {
+            "method": "offer",
+            "args": ["c"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["d"]
+          },
+          {
+            "method": "offer",
+            "args": ["e"]
+          },
+          {
+            "method": "offer",
+            "args": ["f"]
+          },
+          {
+            "method": "offer",
+            "args": ["g"]
+          },
+          {
+            "method": "offer",
+            "args": ["h"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "offer",
+            "args": ["i0"]
+          },
+          {
+            "method": "offer",
+            "args": ["i1"]
+          },
+          {
+            "method": "offer",
+            "args": ["i2"]
+          },
+          {
+            "method": "offer",
+            "args": ["i3"]
+          },
+          {
+            "method": "offer",
+            "args": ["i4"]
+          },
+          {
+            "method": "offer",
+            "args": ["i5"]
+          },
+          {
+            "method": "offer",
+            "args": ["i6"]
+          },
+          {
+            "method": "offer",
+            "args": ["i7"]
+          },
+          {
+            "method": "offer",
+            "args": ["i8"]
+          },
+          {
+            "method": "offer",
+            "args": ["i9"]
+          },
+          {
+            "method": "offer",
+            "args": ["i10"]
+          },
+          {
+            "method": "offer",
+            "args": ["i11"]
+          },
+          {
+            "method": "offer",
+            "args": ["i12"]
+          },
+          {
+            "method": "offer",
+            "args": ["i13"]
+          },
+          {
+            "method": "offer",
+            "args": ["i14"]
+          },
+          {
+            "method": "offer",
+            "args": ["i15"]
+          },
+          {
+            "method": "offer",
+            "args": ["i16"]
+          },
+          {
+            "method": "offer",
+            "args": ["i17"]
+          },
+          {
+            "method": "offer",
+            "args": ["i18"]
+          },
+          {
+            "method": "offer",
+            "args": ["i19"]
+          },
+          {
+            "method": "offer",
+            "args": ["i20"]
+          },
+          {
+            "method": "offer",
+            "args": ["i21"]
+          },
+          {
+            "method": "offer",
+            "args": ["i22"]
+          },
+          {
+            "method": "offer",
+            "args": ["i23"]
+          },
+          {
+            "method": "offer",
+            "args": ["i24"]
+          },
+          {
+            "method": "offer",
+            "args": ["i25"]
+          },
+          {
+            "method": "offer",
+            "args": ["i26"]
+          },
+          {
+            "method": "offer",
+            "args": ["i27"]
+          },
+          {
+            "method": "offer",
+            "args": ["i28"]
+          },
+          {
+            "method": "offer",
+            "args": ["i29"]
+          },
+          {
+            "method": "offer",
+            "args": ["i30"]
+          },
+          {
+            "method": "offer",
+            "args": ["i31"]
+          },
+          {
+            "method": "offer",
+            "args": ["i32"]
+          },
+          {
+            "method": "offer",
+            "args": ["i33"]
+          },
+          {
+            "method": "offer",
+            "args": ["i34"]
+          },
+          {
+            "method": "offer",
+            "args": ["i35"]
+          },
+          {
+            "method": "offer",
+            "args": ["i36"]
+          },
+          {
+            "method": "offer",
+            "args": ["i37"]
+          },
+          {
+            "method": "offer",
+            "args": ["i38"]
+          },
+          {
+            "method": "offer",
+            "args": ["i39"]
+          },
+          {
+            "method": "offer",
+            "args": ["i40"]
+          },
+          {
+            "method": "offer",
+            "args": ["i41"]
+          },
+          {
+            "method": "offer",
+            "args": ["i42"]
+          },
+          {
+            "method": "offer",
+            "args": ["i43"]
+          },
+          {
+            "method": "offer",
+            "args": ["i44"]
+          },
+          {
+            "method": "offer",
+            "args": ["i45"]
+          },
+          {
+            "method": "offer",
+            "args": ["i46"]
+          },
+          {
+            "method": "offer",
+            "args": ["i47"]
+          },
+          {
+            "method": "offer",
+            "args": ["i48"]
+          },
+          {
+            "method": "offer",
+            "args": ["i49"]
+          },
+          {
+            "method": "offer",
+            "args": ["i50"]
+          },
+          {
+            "method": "offer",
+            "args": ["i51"]
+          },
+          {
+            "method": "offer",
+            "args": ["i52"]
+          },
+          {
+            "method": "offer",
+            "args": ["i53"]
+          },
+          {
+            "method": "offer",
+            "args": ["i54"]
+          },
+          {
+            "method": "offer",
+            "args": ["i55"]
+          },
+          {
+            "method": "offer",
+            "args": ["i56"]
+          },
+          {
+            "method": "offer",
+            "args": ["i57"]
+          },
+          {
+            "method": "offer",
+            "args": ["i58"]
+          },
+          {
+            "method": "offer",
+            "args": ["i59"]
+          },
+          {
+            "method": "offer",
+            "args": ["i60"]
+          },
+          {
+            "method": "offer",
+            "args": ["i61"]
+          },
+          {
+            "method": "offer",
+            "args": ["i62"]
+          },
+          {
+            "method": "offer",
+            "args": ["i63"]
+          },
+          {
+            "method": "offer",
+            "args": ["i64"]
+          },
+          {
+            "method": "offer",
+            "args": ["i65"]
+          },
+          {
+            "method": "offer",
+            "args": ["i66"]
+          },
+          {
+            "method": "offer",
+            "args": ["i67"]
+          },
+          {
+            "method": "offer",
+            "args": ["i68"]
+          },
+          {
+            "method": "offer",
+            "args": ["i69"]
+          },
+          {
+            "method": "offer",
+            "args": ["i70"]
+          },
+          {
+            "method": "offer",
+            "args": ["i71"]
+          },
+          {
+            "method": "offer",
+            "args": ["i72"]
+          },
+          {
+            "method": "offer",
+            "args": ["i73"]
+          },
+          {
+            "method": "offer",
+            "args": ["i74"]
+          },
+          {
+            "method": "offer",
+            "args": ["i75"]
+          },
+          {
+            "method": "offer",
+            "args": ["i76"]
+          },
+          {
+            "method": "offer",
+            "args": ["i77"]
+          },
+          {
+            "method": "offer",
+            "args": ["i78"]
+          },
+          {
+            "method": "offer",
+            "args": ["i79"]
+          },
+          {
+            "method": "offer",
+            "args": ["i80"]
+          },
+          {
+            "method": "offer",
+            "args": ["i81"]
+          },
+          {
+            "method": "offer",
+            "args": ["i82"]
+          },
+          {
+            "method": "offer",
+            "args": ["i83"]
+          },
+          {
+            "method": "offer",
+            "args": ["i84"]
+          },
+          {
+            "method": "offer",
+            "args": ["i85"]
+          },
+          {
+            "method": "offer",
+            "args": ["i86"]
+          },
+          {
+            "method": "offer",
+            "args": ["i87"]
+          },
+          {
+            "method": "offer",
+            "args": ["i88"]
+          },
+          {
+            "method": "offer",
+            "args": ["i89"]
+          },
+          {
+            "method": "offer",
+            "args": ["i90"]
+          },
+          {
+            "method": "offer",
+            "args": ["i91"]
+          },
+          {
+            "method": "offer",
+            "args": ["i92"]
+          },
+          {
+            "method": "offer",
+            "args": ["i93"]
+          },
+          {
+            "method": "offer",
+            "args": ["i94"]
+          },
+          {
+            "method": "offer",
+            "args": ["i95"]
+          },
+          {
+            "method": "offer",
+            "args": ["i96"]
+          },
+          {
+            "method": "offer",
+            "args": ["i97"]
+          },
+          {
+            "method": "offer",
+            "args": ["i98"]
+          },
+          {
+            "method": "offer",
+            "args": ["i99"]
+          },
+          {
+            "method": "offer",
+            "args": ["i100"]
+          },
+          {
+            "method": "offer",
+            "args": ["i101"]
+          },
+          {
+            "method": "offer",
+            "args": ["i102"]
+          },
+          {
+            "method": "offer",
+            "args": ["i103"]
+          },
+          {
+            "method": "offer",
+            "args": ["i104"]
+          },
+          {
+            "method": "offer",
+            "args": ["i105"]
+          },
+          {
+            "method": "offer",
+            "args": ["i106"]
+          },
+          {
+            "method": "offer",
+            "args": ["i107"]
+          },
+          {
+            "method": "offer",
+            "args": ["i108"]
+          },
+          {
+            "method": "offer",
+            "args": ["i109"]
+          },
+          {
+            "method": "offer",
+            "args": ["i110"]
+          },
+          {
+            "method": "offer",
+            "args": ["i111"]
+          },
+          {
+            "method": "offer",
+            "args": ["i112"]
+          },
+          {
+            "method": "offer",
+            "args": ["i113"]
+          },
+          {
+            "method": "offer",
+            "args": ["i114"]
+          },
+          {
+            "method": "offer",
+            "args": ["i115"]
+          },
+          {
+            "method": "offer",
+            "args": ["i116"]
+          },
+          {
+            "method": "offer",
+            "args": ["i117"]
+          },
+          {
+            "method": "offer",
+            "args": ["i118"]
+          },
+          {
+            "method": "offer",
+            "args": ["i119"]
+          },
+          {
+            "method": "offer",
+            "args": ["i120"]
+          },
+          {
+            "method": "offer",
+            "args": ["i121"]
+          },
+          {
+            "method": "offer",
+            "args": ["i122"]
+          },
+          {
+            "method": "offer",
+            "args": ["i123"]
+          },
+          {
+            "method": "offer",
+            "args": ["i124"]
+          },
+          {
+            "method": "offer",
+            "args": ["i125"]
+          },
+          {
+            "method": "offer",
+            "args": ["i126"]
+          },
+          {
+            "method": "offer",
+            "args": ["i127"]
+          },
+          {
+            "method": "offer",
+            "args": ["i128"]
+          },
+          {
+            "method": "offer",
+            "args": ["i129"]
+          },
+          {
+            "method": "offer",
+            "args": ["i130"]
+          },
+          {
+            "method": "offer",
+            "args": ["i131"]
+          },
+          {
+            "method": "offer",
+            "args": ["i132"]
+          },
+          {
+            "method": "offer",
+            "args": ["i133"]
+          },
+          {
+            "method": "offer",
+            "args": ["i134"]
+          },
+          {
+            "method": "offer",
+            "args": ["i135"]
+          },
+          {
+            "method": "offer",
+            "args": ["i136"]
+          },
+          {
+            "method": "offer",
+            "args": ["i137"]
+          },
+          {
+            "method": "offer",
+            "args": ["i138"]
+          },
+          {
+            "method": "offer",
+            "args": ["i139"]
+          },
+          {
+            "method": "offer",
+            "args": ["i140"]
+          },
+          {
+            "method": "offer",
+            "args": ["i141"]
+          },
+          {
+            "method": "offer",
+            "args": ["i142"]
+          },
+          {
+            "method": "offer",
+            "args": ["i143"]
+          },
+          {
+            "method": "offer",
+            "args": ["i144"]
+          },
+          {
+            "method": "offer",
+            "args": ["i145"]
+          },
+          {
+            "method": "offer",
+            "args": ["i146"]
+          },
+          {
+            "method": "offer",
+            "args": ["i147"]
+          },
+          {
+            "method": "offer",
+            "args": ["i148"]
+          },
+          {
+            "method": "offer",
+            "args": ["i149"]
+          },
+          {
+            "method": "offer",
+            "args": ["i150"]
+          },
+          {
+            "method": "offer",
+            "args": ["i151"]
+          },
+          {
+            "method": "offer",
+            "args": ["i152"]
+          },
+          {
+            "method": "offer",
+            "args": ["i153"]
+          },
+          {
+            "method": "offer",
+            "args": ["i154"]
+          },
+          {
+            "method": "offer",
+            "args": ["i155"]
+          },
+          {
+            "method": "offer",
+            "args": ["i156"]
+          },
+          {
+            "method": "offer",
+            "args": ["i157"]
+          },
+          {
+            "method": "offer",
+            "args": ["i158"]
+          },
+          {
+            "method": "offer",
+            "args": ["i159"]
+          },
+          {
+            "method": "offer",
+            "args": ["i160"]
+          },
+          {
+            "method": "offer",
+            "args": ["i161"]
+          },
+          {
+            "method": "offer",
+            "args": ["i162"]
+          },
+          {
+            "method": "offer",
+            "args": ["i163"]
+          },
+          {
+            "method": "offer",
+            "args": ["i164"]
+          },
+          {
+            "method": "offer",
+            "args": ["i165"]
+          },
+          {
+            "method": "offer",
+            "args": ["i166"]
+          },
+          {
+            "method": "offer",
+            "args": ["i167"]
+          },
+          {
+            "method": "offer",
+            "args": ["i168"]
+          },
+          {
+            "method": "offer",
+            "args": ["i169"]
+          },
+          {
+            "method": "offer",
+            "args": ["i170"]
+          },
+          {
+            "method": "offer",
+            "args": ["i171"]
+          },
+          {
+            "method": "offer",
+            "args": ["i172"]
+          },
+          {
+            "method": "offer",
+            "args": ["i173"]
+          },
+          {
+            "method": "offer",
+            "args": ["i174"]
+          },
+          {
+            "method": "offer",
+            "args": ["i175"]
+          },
+          {
+            "method": "offer",
+            "args": ["i176"]
+          },
+          {
+            "method": "offer",
+            "args": ["i177"]
+          },
+          {
+            "method": "offer",
+            "args": ["i178"]
+          },
+          {
+            "method": "offer",
+            "args": ["i179"]
+          },
+          {
+            "method": "offer",
+            "args": ["i180"]
+          },
+          {
+            "method": "offer",
+            "args": ["i181"]
+          },
+          {
+            "method": "offer",
+            "args": ["i182"]
+          },
+          {
+            "method": "offer",
+            "args": ["i183"]
+          },
+          {
+            "method": "offer",
+            "args": ["i184"]
+          },
+          {
+            "method": "offer",
+            "args": ["i185"]
+          },
+          {
+            "method": "offer",
+            "args": ["i186"]
+          },
+          {
+            "method": "offer",
+            "args": ["i187"]
+          },
+          {
+            "method": "offer",
+            "args": ["i188"]
+          },
+          {
+            "method": "offer",
+            "args": ["i189"]
+          },
+          {
+            "method": "offer",
+            "args": ["i190"]
+          },
+          {
+            "method": "offer",
+            "args": ["i191"]
+          },
+          {
+            "method": "offer",
+            "args": ["i192"]
+          },
+          {
+            "method": "offer",
+            "args": ["i193"]
+          },
+          {
+            "method": "offer",
+            "args": ["i194"]
+          },
+          {
+            "method": "offer",
+            "args": ["i195"]
+          },
+          {
+            "method": "offer",
+            "args": ["i196"]
+          },
+          {
+            "method": "offer",
+            "args": ["i197"]
+          },
+          {
+            "method": "offer",
+            "args": ["i198"]
+          },
+          {
+            "method": "offer",
+            "args": ["i199"]
+          },
+          {
+            "method": "offer",
+            "args": ["i200"]
+          },
+          {
+            "method": "offer",
+            "args": ["i201"]
+          },
+          {
+            "method": "offer",
+            "args": ["i202"]
+          },
+          {
+            "method": "offer",
+            "args": ["i203"]
+          },
+          {
+            "method": "offer",
+            "args": ["i204"]
+          },
+          {
+            "method": "offer",
+            "args": ["i205"]
+          },
+          {
+            "method": "offer",
+            "args": ["i206"]
+          },
+          {
+            "method": "offer",
+            "args": ["i207"]
+          },
+          {
+            "method": "offer",
+            "args": ["i208"]
+          },
+          {
+            "method": "offer",
+            "args": ["i209"]
+          },
+          {
+            "method": "offer",
+            "args": ["i210"]
+          },
+          {
+            "method": "offer",
+            "args": ["i211"]
+          },
+          {
+            "method": "offer",
+            "args": ["i212"]
+          },
+          {
+            "method": "offer",
+            "args": ["i213"]
+          },
+          {
+            "method": "offer",
+            "args": ["i214"]
+          },
+          {
+            "method": "offer",
+            "args": ["i215"]
+          },
+          {
+            "method": "offer",
+            "args": ["i216"]
+          },
+          {
+            "method": "offer",
+            "args": ["i217"]
+          },
+          {
+            "method": "offer",
+            "args": ["i218"]
+          },
+          {
+            "method": "offer",
+            "args": ["i219"]
+          },
+          {
+            "method": "offer",
+            "args": ["i220"]
+          },
+          {
+            "method": "offer",
+            "args": ["i221"]
+          },
+          {
+            "method": "offer",
+            "args": ["i222"]
+          },
+          {
+            "method": "offer",
+            "args": ["i223"]
+          },
+          {
+            "method": "offer",
+            "args": ["i224"]
+          },
+          {
+            "method": "offer",
+            "args": ["i225"]
+          },
+          {
+            "method": "offer",
+            "args": ["i226"]
+          },
+          {
+            "method": "offer",
+            "args": ["i227"]
+          },
+          {
+            "method": "offer",
+            "args": ["i228"]
+          },
+          {
+            "method": "offer",
+            "args": ["i229"]
+          },
+          {
+            "method": "offer",
+            "args": ["i230"]
+          },
+          {
+            "method": "offer",
+            "args": ["i231"]
+          },
+          {
+            "method": "offer",
+            "args": ["i232"]
+          },
+          {
+            "method": "offer",
+            "args": ["i233"]
+          },
+          {
+            "method": "offer",
+            "args": ["i234"]
+          },
+          {
+            "method": "offer",
+            "args": ["i235"]
+          },
+          {
+            "method": "offer",
+            "args": ["i236"]
+          },
+          {
+            "method": "offer",
+            "args": ["i237"]
+          },
+          {
+            "method": "offer",
+            "args": ["i238"]
+          },
+          {
+            "method": "offer",
+            "args": ["i239"]
+          },
+          {
+            "method": "offer",
+            "args": ["i240"]
+          },
+          {
+            "method": "offer",
+            "args": ["i241"]
+          },
+          {
+            "method": "offer",
+            "args": ["i242"]
+          },
+          {
+            "method": "offer",
+            "args": ["i243"]
+          },
+          {
+            "method": "offer",
+            "args": ["i244"]
+          },
+          {
+            "method": "offer",
+            "args": ["i245"]
+          },
+          {
+            "method": "offer",
+            "args": ["i246"]
+          },
+          {
+            "method": "offer",
+            "args": ["i247"]
+          },
+          {
+            "method": "offer",
+            "args": ["i248"]
+          },
+          {
+            "method": "offer",
+            "args": ["i249"]
+          },
+          {
+            "method": "offer",
+            "args": ["i250"]
+          },
+          {
+            "method": "offer",
+            "args": ["i251"]
+          },
+          {
+            "method": "offer",
+            "args": ["i252"]
+          },
+          {
+            "method": "offer",
+            "args": ["i253"]
+          },
+          {
+            "method": "offer",
+            "args": ["i254"]
+          },
+          {
+            "method": "offer",
+            "args": ["i255"]
+          },
+          {
+            "method": "offer",
+            "args": ["i256"]
+          },
+          {
+            "method": "offer",
+            "args": ["i257"]
+          },
+          {
+            "method": "offer",
+            "args": ["i258"]
+          },
+          {
+            "method": "offer",
+            "args": ["i259"]
+          },
+          {
+            "method": "offer",
+            "args": ["i260"]
+          },
+          {
+            "method": "offer",
+            "args": ["i261"]
+          },
+          {
+            "method": "offer",
+            "args": ["i262"]
+          },
+          {
+            "method": "offer",
+            "args": ["i263"]
+          },
+          {
+            "method": "offer",
+            "args": ["i264"]
+          },
+          {
+            "method": "offer",
+            "args": ["i265"]
+          },
+          {
+            "method": "offer",
+            "args": ["i266"]
+          },
+          {
+            "method": "offer",
+            "args": ["i267"]
+          },
+          {
+            "method": "offer",
+            "args": ["i268"]
+          },
+          {
+            "method": "offer",
+            "args": ["i269"]
+          },
+          {
+            "method": "offer",
+            "args": ["i270"]
+          },
+          {
+            "method": "offer",
+            "args": ["i271"]
+          },
+          {
+            "method": "offer",
+            "args": ["i272"]
+          },
+          {
+            "method": "offer",
+            "args": ["i273"]
+          },
+          {
+            "method": "offer",
+            "args": ["i274"]
+          },
+          {
+            "method": "offer",
+            "args": ["i275"]
+          },
+          {
+            "method": "offer",
+            "args": ["i276"]
+          },
+          {
+            "method": "offer",
+            "args": ["i277"]
+          },
+          {
+            "method": "offer",
+            "args": ["i278"]
+          },
+          {
+            "method": "offer",
+            "args": ["i279"]
+          },
+          {
+            "method": "offer",
+            "args": ["i280"]
+          },
+          {
+            "method": "offer",
+            "args": ["i281"]
+          },
+          {
+            "method": "offer",
+            "args": ["i282"]
+          },
+          {
+            "method": "offer",
+            "args": ["i283"]
+          },
+          {
+            "method": "offer",
+            "args": ["i284"]
+          },
+          {
+            "method": "offer",
+            "args": ["i285"]
+          },
+          {
+            "method": "offer",
+            "args": ["i286"]
+          },
+          {
+            "method": "offer",
+            "args": ["i287"]
+          },
+          {
+            "method": "offer",
+            "args": ["i288"]
+          },
+          {
+            "method": "offer",
+            "args": ["i289"]
+          },
+          {
+            "method": "offer",
+            "args": ["i290"]
+          },
+          {
+            "method": "offer",
+            "args": ["i291"]
+          },
+          {
+            "method": "offer",
+            "args": ["i292"]
+          },
+          {
+            "method": "offer",
+            "args": ["i293"]
+          },
+          {
+            "method": "offer",
+            "args": ["i294"]
+          },
+          {
+            "method": "offer",
+            "args": ["i295"]
+          },
+          {
+            "method": "offer",
+            "args": ["i296"]
+          },
+          {
+            "method": "offer",
+            "args": ["i297"]
+          },
+          {
+            "method": "offer",
+            "args": ["i298"]
+          },
+          {
+            "method": "offer",
+            "args": ["i299"]
+          },
+          {
+            "method": "offer",
+            "args": ["i300"]
+          },
+          {
+            "method": "offer",
+            "args": ["i301"]
+          },
+          {
+            "method": "offer",
+            "args": ["i302"]
+          },
+          {
+            "method": "offer",
+            "args": ["i303"]
+          },
+          {
+            "method": "offer",
+            "args": ["i304"]
+          },
+          {
+            "method": "offer",
+            "args": ["i305"]
+          },
+          {
+            "method": "offer",
+            "args": ["i306"]
+          },
+          {
+            "method": "offer",
+            "args": ["i307"]
+          },
+          {
+            "method": "offer",
+            "args": ["i308"]
+          },
+          {
+            "method": "offer",
+            "args": ["i309"]
+          },
+          {
+            "method": "offer",
+            "args": ["i310"]
+          },
+          {
+            "method": "offer",
+            "args": ["i311"]
+          },
+          {
+            "method": "offer",
+            "args": ["i312"]
+          },
+          {
+            "method": "offer",
+            "args": ["i313"]
+          },
+          {
+            "method": "offer",
+            "args": ["i314"]
+          },
+          {
+            "method": "offer",
+            "args": ["i315"]
+          },
+          {
+            "method": "offer",
+            "args": ["i316"]
+          },
+          {
+            "method": "offer",
+            "args": ["i317"]
+          },
+          {
+            "method": "offer",
+            "args": ["i318"]
+          },
+          {
+            "method": "offer",
+            "args": ["i319"]
+          },
+          {
+            "method": "offer",
+            "args": ["i320"]
+          },
+          {
+            "method": "offer",
+            "args": ["i321"]
+          },
+          {
+            "method": "offer",
+            "args": ["i322"]
+          },
+          {
+            "method": "offer",
+            "args": ["i323"]
+          },
+          {
+            "method": "offer",
+            "args": ["i324"]
+          },
+          {
+            "method": "offer",
+            "args": ["i325"]
+          },
+          {
+            "method": "offer",
+            "args": ["i326"]
+          },
+          {
+            "method": "offer",
+            "args": ["i327"]
+          },
+          {
+            "method": "offer",
+            "args": ["i328"]
+          },
+          {
+            "method": "offer",
+            "args": ["i329"]
+          },
+          {
+            "method": "offer",
+            "args": ["i330"]
+          },
+          {
+            "method": "offer",
+            "args": ["i331"]
+          },
+          {
+            "method": "offer",
+            "args": ["i332"]
+          },
+          {
+            "method": "offer",
+            "args": ["i333"]
+          },
+          {
+            "method": "offer",
+            "args": ["i334"]
+          },
+          {
+            "method": "offer",
+            "args": ["i335"]
+          },
+          {
+            "method": "offer",
+            "args": ["i336"]
+          },
+          {
+            "method": "offer",
+            "args": ["i337"]
+          },
+          {
+            "method": "offer",
+            "args": ["i338"]
+          },
+          {
+            "method": "offer",
+            "args": ["i339"]
+          },
+          {
+            "method": "offer",
+            "args": ["i340"]
+          },
+          {
+            "method": "offer",
+            "args": ["i341"]
+          },
+          {
+            "method": "offer",
+            "args": ["i342"]
+          },
+          {
+            "method": "offer",
+            "args": ["i343"]
+          },
+          {
+            "method": "offer",
+            "args": ["i344"]
+          },
+          {
+            "method": "offer",
+            "args": ["i345"]
+          },
+          {
+            "method": "offer",
+            "args": ["i346"]
+          },
+          {
+            "method": "offer",
+            "args": ["i347"]
+          },
+          {
+            "method": "offer",
+            "args": ["i348"]
+          },
+          {
+            "method": "offer",
+            "args": ["i349"]
+          },
+          {
+            "method": "offer",
+            "args": ["i350"]
+          },
+          {
+            "method": "offer",
+            "args": ["i351"]
+          },
+          {
+            "method": "offer",
+            "args": ["i352"]
+          },
+          {
+            "method": "offer",
+            "args": ["i353"]
+          },
+          {
+            "method": "offer",
+            "args": ["i354"]
+          },
+          {
+            "method": "offer",
+            "args": ["i355"]
+          },
+          {
+            "method": "offer",
+            "args": ["i356"]
+          },
+          {
+            "method": "offer",
+            "args": ["i357"]
+          },
+          {
+            "method": "offer",
+            "args": ["i358"]
+          },
+          {
+            "method": "offer",
+            "args": ["i359"]
+          },
+          {
+            "method": "offer",
+            "args": ["i360"]
+          },
+          {
+            "method": "offer",
+            "args": ["i361"]
+          },
+          {
+            "method": "offer",
+            "args": ["i362"]
+          },
+          {
+            "method": "offer",
+            "args": ["i363"]
+          },
+          {
+            "method": "offer",
+            "args": ["i364"]
+          },
+          {
+            "method": "offer",
+            "args": ["i365"]
+          },
+          {
+            "method": "offer",
+            "args": ["i366"]
+          },
+          {
+            "method": "offer",
+            "args": ["i367"]
+          },
+          {
+            "method": "offer",
+            "args": ["i368"]
+          },
+          {
+            "method": "offer",
+            "args": ["i369"]
+          },
+          {
+            "method": "offer",
+            "args": ["i370"]
+          },
+          {
+            "method": "offer",
+            "args": ["i371"]
+          },
+          {
+            "method": "offer",
+            "args": ["i372"]
+          },
+          {
+            "method": "offer",
+            "args": ["i373"]
+          },
+          {
+            "method": "offer",
+            "args": ["i374"]
+          },
+          {
+            "method": "offer",
+            "args": ["i375"]
+          },
+          {
+            "method": "offer",
+            "args": ["i376"]
+          },
+          {
+            "method": "offer",
+            "args": ["i377"]
+          },
+          {
+            "method": "offer",
+            "args": ["i378"]
+          },
+          {
+            "method": "offer",
+            "args": ["i379"]
+          },
+          {
+            "method": "offer",
+            "args": ["i380"]
+          },
+          {
+            "method": "offer",
+            "args": ["i381"]
+          },
+          {
+            "method": "offer",
+            "args": ["i382"]
+          },
+          {
+            "method": "offer",
+            "args": ["i383"]
+          },
+          {
+            "method": "offer",
+            "args": ["i384"]
+          },
+          {
+            "method": "offer",
+            "args": ["i385"]
+          },
+          {
+            "method": "offer",
+            "args": ["i386"]
+          },
+          {
+            "method": "offer",
+            "args": ["i387"]
+          },
+          {
+            "method": "offer",
+            "args": ["i388"]
+          },
+          {
+            "method": "offer",
+            "args": ["i389"]
+          },
+          {
+            "method": "offer",
+            "args": ["i390"]
+          },
+          {
+            "method": "offer",
+            "args": ["i391"]
+          },
+          {
+            "method": "offer",
+            "args": ["i392"]
+          },
+          {
+            "method": "offer",
+            "args": ["i393"]
+          },
+          {
+            "method": "offer",
+            "args": ["i394"]
+          },
+          {
+            "method": "offer",
+            "args": ["i395"]
+          },
+          {
+            "method": "offer",
+            "args": ["i396"]
+          },
+          {
+            "method": "offer",
+            "args": ["i397"]
+          },
+          {
+            "method": "offer",
+            "args": ["i398"]
+          },
+          {
+            "method": "offer",
+            "args": ["i399"]
+          },
+          {
+            "method": "offer",
+            "args": ["i400"]
+          },
+          {
+            "method": "offer",
+            "args": ["i401"]
+          },
+          {
+            "method": "offer",
+            "args": ["i402"]
+          },
+          {
+            "method": "offer",
+            "args": ["i403"]
+          },
+          {
+            "method": "offer",
+            "args": ["i404"]
+          },
+          {
+            "method": "offer",
+            "args": ["i405"]
+          },
+          {
+            "method": "offer",
+            "args": ["i406"]
+          },
+          {
+            "method": "offer",
+            "args": ["i407"]
+          },
+          {
+            "method": "offer",
+            "args": ["i408"]
+          },
+          {
+            "method": "offer",
+            "args": ["i409"]
+          },
+          {
+            "method": "offer",
+            "args": ["i410"]
+          },
+          {
+            "method": "offer",
+            "args": ["i411"]
+          },
+          {
+            "method": "offer",
+            "args": ["i412"]
+          },
+          {
+            "method": "offer",
+            "args": ["i413"]
+          },
+          {
+            "method": "offer",
+            "args": ["i414"]
+          },
+          {
+            "method": "offer",
+            "args": ["i415"]
+          },
+          {
+            "method": "offer",
+            "args": ["i416"]
+          },
+          {
+            "method": "offer",
+            "args": ["i417"]
+          },
+          {
+            "method": "offer",
+            "args": ["i418"]
+          },
+          {
+            "method": "offer",
+            "args": ["i419"]
+          },
+          {
+            "method": "offer",
+            "args": ["i420"]
+          },
+          {
+            "method": "offer",
+            "args": ["i421"]
+          },
+          {
+            "method": "offer",
+            "args": ["i422"]
+          },
+          {
+            "method": "offer",
+            "args": ["i423"]
+          },
+          {
+            "method": "offer",
+            "args": ["i424"]
+          },
+          {
+            "method": "offer",
+            "args": ["i425"]
+          },
+          {
+            "method": "offer",
+            "args": ["i426"]
+          },
+          {
+            "method": "offer",
+            "args": ["i427"]
+          },
+          {
+            "method": "offer",
+            "args": ["i428"]
+          },
+          {
+            "method": "offer",
+            "args": ["i429"]
+          },
+          {
+            "method": "offer",
+            "args": ["i430"]
+          },
+          {
+            "method": "offer",
+            "args": ["i431"]
+          },
+          {
+            "method": "offer",
+            "args": ["i432"]
+          },
+          {
+            "method": "offer",
+            "args": ["i433"]
+          },
+          {
+            "method": "offer",
+            "args": ["i434"]
+          },
+          {
+            "method": "offer",
+            "args": ["i435"]
+          },
+          {
+            "method": "offer",
+            "args": ["i436"]
+          },
+          {
+            "method": "offer",
+            "args": ["i437"]
+          },
+          {
+            "method": "offer",
+            "args": ["i438"]
+          },
+          {
+            "method": "offer",
+            "args": ["i439"]
+          },
+          {
+            "method": "offer",
+            "args": ["i440"]
+          },
+          {
+            "method": "offer",
+            "args": ["i441"]
+          },
+          {
+            "method": "offer",
+            "args": ["i442"]
+          },
+          {
+            "method": "offer",
+            "args": ["i443"]
+          },
+          {
+            "method": "offer",
+            "args": ["i444"]
+          },
+          {
+            "method": "offer",
+            "args": ["i445"]
+          },
+          {
+            "method": "offer",
+            "args": ["i446"]
+          },
+          {
+            "method": "offer",
+            "args": ["i447"]
+          },
+          {
+            "method": "offer",
+            "args": ["i448"]
+          },
+          {
+            "method": "offer",
+            "args": ["i449"]
+          },
+          {
+            "method": "offer",
+            "args": ["i450"]
+          },
+          {
+            "method": "offer",
+            "args": ["i451"]
+          },
+          {
+            "method": "offer",
+            "args": ["i452"]
+          },
+          {
+            "method": "offer",
+            "args": ["i453"]
+          },
+          {
+            "method": "offer",
+            "args": ["i454"]
+          },
+          {
+            "method": "offer",
+            "args": ["i455"]
+          },
+          {
+            "method": "offer",
+            "args": ["i456"]
+          },
+          {
+            "method": "offer",
+            "args": ["i457"]
+          },
+          {
+            "method": "offer",
+            "args": ["i458"]
+          },
+          {
+            "method": "offer",
+            "args": ["i459"]
+          },
+          {
+            "method": "offer",
+            "args": ["i460"]
+          },
+          {
+            "method": "offer",
+            "args": ["i461"]
+          },
+          {
+            "method": "offer",
+            "args": ["i462"]
+          },
+          {
+            "method": "offer",
+            "args": ["i463"]
+          },
+          {
+            "method": "offer",
+            "args": ["i464"]
+          },
+          {
+            "method": "offer",
+            "args": ["i465"]
+          },
+          {
+            "method": "offer",
+            "args": ["i466"]
+          },
+          {
+            "method": "offer",
+            "args": ["i467"]
+          },
+          {
+            "method": "offer",
+            "args": ["i468"]
+          },
+          {
+            "method": "offer",
+            "args": ["i469"]
+          },
+          {
+            "method": "offer",
+            "args": ["i470"]
+          },
+          {
+            "method": "offer",
+            "args": ["i471"]
+          },
+          {
+            "method": "offer",
+            "args": ["i472"]
+          },
+          {
+            "method": "offer",
+            "args": ["i473"]
+          },
+          {
+            "method": "offer",
+            "args": ["i474"]
+          },
+          {
+            "method": "offer",
+            "args": ["i475"]
+          },
+          {
+            "method": "offer",
+            "args": ["i476"]
+          },
+          {
+            "method": "offer",
+            "args": ["i477"]
+          },
+          {
+            "method": "offer",
+            "args": ["i478"]
+          },
+          {
+            "method": "offer",
+            "args": ["i479"]
+          },
+          {
+            "method": "offer",
+            "args": ["i480"]
+          },
+          {
+            "method": "offer",
+            "args": ["i481"]
+          },
+          {
+            "method": "offer",
+            "args": ["i482"]
+          },
+          {
+            "method": "offer",
+            "args": ["i483"]
+          },
+          {
+            "method": "offer",
+            "args": ["i484"]
+          },
+          {
+            "method": "offer",
+            "args": ["i485"]
+          },
+          {
+            "method": "offer",
+            "args": ["i486"]
+          },
+          {
+            "method": "offer",
+            "args": ["i487"]
+          },
+          {
+            "method": "offer",
+            "args": ["i488"]
+          },
+          {
+            "method": "offer",
+            "args": ["i489"]
+          },
+          {
+            "method": "offer",
+            "args": ["i490"]
+          },
+          {
+            "method": "offer",
+            "args": ["i491"]
+          },
+          {
+            "method": "offer",
+            "args": ["i492"]
+          },
+          {
+            "method": "offer",
+            "args": ["i493"]
+          },
+          {
+            "method": "offer",
+            "args": ["i494"]
+          },
+          {
+            "method": "offer",
+            "args": ["i495"]
+          },
+          {
+            "method": "offer",
+            "args": ["i496"]
+          },
+          {
+            "method": "offer",
+            "args": ["i497"]
+          },
+          {
+            "method": "offer",
+            "args": ["i498"]
+          },
+          {
+            "method": "offer",
+            "args": ["i499"]
+          },
+          {
+            "method": "offer",
+            "args": ["i500"]
+          },
+          {
+            "method": "offer",
+            "args": ["i501"]
+          },
+          {
+            "method": "offer",
+            "args": ["i502"]
+          },
+          {
+            "method": "offer",
+            "args": ["i503"]
+          },
+          {
+            "method": "offer",
+            "args": ["i504"]
+          },
+          {
+            "method": "offer",
+            "args": ["i505"]
+          },
+          {
+            "method": "offer",
+            "args": ["i506"]
+          },
+          {
+            "method": "offer",
+            "args": ["i507"]
+          },
+          {
+            "method": "offer",
+            "args": ["i508"]
+          },
+          {
+            "method": "offer",
+            "args": ["i509"]
+          },
+          {
+            "method": "offer",
+            "args": ["i510"]
+          },
+          {
+            "method": "offer",
+            "args": ["i511"]
+          },
+          {
+            "method": "offer",
+            "args": ["i512"]
+          },
+          {
+            "method": "offer",
+            "args": ["i513"]
+          },
+          {
+            "method": "offer",
+            "args": ["i514"]
+          },
+          {
+            "method": "offer",
+            "args": ["i515"]
+          },
+          {
+            "method": "offer",
+            "args": ["i516"]
+          },
+          {
+            "method": "offer",
+            "args": ["i517"]
+          },
+          {
+            "method": "offer",
+            "args": ["i518"]
+          },
+          {
+            "method": "offer",
+            "args": ["i519"]
+          },
+          {
+            "method": "offer",
+            "args": ["i520"]
+          },
+          {
+            "method": "offer",
+            "args": ["i521"]
+          },
+          {
+            "method": "offer",
+            "args": ["i522"]
+          },
+          {
+            "method": "offer",
+            "args": ["i523"]
+          },
+          {
+            "method": "offer",
+            "args": ["i524"]
+          },
+          {
+            "method": "offer",
+            "args": ["i525"]
+          },
+          {
+            "method": "offer",
+            "args": ["i526"]
+          },
+          {
+            "method": "offer",
+            "args": ["i527"]
+          },
+          {
+            "method": "offer",
+            "args": ["i528"]
+          },
+          {
+            "method": "offer",
+            "args": ["i529"]
+          },
+          {
+            "method": "offer",
+            "args": ["i530"]
+          },
+          {
+            "method": "offer",
+            "args": ["i531"]
+          },
+          {
+            "method": "offer",
+            "args": ["i532"]
+          },
+          {
+            "method": "offer",
+            "args": ["i533"]
+          },
+          {
+            "method": "offer",
+            "args": ["i534"]
+          },
+          {
+            "method": "offer",
+            "args": ["i535"]
+          },
+          {
+            "method": "offer",
+            "args": ["i536"]
+          },
+          {
+            "method": "offer",
+            "args": ["i537"]
+          },
+          {
+            "method": "offer",
+            "args": ["i538"]
+          },
+          {
+            "method": "offer",
+            "args": ["i539"]
+          },
+          {
+            "method": "offer",
+            "args": ["i540"]
+          },
+          {
+            "method": "offer",
+            "args": ["i541"]
+          },
+          {
+            "method": "offer",
+            "args": ["i542"]
+          },
+          {
+            "method": "offer",
+            "args": ["i543"]
+          },
+          {
+            "method": "offer",
+            "args": ["i544"]
+          },
+          {
+            "method": "offer",
+            "args": ["i545"]
+          },
+          {
+            "method": "offer",
+            "args": ["i546"]
+          },
+          {
+            "method": "offer",
+            "args": ["i547"]
+          },
+          {
+            "method": "offer",
+            "args": ["i548"]
+          },
+          {
+            "method": "offer",
+            "args": ["i549"]
+          },
+          {
+            "method": "offer",
+            "args": ["i550"]
+          },
+          {
+            "method": "offer",
+            "args": ["i551"]
+          },
+          {
+            "method": "offer",
+            "args": ["i552"]
+          },
+          {
+            "method": "offer",
+            "args": ["i553"]
+          },
+          {
+            "method": "offer",
+            "args": ["i554"]
+          },
+          {
+            "method": "offer",
+            "args": ["i555"]
+          },
+          {
+            "method": "offer",
+            "args": ["i556"]
+          },
+          {
+            "method": "offer",
+            "args": ["i557"]
+          },
+          {
+            "method": "offer",
+            "args": ["i558"]
+          },
+          {
+            "method": "offer",
+            "args": ["i559"]
+          },
+          {
+            "method": "offer",
+            "args": ["i560"]
+          },
+          {
+            "method": "offer",
+            "args": ["i561"]
+          },
+          {
+            "method": "offer",
+            "args": ["i562"]
+          },
+          {
+            "method": "offer",
+            "args": ["i563"]
+          },
+          {
+            "method": "offer",
+            "args": ["i564"]
+          },
+          {
+            "method": "offer",
+            "args": ["i565"]
+          },
+          {
+            "method": "offer",
+            "args": ["i566"]
+          },
+          {
+            "method": "offer",
+            "args": ["i567"]
+          },
+          {
+            "method": "offer",
+            "args": ["i568"]
+          },
+          {
+            "method": "offer",
+            "args": ["i569"]
+          },
+          {
+            "method": "offer",
+            "args": ["i570"]
+          },
+          {
+            "method": "offer",
+            "args": ["i571"]
+          },
+          {
+            "method": "offer",
+            "args": ["i572"]
+          },
+          {
+            "method": "offer",
+            "args": ["i573"]
+          },
+          {
+            "method": "offer",
+            "args": ["i574"]
+          },
+          {
+            "method": "offer",
+            "args": ["i575"]
+          },
+          {
+            "method": "offer",
+            "args": ["i576"]
+          },
+          {
+            "method": "offer",
+            "args": ["i577"]
+          },
+          {
+            "method": "offer",
+            "args": ["i578"]
+          },
+          {
+            "method": "offer",
+            "args": ["i579"]
+          },
+          {
+            "method": "offer",
+            "args": ["i580"]
+          },
+          {
+            "method": "offer",
+            "args": ["i581"]
+          },
+          {
+            "method": "offer",
+            "args": ["i582"]
+          },
+          {
+            "method": "offer",
+            "args": ["i583"]
+          },
+          {
+            "method": "offer",
+            "args": ["i584"]
+          },
+          {
+            "method": "offer",
+            "args": ["i585"]
+          },
+          {
+            "method": "offer",
+            "args": ["i586"]
+          },
+          {
+            "method": "offer",
+            "args": ["i587"]
+          },
+          {
+            "method": "offer",
+            "args": ["i588"]
+          },
+          {
+            "method": "offer",
+            "args": ["i589"]
+          },
+          {
+            "method": "offer",
+            "args": ["i590"]
+          },
+          {
+            "method": "offer",
+            "args": ["i591"]
+          },
+          {
+            "method": "offer",
+            "args": ["i592"]
+          },
+          {
+            "method": "offer",
+            "args": ["i593"]
+          },
+          {
+            "method": "offer",
+            "args": ["i594"]
+          },
+          {
+            "method": "offer",
+            "args": ["i595"]
+          },
+          {
+            "method": "offer",
+            "args": ["i596"]
+          },
+          {
+            "method": "offer",
+            "args": ["i597"]
+          },
+          {
+            "method": "offer",
+            "args": ["i598"]
+          },
+          {
+            "method": "offer",
+            "args": ["i599"]
+          },
+          {
+            "method": "offer",
+            "args": ["i600"]
+          },
+          {
+            "method": "offer",
+            "args": ["i601"]
+          },
+          {
+            "method": "offer",
+            "args": ["i602"]
+          },
+          {
+            "method": "offer",
+            "args": ["i603"]
+          },
+          {
+            "method": "offer",
+            "args": ["i604"]
+          },
+          {
+            "method": "offer",
+            "args": ["i605"]
+          },
+          {
+            "method": "offer",
+            "args": ["i606"]
+          },
+          {
+            "method": "offer",
+            "args": ["i607"]
+          },
+          {
+            "method": "offer",
+            "args": ["i608"]
+          },
+          {
+            "method": "offer",
+            "args": ["i609"]
+          },
+          {
+            "method": "offer",
+            "args": ["i610"]
+          },
+          {
+            "method": "offer",
+            "args": ["i611"]
+          },
+          {
+            "method": "offer",
+            "args": ["i612"]
+          },
+          {
+            "method": "offer",
+            "args": ["i613"]
+          },
+          {
+            "method": "offer",
+            "args": ["i614"]
+          },
+          {
+            "method": "offer",
+            "args": ["i615"]
+          },
+          {
+            "method": "offer",
+            "args": ["i616"]
+          },
+          {
+            "method": "offer",
+            "args": ["i617"]
+          },
+          {
+            "method": "offer",
+            "args": ["i618"]
+          },
+          {
+            "method": "offer",
+            "args": ["i619"]
+          },
+          {
+            "method": "offer",
+            "args": ["i620"]
+          },
+          {
+            "method": "offer",
+            "args": ["i621"]
+          },
+          {
+            "method": "offer",
+            "args": ["i622"]
+          },
+          {
+            "method": "offer",
+            "args": ["i623"]
+          },
+          {
+            "method": "offer",
+            "args": ["i624"]
+          },
+          {
+            "method": "offer",
+            "args": ["i625"]
+          },
+          {
+            "method": "offer",
+            "args": ["i626"]
+          },
+          {
+            "method": "offer",
+            "args": ["i627"]
+          },
+          {
+            "method": "offer",
+            "args": ["i628"]
+          },
+          {
+            "method": "offer",
+            "args": ["i629"]
+          },
+          {
+            "method": "offer",
+            "args": ["i630"]
+          },
+          {
+            "method": "offer",
+            "args": ["i631"]
+          },
+          {
+            "method": "offer",
+            "args": ["i632"]
+          },
+          {
+            "method": "offer",
+            "args": ["i633"]
+          },
+          {
+            "method": "offer",
+            "args": ["i634"]
+          },
+          {
+            "method": "offer",
+            "args": ["i635"]
+          },
+          {
+            "method": "offer",
+            "args": ["i636"]
+          },
+          {
+            "method": "offer",
+            "args": ["i637"]
+          },
+          {
+            "method": "offer",
+            "args": ["i638"]
+          },
+          {
+            "method": "offer",
+            "args": ["i639"]
+          },
+          {
+            "method": "offer",
+            "args": ["i640"]
+          },
+          {
+            "method": "offer",
+            "args": ["i641"]
+          },
+          {
+            "method": "offer",
+            "args": ["i642"]
+          },
+          {
+            "method": "offer",
+            "args": ["i643"]
+          },
+          {
+            "method": "offer",
+            "args": ["i644"]
+          },
+          {
+            "method": "offer",
+            "args": ["i645"]
+          },
+          {
+            "method": "offer",
+            "args": ["i646"]
+          },
+          {
+            "method": "offer",
+            "args": ["i647"]
+          },
+          {
+            "method": "offer",
+            "args": ["i648"]
+          },
+          {
+            "method": "offer",
+            "args": ["i649"]
+          },
+          {
+            "method": "offer",
+            "args": ["i650"]
+          },
+          {
+            "method": "offer",
+            "args": ["i651"]
+          },
+          {
+            "method": "offer",
+            "args": ["i652"]
+          },
+          {
+            "method": "offer",
+            "args": ["i653"]
+          },
+          {
+            "method": "offer",
+            "args": ["i654"]
+          },
+          {
+            "method": "offer",
+            "args": ["i655"]
+          },
+          {
+            "method": "offer",
+            "args": ["i656"]
+          },
+          {
+            "method": "offer",
+            "args": ["i657"]
+          },
+          {
+            "method": "offer",
+            "args": ["i658"]
+          },
+          {
+            "method": "offer",
+            "args": ["i659"]
+          },
+          {
+            "method": "offer",
+            "args": ["i660"]
+          },
+          {
+            "method": "offer",
+            "args": ["i661"]
+          },
+          {
+            "method": "offer",
+            "args": ["i662"]
+          },
+          {
+            "method": "offer",
+            "args": ["i663"]
+          },
+          {
+            "method": "offer",
+            "args": ["i664"]
+          },
+          {
+            "method": "offer",
+            "args": ["i665"]
+          },
+          {
+            "method": "offer",
+            "args": ["i666"]
+          },
+          {
+            "method": "offer",
+            "args": ["i667"]
+          },
+          {
+            "method": "offer",
+            "args": ["i668"]
+          },
+          {
+            "method": "offer",
+            "args": ["i669"]
+          },
+          {
+            "method": "offer",
+            "args": ["i670"]
+          },
+          {
+            "method": "offer",
+            "args": ["i671"]
+          },
+          {
+            "method": "offer",
+            "args": ["i672"]
+          },
+          {
+            "method": "offer",
+            "args": ["i673"]
+          },
+          {
+            "method": "offer",
+            "args": ["i674"]
+          },
+          {
+            "method": "offer",
+            "args": ["i675"]
+          },
+          {
+            "method": "offer",
+            "args": ["i676"]
+          },
+          {
+            "method": "offer",
+            "args": ["i677"]
+          },
+          {
+            "method": "offer",
+            "args": ["i678"]
+          },
+          {
+            "method": "offer",
+            "args": ["i679"]
+          },
+          {
+            "method": "offer",
+            "args": ["i680"]
+          },
+          {
+            "method": "offer",
+            "args": ["i681"]
+          },
+          {
+            "method": "offer",
+            "args": ["i682"]
+          },
+          {
+            "method": "offer",
+            "args": ["i683"]
+          },
+          {
+            "method": "offer",
+            "args": ["i684"]
+          },
+          {
+            "method": "offer",
+            "args": ["i685"]
+          },
+          {
+            "method": "offer",
+            "args": ["i686"]
+          },
+          {
+            "method": "offer",
+            "args": ["i687"]
+          },
+          {
+            "method": "offer",
+            "args": ["i688"]
+          },
+          {
+            "method": "offer",
+            "args": ["i689"]
+          },
+          {
+            "method": "offer",
+            "args": ["i690"]
+          },
+          {
+            "method": "offer",
+            "args": ["i691"]
+          },
+          {
+            "method": "offer",
+            "args": ["i692"]
+          },
+          {
+            "method": "offer",
+            "args": ["i693"]
+          },
+          {
+            "method": "offer",
+            "args": ["i694"]
+          },
+          {
+            "method": "offer",
+            "args": ["i695"]
+          },
+          {
+            "method": "offer",
+            "args": ["i696"]
+          },
+          {
+            "method": "offer",
+            "args": ["i697"]
+          },
+          {
+            "method": "offer",
+            "args": ["i698"]
+          },
+          {
+            "method": "offer",
+            "args": ["i699"]
+          },
+          {
+            "method": "offer",
+            "args": ["i700"]
+          },
+          {
+            "method": "offer",
+            "args": ["i701"]
+          },
+          {
+            "method": "offer",
+            "args": ["i702"]
+          },
+          {
+            "method": "offer",
+            "args": ["i703"]
+          },
+          {
+            "method": "offer",
+            "args": ["i704"]
+          },
+          {
+            "method": "offer",
+            "args": ["i705"]
+          },
+          {
+            "method": "offer",
+            "args": ["i706"]
+          },
+          {
+            "method": "offer",
+            "args": ["i707"]
+          },
+          {
+            "method": "offer",
+            "args": ["i708"]
+          },
+          {
+            "method": "offer",
+            "args": ["i709"]
+          },
+          {
+            "method": "offer",
+            "args": ["i710"]
+          },
+          {
+            "method": "offer",
+            "args": ["i711"]
+          },
+          {
+            "method": "offer",
+            "args": ["i712"]
+          },
+          {
+            "method": "offer",
+            "args": ["i713"]
+          },
+          {
+            "method": "offer",
+            "args": ["i714"]
+          },
+          {
+            "method": "offer",
+            "args": ["i715"]
+          },
+          {
+            "method": "offer",
+            "args": ["i716"]
+          },
+          {
+            "method": "offer",
+            "args": ["i717"]
+          },
+          {
+            "method": "offer",
+            "args": ["i718"]
+          },
+          {
+            "method": "offer",
+            "args": ["i719"]
+          },
+          {
+            "method": "offer",
+            "args": ["i720"]
+          },
+          {
+            "method": "offer",
+            "args": ["i721"]
+          },
+          {
+            "method": "offer",
+            "args": ["i722"]
+          },
+          {
+            "method": "offer",
+            "args": ["i723"]
+          },
+          {
+            "method": "offer",
+            "args": ["i724"]
+          },
+          {
+            "method": "offer",
+            "args": ["i725"]
+          },
+          {
+            "method": "offer",
+            "args": ["i726"]
+          },
+          {
+            "method": "offer",
+            "args": ["i727"]
+          },
+          {
+            "method": "offer",
+            "args": ["i728"]
+          },
+          {
+            "method": "offer",
+            "args": ["i729"]
+          },
+          {
+            "method": "offer",
+            "args": ["i730"]
+          },
+          {
+            "method": "offer",
+            "args": ["i731"]
+          },
+          {
+            "method": "offer",
+            "args": ["i732"]
+          },
+          {
+            "method": "offer",
+            "args": ["i733"]
+          },
+          {
+            "method": "offer",
+            "args": ["i734"]
+          },
+          {
+            "method": "offer",
+            "args": ["i735"]
+          },
+          {
+            "method": "offer",
+            "args": ["i736"]
+          },
+          {
+            "method": "offer",
+            "args": ["i737"]
+          },
+          {
+            "method": "offer",
+            "args": ["i738"]
+          },
+          {
+            "method": "offer",
+            "args": ["i739"]
+          },
+          {
+            "method": "offer",
+            "args": ["i740"]
+          },
+          {
+            "method": "offer",
+            "args": ["i741"]
+          },
+          {
+            "method": "offer",
+            "args": ["i742"]
+          },
+          {
+            "method": "offer",
+            "args": ["i743"]
+          },
+          {
+            "method": "offer",
+            "args": ["i744"]
+          },
+          {
+            "method": "offer",
+            "args": ["i745"]
+          },
+          {
+            "method": "offer",
+            "args": ["i746"]
+          },
+          {
+            "method": "offer",
+            "args": ["i747"]
+          },
+          {
+            "method": "offer",
+            "args": ["i748"]
+          },
+          {
+            "method": "offer",
+            "args": ["i749"]
+          },
+          {
+            "method": "offer",
+            "args": ["i750"]
+          },
+          {
+            "method": "offer",
+            "args": ["i751"]
+          },
+          {
+            "method": "offer",
+            "args": ["i752"]
+          },
+          {
+            "method": "offer",
+            "args": ["i753"]
+          },
+          {
+            "method": "offer",
+            "args": ["i754"]
+          },
+          {
+            "method": "offer",
+            "args": ["i755"]
+          },
+          {
+            "method": "offer",
+            "args": ["i756"]
+          },
+          {
+            "method": "offer",
+            "args": ["i757"]
+          },
+          {
+            "method": "offer",
+            "args": ["i758"]
+          },
+          {
+            "method": "offer",
+            "args": ["i759"]
+          },
+          {
+            "method": "offer",
+            "args": ["i760"]
+          },
+          {
+            "method": "offer",
+            "args": ["i761"]
+          },
+          {
+            "method": "offer",
+            "args": ["i762"]
+          },
+          {
+            "method": "offer",
+            "args": ["i763"]
+          },
+          {
+            "method": "offer",
+            "args": ["i764"]
+          },
+          {
+            "method": "offer",
+            "args": ["i765"]
+          },
+          {
+            "method": "offer",
+            "args": ["i766"]
+          },
+          {
+            "method": "offer",
+            "args": ["i767"]
+          },
+          {
+            "method": "offer",
+            "args": ["i768"]
+          },
+          {
+            "method": "offer",
+            "args": ["i769"]
+          },
+          {
+            "method": "offer",
+            "args": ["i770"]
+          },
+          {
+            "method": "offer",
+            "args": ["i771"]
+          },
+          {
+            "method": "offer",
+            "args": ["i772"]
+          },
+          {
+            "method": "offer",
+            "args": ["i773"]
+          },
+          {
+            "method": "offer",
+            "args": ["i774"]
+          },
+          {
+            "method": "offer",
+            "args": ["i775"]
+          },
+          {
+            "method": "offer",
+            "args": ["i776"]
+          },
+          {
+            "method": "offer",
+            "args": ["i777"]
+          },
+          {
+            "method": "offer",
+            "args": ["i778"]
+          },
+          {
+            "method": "offer",
+            "args": ["i779"]
+          },
+          {
+            "method": "offer",
+            "args": ["i780"]
+          },
+          {
+            "method": "offer",
+            "args": ["i781"]
+          },
+          {
+            "method": "offer",
+            "args": ["i782"]
+          },
+          {
+            "method": "offer",
+            "args": ["i783"]
+          },
+          {
+            "method": "offer",
+            "args": ["i784"]
+          },
+          {
+            "method": "offer",
+            "args": ["i785"]
+          },
+          {
+            "method": "offer",
+            "args": ["i786"]
+          },
+          {
+            "method": "offer",
+            "args": ["i787"]
+          },
+          {
+            "method": "offer",
+            "args": ["i788"]
+          },
+          {
+            "method": "offer",
+            "args": ["i789"]
+          },
+          {
+            "method": "offer",
+            "args": ["i790"]
+          },
+          {
+            "method": "offer",
+            "args": ["i791"]
+          },
+          {
+            "method": "offer",
+            "args": ["i792"]
+          },
+          {
+            "method": "offer",
+            "args": ["i793"]
+          },
+          {
+            "method": "offer",
+            "args": ["i794"]
+          },
+          {
+            "method": "offer",
+            "args": ["i795"]
+          },
+          {
+            "method": "offer",
+            "args": ["i796"]
+          },
+          {
+            "method": "offer",
+            "args": ["i797"]
+          },
+          {
+            "method": "offer",
+            "args": ["i798"]
+          },
+          {
+            "method": "offer",
+            "args": ["i799"]
+          },
+          {
+            "method": "offer",
+            "args": ["i800"]
+          },
+          {
+            "method": "offer",
+            "args": ["i801"]
+          },
+          {
+            "method": "offer",
+            "args": ["i802"]
+          },
+          {
+            "method": "offer",
+            "args": ["i803"]
+          },
+          {
+            "method": "offer",
+            "args": ["i804"]
+          },
+          {
+            "method": "offer",
+            "args": ["i805"]
+          },
+          {
+            "method": "offer",
+            "args": ["i806"]
+          },
+          {
+            "method": "offer",
+            "args": ["i807"]
+          },
+          {
+            "method": "offer",
+            "args": ["i808"]
+          },
+          {
+            "method": "offer",
+            "args": ["i809"]
+          },
+          {
+            "method": "offer",
+            "args": ["i810"]
+          },
+          {
+            "method": "offer",
+            "args": ["i811"]
+          },
+          {
+            "method": "offer",
+            "args": ["i812"]
+          },
+          {
+            "method": "offer",
+            "args": ["i813"]
+          },
+          {
+            "method": "offer",
+            "args": ["i814"]
+          },
+          {
+            "method": "offer",
+            "args": ["i815"]
+          },
+          {
+            "method": "offer",
+            "args": ["i816"]
+          },
+          {
+            "method": "offer",
+            "args": ["i817"]
+          },
+          {
+            "method": "offer",
+            "args": ["i818"]
+          },
+          {
+            "method": "offer",
+            "args": ["i819"]
+          },
+          {
+            "method": "offer",
+            "args": ["i820"]
+          },
+          {
+            "method": "offer",
+            "args": ["i821"]
+          },
+          {
+            "method": "offer",
+            "args": ["i822"]
+          },
+          {
+            "method": "offer",
+            "args": ["i823"]
+          },
+          {
+            "method": "offer",
+            "args": ["i824"]
+          },
+          {
+            "method": "offer",
+            "args": ["i825"]
+          },
+          {
+            "method": "offer",
+            "args": ["i826"]
+          },
+          {
+            "method": "offer",
+            "args": ["i827"]
+          },
+          {
+            "method": "offer",
+            "args": ["i828"]
+          },
+          {
+            "method": "offer",
+            "args": ["i829"]
+          },
+          {
+            "method": "offer",
+            "args": ["i830"]
+          },
+          {
+            "method": "offer",
+            "args": ["i831"]
+          },
+          {
+            "method": "offer",
+            "args": ["i832"]
+          },
+          {
+            "method": "offer",
+            "args": ["i833"]
+          },
+          {
+            "method": "offer",
+            "args": ["i834"]
+          },
+          {
+            "method": "offer",
+            "args": ["i835"]
+          },
+          {
+            "method": "offer",
+            "args": ["i836"]
+          },
+          {
+            "method": "offer",
+            "args": ["i837"]
+          },
+          {
+            "method": "offer",
+            "args": ["i838"]
+          },
+          {
+            "method": "offer",
+            "args": ["i839"]
+          },
+          {
+            "method": "offer",
+            "args": ["i840"]
+          },
+          {
+            "method": "offer",
+            "args": ["i841"]
+          },
+          {
+            "method": "offer",
+            "args": ["i842"]
+          },
+          {
+            "method": "offer",
+            "args": ["i843"]
+          },
+          {
+            "method": "offer",
+            "args": ["i844"]
+          },
+          {
+            "method": "offer",
+            "args": ["i845"]
+          },
+          {
+            "method": "offer",
+            "args": ["i846"]
+          },
+          {
+            "method": "offer",
+            "args": ["i847"]
+          },
+          {
+            "method": "offer",
+            "args": ["i848"]
+          },
+          {
+            "method": "offer",
+            "args": ["i849"]
+          },
+          {
+            "method": "offer",
+            "args": ["i850"]
+          },
+          {
+            "method": "offer",
+            "args": ["i851"]
+          },
+          {
+            "method": "offer",
+            "args": ["i852"]
+          },
+          {
+            "method": "offer",
+            "args": ["i853"]
+          },
+          {
+            "method": "offer",
+            "args": ["i854"]
+          },
+          {
+            "method": "offer",
+            "args": ["i855"]
+          },
+          {
+            "method": "offer",
+            "args": ["i856"]
+          },
+          {
+            "method": "offer",
+            "args": ["i857"]
+          },
+          {
+            "method": "offer",
+            "args": ["i858"]
+          },
+          {
+            "method": "offer",
+            "args": ["i859"]
+          },
+          {
+            "method": "offer",
+            "args": ["i860"]
+          },
+          {
+            "method": "offer",
+            "args": ["i861"]
+          },
+          {
+            "method": "offer",
+            "args": ["i862"]
+          },
+          {
+            "method": "offer",
+            "args": ["i863"]
+          },
+          {
+            "method": "offer",
+            "args": ["i864"]
+          },
+          {
+            "method": "offer",
+            "args": ["i865"]
+          },
+          {
+            "method": "offer",
+            "args": ["i866"]
+          },
+          {
+            "method": "offer",
+            "args": ["i867"]
+          },
+          {
+            "method": "offer",
+            "args": ["i868"]
+          },
+          {
+            "method": "offer",
+            "args": ["i869"]
+          },
+          {
+            "method": "offer",
+            "args": ["i870"]
+          },
+          {
+            "method": "offer",
+            "args": ["i871"]
+          },
+          {
+            "method": "offer",
+            "args": ["i872"]
+          },
+          {
+            "method": "offer",
+            "args": ["i873"]
+          },
+          {
+            "method": "offer",
+            "args": ["i874"]
+          },
+          {
+            "method": "offer",
+            "args": ["i875"]
+          },
+          {
+            "method": "offer",
+            "args": ["i876"]
+          },
+          {
+            "method": "offer",
+            "args": ["i877"]
+          },
+          {
+            "method": "offer",
+            "args": ["i878"]
+          },
+          {
+            "method": "offer",
+            "args": ["i879"]
+          },
+          {
+            "method": "offer",
+            "args": ["i880"]
+          },
+          {
+            "method": "offer",
+            "args": ["i881"]
+          },
+          {
+            "method": "offer",
+            "args": ["i882"]
+          },
+          {
+            "method": "offer",
+            "args": ["i883"]
+          },
+          {
+            "method": "offer",
+            "args": ["i884"]
+          },
+          {
+            "method": "offer",
+            "args": ["i885"]
+          },
+          {
+            "method": "offer",
+            "args": ["i886"]
+          },
+          {
+            "method": "offer",
+            "args": ["i887"]
+          },
+          {
+            "method": "offer",
+            "args": ["i888"]
+          },
+          {
+            "method": "offer",
+            "args": ["i889"]
+          },
+          {
+            "method": "offer",
+            "args": ["i890"]
+          },
+          {
+            "method": "offer",
+            "args": ["i891"]
+          },
+          {
+            "method": "offer",
+            "args": ["i892"]
+          },
+          {
+            "method": "offer",
+            "args": ["i893"]
+          },
+          {
+            "method": "offer",
+            "args": ["i894"]
+          },
+          {
+            "method": "offer",
+            "args": ["i895"]
+          },
+          {
+            "method": "offer",
+            "args": ["i896"]
+          },
+          {
+            "method": "offer",
+            "args": ["i897"]
+          },
+          {
+            "method": "offer",
+            "args": ["i898"]
+          },
+          {
+            "method": "offer",
+            "args": ["i899"]
+          },
+          {
+            "method": "offer",
+            "args": ["i900"]
+          },
+          {
+            "method": "offer",
+            "args": ["i901"]
+          },
+          {
+            "method": "offer",
+            "args": ["i902"]
+          },
+          {
+            "method": "offer",
+            "args": ["i903"]
+          },
+          {
+            "method": "offer",
+            "args": ["i904"]
+          },
+          {
+            "method": "offer",
+            "args": ["i905"]
+          },
+          {
+            "method": "offer",
+            "args": ["i906"]
+          },
+          {
+            "method": "offer",
+            "args": ["i907"]
+          },
+          {
+            "method": "offer",
+            "args": ["i908"]
+          },
+          {
+            "method": "offer",
+            "args": ["i909"]
+          },
+          {
+            "method": "offer",
+            "args": ["i910"]
+          },
+          {
+            "method": "offer",
+            "args": ["i911"]
+          },
+          {
+            "method": "offer",
+            "args": ["i912"]
+          },
+          {
+            "method": "offer",
+            "args": ["i913"]
+          },
+          {
+            "method": "offer",
+            "args": ["i914"]
+          },
+          {
+            "method": "offer",
+            "args": ["i915"]
+          },
+          {
+            "method": "offer",
+            "args": ["i916"]
+          },
+          {
+            "method": "offer",
+            "args": ["i917"]
+          },
+          {
+            "method": "offer",
+            "args": ["i918"]
+          },
+          {
+            "method": "offer",
+            "args": ["i919"]
+          },
+          {
+            "method": "offer",
+            "args": ["i920"]
+          },
+          {
+            "method": "offer",
+            "args": ["i921"]
+          },
+          {
+            "method": "offer",
+            "args": ["i922"]
+          },
+          {
+            "method": "offer",
+            "args": ["i923"]
+          },
+          {
+            "method": "offer",
+            "args": ["i924"]
+          },
+          {
+            "method": "offer",
+            "args": ["i925"]
+          },
+          {
+            "method": "offer",
+            "args": ["i926"]
+          },
+          {
+            "method": "offer",
+            "args": ["i927"]
+          },
+          {
+            "method": "offer",
+            "args": ["i928"]
+          },
+          {
+            "method": "offer",
+            "args": ["i929"]
+          },
+          {
+            "method": "offer",
+            "args": ["i930"]
+          },
+          {
+            "method": "offer",
+            "args": ["i931"]
+          },
+          {
+            "method": "offer",
+            "args": ["i932"]
+          },
+          {
+            "method": "offer",
+            "args": ["i933"]
+          },
+          {
+            "method": "offer",
+            "args": ["i934"]
+          },
+          {
+            "method": "offer",
+            "args": ["i935"]
+          },
+          {
+            "method": "offer",
+            "args": ["i936"]
+          },
+          {
+            "method": "offer",
+            "args": ["i937"]
+          },
+          {
+            "method": "offer",
+            "args": ["i938"]
+          },
+          {
+            "method": "offer",
+            "args": ["i939"]
+          },
+          {
+            "method": "offer",
+            "args": ["i940"]
+          },
+          {
+            "method": "offer",
+            "args": ["i941"]
+          },
+          {
+            "method": "offer",
+            "args": ["i942"]
+          },
+          {
+            "method": "offer",
+            "args": ["i943"]
+          },
+          {
+            "method": "offer",
+            "args": ["i944"]
+          },
+          {
+            "method": "offer",
+            "args": ["i945"]
+          },
+          {
+            "method": "offer",
+            "args": ["i946"]
+          },
+          {
+            "method": "offer",
+            "args": ["i947"]
+          },
+          {
+            "method": "offer",
+            "args": ["i948"]
+          },
+          {
+            "method": "offer",
+            "args": ["i949"]
+          },
+          {
+            "method": "offer",
+            "args": ["i950"]
+          },
+          {
+            "method": "offer",
+            "args": ["i951"]
+          },
+          {
+            "method": "offer",
+            "args": ["i952"]
+          },
+          {
+            "method": "offer",
+            "args": ["i953"]
+          },
+          {
+            "method": "offer",
+            "args": ["i954"]
+          },
+          {
+            "method": "offer",
+            "args": ["i955"]
+          },
+          {
+            "method": "offer",
+            "args": ["i956"]
+          },
+          {
+            "method": "offer",
+            "args": ["i957"]
+          },
+          {
+            "method": "offer",
+            "args": ["i958"]
+          },
+          {
+            "method": "offer",
+            "args": ["i959"]
+          },
+          {
+            "method": "offer",
+            "args": ["i960"]
+          },
+          {
+            "method": "offer",
+            "args": ["i961"]
+          },
+          {
+            "method": "offer",
+            "args": ["i962"]
+          },
+          {
+            "method": "offer",
+            "args": ["i963"]
+          },
+          {
+            "method": "offer",
+            "args": ["i964"]
+          },
+          {
+            "method": "offer",
+            "args": ["i965"]
+          },
+          {
+            "method": "offer",
+            "args": ["i966"]
+          },
+          {
+            "method": "offer",
+            "args": ["i967"]
+          },
+          {
+            "method": "offer",
+            "args": ["i968"]
+          },
+          {
+            "method": "offer",
+            "args": ["i969"]
+          },
+          {
+            "method": "offer",
+            "args": ["i970"]
+          },
+          {
+            "method": "offer",
+            "args": ["i971"]
+          },
+          {
+            "method": "offer",
+            "args": ["i972"]
+          },
+          {
+            "method": "offer",
+            "args": ["i973"]
+          },
+          {
+            "method": "offer",
+            "args": ["i974"]
+          },
+          {
+            "method": "offer",
+            "args": ["i975"]
+          },
+          {
+            "method": "offer",
+            "args": ["i976"]
+          },
+          {
+            "method": "offer",
+            "args": ["i977"]
+          },
+          {
+            "method": "offer",
+            "args": ["i978"]
+          },
+          {
+            "method": "offer",
+            "args": ["i979"]
+          },
+          {
+            "method": "offer",
+            "args": ["i980"]
+          },
+          {
+            "method": "offer",
+            "args": ["i981"]
+          },
+          {
+            "method": "offer",
+            "args": ["i982"]
+          },
+          {
+            "method": "offer",
+            "args": ["i983"]
+          },
+          {
+            "method": "offer",
+            "args": ["i984"]
+          },
+          {
+            "method": "offer",
+            "args": ["i985"]
+          },
+          {
+            "method": "offer",
+            "args": ["i986"]
+          },
+          {
+            "method": "offer",
+            "args": ["i987"]
+          },
+          {
+            "method": "offer",
+            "args": ["i988"]
+          },
+          {
+            "method": "offer",
+            "args": ["i989"]
+          },
+          {
+            "method": "offer",
+            "args": ["i990"]
+          },
+          {
+            "method": "offer",
+            "args": ["i991"]
+          },
+          {
+            "method": "offer",
+            "args": ["i992"]
+          },
+          {
+            "method": "offer",
+            "args": ["i993"]
+          },
+          {
+            "method": "offer",
+            "args": ["i994"]
+          },
+          {
+            "method": "offer",
+            "args": ["i995"]
+          },
+          {
+            "method": "offer",
+            "args": ["i996"]
+          },
+          {
+            "method": "offer",
+            "args": ["i997"]
+          },
+          {
+            "method": "offer",
+            "args": ["i998"]
+          },
+          {
+            "method": "offer",
+            "args": ["i999"]
+          },
+          {
+            "method": "offer",
+            "args": ["over"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["last"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["a"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["b"]
+          },
+          {
+            "method": "offer",
+            "args": ["c"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["d"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "offer",
+            "args": [" "]
+          },
+          {
+            "method": "offer",
+            "args": ["A b"]
+          },
+          {
+            "method": "offer",
+            "args": ["{\"id\":1}"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["only"]
+          },
+          {
+            "method": "offer",
+            "args": ["again"]
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "offer",
+            "args": ["again"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekNext",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

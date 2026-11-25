@@ -1,0 +1,924 @@
+{
+  "slug": "notification-prefs",
+  "title": "Notification preferences",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["separation-of-concerns", "cohesion-and-coupling"],
+  "interface": {
+    "class": "NotificationPrefs",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "optOut",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "channel",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "quietHours",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "startHour",
+            "type": "int"
+          },
+          {
+            "name": "endHour",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "route",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "channel",
+            "type": "string"
+          },
+          {
+            "name": "hour",
+            "type": "int"
+          },
+          {
+            "name": "urgent",
+            "type": "bool"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "channels",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["ana", "email", 3, false]
+          },
+          {
+            "method": "optOut",
+            "args": ["ana", "sms"]
+          },
+          {
+            "method": "channels",
+            "args": ["ana"]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "sms", 12, true]
+          },
+          {
+            "method": "quietHours",
+            "args": ["ana", 22, 7]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "push", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "push", 6, false]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "push", 7, false]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "push", 2, true]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "pager", 2, true]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["bo", 9, 17]
+          },
+          {
+            "method": "route",
+            "args": ["bo", "email", 8, false]
+          },
+          {
+            "method": "route",
+            "args": ["bo", "email", 9, false]
+          },
+          {
+            "method": "route",
+            "args": ["bo", "email", 16, false]
+          },
+          {
+            "method": "route",
+            "args": ["bo", "email", 17, false]
+          },
+          {
+            "method": "channels",
+            "args": ["bo"]
+          },
+          {
+            "method": "quietHours",
+            "args": ["bo", 24, 1]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "optOut",
+            "args": ["", "email"]
+          },
+          {
+            "method": "optOut",
+            "args": ["a", ""]
+          },
+          {
+            "method": "optOut",
+            "args": ["a", "Email"]
+          },
+          {
+            "method": "quietHours",
+            "args": ["", 1, 2]
+          },
+          {
+            "method": "route",
+            "args": ["", "email", 1, false]
+          },
+          {
+            "method": "route",
+            "args": ["a", "fax", 1, false]
+          },
+          {
+            "method": "channels",
+            "args": [""]
+          },
+          {
+            "method": "channels",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["u", -1, 5]
+          },
+          {
+            "method": "quietHours",
+            "args": ["u", 5, 24]
+          },
+          {
+            "method": "quietHours",
+            "args": ["u", 0, 23]
+          },
+          {
+            "method": "route",
+            "args": ["u", "push", 24, true]
+          },
+          {
+            "method": "route",
+            "args": ["u", "push", -1, true]
+          },
+          {
+            "method": "route",
+            "args": ["u", "push", 22, false]
+          },
+          {
+            "method": "route",
+            "args": ["u", "push", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["u", "push", 0, false]
+          },
+          {
+            "method": "quietHours",
+            "args": ["u", 3, 99]
+          },
+          {
+            "method": "route",
+            "args": ["u", "push", 5, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["u", 22, 6]
+          },
+          {
+            "method": "route",
+            "args": ["u", "email", 23, false]
+          },
+          {
+            "method": "quietHours",
+            "args": ["u", 4, 4]
+          },
+          {
+            "method": "route",
+            "args": ["u", "email", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["u", "email", 4, false]
+          },
+          {
+            "method": "quietHours",
+            "args": ["u", 0, 0]
+          },
+          {
+            "method": "route",
+            "args": ["u", "email", 0, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["w", 23, 1]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 21, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 22, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 0, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 1, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 2, false]
+          },
+          {
+            "method": "quietHours",
+            "args": ["w", 20, 0]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 19, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 20, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 0, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 1, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["w", 1, 23]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 0, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 1, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 12, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 22, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 23, false]
+          },
+          {
+            "method": "quietHours",
+            "args": ["w", 0, 1]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 0, false]
+          },
+          {
+            "method": "route",
+            "args": ["w", "sms", 1, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["x", 0, 8]
+          },
+          {
+            "method": "quietHours",
+            "args": ["x", 12, 13]
+          },
+          {
+            "method": "route",
+            "args": ["x", "push", 3, false]
+          },
+          {
+            "method": "route",
+            "args": ["x", "push", 12, false]
+          },
+          {
+            "method": "route",
+            "args": ["x", "push", 13, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["y", 0, 23]
+          },
+          {
+            "method": "optOut",
+            "args": ["y", "email"]
+          },
+          {
+            "method": "route",
+            "args": ["y", "email", 5, true]
+          },
+          {
+            "method": "route",
+            "args": ["y", "email", 23, true]
+          },
+          {
+            "method": "route",
+            "args": ["y", "email", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["y", "push", 5, true]
+          },
+          {
+            "method": "route",
+            "args": ["y", "push", 5, false]
+          },
+          {
+            "method": "route",
+            "args": ["y", "sms", 23, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "optOut",
+            "args": ["p", "push"]
+          },
+          {
+            "method": "optOut",
+            "args": ["p", "push"]
+          },
+          {
+            "method": "channels",
+            "args": ["p"]
+          },
+          {
+            "method": "channels",
+            "args": ["q"]
+          },
+          {
+            "method": "route",
+            "args": ["q", "push", 10, false]
+          },
+          {
+            "method": "optOut",
+            "args": ["p", "email"]
+          },
+          {
+            "method": "optOut",
+            "args": ["p", "sms"]
+          },
+          {
+            "method": "channels",
+            "args": ["p"]
+          },
+          {
+            "method": "route",
+            "args": ["p", "sms", 10, true]
+          },
+          {
+            "method": "route",
+            "args": ["p", "email", 10, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "optOut",
+            "args": ["Sam", "sms"]
+          },
+          {
+            "method": "quietHours",
+            "args": ["sam", 10, 11]
+          },
+          {
+            "method": "route",
+            "args": ["Sam", "sms", 10, false]
+          },
+          {
+            "method": "route",
+            "args": ["sam", "sms", 10, false]
+          },
+          {
+            "method": "route",
+            "args": ["Sam", "email", 10, false]
+          },
+          {
+            "method": "route",
+            "args": ["sam", "sms", 11, false]
+          },
+          {
+            "method": "channels",
+            "args": ["Sam"]
+          },
+          {
+            "method": "channels",
+            "args": ["sam"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["z", 18, 9]
+          },
+          {
+            "method": "route",
+            "args": ["z", "email", 8, false]
+          },
+          {
+            "method": "route",
+            "args": ["z", "push", 8, false]
+          },
+          {
+            "method": "route",
+            "args": ["z", "sms", 8, false]
+          },
+          {
+            "method": "route",
+            "args": ["z", "email", 9, false]
+          },
+          {
+            "method": "route",
+            "args": ["z", "push", 9, false]
+          },
+          {
+            "method": "route",
+            "args": ["z", "sms", 9, false]
+          },
+          {
+            "method": "channels",
+            "args": ["z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["new", "sms", 0, false]
+          },
+          {
+            "method": "route",
+            "args": ["new", "push", 23, false]
+          },
+          {
+            "method": "channels",
+            "args": ["new"]
+          },
+          {
+            "method": "quietHours",
+            "args": ["other", 0, 12]
+          },
+          {
+            "method": "route",
+            "args": ["new", "email", 5, false]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "optOut",
+            "args": ["k", "push"]
+          },
+          {
+            "method": "quietHours",
+            "args": ["k", 6, 10]
+          },
+          {
+            "method": "optOut",
+            "args": ["k", "email"]
+          },
+          {
+            "method": "route",
+            "args": ["k", "sms", 7, false]
+          },
+          {
+            "method": "route",
+            "args": ["k", "sms", 7, true]
+          },
+          {
+            "method": "route",
+            "args": ["k", "push", 11, false]
+          },
+          {
+            "method": "channels",
+            "args": ["k"]
+          },
+          {
+            "method": "quietHours",
+            "args": ["k", 6, 6]
+          },
+          {
+            "method": "route",
+            "args": ["k", "sms", 7, false]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "digest",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "channel",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "flushDigest",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "digest",
+            "args": ["ana", "email"]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "email", 10, false]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "email", 11, false]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "email", 12, true]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "push", 12, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["ana"]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["ana"]
+          },
+          {
+            "method": "route",
+            "args": ["ana", "email", 13, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["ana"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "digest",
+            "args": ["", "email"]
+          },
+          {
+            "method": "digest",
+            "args": ["u", "fax"]
+          },
+          {
+            "method": "flushDigest",
+            "args": [""]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["u"]
+          },
+          {
+            "method": "digest",
+            "args": ["u", "sms"]
+          },
+          {
+            "method": "digest",
+            "args": ["u", "sms"]
+          },
+          {
+            "method": "route",
+            "args": ["u", "sms", 1, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["u"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "quietHours",
+            "args": ["q", 22, 6]
+          },
+          {
+            "method": "digest",
+            "args": ["q", "push"]
+          },
+          {
+            "method": "route",
+            "args": ["q", "push", 23, false]
+          },
+          {
+            "method": "route",
+            "args": ["q", "push", 12, false]
+          },
+          {
+            "method": "route",
+            "args": ["q", "push", 23, true]
+          },
+          {
+            "method": "route",
+            "args": ["q", "email", 23, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "digest",
+            "args": ["o", "email"]
+          },
+          {
+            "method": "digest",
+            "args": ["o", "push"]
+          },
+          {
+            "method": "route",
+            "args": ["o", "email", 1, false]
+          },
+          {
+            "method": "route",
+            "args": ["o", "email", 2, false]
+          },
+          {
+            "method": "route",
+            "args": ["o", "push", 3, false]
+          },
+          {
+            "method": "optOut",
+            "args": ["o", "email"]
+          },
+          {
+            "method": "route",
+            "args": ["o", "email", 4, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["o"]
+          },
+          {
+            "method": "optOut",
+            "args": ["o", "push"]
+          },
+          {
+            "method": "route",
+            "args": ["o", "push", 5, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["o"]
+          },
+          {
+            "method": "channels",
+            "args": ["o"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "digest",
+            "args": ["a", "sms"]
+          },
+          {
+            "method": "route",
+            "args": ["a", "sms", 9, false]
+          },
+          {
+            "method": "route",
+            "args": ["b", "sms", 9, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["b"]
+          },
+          {
+            "method": "digest",
+            "args": ["b", "sms"]
+          },
+          {
+            "method": "route",
+            "args": ["b", "sms", 9, false]
+          },
+          {
+            "method": "route",
+            "args": ["a", "sms", 9, false]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["a"]
+          },
+          {
+            "method": "flushDigest",
+            "args": ["b"]
+          }
+        ]
+      }
+    ]
+  }
+}

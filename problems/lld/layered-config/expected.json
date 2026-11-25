@@ -1,0 +1,984 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "debug"
+      },
+      {
+        "call": 5,
+        "value": "file"
+      },
+      {
+        "call": 6,
+        "value": 16
+      },
+      {
+        "call": 7,
+        "value": "env"
+      },
+      {
+        "call": 8,
+        "value": 8080
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "flags"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "8080"
+      },
+      {
+        "call": 6,
+        "value": "defaults"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown source"
+      },
+      {
+        "call": 8,
+        "value": "8080"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a key is not empty"
+      },
+      {
+        "call": 3,
+        "value": "1"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a key is not empty"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a key is not empty"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a key is not empty"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown source"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown source"
+      },
+      {
+        "call": 10,
+        "value": "1"
+      },
+      {
+        "call": 11,
+        "value": "file"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "flags"
+      },
+      {
+        "call": 6,
+        "value": "flags"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "env"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "file"
+      },
+      {
+        "call": 11,
+        "value": "file"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "defaults"
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "3"
+      },
+      {
+        "call": 5,
+        "value": "4"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "defaults"
+      },
+      {
+        "call": 8,
+        "value": "0"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ""
+      },
+      {
+        "call": 4,
+        "value": "env"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 6,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 7
+      },
+      {
+        "call": 5,
+        "value": -42
+      },
+      {
+        "call": 6,
+        "value": 999999999999999
+      },
+      {
+        "call": 7,
+        "value": -999999999999999
+      },
+      {
+        "call": 8,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 19,
+        "value": "12a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 4,
+        "value": "ten"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 20
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 20
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 20
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "1"
+      },
+      {
+        "call": 3,
+        "value": "2"
+      },
+      {
+        "call": 4,
+        "value": "3"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": "env"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": "defaults"
+      },
+      {
+        "call": 9,
+        "value": 20
+      },
+      {
+        "call": 10,
+        "value": "file"
+      },
+      {
+        "call": 11,
+        "value": 300
+      },
+      {
+        "call": 12,
+        "value": "env"
+      },
+      {
+        "call": 13,
+        "value": 40
+      },
+      {
+        "call": 14,
+        "value": "file"
+      },
+      {
+        "call": 15,
+        "value": 5
+      },
+      {
+        "call": 16,
+        "value": "defaults"
+      },
+      {
+        "call": 17,
+        "value": 600
+      },
+      {
+        "call": 18,
+        "value": "env"
+      },
+      {
+        "call": 19,
+        "value": 7
+      },
+      {
+        "call": 20,
+        "value": "defaults"
+      },
+      {
+        "call": 21,
+        "value": 80
+      },
+      {
+        "call": 22,
+        "value": "file"
+      },
+      {
+        "call": 23,
+        "value": -1
+      },
+      {
+        "call": 24,
+        "value": "flags"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 3
+      },
+      {
+        "call": 3,
+        "value": "30s"
+      },
+      {
+        "call": 4,
+        "value": "defaults"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 45
+      },
+      {
+        "call": 7,
+        "value": "defaults"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "defaults"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown source"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown source"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown source"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown source"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "env"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "8080"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "9090"
+      },
+      {
+        "call": 6,
+        "value": "env"
+      },
+      {
+        "call": 7,
+        "value": 9090
+      },
+      {
+        "call": 8,
+        "value": "env"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "b"
+      },
+      {
+        "call": 4,
+        "value": "b"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": "flags"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "b"
+      },
+      {
+        "call": 11,
+        "value": "file"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "d"
+      },
+      {
+        "call": 14,
+        "value": "defaults"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: two different, non-empty keys"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: two different, non-empty keys"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: two different, non-empty keys"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a key is in at most one alias"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a key is in at most one alias"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a key is in at most one alias"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a key is in at most one alias"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "1"
+      },
+      {
+        "call": 12,
+        "value": "2"
+      },
+      {
+        "call": 13,
+        "value": "3"
+      },
+      {
+        "call": 14,
+        "value": "4"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "1"
+      },
+      {
+        "call": 7,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "four"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not an integer"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 4
+      }
+    ]
+  }
+]

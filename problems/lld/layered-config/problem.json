@@ -1,0 +1,1348 @@
+{
+  "slug": "layered-config",
+  "title": "Layered config",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["separation-of-concerns", "encapsulate-what-varies"],
+  "interface": {
+    "class": "LayeredConfig",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "layer",
+        "params": [
+          {
+            "name": "source",
+            "type": "string"
+          },
+          {
+            "name": "entries",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "lookup",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "origin",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "intValue",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "port": "8080",
+                "log.level": "info",
+                "workers": "4"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "log.level": "debug",
+                "workers": "8"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "workers": "16"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["log.level"]
+          },
+          {
+            "method": "origin",
+            "args": ["log.level"]
+          },
+          {
+            "method": "intValue",
+            "args": ["workers"]
+          },
+          {
+            "method": "origin",
+            "args": ["workers"]
+          },
+          {
+            "method": "intValue",
+            "args": ["port"]
+          },
+          {
+            "method": "lookup",
+            "args": ["region"]
+          },
+          {
+            "method": "origin",
+            "args": ["region"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "flags",
+              {
+                "port": "9000"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "port": "8080"
+              }
+            ]
+          },
+          {
+            "method": "origin",
+            "args": ["port"]
+          },
+          {
+            "method": "layer",
+            "args": ["flags", {}]
+          },
+          {
+            "method": "lookup",
+            "args": ["port"]
+          },
+          {
+            "method": "origin",
+            "args": ["port"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "secrets",
+              {
+                "port": "1"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["port"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "": "x",
+                "b": "2"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": [""]
+          },
+          {
+            "method": "origin",
+            "args": [""]
+          },
+          {
+            "method": "intValue",
+            "args": [""]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "Flags",
+              {
+                "a": "9"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "",
+              {
+                "a": "9"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "origin",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "k": "env"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "k": "defaults"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "flags",
+              {
+                "k": "flags"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "k": "file"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["k"]
+          },
+          {
+            "method": "origin",
+            "args": ["k"]
+          },
+          {
+            "method": "layer",
+            "args": ["flags", {}]
+          },
+          {
+            "method": "origin",
+            "args": ["k"]
+          },
+          {
+            "method": "layer",
+            "args": ["env", {}]
+          },
+          {
+            "method": "lookup",
+            "args": ["k"]
+          },
+          {
+            "method": "origin",
+            "args": ["k"]
+          },
+          {
+            "method": "layer",
+            "args": ["file", {}]
+          },
+          {
+            "method": "origin",
+            "args": ["k"]
+          },
+          {
+            "method": "layer",
+            "args": ["defaults", {}]
+          },
+          {
+            "method": "origin",
+            "args": ["k"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "a": "1",
+                "b": "2"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "b": "3",
+                "c": "4"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "0"
+              }
+            ]
+          },
+          {
+            "method": "origin",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "proxy": "http://p"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "proxy": ""
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["proxy"]
+          },
+          {
+            "method": "origin",
+            "args": ["proxy"]
+          },
+          {
+            "method": "intValue",
+            "args": ["proxy"]
+          },
+          {
+            "method": "lookup",
+            "args": ["other"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "0",
+                "b": "-0",
+                "c": "007",
+                "d": "-42",
+                "e": "999999999999999",
+                "f": "-999999999999999"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "intValue",
+            "args": ["b"]
+          },
+          {
+            "method": "intValue",
+            "args": ["c"]
+          },
+          {
+            "method": "intValue",
+            "args": ["d"]
+          },
+          {
+            "method": "intValue",
+            "args": ["e"]
+          },
+          {
+            "method": "intValue",
+            "args": ["f"]
+          },
+          {
+            "method": "intValue",
+            "args": ["g"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "+5"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": " 5"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "5 "
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "1000000000000000"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "-"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "1.5"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "0x10"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "--1"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "12a"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "n": "10"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "flags",
+              {
+                "n": "ten"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["n"]
+          },
+          {
+            "method": "lookup",
+            "args": ["n"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "flags",
+              {
+                "n": "20"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["n"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "n": "x"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["n"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "n": "y"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["n"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "Port": "1",
+                "port": "2",
+                "port ": "3"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["Port"]
+          },
+          {
+            "method": "lookup",
+            "args": ["port"]
+          },
+          {
+            "method": "lookup",
+            "args": ["port "]
+          },
+          {
+            "method": "lookup",
+            "args": ["PORT"]
+          },
+          {
+            "method": "origin",
+            "args": ["PORT"]
+          },
+          {
+            "method": "intValue",
+            "args": ["PORT"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "k0": "0",
+                "k1": "1",
+                "k2": "2",
+                "k3": "3",
+                "k4": "4",
+                "k5": "5",
+                "k6": "6",
+                "k7": "7",
+                "k8": "8",
+                "k9": "9"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "k0": "0",
+                "k2": "20",
+                "k4": "40",
+                "k6": "60",
+                "k8": "80"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "k0": "0",
+                "k3": "300",
+                "k6": "600",
+                "k9": "900"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "flags",
+              {
+                "k9": "-1"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["k0"]
+          },
+          {
+            "method": "origin",
+            "args": ["k0"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k1"]
+          },
+          {
+            "method": "origin",
+            "args": ["k1"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k2"]
+          },
+          {
+            "method": "origin",
+            "args": ["k2"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k3"]
+          },
+          {
+            "method": "origin",
+            "args": ["k3"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k4"]
+          },
+          {
+            "method": "origin",
+            "args": ["k4"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k5"]
+          },
+          {
+            "method": "origin",
+            "args": ["k5"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k6"]
+          },
+          {
+            "method": "origin",
+            "args": ["k6"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k7"]
+          },
+          {
+            "method": "origin",
+            "args": ["k7"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k8"]
+          },
+          {
+            "method": "origin",
+            "args": ["k8"]
+          },
+          {
+            "method": "intValue",
+            "args": ["k9"]
+          },
+          {
+            "method": "origin",
+            "args": ["k9"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "timeout": "30s",
+                "retries": "3"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["retries"]
+          },
+          {
+            "method": "lookup",
+            "args": ["timeout"]
+          },
+          {
+            "method": "origin",
+            "args": ["timeout"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "timeout": "45"
+              }
+            ]
+          },
+          {
+            "method": "intValue",
+            "args": ["timeout"]
+          },
+          {
+            "method": "origin",
+            "args": ["retries"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "origin",
+            "args": ["a"]
+          },
+          {
+            "method": "intValue",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": ["flags", {}]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "x"
+              }
+            ]
+          },
+          {
+            "method": "origin",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "default",
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "files",
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "ENV",
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "flag",
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "a": "2"
+              }
+            ]
+          },
+          {
+            "method": "origin",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "alias",
+        "params": [
+          {
+            "name": "oldKey",
+            "type": "string"
+          },
+          {
+            "name": "newKey",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "http.port": "8080"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "port": "9090"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["http.port"]
+          },
+          {
+            "method": "alias",
+            "args": ["port", "http.port"]
+          },
+          {
+            "method": "lookup",
+            "args": ["http.port"]
+          },
+          {
+            "method": "origin",
+            "args": ["http.port"]
+          },
+          {
+            "method": "intValue",
+            "args": ["port"]
+          },
+          {
+            "method": "origin",
+            "args": ["port"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "alias",
+            "args": ["old", "new"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "old": "a",
+                "new": "b"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["old"]
+          },
+          {
+            "method": "lookup",
+            "args": ["new"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "flags",
+              {
+                "old": "c"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["new"]
+          },
+          {
+            "method": "origin",
+            "args": ["new"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "new": "d"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": ["flags", {}]
+          },
+          {
+            "method": "lookup",
+            "args": ["old"]
+          },
+          {
+            "method": "origin",
+            "args": ["old"]
+          },
+          {
+            "method": "layer",
+            "args": ["file", {}]
+          },
+          {
+            "method": "lookup",
+            "args": ["old"]
+          },
+          {
+            "method": "origin",
+            "args": ["new"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "alias",
+            "args": ["", "x"]
+          },
+          {
+            "method": "alias",
+            "args": ["x", ""]
+          },
+          {
+            "method": "alias",
+            "args": ["x", "x"]
+          },
+          {
+            "method": "alias",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "alias",
+            "args": ["a", "c"]
+          },
+          {
+            "method": "alias",
+            "args": ["c", "a"]
+          },
+          {
+            "method": "alias",
+            "args": ["b", "d"]
+          },
+          {
+            "method": "alias",
+            "args": ["d", "b"]
+          },
+          {
+            "method": "alias",
+            "args": ["e", "f"]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "a": "1",
+                "c": "2",
+                "d": "3",
+                "e": "4"
+              }
+            ]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "lookup",
+            "args": ["d"]
+          },
+          {
+            "method": "lookup",
+            "args": ["f"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "defaults",
+              {
+                "other": "1"
+              }
+            ]
+          },
+          {
+            "method": "alias",
+            "args": ["x", "y"]
+          },
+          {
+            "method": "lookup",
+            "args": ["x"]
+          },
+          {
+            "method": "origin",
+            "args": ["y"]
+          },
+          {
+            "method": "intValue",
+            "args": ["x"]
+          },
+          {
+            "method": "lookup",
+            "args": ["other"]
+          },
+          {
+            "method": "lookup",
+            "args": ["X"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "layer",
+            "args": [
+              "env",
+              {
+                "workers": "four"
+              }
+            ]
+          },
+          {
+            "method": "layer",
+            "args": [
+              "file",
+              {
+                "threads": "4"
+              }
+            ]
+          },
+          {
+            "method": "alias",
+            "args": ["workers", "threads"]
+          },
+          {
+            "method": "lookup",
+            "args": ["threads"]
+          },
+          {
+            "method": "intValue",
+            "args": ["workers"]
+          },
+          {
+            "method": "layer",
+            "args": ["env", {}]
+          },
+          {
+            "method": "intValue",
+            "args": ["workers"]
+          }
+        ]
+      }
+    ]
+  }
+}

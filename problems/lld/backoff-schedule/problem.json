@@ -1,0 +1,642 @@
+{
+  "slug": "backoff-schedule",
+  "title": "Backoff schedule",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": [
+    "encapsulate-what-varies",
+    "program-to-an-interface",
+    "retries-with-backoff"
+  ],
+  "interface": {
+    "class": "BackoffSchedule",
+    "constructor": {
+      "params": [
+        {
+          "name": "kind",
+          "type": "string"
+        },
+        {
+          "name": "baseMs",
+          "type": "int"
+        },
+        {
+          "name": "capMs",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "delay",
+        "params": [
+          {
+            "name": "attempt",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "schedule",
+        "params": [
+          {
+            "name": "attempts",
+            "type": "int"
+          }
+        ],
+        "returns": "list<int>"
+      },
+      {
+        "name": "totalMs",
+        "params": [
+          {
+            "name": "attempts",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "switchTo",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["exponential", 100, 1000]
+          },
+          {
+            "method": "schedule",
+            "args": [6]
+          },
+          {
+            "method": "delay",
+            "args": [3]
+          },
+          {
+            "method": "totalMs",
+            "args": [6]
+          },
+          {
+            "method": "switchTo",
+            "args": ["linear"]
+          },
+          {
+            "method": "schedule",
+            "args": [6]
+          },
+          {
+            "method": "switchTo",
+            "args": ["fixed"]
+          },
+          {
+            "method": "schedule",
+            "args": [3]
+          },
+          {
+            "method": "totalMs",
+            "args": [0]
+          },
+          {
+            "method": "delay",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["random", 100, 1000]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fixed", 0, 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["linear", 11, 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["exponential", 5, 1000000001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Linear", 5, 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["", 5, 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fibonacci", 5, 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["linear", 1, 1]
+          },
+          {
+            "method": "delay",
+            "args": [1]
+          },
+          {
+            "method": "delay",
+            "args": [1000]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          },
+          {
+            "method": "delay",
+            "args": [1001]
+          },
+          {
+            "method": "schedule",
+            "args": [1001]
+          },
+          {
+            "method": "schedule",
+            "args": [-1]
+          },
+          {
+            "method": "totalMs",
+            "args": [1001]
+          },
+          {
+            "method": "totalMs",
+            "args": [-1]
+          },
+          {
+            "method": "delay",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["exponential", 1000000000, 1000000000]
+          },
+          {
+            "method": "delay",
+            "args": [1]
+          },
+          {
+            "method": "delay",
+            "args": [2]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          },
+          {
+            "method": "schedule",
+            "args": [2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["exponential", 3, 100]
+          },
+          {
+            "method": "schedule",
+            "args": [8]
+          },
+          {
+            "method": "delay",
+            "args": [6]
+          },
+          {
+            "method": "delay",
+            "args": [7]
+          },
+          {
+            "method": "delay",
+            "args": [999]
+          },
+          {
+            "method": "delay",
+            "args": [1000]
+          },
+          {
+            "method": "totalMs",
+            "args": [10]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["exponential", 1, 1000000000]
+          },
+          {
+            "method": "delay",
+            "args": [30]
+          },
+          {
+            "method": "delay",
+            "args": [31]
+          },
+          {
+            "method": "delay",
+            "args": [64]
+          },
+          {
+            "method": "delay",
+            "args": [500]
+          },
+          {
+            "method": "totalMs",
+            "args": [32]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["linear", 250, 1000]
+          },
+          {
+            "method": "schedule",
+            "args": [6]
+          },
+          {
+            "method": "delay",
+            "args": [4]
+          },
+          {
+            "method": "delay",
+            "args": [5]
+          },
+          {
+            "method": "totalMs",
+            "args": [5]
+          },
+          {
+            "method": "delay",
+            "args": [1000]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["linear", 7, 1000000000]
+          },
+          {
+            "method": "delay",
+            "args": [1000]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          },
+          {
+            "method": "schedule",
+            "args": [4]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fixed", 40, 40]
+          },
+          {
+            "method": "schedule",
+            "args": [4]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          },
+          {
+            "method": "switchTo",
+            "args": ["exponential"]
+          },
+          {
+            "method": "schedule",
+            "args": [3]
+          },
+          {
+            "method": "switchTo",
+            "args": ["linear"]
+          },
+          {
+            "method": "schedule",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fixed", 10, 75]
+          },
+          {
+            "method": "switchTo",
+            "args": ["exponential"]
+          },
+          {
+            "method": "schedule",
+            "args": [5]
+          },
+          {
+            "method": "switchTo",
+            "args": ["fibonacci"]
+          },
+          {
+            "method": "schedule",
+            "args": [5]
+          },
+          {
+            "method": "switchTo",
+            "args": ["EXPONENTIAL"]
+          },
+          {
+            "method": "switchTo",
+            "args": [""]
+          },
+          {
+            "method": "delay",
+            "args": [4]
+          },
+          {
+            "method": "switchTo",
+            "args": ["linear"]
+          },
+          {
+            "method": "schedule",
+            "args": [9]
+          },
+          {
+            "method": "switchTo",
+            "args": ["linear"]
+          },
+          {
+            "method": "delay",
+            "args": [8]
+          },
+          {
+            "method": "totalMs",
+            "args": [9]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["exponential", 2, 1000000000]
+          },
+          {
+            "method": "schedule",
+            "args": [12]
+          },
+          {
+            "method": "totalMs",
+            "args": [12]
+          },
+          {
+            "method": "switchTo",
+            "args": ["fixed"]
+          },
+          {
+            "method": "totalMs",
+            "args": [12]
+          },
+          {
+            "method": "switchTo",
+            "args": ["exponential"]
+          },
+          {
+            "method": "delay",
+            "args": [12]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "fibonacci",
+        "params": [],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fixed", 100, 1000]
+          },
+          {
+            "method": "fibonacci",
+            "args": []
+          },
+          {
+            "method": "schedule",
+            "args": [8]
+          },
+          {
+            "method": "delay",
+            "args": [6]
+          },
+          {
+            "method": "totalMs",
+            "args": [8]
+          },
+          {
+            "method": "switchTo",
+            "args": ["linear"]
+          },
+          {
+            "method": "schedule",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["linear", 1, 1000000000]
+          },
+          {
+            "method": "fibonacci",
+            "args": []
+          },
+          {
+            "method": "schedule",
+            "args": [12]
+          },
+          {
+            "method": "delay",
+            "args": [45]
+          },
+          {
+            "method": "delay",
+            "args": [44]
+          },
+          {
+            "method": "delay",
+            "args": [1000]
+          },
+          {
+            "method": "totalMs",
+            "args": [1000]
+          },
+          {
+            "method": "totalMs",
+            "args": [45]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["exponential", 5, 5]
+          },
+          {
+            "method": "fibonacci",
+            "args": []
+          },
+          {
+            "method": "schedule",
+            "args": [4]
+          },
+          {
+            "method": "switchTo",
+            "args": ["fibonacci"]
+          },
+          {
+            "method": "delay",
+            "args": [3]
+          },
+          {
+            "method": "fibonacci",
+            "args": []
+          },
+          {
+            "method": "delay",
+            "args": [1001]
+          },
+          {
+            "method": "delay",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["linear", 3, 50]
+          },
+          {
+            "method": "fibonacci",
+            "args": []
+          },
+          {
+            "method": "schedule",
+            "args": [9]
+          },
+          {
+            "method": "totalMs",
+            "args": [9]
+          },
+          {
+            "method": "switchTo",
+            "args": ["exponential"]
+          },
+          {
+            "method": "schedule",
+            "args": [6]
+          },
+          {
+            "method": "fibonacci",
+            "args": []
+          },
+          {
+            "method": "delay",
+            "args": [7]
+          }
+        ]
+      }
+    ]
+  }
+}

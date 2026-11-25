@@ -1,0 +1,1081 @@
+{
+  "slug": "deploy-gate",
+  "title": "Deploy gate",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["law-of-demeter", "encapsulation"],
+  "interface": {
+    "class": "DeployGate",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "require",
+        "params": [
+          {
+            "name": "check",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "report",
+        "params": [
+          {
+            "name": "check",
+            "type": "string"
+          },
+          {
+            "name": "passed",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "mayDeploy",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "blockers",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["unit-tests"]
+          },
+          {
+            "method": "require",
+            "args": ["lint"]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["unit-tests", true]
+          },
+          {
+            "method": "report",
+            "args": ["lint", false]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["lint", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["security-scan", false]
+          },
+          {
+            "method": "require",
+            "args": ["build"]
+          },
+          {
+            "method": "report",
+            "args": ["build", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["security-scan"]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": [""]
+          },
+          {
+            "method": "report",
+            "args": ["", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["a"]
+          },
+          {
+            "method": "report",
+            "args": ["", false]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["e2e"]
+          },
+          {
+            "method": "report",
+            "args": ["e2e", true]
+          },
+          {
+            "method": "report",
+            "args": ["e2e", false]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["e2e", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["e2e", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["e2e", false]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["lint", true]
+          },
+          {
+            "method": "require",
+            "args": ["lint"]
+          },
+          {
+            "method": "require",
+            "args": ["lint"]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["lint", false]
+          },
+          {
+            "method": "require",
+            "args": ["lint"]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["flaky", false]
+          },
+          {
+            "method": "report",
+            "args": ["slow", false]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["x"]
+          },
+          {
+            "method": "report",
+            "args": ["x", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["zeta"]
+          },
+          {
+            "method": "require",
+            "args": ["Beta"]
+          },
+          {
+            "method": "require",
+            "args": ["alpha"]
+          },
+          {
+            "method": "require",
+            "args": ["beta"]
+          },
+          {
+            "method": "require",
+            "args": ["Zed"]
+          },
+          {
+            "method": "require",
+            "args": ["_x"]
+          },
+          {
+            "method": "require",
+            "args": ["a-b"]
+          },
+          {
+            "method": "require",
+            "args": ["a"]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["beta", true]
+          },
+          {
+            "method": "report",
+            "args": ["Zed", true]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["Lint"]
+          },
+          {
+            "method": "report",
+            "args": ["lint", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["LINT", true]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["Lint", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["c0"]
+          },
+          {
+            "method": "require",
+            "args": ["c1"]
+          },
+          {
+            "method": "require",
+            "args": ["c2"]
+          },
+          {
+            "method": "require",
+            "args": ["c3"]
+          },
+          {
+            "method": "require",
+            "args": ["c4"]
+          },
+          {
+            "method": "require",
+            "args": ["c5"]
+          },
+          {
+            "method": "require",
+            "args": ["c6"]
+          },
+          {
+            "method": "require",
+            "args": ["c7"]
+          },
+          {
+            "method": "report",
+            "args": ["c0", true]
+          },
+          {
+            "method": "report",
+            "args": ["c1", true]
+          },
+          {
+            "method": "report",
+            "args": ["c2", true]
+          },
+          {
+            "method": "report",
+            "args": ["c3", true]
+          },
+          {
+            "method": "report",
+            "args": ["c4", true]
+          },
+          {
+            "method": "report",
+            "args": ["c5", true]
+          },
+          {
+            "method": "report",
+            "args": ["c6", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["c7", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["c0", false]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["build"]
+          },
+          {
+            "method": "report",
+            "args": ["build", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["canary"]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["canary", false]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["canary", true]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["a"]
+          },
+          {
+            "method": "require",
+            "args": ["b"]
+          },
+          {
+            "method": "report",
+            "args": ["a", false]
+          },
+          {
+            "method": "report",
+            "args": ["b", false]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["a", true]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["b", true]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["a", false]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["p", true]
+          },
+          {
+            "method": "report",
+            "args": ["q", true]
+          },
+          {
+            "method": "require",
+            "args": ["q"]
+          },
+          {
+            "method": "require",
+            "args": ["p"]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["r"]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["ci / build"]
+          },
+          {
+            "method": "require",
+            "args": ["ci/build"]
+          },
+          {
+            "method": "report",
+            "args": ["ci / build", true]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["ci/build", true]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["w"]
+          },
+          {
+            "method": "require",
+            "args": ["x"]
+          },
+          {
+            "method": "require",
+            "args": ["y"]
+          },
+          {
+            "method": "require",
+            "args": ["z"]
+          },
+          {
+            "method": "report",
+            "args": ["w", true]
+          },
+          {
+            "method": "report",
+            "args": ["x", false]
+          },
+          {
+            "method": "report",
+            "args": ["y", true]
+          },
+          {
+            "method": "report",
+            "args": ["z", false]
+          },
+          {
+            "method": "report",
+            "args": ["w", false]
+          },
+          {
+            "method": "report",
+            "args": ["x", true]
+          },
+          {
+            "method": "report",
+            "args": ["y", false]
+          },
+          {
+            "method": "report",
+            "args": ["z", true]
+          },
+          {
+            "method": "report",
+            "args": ["w", true]
+          },
+          {
+            "method": "report",
+            "args": ["x", false]
+          },
+          {
+            "method": "report",
+            "args": ["y", true]
+          },
+          {
+            "method": "report",
+            "args": ["z", false]
+          },
+          {
+            "method": "report",
+            "args": ["w", false]
+          },
+          {
+            "method": "report",
+            "args": ["x", true]
+          },
+          {
+            "method": "report",
+            "args": ["y", false]
+          },
+          {
+            "method": "report",
+            "args": ["z", true]
+          },
+          {
+            "method": "report",
+            "args": ["w", true]
+          },
+          {
+            "method": "report",
+            "args": ["x", false]
+          },
+          {
+            "method": "report",
+            "args": ["y", true]
+          },
+          {
+            "method": "report",
+            "args": ["z", false]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "waive",
+        "params": [
+          {
+            "name": "check",
+            "type": "string"
+          },
+          {
+            "name": "reason",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "waivers",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["perf"]
+          },
+          {
+            "method": "require",
+            "args": ["lint"]
+          },
+          {
+            "method": "report",
+            "args": ["lint", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "waive",
+            "args": ["perf", "known regression, ticket OPS-12"]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "waivers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "waivers",
+            "args": []
+          },
+          {
+            "method": "waive",
+            "args": ["x", "why"]
+          },
+          {
+            "method": "require",
+            "args": ["x"]
+          },
+          {
+            "method": "waive",
+            "args": ["", "why"]
+          },
+          {
+            "method": "waive",
+            "args": ["x", ""]
+          },
+          {
+            "method": "waivers",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "waive",
+            "args": ["x", "flaky"]
+          },
+          {
+            "method": "waive",
+            "args": ["x", "still flaky"]
+          },
+          {
+            "method": "waivers",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["e2e"]
+          },
+          {
+            "method": "waive",
+            "args": ["e2e", "env down"]
+          },
+          {
+            "method": "report",
+            "args": ["e2e", false]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["e2e", true]
+          },
+          {
+            "method": "report",
+            "args": ["e2e", false]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "waivers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["a"]
+          },
+          {
+            "method": "require",
+            "args": ["a-b"]
+          },
+          {
+            "method": "require",
+            "args": ["B"]
+          },
+          {
+            "method": "require",
+            "args": ["c"]
+          },
+          {
+            "method": "waive",
+            "args": ["a-b", "x"]
+          },
+          {
+            "method": "waive",
+            "args": ["a", "z"]
+          },
+          {
+            "method": "waive",
+            "args": ["B", "y"]
+          },
+          {
+            "method": "waivers",
+            "args": []
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["a"]
+          },
+          {
+            "method": "require",
+            "args": ["b"]
+          },
+          {
+            "method": "waive",
+            "args": ["a", "r"]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "report",
+            "args": ["b", true]
+          },
+          {
+            "method": "mayDeploy",
+            "args": []
+          },
+          {
+            "method": "require",
+            "args": ["c"]
+          },
+          {
+            "method": "waive",
+            "args": ["C", "r"]
+          },
+          {
+            "method": "blockers",
+            "args": []
+          },
+          {
+            "method": "waivers",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

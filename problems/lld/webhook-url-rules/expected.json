@@ -1,0 +1,865 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["scheme"]
+      },
+      {
+        "call": 3,
+        "value": ["host"]
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["host"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": [
+          "hook-1 https://ci.example.com/hooks/build",
+          "hook-2 https://pager.example.org/v2"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 2,
+        "value": ["host"]
+      },
+      {
+        "call": 3,
+        "value": ["host"]
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'no such hook'"
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a URL is not empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a URL is not empty"
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a URL is not empty"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'no such hook'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'no such hook'"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such hook'"
+      },
+      {
+        "call": 8,
+        "value": ["hook-1 https://a.example"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["length"]
+      },
+      {
+        "call": 3,
+        "value": ["length"]
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["length"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["hook-1 https://short.example"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["length", "scheme", "host"]
+      },
+      {
+        "call": 2,
+        "value": ["length", "scheme", "host"]
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'no such hook'"
+      },
+      {
+        "call": 4,
+        "value": ["scheme"]
+      },
+      {
+        "call": 5,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 6,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 7,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["scheme"]
+      },
+      {
+        "call": 2,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 3,
+        "value": ["scheme"]
+      },
+      {
+        "call": 4,
+        "value": ["scheme"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": ["scheme"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["host"]
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["host"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["host"]
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": ["host"]
+      },
+      {
+        "call": 10,
+        "value": ["host"]
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": []
+      },
+      {
+        "call": 14,
+        "value": []
+      },
+      {
+        "call": 15,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["host"]
+      },
+      {
+        "call": 5,
+        "value": ["host"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["host"]
+      },
+      {
+        "call": 2,
+        "value": ["host"]
+      },
+      {
+        "call": 3,
+        "value": ["host"]
+      },
+      {
+        "call": 4,
+        "value": ["host"]
+      },
+      {
+        "call": 5,
+        "value": ["host"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": ["host"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["host"]
+      },
+      {
+        "call": 2,
+        "value": ["host"]
+      },
+      {
+        "call": 3,
+        "value": ["host"]
+      },
+      {
+        "call": 4,
+        "value": ["host"]
+      },
+      {
+        "call": 5,
+        "value": ["host"]
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["scheme"]
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["host"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'no such hook'"
+      },
+      {
+        "call": 10,
+        "value": [
+          "hook-1 https://a2.example",
+          "hook-2 https://b2.example",
+          "hook-3 https://d.example"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["host"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": [
+          "hook-1 https://same.example/x",
+          "hook-2 https://same.example/x"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 2,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 5,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 6,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 11,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 12,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 13,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 14,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 15,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 16,
+        "value": ["length", "host"]
+      },
+      {
+        "call": 17,
+        "value": ["length", "host"]
+      },
+      {
+        "call": 18,
+        "value": ["length", "host"]
+      },
+      {
+        "call": 19,
+        "value": [
+          "hook-1 https://ok.example:8443/a?b#c",
+          "hook-2 https://ok.example:8443/a?b#c"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["host"]
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 6,
+        "value": ["scheme"]
+      },
+      {
+        "call": 7,
+        "value": ["scheme", "host"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["blocked"]
+      },
+      {
+        "call": 4,
+        "value": ["blocked"]
+      },
+      {
+        "call": 5,
+        "value": ["blocked"]
+      },
+      {
+        "call": 6,
+        "value": ["hook-1 https://hooks.slack.example/x"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a host is not empty"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["blocked"]
+      },
+      {
+        "call": 4,
+        "value": ["blocked"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["length", "scheme", "blocked"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["host", "blocked"]
+      },
+      {
+        "call": 5,
+        "value": ["host", "blocked"]
+      },
+      {
+        "call": 6,
+        "value": ["host"]
+      },
+      {
+        "call": 7,
+        "value": ["host", "blocked"]
+      },
+      {
+        "call": 8,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["hook-1 https://a.example", "hook-2 https://b.example"]
+      },
+      {
+        "call": 5,
+        "value": ["blocked"]
+      },
+      {
+        "call": 6,
+        "value": ["blocked"]
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["hook-1 https://c.example", "hook-2 https://b.example"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["blocked"]
+      },
+      {
+        "call": 4,
+        "value": ["blocked"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": ["scheme", "host"]
+      },
+      {
+        "call": 7,
+        "value": ["host"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": []
+      }
+    ]
+  }
+]

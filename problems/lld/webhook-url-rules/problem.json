@@ -1,0 +1,917 @@
+{
+  "slug": "webhook-url-rules",
+  "title": "Webhook URL rules",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["dry-principle", "separation-of-concerns", "webhooks"],
+  "interface": {
+    "class": "WebhookRules",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "createHook",
+        "params": [
+          {
+            "name": "url",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "updateHook",
+        "params": [
+          {
+            "name": "hookId",
+            "type": "string"
+          },
+          {
+            "name": "url",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "testUrl",
+        "params": [
+          {
+            "name": "url",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "hooks",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createHook",
+            "args": ["https://ci.example.com/hooks/build"]
+          },
+          {
+            "method": "createHook",
+            "args": ["http://ci.example.com/hooks"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://localhost:8443/x"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://pager.example.org/in?team=sre"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://10.0.0.5/hooks"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-2", "https://pager.example.org/v2"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["ftp"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://192.168.1.10"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://172.20.0.1/a"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://172.32.0.1/a"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://example.com"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createHook",
+            "args": [""]
+          },
+          {
+            "method": "testUrl",
+            "args": [""]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://a.example"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", ""]
+          },
+          {
+            "method": "updateHook",
+            "args": ["", "https://b.example"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-9", "http://x"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["Hook-1", "https://b.example"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": [
+              "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          },
+          {
+            "method": "testUrl",
+            "args": [
+              "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"
+            ]
+          },
+          {
+            "method": "createHook",
+            "args": [
+              "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"
+            ]
+          },
+          {
+            "method": "createHook",
+            "args": [
+              "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          },
+          {
+            "method": "updateHook",
+            "args": [
+              "hook-1",
+              "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/"
+            ]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://short.example"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": [
+              "http://127.0.0.1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            ]
+          },
+          {
+            "method": "createHook",
+            "args": [
+              "http://127.0.0.1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            ]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "x"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["HTTPS://example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https:/example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https//example.com"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["http://example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https:example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["xhttps://example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["wss://example.com/x"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["Https://example.com"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://127.255.255.255"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://126.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://128.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.200.3.4"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://11.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://9.255.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://172.16.0.0"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://172.15.255.255"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://172.31.9.9"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://192.168.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://192.169.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://191.168.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://8.8.8.8"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://173.16.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://193.168.1.1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.0.0"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.0.0.1.2"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.0.0.256"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.0.0.255"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://010.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://0010.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10..0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.a.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://127.0.0.1.nip.io"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://256.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://127.0.0.0001"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://localhost"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://LocalHost/x"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://localhost:443"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://localhost?x=1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://localhost#top"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://localhost.example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://mylocalhost"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://example.com/localhost"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://example.com?h=10.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://example.com#127.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.1.1.1:8443/p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https:///path"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://:443/"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://?q"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createHook",
+            "args": ["https://a.example"]
+          },
+          {
+            "method": "createHook",
+            "args": ["http://b.example"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://c.example"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://localhost"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://d.example"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-2", "https://b2.example"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://a2.example"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-3", "https://d.example"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-4", "https://e.example"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "hooks",
+            "args": []
+          },
+          {
+            "method": "createHook",
+            "args": ["https://same.example/x"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://same.example/x"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-2", "https://192.168.10.10/x"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-2", "https://same.example/x"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["http://172.17.0.1:80"]
+          },
+          {
+            "method": "createHook",
+            "args": ["http://172.17.0.1:80"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://seed.example"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["http://172.17.0.1:80"]
+          },
+          {
+            "method": "createHook",
+            "args": ["http://172.17.0.1:80"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "http://172.17.0.1:80"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://ok.example:8443/a?b#c"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://ok.example:8443/a?b#c"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://ok.example:8443/a?b#c"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["http://"]
+          },
+          {
+            "method": "createHook",
+            "args": ["http://"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "http://"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["localhost"]
+          },
+          {
+            "method": "createHook",
+            "args": ["localhost"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "localhost"]
+          },
+          {
+            "method": "testUrl",
+            "args": [
+              "https://192.168.255.255/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            ]
+          },
+          {
+            "method": "createHook",
+            "args": [
+              "https://192.168.255.255/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            ]
+          },
+          {
+            "method": "updateHook",
+            "args": [
+              "hook-1",
+              "https://192.168.255.255/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+            ]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://example.com:10.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://example.com/127.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://127.0.0.1/example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://a.example://localhost"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["http://localhost/https://a.example"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["://example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["://10.0.0.1"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "blockHost",
+        "params": [
+          {
+            "name": "host",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createHook",
+            "args": ["https://hooks.slack.example/x"]
+          },
+          {
+            "method": "blockHost",
+            "args": ["hooks.slack.example"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://hooks.slack.example/y"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://hooks.slack.example/z"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://hooks.slack.example/w"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "blockHost",
+            "args": [""]
+          },
+          {
+            "method": "blockHost",
+            "args": ["Evil.Example"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://evil.example"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://EVIL.example:443/p"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://sub.evil.example"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://evil.example.com"]
+          },
+          {
+            "method": "testUrl",
+            "args": [
+              "http://evil.example/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "blockHost",
+            "args": ["localhost"]
+          },
+          {
+            "method": "blockHost",
+            "args": ["10.0.0.1"]
+          },
+          {
+            "method": "blockHost",
+            "args": ["localhost"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://localhost"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.0.0.1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://10.0.0.2"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://10.0.0.1"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "createHook",
+            "args": ["https://a.example"]
+          },
+          {
+            "method": "createHook",
+            "args": ["https://b.example"]
+          },
+          {
+            "method": "blockHost",
+            "args": ["a.example"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-2", "https://a.example/new"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://a.example/new"]
+          },
+          {
+            "method": "updateHook",
+            "args": ["hook-1", "https://c.example"]
+          },
+          {
+            "method": "hooks",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "blockHost",
+            "args": ["x"]
+          },
+          {
+            "method": "blockHost",
+            "args": ["y"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://x"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://y/z"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://xy"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["x"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://"]
+          },
+          {
+            "method": "blockHost",
+            "args": ["z:1"]
+          },
+          {
+            "method": "testUrl",
+            "args": ["https://z:1"]
+          }
+        ]
+      }
+    ]
+  }
+}

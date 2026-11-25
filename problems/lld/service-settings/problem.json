@@ -1,0 +1,496 @@
+{
+  "slug": "service-settings",
+  "title": "Startup settings",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["fail-fast", "design-by-contract"],
+  "interface": {
+    "class": "ServiceSettings",
+    "constructor": {
+      "params": [
+        {
+          "name": "port",
+          "type": "int"
+        },
+        {
+          "name": "workers",
+          "type": "int"
+        },
+        {
+          "name": "timeoutMs",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "withWorkers",
+        "params": [
+          {
+            "name": "n",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "budgetMs",
+        "params": [
+          {
+            "name": "retries",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "describe",
+        "params": [],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [8080, 4, 3000]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "budgetMs",
+            "args": [0]
+          },
+          {
+            "method": "budgetMs",
+            "args": [2]
+          },
+          {
+            "method": "withWorkers",
+            "args": [16]
+          },
+          {
+            "method": "withWorkers",
+            "args": [0]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "budgetMs",
+            "args": [11]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0, 4, 3000]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [65536, 4, 3000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1, 4, 3000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [443, 0, 3000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [443, 65, 3000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [443, 4, 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [443, 4, 60001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [443, -3, -5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 1, 1]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "budgetMs",
+            "args": [10]
+          },
+          {
+            "method": "budgetMs",
+            "args": [0]
+          },
+          {
+            "method": "withWorkers",
+            "args": [64]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withWorkers",
+            "args": [65]
+          },
+          {
+            "method": "withWorkers",
+            "args": [1]
+          },
+          {
+            "method": "describe",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [65535, 64, 60000]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "budgetMs",
+            "args": [10]
+          },
+          {
+            "method": "budgetMs",
+            "args": [9]
+          },
+          {
+            "method": "budgetMs",
+            "args": [-1]
+          },
+          {
+            "method": "budgetMs",
+            "args": [1]
+          },
+          {
+            "method": "withWorkers",
+            "args": [-64]
+          },
+          {
+            "method": "describe",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3000, 8, 250]
+          },
+          {
+            "method": "withWorkers",
+            "args": [100]
+          },
+          {
+            "method": "withWorkers",
+            "args": [0]
+          },
+          {
+            "method": "withWorkers",
+            "args": [-1]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withWorkers",
+            "args": [8]
+          },
+          {
+            "method": "withWorkers",
+            "args": [2]
+          },
+          {
+            "method": "withWorkers",
+            "args": [2]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "budgetMs",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [9090, 2, 1500]
+          },
+          {
+            "method": "budgetMs",
+            "args": [5]
+          },
+          {
+            "method": "withWorkers",
+            "args": [32]
+          },
+          {
+            "method": "budgetMs",
+            "args": [5]
+          },
+          {
+            "method": "budgetMs",
+            "args": [7]
+          },
+          {
+            "method": "budgetMs",
+            "args": [20]
+          },
+          {
+            "method": "describe",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [22, 3, 777]
+          },
+          {
+            "method": "budgetMs",
+            "args": [4]
+          },
+          {
+            "method": "budgetMs",
+            "args": [6]
+          },
+          {
+            "method": "budgetMs",
+            "args": [8]
+          },
+          {
+            "method": "withWorkers",
+            "args": [63]
+          },
+          {
+            "method": "withWorkers",
+            "args": [64]
+          },
+          {
+            "method": "withWorkers",
+            "args": [65]
+          },
+          {
+            "method": "describe",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "withTls",
+        "params": [
+          {
+            "name": "certPath",
+            "type": "string"
+          },
+          {
+            "name": "keyPath",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [8443, 4, 3000]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withTls",
+            "args": ["/etc/tls/cert.pem", "/etc/tls/key.pem"]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withTls",
+            "args": ["", ""]
+          },
+          {
+            "method": "describe",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [8443, 4, 3000]
+          },
+          {
+            "method": "withTls",
+            "args": ["cert.pem", ""]
+          },
+          {
+            "method": "withTls",
+            "args": ["", "key.pem"]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withTls",
+            "args": ["a.pem", "b.pem"]
+          },
+          {
+            "method": "withTls",
+            "args": ["c.pem", ""]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withTls",
+            "args": ["", "d.pem"]
+          },
+          {
+            "method": "describe",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [443, 1, 10]
+          },
+          {
+            "method": "withTls",
+            "args": ["x", "x"]
+          },
+          {
+            "method": "withWorkers",
+            "args": [5]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withTls",
+            "args": ["y", "z"]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "budgetMs",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [443, 2, 20]
+          },
+          {
+            "method": "withTls",
+            "args": ["", ""]
+          },
+          {
+            "method": "describe",
+            "args": []
+          },
+          {
+            "method": "withTls",
+            "args": ["", "k"]
+          },
+          {
+            "method": "describe",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

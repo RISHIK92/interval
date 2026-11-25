@@ -1,0 +1,450 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "port=8080 workers=4 timeoutMs=3000"
+      },
+      {
+        "call": 2,
+        "value": 3000
+      },
+      {
+        "call": 3,
+        "value": 9000
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": "port=8080 workers=16 timeoutMs=3000"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: retries is from 0 to 10"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: port is from 1 to 65535"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: port is from 1 to 65535"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: port is from 1 to 65535"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: workers is from 1 to 64"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: workers is from 1 to 64"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: timeoutMs is from 1 to 60000"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: timeoutMs is from 1 to 60000"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: workers is from 1 to 64"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "port=1 workers=1 timeoutMs=1"
+      },
+      {
+        "call": 2,
+        "value": 11
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "port=1 workers=64 timeoutMs=1"
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "port=1 workers=1 timeoutMs=1"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "port=65535 workers=64 timeoutMs=60000"
+      },
+      {
+        "call": 2,
+        "value": 660000
+      },
+      {
+        "call": 3,
+        "value": 600000
+      },
+      {
+        "call": 4,
+        "error": "ValueError: retries is from 0 to 10"
+      },
+      {
+        "call": 5,
+        "value": 120000
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": "port=65535 workers=64 timeoutMs=60000"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": "port=3000 workers=8 timeoutMs=250"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "port=3000 workers=2 timeoutMs=250"
+      },
+      {
+        "call": 9,
+        "value": 1000
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 9000
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": 9000
+      },
+      {
+        "call": 4,
+        "value": 12000
+      },
+      {
+        "call": 5,
+        "error": "ValueError: retries is from 0 to 10"
+      },
+      {
+        "call": 6,
+        "value": "port=9090 workers=32 timeoutMs=1500"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3885
+      },
+      {
+        "call": 2,
+        "value": 5439
+      },
+      {
+        "call": 3,
+        "value": 6993
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": "port=22 workers=64 timeoutMs=777"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "port=8443 workers=4 timeoutMs=3000"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "port=8443 workers=4 timeoutMs=3000 tls=/etc/tls/cert.pem,/etc/tls/key.pem"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "port=8443 workers=4 timeoutMs=3000"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": "port=8443 workers=4 timeoutMs=3000"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": "port=8443 workers=4 timeoutMs=3000 tls=a.pem,b.pem"
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "port=8443 workers=4 timeoutMs=3000 tls=a.pem,b.pem"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "port=443 workers=5 timeoutMs=10 tls=x,x"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "port=443 workers=5 timeoutMs=10 tls=y,z"
+      },
+      {
+        "call": 6,
+        "value": 20
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "port=443 workers=2 timeoutMs=20"
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": "port=443 workers=2 timeoutMs=20"
+      }
+    ]
+  }
+]
