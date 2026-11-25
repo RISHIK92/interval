@@ -1,0 +1,629 @@
+{
+  "slug": "linter",
+  "title": "Lint rules",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": ["open-closed-principle", "solid-principles"],
+  "interface": {
+    "class": "Linter",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "enable",
+        "params": [
+          {
+            "name": "rule",
+            "type": "string"
+          },
+          {
+            "name": "param",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "lint",
+        "params": [
+          {
+            "name": "lines",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "enabled",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 10]
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", 0]
+          },
+          {
+            "method": "lint",
+            "args": [
+              ["short", "this line is long", "ends with space ", "xxxxxxxxxx"]
+            ]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "lint",
+            "args": [["\tindented ", "", "fine"]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "lint",
+            "args": [["anything\t "]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 1]
+          },
+          {
+            "method": "enable",
+            "args": ["unknown", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["No-Tabs", 0]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 3]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 5]
+          },
+          {
+            "method": "lint",
+            "args": [["abcd", "abcdef"]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "lint",
+            "args": [[]]
+          },
+          {
+            "method": "lint",
+            "args": [
+              [
+                "  ",
+                "\t",
+                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              ]
+            ]
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "lint",
+            "args": [[]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 1]
+          },
+          {
+            "method": "lint",
+            "args": [["", "a", "ab", "abc"]]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", -1]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 4]
+          },
+          {
+            "method": "lint",
+            "args": [["abcd", "abcde", "abc"]]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 1000]
+          },
+          {
+            "method": "lint",
+            "args": [
+              [
+                "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+                "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+                "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "lint",
+            "args": [["\t", "a\tb\t", "    spaces", "a\\tb", "\t\t\t"]]
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", -1]
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 2]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", 0]
+          },
+          {
+            "method": "lint",
+            "args": [[" ", "a ", " a", "a  ", "a\t", "a \t", ""]]
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", 1]
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", -5]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 4]
+          },
+          {
+            "method": "lint",
+            "args": [["\tlong line ", "ok", "\t", "abcd ", "abcde", "\t  "]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 2]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 0]
+          },
+          {
+            "method": "lint",
+            "args": [["abc", "ab"]]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 3]
+          },
+          {
+            "method": "lint",
+            "args": [["abc", "abcd"]]
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 3]
+          },
+          {
+            "method": "lint",
+            "args": [["\t"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length ", 5]
+          },
+          {
+            "method": "enable",
+            "args": ["max_line_length", 5]
+          },
+          {
+            "method": "enable",
+            "args": ["ban-word", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-space", 0]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "lint",
+            "args": [
+              [
+                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \t"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 5]
+          },
+          {
+            "method": "lint",
+            "args": [["aaaaaa\t ", "\t", "b "]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", 0]
+          },
+          {
+            "method": "lint",
+            "args": [["aaaaaa\t ", "\t", "b "]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "lint",
+            "args": [["aaaaaa\t ", "\t", "b "]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", 0]
+          },
+          {
+            "method": "lint",
+            "args": [
+              [
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "y ",
+                "x",
+                "x",
+                "z "
+              ]
+            ]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 1]
+          },
+          {
+            "method": "lint",
+            "args": [
+              ["ab", "a", "a", "a", "a", "a", "a", "a", "a", "a", "a", "ab "]
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "banWord",
+        "params": [
+          {
+            "name": "word",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-tabs", 0]
+          },
+          {
+            "method": "banWord",
+            "args": ["TODO"]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "lint",
+            "args": [
+              ["// TODO: later", "todo lowercase", "TODOS", "\tTODO", "nothing"]
+            ]
+          },
+          {
+            "method": "banWord",
+            "args": ["FIXME"]
+          },
+          {
+            "method": "banWord",
+            "args": ["TODO"]
+          },
+          {
+            "method": "lint",
+            "args": [["FIXME and TODO", "FIX ME"]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "banWord",
+            "args": [""]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "banWord",
+            "args": ["a b"]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          },
+          {
+            "method": "lint",
+            "args": [["a  b", "xa by", "a b"]]
+          },
+          {
+            "method": "enable",
+            "args": ["ban-word", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 3]
+          },
+          {
+            "method": "lint",
+            "args": [["a b", "a bc"]]
+          },
+          {
+            "method": "enabled",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["no-trailing-spaces", 0]
+          },
+          {
+            "method": "enable",
+            "args": ["max-line-length", 6]
+          },
+          {
+            "method": "banWord",
+            "args": [" "]
+          },
+          {
+            "method": "lint",
+            "args": [["a b", "ab ", "abcdefg", "abc", ""]]
+          },
+          {
+            "method": "banWord",
+            "args": ["q"]
+          },
+          {
+            "method": "lint",
+            "args": [["q", "Q"]]
+          }
+        ]
+      }
+    ]
+  }
+}

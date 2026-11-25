@@ -1,0 +1,581 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": [
+          "2:max-line-length",
+          "3:max-line-length",
+          "3:no-trailing-spaces"
+        ]
+      },
+      {
+        "call": 4,
+        "value": ["max-line-length", "no-trailing-spaces"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["1:no-tabs", "1:no-trailing-spaces"]
+      },
+      {
+        "call": 7,
+        "value": ["max-line-length", "no-tabs", "no-trailing-spaces"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a maximum is at least 1"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: this rule takes no parameter"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["2:max-line-length"]
+      },
+      {
+        "call": 11,
+        "value": ["max-line-length"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["no-tabs"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["3:max-line-length", "4:max-line-length"]
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a maximum is at least 1"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["2:max-line-length"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["1:no-tabs", "2:no-tabs", "5:no-tabs"]
+      },
+      {
+        "call": 3,
+        "error": "ValueError: this rule takes no parameter"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: this rule takes no parameter"
+      },
+      {
+        "call": 5,
+        "value": ["no-tabs"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": [
+          "1:no-trailing-spaces",
+          "2:no-trailing-spaces",
+          "4:no-trailing-spaces"
+        ]
+      },
+      {
+        "call": 3,
+        "error": "ValueError: this rule takes no parameter"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: this rule takes no parameter"
+      },
+      {
+        "call": 5,
+        "value": ["no-trailing-spaces"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "1:max-line-length",
+          "1:no-tabs",
+          "1:no-trailing-spaces",
+          "3:no-tabs",
+          "4:max-line-length",
+          "4:no-trailing-spaces",
+          "5:max-line-length",
+          "6:no-tabs",
+          "6:no-trailing-spaces"
+        ]
+      },
+      {
+        "call": 5,
+        "value": ["max-line-length", "no-tabs", "no-trailing-spaces"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a maximum is at least 1"
+      },
+      {
+        "call": 3,
+        "value": ["1:max-line-length"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["2:max-line-length"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["max-line-length", "no-tabs"]
+      },
+      {
+        "call": 9,
+        "error": "ValueError: this rule takes no parameter"
+      },
+      {
+        "call": 10,
+        "value": ["1:no-tabs"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["1:max-line-length"]
+      },
+      {
+        "call": 3,
+        "value": ["max-line-length"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["1:no-trailing-spaces", "3:no-trailing-spaces"]
+      },
+      {
+        "call": 3,
+        "value": ["no-trailing-spaces"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["1:no-tabs", "2:no-tabs"]
+      },
+      {
+        "call": 3,
+        "value": ["no-tabs"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["10:no-trailing-spaces", "13:no-trailing-spaces"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "1:max-line-length",
+          "12:max-line-length",
+          "12:no-trailing-spaces"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["ban-word", "no-tabs"]
+      },
+      {
+        "call": 4,
+        "value": ["1:ban-word", "3:ban-word", "4:ban-word", "4:no-tabs"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["1:ban-word"]
+      },
+      {
+        "call": 8,
+        "value": ["ban-word", "no-tabs"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty word"
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["ban-word"]
+      },
+      {
+        "call": 5,
+        "value": ["2:ban-word", "3:ban-word"]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["1:ban-word", "2:ban-word", "2:max-line-length"]
+      },
+      {
+        "call": 9,
+        "value": ["ban-word", "max-line-length"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "1:ban-word",
+          "2:ban-word",
+          "2:no-trailing-spaces",
+          "3:max-line-length"
+        ]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["1:ban-word"]
+      }
+    ]
+  }
+]

@@ -1,0 +1,1081 @@
+{
+  "slug": "outbox-sender",
+  "title": "Outbox sender",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": [
+    "dependency-inversion-principle",
+    "dependency-injection",
+    "transactional-outbox",
+    "idempotency-keys"
+  ],
+  "interface": {
+    "class": "OutboxSender",
+    "constructor": {
+      "params": [
+        {
+          "name": "transport",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "enqueue",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "payload",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "flush",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "failNext",
+        "params": [
+          {
+            "name": "n",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "swapTransport",
+        "params": [
+          {
+            "name": "transport",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "pending",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["order-1", "created"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["order-2", "paid"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "enqueue",
+            "args": ["order-3", "shipped"]
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "enqueue",
+            "args": ["order-4", "refunded"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["queue"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["email"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m1", "hi"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m1", "hi again"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "enqueue",
+            "args": ["m1", "later"]
+          },
+          {
+            "method": "swapTransport",
+            "args": ["email"]
+          },
+          {
+            "method": "swapTransport",
+            "args": ["sms"]
+          },
+          {
+            "method": "failNext",
+            "args": [-1]
+          },
+          {
+            "method": "enqueue",
+            "args": ["", "x"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m2", ""]
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["HTTP"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["kafka"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "one"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["queue"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["b", "two"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["email"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["c", "three"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["http"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["d", "four words in it"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["queue"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["1", "a"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["2", "b"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["3", "c"]
+          },
+          {
+            "method": "failNext",
+            "args": [2]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "enqueue",
+            "args": ["4", "d"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "failNext",
+            "args": [5]
+          },
+          {
+            "method": "enqueue",
+            "args": ["x", "1"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["y", "2"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["email"]
+          },
+          {
+            "method": "failNext",
+            "args": [3]
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "failNext",
+            "args": [4]
+          },
+          {
+            "method": "failNext",
+            "args": [0]
+          },
+          {
+            "method": "enqueue",
+            "args": ["c", "z"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "enqueue",
+            "args": ["d", "w"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "failNext",
+            "args": [10]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["queue"]
+          },
+          {
+            "method": "swapTransport",
+            "args": ["http"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "enqueue",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "swapTransport",
+            "args": ["email"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["queue"]
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "swapTransport",
+            "args": ["queue"]
+          },
+          {
+            "method": "swapTransport",
+            "args": [""]
+          },
+          {
+            "method": "swapTransport",
+            "args": ["Email"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["k", "other"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["K", "v"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "enqueue",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["", ""]
+          },
+          {
+            "method": "enqueue",
+            "args": ["j", ""]
+          },
+          {
+            "method": "enqueue",
+            "args": ["j", "now"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["email"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "failNext",
+            "args": [2]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["queue"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["evt 1", " spaced  payload "]
+          },
+          {
+            "method": "enqueue",
+            "args": ["evt:2", "{\"a\":1}"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m0", "p0"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m1", "p1"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m2", "p2"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m3", "p3"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m4", "p4"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m5", "p5"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m6", "p6"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m7", "p7"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m8", "p8"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m9", "p9"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m10", "p10"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["m11", "p11"]
+          },
+          {
+            "method": "failNext",
+            "args": [7]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["queue"]
+          },
+          {
+            "method": "failNext",
+            "args": [3]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["email"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["email"]
+          },
+          {
+            "method": "failNext",
+            "args": [1000000000]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["http"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "maxAttempts",
+        "params": [
+          {
+            "name": "n",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "deadLetters",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "maxAttempts",
+            "args": [2]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "failNext",
+            "args": [3]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["queue"]
+          },
+          {
+            "method": "maxAttempts",
+            "args": [0]
+          },
+          {
+            "method": "maxAttempts",
+            "args": [-2]
+          },
+          {
+            "method": "enqueue",
+            "args": ["x", "1"]
+          },
+          {
+            "method": "failNext",
+            "args": [3]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "maxAttempts",
+            "args": [1]
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "enqueue",
+            "args": ["y", "2"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["z", "3"]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["email"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "failNext",
+            "args": [4]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "maxAttempts",
+            "args": [3]
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["http"]
+          },
+          {
+            "method": "maxAttempts",
+            "args": [1]
+          },
+          {
+            "method": "enqueue",
+            "args": ["c", "1"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "3"]
+          },
+          {
+            "method": "failNext",
+            "args": [3]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "maxAttempts",
+            "args": [5]
+          },
+          {
+            "method": "enqueue",
+            "args": ["d", "4"]
+          },
+          {
+            "method": "failNext",
+            "args": [4]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["queue"]
+          },
+          {
+            "method": "maxAttempts",
+            "args": [2]
+          },
+          {
+            "method": "enqueue",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "swapTransport",
+            "args": ["http"]
+          },
+          {
+            "method": "failNext",
+            "args": [1]
+          },
+          {
+            "method": "flush",
+            "args": []
+          },
+          {
+            "method": "deadLetters",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

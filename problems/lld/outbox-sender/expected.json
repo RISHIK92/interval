@@ -1,0 +1,1035 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": ["POST order-1 created", "POST order-2 paid"]
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["POST order-4 refunded"]
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": ["PUBLISH order-3 shipped"]
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": ["MAIL m1 hi"]
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "error": "ValueError: already in use"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown transport"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: negative count"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 10,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown transport"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown transport"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown transport"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": ["POST a one"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["PUBLISH b two"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["MAIL c three"]
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": ["POST d four words in it"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["PUBLISH 3 c"]
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["PUBLISH 1 a", "PUBLISH 2 b", "PUBLISH 4 d"]
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": ["POST y 2"]
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": ["POST x 1"]
+      },
+      {
+        "call": 10,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["MAIL b y"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["MAIL a x", "MAIL c z"]
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["POST a 1"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["MAIL b 2"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: already in use"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown transport"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown transport"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["PUBLISH b 2"]
+      },
+      {
+        "call": 8,
+        "value": ["PUBLISH a 1"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["POST k v", "POST K v"]
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": ["POST j now"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["MAIL a b"]
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": ["PUBLISH evt 1  spaced  payload ", "PUBLISH evt:2 {\"a\":1}"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": [
+          "POST m7 p7",
+          "POST m8 p8",
+          "POST m9 p9",
+          "POST m10 p10",
+          "POST m11 p11"
+        ]
+      },
+      {
+        "call": 15,
+        "value": 7
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": [
+          "PUBLISH m3 p3",
+          "PUBLISH m4 p4",
+          "PUBLISH m5 p5",
+          "PUBLISH m6 p6"
+        ]
+      },
+      {
+        "call": 19,
+        "value": 3
+      },
+      {
+        "call": 20,
+        "value": null
+      },
+      {
+        "call": 21,
+        "value": ["MAIL m0 p0", "MAIL m1 p1", "MAIL m2 p2"]
+      },
+      {
+        "call": 22,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["POST a b"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["POST b 2"]
+      },
+      {
+        "call": 9,
+        "value": ["a"]
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": ["a"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: at least one attempt"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: at least one attempt"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": ["PUBLISH y 2", "PUBLISH z 3"]
+      },
+      {
+        "call": 15,
+        "value": ["x"]
+      },
+      {
+        "call": 16,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": ["a"]
+      },
+      {
+        "call": 11,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["c", "b", "a"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": []
+      },
+      {
+        "call": 14,
+        "value": []
+      },
+      {
+        "call": 15,
+        "value": ["c", "b", "a"]
+      },
+      {
+        "call": 16,
+        "value": ["POST d 4"]
+      },
+      {
+        "call": 17,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["a"]
+      },
+      {
+        "call": 9,
+        "value": 0
+      }
+    ]
+  }
+]

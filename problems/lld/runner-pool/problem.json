@@ -1,0 +1,1149 @@
+{
+  "slug": "runner-pool",
+  "title": "Runner capabilities",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": ["interface-segregation-principle"],
+  "interface": {
+    "class": "RunnerPool",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addRunner",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "capabilities",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "assign",
+        "params": [
+          {
+            "name": "job",
+            "type": "string"
+          },
+          {
+            "name": "needs",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "finish",
+        "params": [
+          {
+            "name": "job",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "busy",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["linux-1", ["build", "test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["gpu-1", ["build", "test", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["prod", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["unit", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["train", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["lint", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "assign",
+            "args": ["ship", ["deploy"]]
+          },
+          {
+            "method": "finish",
+            "args": ["unit"]
+          },
+          {
+            "method": "assign",
+            "args": ["lint", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["unit"]
+          },
+          {
+            "method": "finish",
+            "args": ["train"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["r", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r", ["test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["s", ["docker"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["build", "build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["k", ["Build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["c", ["build", "test", "deploy", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["b", ["build", "test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["a", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j1", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j2", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j3", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j4", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["j2"]
+          },
+          {
+            "method": "assign",
+            "args": ["j5", ["test", "build"]]
+          },
+          {
+            "method": "finish",
+            "args": ["j1"]
+          },
+          {
+            "method": "assign",
+            "args": ["j6", ["test"]]
+          },
+          {
+            "method": "finish",
+            "args": ["j3"]
+          },
+          {
+            "method": "assign",
+            "args": ["j7", ["gpu"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "assign",
+            "args": ["x", []]
+          },
+          {
+            "method": "addRunner",
+            "args": ["bare", []]
+          },
+          {
+            "method": "addRunner",
+            "args": ["full", ["gpu", "deploy", "test", "build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["x", []]
+          },
+          {
+            "method": "assign",
+            "args": ["y", []]
+          },
+          {
+            "method": "assign",
+            "args": ["z", []]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "assign",
+            "args": ["w", ["gpu"]]
+          },
+          {
+            "method": "finish",
+            "args": ["x"]
+          },
+          {
+            "method": "assign",
+            "args": ["w", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["v", []]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["bt", ["build", "test", "build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["dg", ["deploy", "gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["a", ["build", "deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b", ["test", "gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["c", ["gpu", "deploy", "gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["d", ["test", "test", "build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["e", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["r1", ["build", "lint"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r1", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r1", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["", ["nope"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["build", "GPU"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["build"]]
+          },
+          {
+            "method": "finish",
+            "args": [""]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["J"]
+          },
+          {
+            "method": "finish",
+            "args": ["j"]
+          },
+          {
+            "method": "finish",
+            "args": ["j"]
+          },
+          {
+            "method": "assign",
+            "args": ["j", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["only", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["deploy-job", ["deploy"]]
+          },
+          {
+            "method": "finish",
+            "args": ["deploy-job"]
+          },
+          {
+            "method": "assign",
+            "args": ["t1", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["t2", ["test"]]
+          },
+          {
+            "method": "finish",
+            "args": ["t2"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["t1"]
+          },
+          {
+            "method": "assign",
+            "args": ["t2", ["test"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["zeta", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["Alpha", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["beta", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["_x", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["10", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["9", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["job0", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["job1", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["job2", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["job3", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["job4", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["job5", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["job6", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["job0"]
+          },
+          {
+            "method": "finish",
+            "args": ["job3"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["x", ["test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["X", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["x", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["X", ["test"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["X"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "assign",
+            "args": ["y", ["test"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["r00", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r01", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r02", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r03", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r04", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r05", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r06", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r07", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r08", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r09", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r10", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r11", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r12", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r13", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r14", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r15", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r16", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r17", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r18", ["build", "gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r19", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g0", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g1", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g2", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g3", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g4", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g5", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g6", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g7", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g8", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g9", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g10", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["g11", ["gpu"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["g0"]
+          },
+          {
+            "method": "finish",
+            "args": ["g3"]
+          },
+          {
+            "method": "finish",
+            "args": ["g6"]
+          },
+          {
+            "method": "finish",
+            "args": ["g9"]
+          },
+          {
+            "method": "assign",
+            "args": ["b0", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b1", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b2", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b3", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b4", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b5", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b6", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["b7", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["solo", ["build", "test", "deploy", "gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j0", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["k0", []]
+          },
+          {
+            "method": "finish",
+            "args": ["j0"]
+          },
+          {
+            "method": "assign",
+            "args": ["j1", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["k1", []]
+          },
+          {
+            "method": "finish",
+            "args": ["j1"]
+          },
+          {
+            "method": "assign",
+            "args": ["j2", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["k2", []]
+          },
+          {
+            "method": "finish",
+            "args": ["j2"]
+          },
+          {
+            "method": "assign",
+            "args": ["j3", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["k3", []]
+          },
+          {
+            "method": "finish",
+            "args": ["j3"]
+          },
+          {
+            "method": "assign",
+            "args": ["j4", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["k4", []]
+          },
+          {
+            "method": "finish",
+            "args": ["j4"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "drain",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["old", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["new", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["a", ["build"]]
+          },
+          {
+            "method": "drain",
+            "args": ["old"]
+          },
+          {
+            "method": "assign",
+            "args": ["b", ["build"]]
+          },
+          {
+            "method": "assign",
+            "args": ["c", ["build"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["a"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "assign",
+            "args": ["c", ["build"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["old", ["build", "gpu"]]
+          },
+          {
+            "method": "finish",
+            "args": ["b"]
+          },
+          {
+            "method": "assign",
+            "args": ["d", ["gpu"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["ghost"]
+          },
+          {
+            "method": "drain",
+            "args": [""]
+          },
+          {
+            "method": "addRunner",
+            "args": ["idle", ["test"]]
+          },
+          {
+            "method": "drain",
+            "args": ["idle"]
+          },
+          {
+            "method": "drain",
+            "args": ["idle"]
+          },
+          {
+            "method": "assign",
+            "args": ["t", ["test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["idle", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["t", ["test"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["a", ["deploy"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["b", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["x", ["deploy"]]
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "addRunner",
+            "args": ["a", ["deploy"]]
+          },
+          {
+            "method": "finish",
+            "args": ["x"]
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "assign",
+            "args": ["y", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["z", ["deploy"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["a", ["deploy"]]
+          },
+          {
+            "method": "assign",
+            "args": ["z", ["deploy"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["r1", ["test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r2", ["test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r3", ["test"]]
+          },
+          {
+            "method": "drain",
+            "args": ["r2"]
+          },
+          {
+            "method": "assign",
+            "args": ["j1", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j2", ["test"]]
+          },
+          {
+            "method": "assign",
+            "args": ["j3", ["test"]]
+          },
+          {
+            "method": "drain",
+            "args": ["r1"]
+          },
+          {
+            "method": "drain",
+            "args": ["r3"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "finish",
+            "args": ["j2"]
+          },
+          {
+            "method": "finish",
+            "args": ["j1"]
+          },
+          {
+            "method": "busy",
+            "args": []
+          },
+          {
+            "method": "assign",
+            "args": ["j4", ["test"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r1", []]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r2", []]
+          },
+          {
+            "method": "addRunner",
+            "args": ["r3", []]
+          },
+          {
+            "method": "assign",
+            "args": ["j4", []]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addRunner",
+            "args": ["a", ["gpu"]]
+          },
+          {
+            "method": "addRunner",
+            "args": ["b", ["gpu"]]
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "addRunner",
+            "args": ["a", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["first", ["gpu"]]
+          },
+          {
+            "method": "assign",
+            "args": ["second", ["gpu"]]
+          },
+          {
+            "method": "busy",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

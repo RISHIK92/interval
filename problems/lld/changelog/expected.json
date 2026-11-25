@@ -1,0 +1,812 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": 4
+      },
+      {
+        "call": 6,
+        "value": [
+          "## 1.0.0",
+          "### Features",
+          "- api: add pagination (a1b2c3d)",
+          "- dark mode (d4e5f6a)",
+          "### Fixes",
+          "- handle empty body (b2c3d4e)",
+          "### Other",
+          "- explain retries (c3d4e5f)"
+        ]
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["## 1.1.0", "### Fixes", "- ui: drop the old theme (e5f6a7b)"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": ["## 1.0.0", "### Features", "- a thing (aaa)"]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: already released"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "error": "ValueError: already released"
+      },
+      {
+        "call": 9,
+        "value": ["## 1.0.1", "### Fixes", "- later (bbb)"]
+      },
+      {
+        "call": 10,
+        "error": "ValueError: nothing to release"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": ["## v1", "### Features", "- x (s1)"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": false
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": true
+      },
+      {
+        "call": 23,
+        "value": 7
+      },
+      {
+        "call": 24,
+        "value": [
+          "## 2.0.0",
+          "### Features",
+          "-  two spaces (q01)",
+          "- a b: spaced scope (q02)",
+          "- bang (q03)",
+          "- x: y (q05)",
+          "### Fixes",
+          "- api: scoped bang (q04)",
+          "- *: ! (q07)",
+          "### Other",
+          "- one letter (q06)"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": [
+          "## r",
+          "### Fixes",
+          "- three (abc)",
+          "- seven (1234567)",
+          "- eight (1234567)",
+          "- forty (0123456)",
+          "- six (123456)"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["## a", "### Other", "- tidy (s)", "- tidy (S)"]
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": ["## A", "### Features", "- new (t)"]
+      },
+      {
+        "call": 10,
+        "error": "ValueError: already released"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": [
+          "## 3.0.0",
+          "### Features",
+          "- cli: flag (4)",
+          "- zeta (6)",
+          "### Fixes",
+          "- second fix (2)",
+          "- api: first fix (5)",
+          "### Other",
+          "- cover parser (1)",
+          "- deps: bump (3)",
+          "- plural (7)",
+          "- plural (8)"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": ["## 1", "### Fixes", "- only fixes (f)"]
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["## 2", "### Features", "- only features (g)"]
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["## 3", "### Other", "- only other (h)"]
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "error": "ValueError: nothing to release"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": ["## v1", "### Features", "- one (x1)"]
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "error": "ValueError: already released"
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": [
+          "## v2",
+          "### Features",
+          "- two (x2)",
+          "### Fixes",
+          "- three (x3)"
+        ]
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "error": "ValueError: nothing to release"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": ["## v3", "### Fixes", "- four (x4)"]
+      },
+      {
+        "call": 12,
+        "error": "ValueError: already released"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": [
+          "## 4.0.0",
+          "### Features",
+          "- breaking feature (b1)",
+          "- plain feature (b4)",
+          "### Fixes",
+          "- core: breaking fix (b3)",
+          "### Other",
+          "- breaking chore (b2)"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": ["## v1.0", "### Other", "- readme (v)"]
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["## V1.0", "### Other", "- more (w)"]
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["## v1.0 ", "### Other", "- again (y)"]
+      },
+      {
+        "call": 7,
+        "error": "ValueError: nothing to release"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": [
+          "## 0.1.0-rc.1",
+          "### Features",
+          "- Web UI: Add  `--flag` (beta) (d1)",
+          "### Fixes",
+          "- ends with space  (d2)",
+          "### Other",
+          "- a.b/c: x (d3)"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": [
+          "## 2.0.0",
+          "### BREAKING",
+          "- api: breaking feature (b2)",
+          "- breaking chore (c3)",
+          "### Features",
+          "- plain (a1)",
+          "### Fixes",
+          "- plain fix (d4)"
+        ]
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["## 3.0.0", "### BREAKING", "- only breaking (e5)"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": [
+          "## 1",
+          "### BREAKING",
+          "- before (a)",
+          "### Fixes",
+          "- no bang (b)"
+        ]
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["## 2", "### Fixes", "- no bang either (c)"]
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": ["## 3", "### Features", "- off again (d)"]
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": ["## 4", "### BREAKING", "- on twice (e)"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": [
+          "## 1",
+          "### Features",
+          "- off (x)",
+          "### Fixes",
+          "- off too (y)"
+        ]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": [
+          "## 2",
+          "### BREAKING",
+          "- db: on (z123456)",
+          "### Features",
+          "- new (w)"
+        ]
+      }
+    ]
+  }
+]

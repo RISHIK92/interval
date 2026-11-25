@@ -1,0 +1,759 @@
+{
+  "slug": "changelog",
+  "title": "Changelog generator",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": ["single-responsibility-principle", "solid-principles"],
+  "interface": {
+    "class": "Changelog",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "commit",
+        "params": [
+          {
+            "name": "sha",
+            "type": "string"
+          },
+          {
+            "name": "message",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "release",
+        "params": [
+          {
+            "name": "version",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "unreleased",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["a1b2c3d4e5", "feat(api): add pagination"]
+          },
+          {
+            "method": "commit",
+            "args": ["b2c3d4e", "fix: handle empty body"]
+          },
+          {
+            "method": "commit",
+            "args": ["c3d4e5f6a7", "docs: explain retries"]
+          },
+          {
+            "method": "commit",
+            "args": ["d4e5f6a", "feat: dark mode"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["1.0.0"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["e5f6a7b8", "fix(ui)!: drop the old theme"]
+          },
+          {
+            "method": "release",
+            "args": ["1.1.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["aaa", "added a thing"]
+          },
+          {
+            "method": "commit",
+            "args": ["aaa", "feat: a thing"]
+          },
+          {
+            "method": "commit",
+            "args": ["aaa", "fix: again"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["1.0.0"]
+          },
+          {
+            "method": "release",
+            "args": ["1.0.0"]
+          },
+          {
+            "method": "commit",
+            "args": ["bbb", "fix: later"]
+          },
+          {
+            "method": "release",
+            "args": ["1.0.0"]
+          },
+          {
+            "method": "release",
+            "args": ["1.0.1"]
+          },
+          {
+            "method": "release",
+            "args": ["1.0.2"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["", "feat: x"]
+          },
+          {
+            "method": "commit",
+            "args": ["s1", ""]
+          },
+          {
+            "method": "commit",
+            "args": ["", "not conventional"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": [""]
+          },
+          {
+            "method": "commit",
+            "args": ["s1", "feat: x"]
+          },
+          {
+            "method": "release",
+            "args": [""]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["v1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["p01", "feat:no space"]
+          },
+          {
+            "method": "commit",
+            "args": ["p02", "Feat: capital"]
+          },
+          {
+            "method": "commit",
+            "args": ["p03", "feat: "]
+          },
+          {
+            "method": "commit",
+            "args": ["p04", "feat(): empty scope"]
+          },
+          {
+            "method": "commit",
+            "args": ["p05", "feat(a)(b): two scopes"]
+          },
+          {
+            "method": "commit",
+            "args": ["p06", "feat!(api): bang first"]
+          },
+          {
+            "method": "commit",
+            "args": ["p07", "fix2: digit"]
+          },
+          {
+            "method": "commit",
+            "args": ["p08", "fix : space"]
+          },
+          {
+            "method": "commit",
+            "args": ["p09", " feat: leading space"]
+          },
+          {
+            "method": "commit",
+            "args": ["p10", "feat(a(b)): nested"]
+          },
+          {
+            "method": "commit",
+            "args": ["p11", "feat"]
+          },
+          {
+            "method": "commit",
+            "args": ["p12", ": no type"]
+          },
+          {
+            "method": "commit",
+            "args": ["p13", "feat(api: unclosed"]
+          },
+          {
+            "method": "commit",
+            "args": ["p14", "feat!!: two bangs"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["q01", "feat:  two spaces"]
+          },
+          {
+            "method": "commit",
+            "args": ["q02", "feat(a b): spaced scope"]
+          },
+          {
+            "method": "commit",
+            "args": ["q03", "feat!: bang"]
+          },
+          {
+            "method": "commit",
+            "args": ["q04", "fix(api)!: scoped bang"]
+          },
+          {
+            "method": "commit",
+            "args": ["q05", "feat: x: y"]
+          },
+          {
+            "method": "commit",
+            "args": ["q06", "a: one letter"]
+          },
+          {
+            "method": "commit",
+            "args": ["q07", "fix(*)!: !"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["2.0.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["abc", "fix: three"]
+          },
+          {
+            "method": "commit",
+            "args": ["1234567", "fix: seven"]
+          },
+          {
+            "method": "commit",
+            "args": ["12345678", "fix: eight"]
+          },
+          {
+            "method": "commit",
+            "args": ["0123456789abcdef0123456789abcdef01234567", "fix: forty"]
+          },
+          {
+            "method": "commit",
+            "args": ["123456", "fix: six"]
+          },
+          {
+            "method": "release",
+            "args": ["r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["s", "bad"]
+          },
+          {
+            "method": "commit",
+            "args": ["s", "chore: tidy"]
+          },
+          {
+            "method": "commit",
+            "args": ["s", "chore: tidy"]
+          },
+          {
+            "method": "commit",
+            "args": ["S", "chore: tidy"]
+          },
+          {
+            "method": "release",
+            "args": ["a"]
+          },
+          {
+            "method": "commit",
+            "args": ["s", "feat: after release"]
+          },
+          {
+            "method": "commit",
+            "args": ["t", "feat: new"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["A"]
+          },
+          {
+            "method": "release",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["1", "test: cover parser"]
+          },
+          {
+            "method": "commit",
+            "args": ["2", "fix: second fix"]
+          },
+          {
+            "method": "commit",
+            "args": ["3", "chore(deps): bump"]
+          },
+          {
+            "method": "commit",
+            "args": ["4", "feat(cli): flag"]
+          },
+          {
+            "method": "commit",
+            "args": ["5", "fix(api): first fix"]
+          },
+          {
+            "method": "commit",
+            "args": ["6", "feat: zeta"]
+          },
+          {
+            "method": "commit",
+            "args": ["7", "feats: plural"]
+          },
+          {
+            "method": "commit",
+            "args": ["8", "fixes: plural"]
+          },
+          {
+            "method": "release",
+            "args": ["3.0.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["f", "fix: only fixes"]
+          },
+          {
+            "method": "release",
+            "args": ["1"]
+          },
+          {
+            "method": "commit",
+            "args": ["g", "feat: only features"]
+          },
+          {
+            "method": "release",
+            "args": ["2"]
+          },
+          {
+            "method": "commit",
+            "args": ["h", "perf: only other"]
+          },
+          {
+            "method": "release",
+            "args": ["3"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["x1", "feat: one"]
+          },
+          {
+            "method": "release",
+            "args": ["v1"]
+          },
+          {
+            "method": "commit",
+            "args": ["x2", "feat: two"]
+          },
+          {
+            "method": "commit",
+            "args": ["x3", "fix: three"]
+          },
+          {
+            "method": "release",
+            "args": ["v1"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["v2"]
+          },
+          {
+            "method": "unreleased",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["v3"]
+          },
+          {
+            "method": "commit",
+            "args": ["x4", "fix!: four"]
+          },
+          {
+            "method": "release",
+            "args": ["v3"]
+          },
+          {
+            "method": "release",
+            "args": ["v1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["b1", "feat!: breaking feature"]
+          },
+          {
+            "method": "commit",
+            "args": ["b2", "chore!: breaking chore"]
+          },
+          {
+            "method": "commit",
+            "args": ["b3", "fix(core)!: breaking fix"]
+          },
+          {
+            "method": "commit",
+            "args": ["b4", "feat: plain feature"]
+          },
+          {
+            "method": "release",
+            "args": ["4.0.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["v", "docs: readme"]
+          },
+          {
+            "method": "release",
+            "args": ["v1.0"]
+          },
+          {
+            "method": "commit",
+            "args": ["w", "docs: more"]
+          },
+          {
+            "method": "release",
+            "args": ["V1.0"]
+          },
+          {
+            "method": "commit",
+            "args": ["y", "docs: again"]
+          },
+          {
+            "method": "release",
+            "args": ["v1.0 "]
+          },
+          {
+            "method": "release",
+            "args": ["next"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["d1", "feat(Web UI): Add  `--flag` (beta)"]
+          },
+          {
+            "method": "commit",
+            "args": ["d2", "fix: ends with space "]
+          },
+          {
+            "method": "commit",
+            "args": ["d3", "refactor(a.b/c): x"]
+          },
+          {
+            "method": "release",
+            "args": ["0.1.0-rc.1"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "breakingSection",
+        "params": [
+          {
+            "name": "on",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "breakingSection",
+            "args": [true]
+          },
+          {
+            "method": "commit",
+            "args": ["a1", "feat: plain"]
+          },
+          {
+            "method": "commit",
+            "args": ["b2", "feat(api)!: breaking feature"]
+          },
+          {
+            "method": "commit",
+            "args": ["c3", "chore!: breaking chore"]
+          },
+          {
+            "method": "commit",
+            "args": ["d4", "fix: plain fix"]
+          },
+          {
+            "method": "release",
+            "args": ["2.0.0"]
+          },
+          {
+            "method": "commit",
+            "args": ["e5", "fix!: only breaking"]
+          },
+          {
+            "method": "release",
+            "args": ["3.0.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "commit",
+            "args": ["a", "feat!: before"]
+          },
+          {
+            "method": "breakingSection",
+            "args": [true]
+          },
+          {
+            "method": "commit",
+            "args": ["b", "fix: no bang"]
+          },
+          {
+            "method": "release",
+            "args": ["1"]
+          },
+          {
+            "method": "commit",
+            "args": ["c", "fix: no bang either"]
+          },
+          {
+            "method": "release",
+            "args": ["2"]
+          },
+          {
+            "method": "commit",
+            "args": ["d", "feat!: off again"]
+          },
+          {
+            "method": "breakingSection",
+            "args": [false]
+          },
+          {
+            "method": "release",
+            "args": ["3"]
+          },
+          {
+            "method": "commit",
+            "args": ["e", "docs!: on twice"]
+          },
+          {
+            "method": "breakingSection",
+            "args": [true]
+          },
+          {
+            "method": "breakingSection",
+            "args": [true]
+          },
+          {
+            "method": "release",
+            "args": ["4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "breakingSection",
+            "args": [false]
+          },
+          {
+            "method": "commit",
+            "args": ["x", "feat!: off"]
+          },
+          {
+            "method": "commit",
+            "args": ["y", "fix!: off too"]
+          },
+          {
+            "method": "release",
+            "args": ["1"]
+          },
+          {
+            "method": "breakingSection",
+            "args": [true]
+          },
+          {
+            "method": "commit",
+            "args": ["z1234567890", "perf(db)!: on"]
+          },
+          {
+            "method": "commit",
+            "args": ["w", "feat: new"]
+          },
+          {
+            "method": "release",
+            "args": ["2"]
+          }
+        ]
+      }
+    ]
+  }
+}
