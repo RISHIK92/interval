@@ -68,6 +68,15 @@ export const families = {
     { light: "#e2711a", dark: "#b85f15" },
     { light: "#b5560b", dark: "#ffcfa3" },
   ),
+  // ADR-0049 (owner, 2026-11-25): its own magenta, apart from the four and from the
+  // reds of live and wrong.
+  "software-design": family(
+    { light: "#ffe9f5", dark: "#3a1129" },
+    { light: "#ffb3dc", dark: "#ffacd9" },
+    { light: "#ec4fa3", dark: "#d9418f" },
+    { light: "#c92a7f", dark: "#a3236a" },
+    { light: "#a11d65", dark: "#ffbfe2" },
+  ),
   review,
   backend: review,
 } as const;

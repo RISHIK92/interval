@@ -6094,3 +6094,4 @@ The owner said to continue building overnight with recommended answers, switchin
   - App-level not-found, error and loading pages; one set of labels; focus rings; back links on phones.
 - **Checks:** a reviewer found the practice repeat-counting bug, now fixed. `pnpm check` passes all 64 tasks.
 - **Not checked in a browser:** the owner stopped the dev server, so the last round has no screenshots. The live LLD/HLD walk is next when the servers can run again.
+- **Software design topic (ADR-0049, option 2; 2026-11-25):** onboarding and Profile hide the topic, rather than showing it as "coming soon" (the ADR's open question), until sources tagged software design have produced reading. A topic the user already saved stays on Profile (PER-1).

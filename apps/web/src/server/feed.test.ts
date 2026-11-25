@@ -47,7 +47,10 @@ function reader(computedAfter: number, cards: FeedCard[] = [card("own")]) {
   const starter = vi.fn<FeedReader["starter"]>(() =>
     Promise.resolve([card("starter")]),
   );
-  return { read, starter } satisfies FeedReader;
+  const topicsWithReading = vi.fn<FeedReader["topicsWithReading"]>(() =>
+    Promise.resolve([]),
+  );
+  return { read, starter, topicsWithReading } satisfies FeedReader;
 }
 
 describe("loadFeed", () => {

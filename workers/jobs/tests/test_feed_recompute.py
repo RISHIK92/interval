@@ -175,8 +175,10 @@ def test_starter_feeds_cover_every_topic_level_and_chip() -> None:
     w = World()
     _, db_moment = w.item("db-post", 25)
     recompute_starters(w.store)
-    # Every topic, three levels, three chips (topics the graph lacks come out empty).
-    assert len(w.store.feed.starters) == 36
+    # Every topic (five since ADR-0049), three levels, three chips; topics the graph
+    # lacks come out empty.
+    assert len(w.store.feed.starters) == 45
+    assert w.store.feed.starters[("software-design", "beginner", "3-8")] == []
     for level in ("beginner", "intermediate", "advanced"):
         starter = w.store.feed.starters[("databases", level, "3-8")]
         assert [r.moment_id for r in starter] == [db_moment]
@@ -248,7 +250,7 @@ def test_recompute_due_queues_users_and_refreshes_starters(
     monkeypatch.setattr(cli, "queue_for_enqueue", lambda: queue)
     cli.main(["recompute-due"])
     result = json.loads(capsys.readouterr().out.splitlines()[-1])
-    assert result == {"queued": 1, "starter_feeds": 36}
+    assert result == {"queued": 1, "starter_feeds": 45}
     assert queue.pending("recompute_feed") == 1
 
 
@@ -380,7 +382,7 @@ def test_recompute_due_queues_no_note_polish(
     monkeypatch.setenv("NOTES_MODEL", "small-notes")
     cli.main(["recompute-due"])
     out = capsys.readouterr().out
-    assert '"starter_feeds": 36' in out
+    assert '"starter_feeds": 45' in out
 
 
 # Exploration (REC-4, P1-W4-S09): a share of slots for topics the user didn't choose

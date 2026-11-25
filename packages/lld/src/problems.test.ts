@@ -6,10 +6,10 @@ import { parseHints } from "./hints";
 import { Expected, Problem, scenariosOf } from "./problem";
 
 // P5-W30-S03 (LLDQ-1 to LLDQ-4, Q-P5-08): every problem in problems/lld is whole: a
-// valid problem.json named for its directory, a reference in every language, a
-// concurrency layer, an expected.json that matches its scenarios, and a statement marked
-// PROVISIONAL until the owner reviews it. Whether the references agree is the sandbox's
-// job (problems.integration.test.ts).
+// valid problem.json named for its directory, a reference in every language, an
+// expected.json that matches its scenarios, and a statement marked PROVISIONAL until
+// the owner reviews it. A battle problem's concurrency layer is the schema's rule.
+// Whether the references agree is the sandbox's job (problems.integration.test.ts).
 const problemsDir = join(import.meta.dirname, "../../../problems/lld");
 const slugs = readdirSync(problemsDir).filter((s) => !s.startsWith("."));
 
@@ -24,7 +24,6 @@ for (const slug of slugs)
       JSON.parse(readFileSync(join(dir, "problem.json"), "utf8")),
     );
     expect(problem.slug).toBe(slug);
-    expect(problem.layers.concurrency?.length ?? 0).toBeGreaterThan(0);
     for (const generate of Object.values(GENERATORS)) {
       const file = generate(problem.interface).solutionFile;
       expect(existsSync(join(dir, "references", file)), file).toBe(true);
@@ -56,18 +55,40 @@ for (const slug of slugs)
     expect(parseHints(hints)).toHaveLength(3);
   });
 
-// ADR-0048 (Q-WD-28): the first practice pool, apart from the battle pools for good.
-test("the practice pool is its own", () => {
-  const pools = slugs.map((slug) => {
-    const p = Problem.parse(
-      JSON.parse(readFileSync(join(problemsDir, slug, "problem.json"), "utf8")),
-    );
-    return [slug, p.pool] as const;
-  });
-  expect(
-    pools
-      .filter(([, pool]) => pool === "practice")
-      .map(([slug]) => slug)
-      .sort(),
-  ).toEqual(["elevator-system", "lru-cache", "meeting-rooms", "parking-lot"]);
+// ADR-0048 (Q-WD-28): the pools stay apart for good. The practice catalog grows
+// (Q-WD-30); the battle pool is these, and a problem never moves between them.
+// The problems that parse; one that doesn't fails its own test above.
+const problems = slugs.flatMap((slug) => {
+  const parsed = Problem.safeParse(
+    JSON.parse(readFileSync(join(problemsDir, slug, "problem.json"), "utf8")),
+  );
+  return parsed.success ? [parsed.data] : [];
 });
+
+test("the battle pool is its own", () => {
+  expect(
+    problems
+      .filter((p) => p.pool === "battle")
+      .map((p) => p.slug)
+      .sort(),
+  ).toEqual([
+    "bank-ledger",
+    "file-system",
+    "leaderboard",
+    "order-book",
+    "rate-limiter",
+    "task-scheduler",
+    "url-shortener",
+    "vending-machine",
+  ]);
+  for (const slug of [
+    "elevator-system",
+    "lru-cache",
+    "meeting-rooms",
+    "parking-lot",
+  ])
+    expect(problems.find((p) => p.slug === slug)?.pool).toBe("practice");
+});
+
+// Q-WD-30: that a practice problem's concepts are live in the concept graph is checked
+// with the seed's own loader, in workers/jobs/tests/test_lld_problem_concepts.py.

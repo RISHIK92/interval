@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 import {
   books,
   events,
+  feedReader,
   githubAccounts,
   jobQueue,
   preferences,
   sessionReader,
 } from "../../server/container";
 import { queueRecompute } from "../../server/recompute";
-import { completeOnboarding } from "../../server/preferences";
+import { completeOnboarding, offeredTopics } from "../../server/preferences";
 import { visitId } from "../../server/visits";
 import { textField } from "../form";
 
@@ -20,12 +21,17 @@ export async function onboardingAction(form: FormData): Promise<void> {
   if (actor === null) redirect("/join");
   // ADR-0029: guests play, and only play.
   if (actor.isGuest) redirect("/sign-up");
-  const result = await completeOnboarding(preferences(), actor.userId, {
-    goals: form.getAll("goal").filter((v) => typeof v === "string"),
-    topics: form.getAll("topic").filter((v) => typeof v === "string"),
-    level: textField(form, "level"),
-    breakLength: textField(form, "breakLength"),
-  });
+  const result = await completeOnboarding(
+    preferences(),
+    actor.userId,
+    {
+      goals: form.getAll("goal").filter((v) => typeof v === "string"),
+      topics: form.getAll("topic").filter((v) => typeof v === "string"),
+      level: textField(form, "level"),
+      breakLength: textField(form, "breakLength"),
+    },
+    await offeredTopics(feedReader()),
+  );
   if (!result.ok) redirect(`/onboarding?missing=${result.field}`);
   // Once per user: a resubmit (back button, double click) changes and counts nothing.
   if (result.created) {

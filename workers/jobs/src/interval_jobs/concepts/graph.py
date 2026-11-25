@@ -6,11 +6,11 @@ stay acyclic; the database checks that again behind this.
 """
 
 import re
-from typing import Literal, cast
+from typing import Literal, cast, get_args
 
 import yaml
 
-from interval_db.generated import ConceptEdgeType
+from interval_db.generated import ConceptEdgeType, Topic
 from interval_jobs.ports import (
     ConceptCycleError,
     ConceptEdge,
@@ -20,7 +20,8 @@ from interval_jobs.ports import (
 
 MAX_NAME = 200
 MAX_DESCRIPTION = 500
-TOPICS = frozenset({"system-design", "databases", "distributed-systems", "backend"})
+# The topic enum's values; concept.topic's check lists the same ones (ADR-0049).
+TOPICS: frozenset[str] = frozenset(get_args(Topic.__value__))
 _SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 _KEYS = frozenset(
     {

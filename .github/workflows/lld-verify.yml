@@ -1,0 +1,160 @@
+# Q-WD-30: LLD problem verification, packages/lld's problems.integration.test.ts (every
+# reference agrees on its scenarios and seeded random ones, and the tests kill 90% of
+# the Python reference's mutants), run on Velox's engine CLI (ADR-0041, EXEC_BIN).
+# All ~119 problems no longer fit one job, so a pull request or a push to main verifies
+# only the problems it changed, and a nightly run verifies every problem. Either way the
+# problems are split into shards of about 15 (at most 8 shards). A change to the verify
+# tooling itself is caught by the nightly run.
+name: LLD verify
+
+on:
+  pull_request:
+    paths: ["problems/lld/**"]
+  push:
+    branches: [main]
+    paths: ["problems/lld/**"]
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read # the last successful run on main, for a push's base
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pick:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      problems: ${{ steps.pick.outputs.problems }}
+      shards: ${{ steps.pick.outputs.shards }}
+      count: ${{ steps.pick.outputs.count }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the changed problems are a diff against the base commit
+          persist-credentials: false
+
+      - name: Pick the problems and shards
+        id: pick
+        env:
+          ALL: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          slugs="$RUNNER_TEMP/slugs"
+          if [ "$ALL" = true ]; then
+            ls problems/lld > "$slugs"
+          else
+            # A push diffs from the last push to main this workflow passed on, so a run
+            # cancelled or failed in between doesn't leave its problems unverified.
+            if [ "$EVENT" = push ]; then
+              last=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow lld-verify.yml \
+                --branch main --event push --status success --limit 1 \
+                --json headSha --jq '.[0].headSha // empty')
+              BASE="${last:-$BEFORE}"
+            fi
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              echo "::error::no base commit to diff against"
+              exit 1
+            fi
+            if ! git cat-file -e "$BASE^{commit}"; then
+              echo "::error::the base commit $BASE is not reachable"
+              exit 1
+            fi
+            git diff --name-only "$BASE" HEAD -- problems/lld | cut -d/ -f3 | sort -u > "$slugs"
+          fi
+          picked=()
+          while read -r slug; do
+            # A deleted problem has nothing to verify.
+            if [ -f "problems/lld/$slug/problem.json" ]; then picked+=("$slug"); fi
+          done < "$slugs"
+          count=${#picked[@]}
+          shards=$(( (count + 14) / 15 ))
+          if [ "$shards" -gt 8 ]; then shards=8; fi
+          {
+            echo "problems=${picked[*]}"
+            echo "count=$shards"
+            echo "shards=$(jq -cn --argjson n "$shards" '[range(1; $n + 1)]')"
+          } >> "$GITHUB_OUTPUT"
+          echo "Verifying $count problem(s) in $shards shard(s): ${picked[*]}"
+
+  verify:
+    needs: pick
+    if: needs.pick.outputs.problems != ''
+    runs-on: ubuntu-24.04
+    # Each problem has its own 10-minute test timeout; a shard holds about 15.
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.pick.outputs.shards) }}
+    env:
+      # The Velox commit Interval's judge contract was last synced with.
+      VELOX_REF: 013c4042f6d56d4db76189f05783f3cd4658b774
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: This shard's problems
+        id: shard
+        env:
+          PROBLEMS: ${{ needs.pick.outputs.problems }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ needs.pick.outputs.count }}
+        run: |
+          set -euo pipefail
+          mine=$(printf '%s\n' $PROBLEMS | awk -v k="$SHARD" -v n="$SHARDS" '(NR - 1) % n == k - 1' | paste -sd' ' -)
+          echo "problems=$mine" >> "$GITHUB_OUTPUT"
+          echo "Shard $SHARD of $SHARDS: $mine"
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.3"
+          cache: false
+
+      - name: Check out Velox
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: RISHIK92/velox
+          ref: ${{ env.VELOX_REF }}
+          path: velox
+          persist-credentials: false
+
+      - name: Build Velox's engine CLI and its Go image
+        run: |
+          (cd velox/backend && go build -o "$RUNNER_TEMP/velox-exec" ./cmd/exec)
+          docker build -q -t velox-exec-go:1 velox/build/images/go
+
+      # The engine bounds each docker call at 30 s: a cold pull of the compilers' images
+      # (gcc is over 1 GB) must not happen inside a run.
+      - name: Pull the language images
+        run: |
+          set -o pipefail
+          jq -r '.[] | select(.build == null) | .image' velox/backend/engine/images.json \
+            | sort -u | xargs -r -n1 docker pull -q
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install TS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify, with the mutation gate
+        env:
+          LLD_PROBLEMS: ${{ steps.shard.outputs.problems }}
+        # One problem at a time: sandboxed runs side by side starve each other (P5-W30-S04).
+        run: EXEC_BIN="$RUNNER_TEMP/velox-exec" pnpm --filter @interval/lld exec vitest run --no-file-parallelism src/problems.integration.test.ts

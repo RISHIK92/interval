@@ -33,6 +33,11 @@
   --system-design-left: light-dark(#ff9440, #ee8430);
   --system-design-right: light-dark(#e2711a, #b85f15);
   --system-design-line: light-dark(#b5560b, #ffcfa3);
+  --software-design-tint: light-dark(#ffe9f5, #3a1129);
+  --software-design-top: light-dark(#ffb3dc, #ffacd9);
+  --software-design-left: light-dark(#ec4fa3, #d9418f);
+  --software-design-right: light-dark(#c92a7f, #a3236a);
+  --software-design-line: light-dark(#a11d65, #ffbfe2);
   --review-tint: light-dark(#f1ebff, #241b42);
   --review-top: light-dark(#cdb8ff, #cab5ff);
   --review-left: light-dark(#9468f7, #8457f0);

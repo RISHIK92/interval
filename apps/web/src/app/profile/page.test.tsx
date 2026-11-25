@@ -70,6 +70,7 @@ vi.mock("../../server/container", () => ({
   githubAccounts: () => ({ get: githubConnection }),
   playerCountries: () => ({ get: countryGet }),
   playerUniversities: () => ({ get: universityGet, search: universitySearch }),
+  feedReader: () => ({ topicsWithReading: () => Promise.resolve([]) }),
 }));
 const universityGet = vi.fn<PlayerUniversities["get"]>(() =>
   Promise.resolve({ university: null, changeableFrom: null }),
@@ -303,6 +304,33 @@ test("Profile lists the user's concepts by topic with their states, or says how 
   expect(section).toMatch(/Raft[^]*?Mastered · Due for review[^]*?Paxos/);
   expect(section).not.toMatch(/Paxos[^]*?Explored · Due/);
   expect(explored).toHaveBeenCalledWith("u1");
+});
+
+// ADR-0049 (option 2): software design's concepts show now; the topic itself is offered
+// only once it has reading, though a choice the user already made stays (PER-1).
+test("software design: its concepts are listed, and the topic is offered only with reading", async () => {
+  current.mockResolvedValue(user);
+  get.mockResolvedValue(preferences);
+  explored.mockResolvedValueOnce([
+    {
+      topic: "software-design",
+      concepts: [
+        {
+          slug: "encapsulation",
+          name: "Encapsulation",
+          state: "explored",
+          due: false,
+        },
+      ],
+    },
+  ]);
+  const html = await page();
+  expect(html.slice(html.indexOf("Your concepts"))).toMatch(
+    /Software design[^]*?Encapsulation/,
+  );
+  expect(html).not.toContain('value="software-design"');
+  get.mockResolvedValue({ ...preferences, topics: ["software-design"] });
+  expect(await page()).toContain('value="software-design"');
 });
 
 // P2-W12-S01 (§5H, ADR-0024): connecting GitHub, accounts only.

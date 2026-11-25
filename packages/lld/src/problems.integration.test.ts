@@ -11,12 +11,20 @@ import { verify } from "./verify";
 // PROPOSED); these tests skip without it.
 const exec = process.env["EXEC_BIN"] ?? "";
 const integration = exec !== "";
-// Per problem; well inside the CI job's 45 minutes, so a slow problem is named.
+// Per problem, so a slow problem is named rather than timing out its CI job.
 const SLOW = 600_000;
 const repo = join(import.meta.dirname, "../../..");
 const problemsDir = join(repo, "problems/lld");
+// Q-WD-30: CI verifies only the problems a change touched, and every problem nightly
+// in shards (.github/workflows/lld-verify.yml). LLD_PROBLEMS names them, separated by
+// spaces; unset, every problem is verified.
+const named = process.env["LLD_PROBLEMS"]?.split(/\s+/).filter((s) => s !== "");
+const all = readdirSync(problemsDir).filter((s) => !s.startsWith("."));
+const unknown = named?.filter((s) => !all.includes(s)) ?? [];
+if (unknown.length > 0)
+  throw new Error(`LLD_PROBLEMS names no such problem: ${unknown.join(" ")}`);
 
-for (const slug of readdirSync(problemsDir).filter((s) => !s.startsWith(".")))
+for (const slug of named ?? all)
   test.runIf(integration)(
     `${slug}: verified, and its tests catch the reference's mutants`,
     () => {

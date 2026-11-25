@@ -7,6 +7,7 @@ import {
   agentHook,
   entitlements,
   feedback,
+  feedReader,
   follows,
   githubAccounts,
   githubApp,
@@ -20,6 +21,7 @@ import {
 } from "../../server/container";
 import type { LearnerState } from "@interval/db";
 import type { GitHubConnection, Person, University } from "../../server/ports";
+import { offeredTopics } from "../../server/preferences";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
 import { countriesByName, countryName } from "../../server/countries";
 import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
@@ -88,6 +90,8 @@ const MISSING: Record<string, string> = {
   topic: "Pick at least one topic.",
   level: "Pick a level.",
   break: "Pick a break length.",
+  // ADR-0049: a topic that isn't offered, from a stale or forged form.
+  "topic-unavailable": "That topic isn't available yet.",
 };
 
 // §5A ("view, edit, or reset anything inferred"), PER-1, Q-P1-36, P1-W4-S08.
@@ -137,6 +141,7 @@ export default async function ProfilePage(props: {
     hookGranted,
     pushGranted,
     savedPush,
+    topics,
   ] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
@@ -153,6 +158,7 @@ export default async function ProfilePage(props: {
     entitlements().can(actor.userId, "agent.hook"),
     entitlements().can(actor.userId, "push.notify"),
     pushSettings().get(actor.userId),
+    offeredTopics(feedReader()),
   ]);
   // ADR-0036: the push settings only on a plan with push.notify.
   const pushSettingsNow = pushGranted ? savedPush : null;
@@ -368,7 +374,7 @@ export default async function ProfilePage(props: {
               action={updatePreferencesAction}
               className="flex flex-col gap-4"
             >
-              <ChoicesFields current={chosen} />
+              <ChoicesFields current={chosen} offered={topics} />
               <Button type="submit">Save choices</Button>
             </form>
           </section>

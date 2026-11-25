@@ -85,6 +85,12 @@ def test_merged_into_implies_retired_and_must_name_a_live_concept() -> None:
         parse_concepts(seed(gone), "c.yaml")
 
 
+def test_software_design_is_a_topic() -> None:
+    # ADR-0049 (option 2): the fifth topic, for the LLD practice catalog's concepts.
+    body = "  - {slug: encapsulation, name: Encapsulation, topic: software-design}\n"
+    assert parse_concepts(seed(body), "c.yaml").concepts[0].topic == "software-design"
+
+
 def test_the_repo_seed_file_is_valid() -> None:
     # Whatever the owner puts in it, the repo's file must load.
     parse_concepts(SEED.read_text(encoding="utf-8"), str(SEED))

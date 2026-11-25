@@ -9,6 +9,7 @@ import {
   agentHook,
   events,
   feedback,
+  feedReader,
   githubAccounts,
   jobQueue,
   leaderboards,
@@ -27,7 +28,7 @@ import {
   BIGINT_ID,
   type UniversityChange,
 } from "../../server/ports";
-import { updatePreferences } from "../../server/preferences";
+import { offeredTopics, updatePreferences } from "../../server/preferences";
 import { log } from "../../server/log";
 import { visitId } from "../../server/visits";
 import { universityName } from "../../server/universities";
@@ -64,12 +65,17 @@ async function recompute(userId: string): Promise<void> {
 
 export async function updatePreferencesAction(form: FormData): Promise<void> {
   const userId = await actor();
-  const result = await updatePreferences(preferences(), userId, {
-    goals: form.getAll("goal").filter((v) => typeof v === "string"),
-    topics: form.getAll("topic").filter((v) => typeof v === "string"),
-    level: textField(form, "level"),
-    breakLength: textField(form, "breakLength"),
-  });
+  const result = await updatePreferences(
+    preferences(),
+    userId,
+    {
+      goals: form.getAll("goal").filter((v) => typeof v === "string"),
+      topics: form.getAll("topic").filter((v) => typeof v === "string"),
+      level: textField(form, "level"),
+      breakLength: textField(form, "breakLength"),
+    },
+    await offeredTopics(feedReader()),
+  );
   if (!result.ok) redirect(`/profile?missing=${result.field}`);
   if (!result.updated) redirect("/onboarding");
   await recompute(userId);

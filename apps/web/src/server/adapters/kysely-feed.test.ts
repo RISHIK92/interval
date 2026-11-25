@@ -347,6 +347,61 @@ test("the starter feed is read per topic, level and chip", async () => {
   });
 });
 
+// ADR-0049: a topic has reading once its starter feed has cards from sources tagged with
+// it whose rights allow reading (ING-2). Concept tags on other sources' items don't count.
+test("a topic has reading only from its own tagged, readable sources", async () => {
+  await inRollback(async (trx, { itemId, momentIds }) => {
+    const [first, second] = momentIds;
+    if (first === undefined || second === undefined) throw new Error("seed");
+    await trx.deleteFrom("starter_feed_entry").execute();
+    const reader = kyselyFeedReader(trx);
+    expect(await reader.topicsWithReading()).toEqual([]);
+    const entry = {
+      topic: "software-design",
+      level: "beginner",
+      content_item_id: itemId,
+      chip: "3-8",
+    } as const;
+    await trx
+      .insertInto("starter_feed_entry")
+      .values([
+        { ...entry, moment_id: first, rank: 1 },
+        { ...entry, moment_id: second, rank: 2 },
+        // The whole article too, which a metadata-only source may still show.
+        { ...entry, moment_id: null, rank: 3 },
+      ])
+      .execute();
+    const source = async (fields: {
+      topics: string[];
+      rights_profile?: "metadata_only" | "full_text_internal";
+      moments_seeded?: boolean;
+      moments_switched_off?: boolean;
+    }) => {
+      const seeded = fields.moments_seeded ?? true;
+      const off = fields.moments_switched_off ?? false;
+      await trx
+        .updateTable("source")
+        .set({ ...fields, moments_enabled: seeded && !off })
+        .where("name", "=", "webfeed-test")
+        .execute();
+    };
+    // A backend source whose article the tagger linked to a software-design concept.
+    await source({ topics: ["backend"] });
+    expect(await reader.topicsWithReading()).toEqual([]);
+    await source({ topics: ["backend", "software-design"] });
+    expect(await reader.topicsWithReading()).toEqual(["software-design"]);
+    // Moments switched off: only the article card is left, and it isn't reading here.
+    await source({ topics: ["software-design"], moments_switched_off: true });
+    expect(await reader.topicsWithReading()).toEqual([]);
+    await source({
+      topics: ["software-design"],
+      rights_profile: "metadata_only",
+      moments_seeded: false,
+    });
+    expect(await reader.topicsWithReading()).toEqual([]);
+  });
+});
+
 test("toCard drops a row with missing fields and logs only its id and column names", () => {
   const lines: string[] = [];
   vi.spyOn(process.stdout, "write").mockImplementation(

@@ -36,7 +36,8 @@ vi.mock("../../server/container", () => ({
   entitlements: () => ({ can }),
   agentHook: () => ({ addDevice, revoke: revokeDevice }),
   sessionReader: () => ({ current }),
-  preferences: () => ({ update }),
+  preferences: () => ({ update, get: savedGet }),
+  feedReader: () => ({ topicsWithReading: () => Promise.resolve([]) }),
   feedback: () => ({ resetInferred, unhideSource, give }),
   jobQueue: () => ({ enqueue }),
   githubAccounts: () => ({ disconnect, get: githubGet }),
@@ -137,6 +138,8 @@ async function actions() {
   return import("./actions");
 }
 
+const savedGet = vi.fn<PreferencesStore["get"]>(() => Promise.resolve(null));
+
 describe("editing the explicit choices", () => {
   test("replaces them, queues a recompute, and touches no feedback", async () => {
     const { updatePreferencesAction } = await actions();
@@ -174,6 +177,21 @@ describe("editing the explicit choices", () => {
       ),
     ).rejects.toThrow("redirect:/onboarding");
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  // ADR-0049: a hidden topic can't be added by a forged form (offeredTopics).
+  test("a topic that isn't offered is refused", async () => {
+    const { updatePreferencesAction } = await actions();
+    await expect(
+      updatePreferencesAction(
+        form([
+          ["topic", "software-design"],
+          ["level", "advanced"],
+          ["breakLength", "8-15"],
+        ]),
+      ),
+    ).rejects.toThrow("redirect:/profile?missing=topic-unavailable");
+    expect(update).not.toHaveBeenCalled();
   });
 
   test("an edit with no topic is refused and changes nothing", async () => {

@@ -99,6 +99,9 @@ export interface FeedReader {
     chip: BreakLength,
     limit: number,
   ): Promise<FeedCard[]>;
+  // ADR-0049: the topics whose starter feeds have cards from sources tagged with that
+  // topic and readable under their rights (ING-2), at any level or chip.
+  topicsWithReading(): Promise<Topic[]>;
 }
 
 // What the feed inferred from a user's feedback (PER-1's inferred layer, §5A).
@@ -1496,11 +1499,18 @@ export interface AdminSources {
 // §5A, PER-1, C-21, P1-W4-S01: the explicit layer. Feedback and inference never write
 // it; only the user does (onboarding now, profile settings in W4-S08). The types are
 // the generated enums; these lists are their values in display order.
-export const TOPICS = [
+// §2, C-32: the launch topics, always offered. ADR-0049 (option 2): a later topic is
+// offered only once sources tagged with it have produced reading (offeredTopics), so
+// no one picks a topic with nothing to read.
+export const LAUNCH_TOPICS = [
   "system-design",
   "databases",
   "distributed-systems",
   "backend",
+] as const satisfies readonly Topic[];
+export const TOPICS = [
+  ...LAUNCH_TOPICS,
+  "software-design",
 ] as const satisfies readonly Topic[];
 export function isTopic(value: string): value is Topic {
   return (TOPICS as readonly string[]).includes(value);

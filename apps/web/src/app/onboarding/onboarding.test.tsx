@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
   Books,
+  FeedReader,
   GitHubAccounts,
   Preferences,
 } from "../../server/ports";
@@ -22,7 +23,11 @@ vi.mock("../../server/container", () => ({
   jobQueue: () => ({ enqueue }),
   books: () => ({ list }),
   githubAccounts: () => ({ get: githubGet }),
+  feedReader: () => ({ topicsWithReading }),
 }));
+const topicsWithReading = vi.fn<FeedReader["topicsWithReading"]>(() =>
+  Promise.resolve([]),
+);
 const githubGet = vi.fn<GitHubAccounts["get"]>(() => Promise.resolve(null));
 const list = vi.fn<Books["list"]>(() => Promise.resolve([]));
 vi.mock("next/headers", () => ({
@@ -91,6 +96,19 @@ test("a new account gets four steps of one form, every field posted together", a
   expect(all.map((step) => step.shown)).toEqual([true, false, false, false]);
   expect(all[0]?.html).toContain('name="goal"');
   expect(all[3]?.html).toContain('name="breakLength"');
+});
+
+// ADR-0049 (option 2): software design is a topic, offered once it has reading.
+test("software design is offered only once its starter feed has cards", async () => {
+  current.mockResolvedValue(user);
+  get.mockResolvedValue(null);
+  expect(await page()).not.toContain('value="software-design"');
+  topicsWithReading.mockResolvedValueOnce(["software-design"]);
+  const html = await page();
+  expect(html).toContain('value="software-design"');
+  expect(html).toContain("Software design");
+  // Its own mark, in its own colours (a class box).
+  expect(html).toMatch(/<rect[^>]*fill="var\(--software-design-right\)"/);
 });
 
 // ADR-0016: the account exists before onboarding starts.
@@ -196,6 +214,25 @@ test("there is no way past it without a topic", async () => {
   expect(await page({ missing: "topic" })).toContain(
     "Pick at least one topic.",
   );
+});
+
+// ADR-0049: a hidden topic can't be added by a forged form (offeredTopics).
+test("a topic that isn't offered is refused", async () => {
+  current.mockResolvedValue(user);
+  const { onboardingAction } = await import("./actions");
+  await expect(
+    onboardingAction(
+      form({ topic: "software-design", level: "beginner", breakLength: "1-3" }),
+    ),
+  ).rejects.toThrow("redirect:/onboarding?missing=topic-unavailable");
+  expect(createIfAbsent).not.toHaveBeenCalled();
+  // The topic step opens, saying why.
+  get.mockResolvedValue(null);
+  const shown = steps(await page({ missing: "topic-unavailable" })).filter(
+    (step) => step.shown,
+  );
+  expect(shown[0]?.html).toContain('name="topic"');
+  expect(shown[0]?.html).toContain("That topic isn&#x27;t available yet.");
 });
 
 // LOAD-5: the queue being down must not lose the onboarding or its event; the starter

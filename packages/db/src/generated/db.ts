@@ -89,7 +89,7 @@ export type TechnologySource = "seed" | "suggestion";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export type Topic = "backend" | "databases" | "distributed-systems" | "system-design";
+export type Topic = "backend" | "databases" | "distributed-systems" | "software-design" | "system-design";
 
 export type UserPathStatus = "active" | "paused";
 

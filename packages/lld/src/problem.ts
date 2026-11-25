@@ -74,9 +74,12 @@ export const Problem = z
       if (p.concepts === undefined)
         issue("concepts", "a practice problem's concepts (may be empty)");
     } else {
-      // Its extension is revealed to every player at 30:00 (Q-P5-15).
+      // Its extension is revealed to every player at 30:00 (Q-P5-15). Both layers are
+      // optional only for practice (Q-WD-30).
       if (p.extension === undefined)
         issue("extension", "a battle problem has an extension round");
+      if ((p.layers.concurrency ?? []).length === 0)
+        issue("layers", "a battle problem has a concurrency layer");
       if (p.topic !== undefined || p.concepts !== undefined)
         issue("topic", "only a practice problem has a topic and concepts");
     }

@@ -7,7 +7,8 @@
 #
 # Fields per concept:
 #   slug (required, kebab-case, the key; never reuse a retired one), name, topic
-#   (system-design | databases | distributed-systems | backend), description (one line),
+#   (system-design | databases | distributed-systems | backend | software-design),
+#   description (one line),
 #   prerequisites / related / applied_in: slugs (edges "prerequisite of", "related to",
 #   "applied in"; a prerequisite is learned first).
 #   retired: true keeps the concept for existing tags but stops new use;
@@ -15,7 +16,7 @@
 #   aliases: other phrases (whole words, any case) that shortlist the concept for tagging.
 # A concept removed from this file is retired, never deleted.
 
-version: 3
+version: 4
 
 concepts:
   # --- backend -------------------------------------------------------------------
@@ -1555,3 +1556,362 @@ concepts:
     description: Running jobs at the right time, once, across many workers.
     aliases: [job scheduler, distributed scheduler, distributed cron, cron jobs, task scheduler]
     prerequisites: [background-jobs, distributed-locks]
+
+  # --- software design (ADR-0049, option 2) ---------------------------------------
+  # The LLD practice catalog's concepts (docs/lld-practice-catalog.md, Q-WD-30). Drafted
+  # by Claude on 2026-11-23, PROVISIONAL: NOT owner-approved yet.
+  - slug: classes-and-objects
+    name: Classes and objects
+    topic: software-design
+    description: Bundling state with the operations on it, and creating instances from a class.
+    aliases: [object-oriented programming, OOP, class and object]
+  - slug: encapsulation
+    name: Encapsulation
+    topic: software-design
+    description: Hiding an object's state behind operations so no caller can break its rules.
+    aliases: [information hiding, data hiding]
+    prerequisites: [classes-and-objects]
+  - slug: abstraction
+    name: Abstraction
+    topic: software-design
+    description: Exposing what something does while hiding how it does it.
+    aliases: [leaky abstraction, abstraction layer]
+    prerequisites: [classes-and-objects]
+  - slug: inheritance
+    name: Inheritance
+    topic: software-design
+    description: Defining a class as a specialisation of another, reusing and overriding its behaviour.
+    aliases: [subclassing, class inheritance, base class, subclass]
+    prerequisites: [classes-and-objects]
+  - slug: polymorphism
+    name: Polymorphism
+    topic: software-design
+    description: One call working on many kinds of object, each answering in its own way.
+    aliases: [dynamic dispatch, method overriding, subtype polymorphism]
+    prerequisites: [inheritance]
+  - slug: interfaces-and-abstract-classes
+    name: Interfaces and abstract classes
+    topic: software-design
+    description: Declaring a contract that several implementations fulfil.
+    aliases: [abstract class, abstract classes, interface type, protocol class]
+    prerequisites: [abstraction, polymorphism]
+  - slug: class-invariants
+    name: Class invariants
+    topic: software-design
+    description: Rules about an object's state that hold before and after every public operation.
+    aliases: [class invariant, object invariant, invariants]
+    prerequisites: [encapsulation]
+  - slug: immutability
+    name: Immutability
+    topic: software-design
+    description: Objects whose state never changes after creation, so they can be shared safely.
+    aliases: [immutable objects, immutable object, immutable data]
+    prerequisites: [encapsulation]
+  - slug: value-objects
+    name: Value objects
+    topic: software-design
+    description: Small immutable objects compared by value, such as money or a duration.
+    aliases: [value object, value type]
+    prerequisites: [immutability]
+  - slug: enumerations
+    name: Enumerations
+    topic: software-design
+    description: A type with a fixed set of named values, used for kinds and states.
+    aliases: [enum, enums, enumerated type]
+    prerequisites: [classes-and-objects]
+  - slug: association
+    name: Association
+    topic: software-design
+    description: A relationship in which objects know about each other but neither owns the other.
+    aliases: [object association, class association]
+    prerequisites: [classes-and-objects]
+  - slug: aggregation
+    name: Aggregation
+    topic: software-design
+    description: A whole that groups parts which can outlive it.
+    aliases: [has-a relationship, object aggregation]
+    prerequisites: [association]
+  - slug: object-composition
+    name: Composition
+    topic: software-design
+    description: A whole that owns its parts, which are created and destroyed with it.
+    aliases: [object composition, composite object, part-of relationship]
+    prerequisites: [aggregation]
+  - slug: dependency-relationship
+    name: Dependencies between classes
+    topic: software-design
+    description: One class using another to do its work, and the coupling that creates.
+    aliases: [uses-a relationship, class dependency, class dependencies]
+    prerequisites: [association]
+  - slug: separation-of-concerns
+    name: Separation of concerns
+    topic: software-design
+    description: Splitting a program so each part deals with one concern.
+    aliases: [SoC]
+    prerequisites: [abstraction]
+  - slug: cohesion-and-coupling
+    name: Cohesion and coupling
+    topic: software-design
+    description: Keeping related behaviour together and dependencies between parts few and narrow.
+    aliases: [high cohesion, loose coupling, tight coupling, low coupling]
+    prerequisites: [separation-of-concerns, dependency-relationship]
+  - slug: dry-principle
+    name: Don't repeat yourself
+    topic: software-design
+    description: Giving every rule one authoritative place so copies can't drift apart.
+    aliases: [DRY, DRY principle]
+    prerequisites: [abstraction]
+  - slug: law-of-demeter
+    name: Law of Demeter
+    topic: software-design
+    description: Talking only to an object's immediate collaborators; tell, don't ask.
+    aliases: [principle of least knowledge, tell don't ask]
+    prerequisites: [encapsulation, association]
+  - slug: composition-over-inheritance
+    name: Composition over inheritance
+    topic: software-design
+    description: Combining small behaviours at runtime instead of growing a class hierarchy.
+    aliases: [favor composition over inheritance]
+    prerequisites: [object-composition, inheritance]
+  - slug: encapsulate-what-varies
+    name: Encapsulate what varies
+    topic: software-design
+    description: Isolating the parts likely to change behind a stable boundary.
+    prerequisites: [encapsulation, polymorphism]
+  - slug: program-to-an-interface
+    name: Program to an interface
+    topic: software-design
+    description: Depending on a contract rather than on a concrete implementation.
+    aliases: [code to an interface, program to interfaces]
+    prerequisites: [interfaces-and-abstract-classes]
+  - slug: design-by-contract
+    name: Design by contract
+    topic: software-design
+    description: Stating each operation's preconditions, postconditions and invariants.
+    aliases: [preconditions and postconditions, precondition, postcondition]
+    prerequisites: [class-invariants]
+  - slug: fail-fast
+    name: Fail fast
+    topic: software-design
+    description: Rejecting bad input or configuration at once instead of failing later.
+    aliases: [fail-fast validation]
+    prerequisites: [design-by-contract]
+  - slug: solid-principles
+    name: SOLID principles
+    topic: software-design
+    description: Five object-oriented design principles for code that is easy to change.
+    aliases: [SOLID design principles]
+    prerequisites: [cohesion-and-coupling, program-to-an-interface]
+  - slug: single-responsibility-principle
+    name: Single responsibility principle
+    topic: software-design
+    description: A class should have one reason to change.
+    aliases: [SRP]
+    prerequisites: [cohesion-and-coupling]
+    related: [solid-principles]
+  - slug: open-closed-principle
+    name: Open-closed principle
+    topic: software-design
+    description: Adding behaviour by extending code rather than editing what already works.
+    aliases: [open closed principle, OCP]
+    prerequisites: [polymorphism, encapsulate-what-varies]
+    related: [solid-principles]
+  - slug: liskov-substitution-principle
+    name: Liskov substitution principle
+    topic: software-design
+    description: Any subtype must work wherever its base type is expected, honouring its contract.
+    aliases: [Liskov substitution, LSP]
+    prerequisites: [inheritance, design-by-contract]
+    related: [solid-principles]
+  - slug: interface-segregation-principle
+    name: Interface segregation principle
+    topic: software-design
+    description: Clients should not depend on operations they do not use.
+    aliases: [interface segregation, ISP]
+    prerequisites: [interfaces-and-abstract-classes]
+    related: [solid-principles]
+  - slug: dependency-inversion-principle
+    name: Dependency inversion principle
+    topic: software-design
+    description: High-level policy and low-level detail both depend on abstractions.
+    aliases: [dependency inversion, DIP]
+    prerequisites: [program-to-an-interface, dependency-relationship]
+    related: [solid-principles]
+  - slug: dependency-injection
+    name: Dependency injection
+    topic: software-design
+    description: Handing an object its collaborators from outside instead of it creating them.
+    aliases: [DI container, IoC container, inversion of control]
+    prerequisites: [dependency-inversion-principle]
+  - slug: design-patterns
+    name: Design patterns
+    topic: software-design
+    description: Named, reusable solutions to recurring object-oriented design problems.
+    aliases: [design pattern, gang of four, GoF patterns]
+    prerequisites: [interfaces-and-abstract-classes, object-composition]
+  - slug: singleton-pattern
+    name: Singleton pattern
+    topic: software-design
+    description: One shared instance of a class, created once and reached from anywhere.
+    aliases: [singleton]
+    prerequisites: [design-patterns]
+  - slug: lazy-initialization
+    name: Lazy initialization
+    topic: software-design
+    description: Creating or loading something only when it is first needed.
+    aliases: [lazy loading, lazy init]
+    prerequisites: [encapsulation]
+    related: [singleton-pattern]
+  - slug: factory-method-pattern
+    name: Factory method pattern
+    topic: software-design
+    description: Creating objects through a method that decides which concrete class to build.
+    aliases: [factory method, factory pattern, simple factory]
+    prerequisites: [design-patterns, polymorphism]
+  - slug: abstract-factory-pattern
+    name: Abstract factory pattern
+    topic: software-design
+    description: Creating families of related objects that are meant to be used together.
+    aliases: [abstract factory]
+    prerequisites: [factory-method-pattern]
+  - slug: builder-pattern
+    name: Builder pattern
+    topic: software-design
+    description: Assembling a complex object step by step, validating it once at the end.
+    aliases: [fluent builder]
+    prerequisites: [design-patterns, immutability]
+  - slug: prototype-pattern
+    name: Prototype pattern
+    topic: software-design
+    description: Creating objects by copying a configured instance instead of building from scratch.
+    aliases: [deep copy, shallow copy]
+    prerequisites: [design-patterns]
+  - slug: object-pool-pattern
+    name: Object pool pattern
+    topic: software-design
+    description: Reusing expensive objects from a pool instead of creating and destroying them.
+    aliases: [object pool, object pooling]
+    prerequisites: [design-patterns]
+    related: [connection-pooling, thread-pools]
+  - slug: adapter-pattern
+    name: Adapter pattern
+    topic: software-design
+    description: Wrapping an interface so it fits the one callers expect.
+    aliases: [wrapper pattern]
+    prerequisites: [design-patterns]
+  - slug: decorator-pattern
+    name: Decorator pattern
+    topic: software-design
+    description: Adding behaviour by wrapping an object in layers that share its interface.
+    prerequisites: [design-patterns, composition-over-inheritance]
+  - slug: facade-pattern
+    name: Facade pattern
+    topic: software-design
+    description: One simple entry point in front of a complicated subsystem.
+    aliases: [façade pattern]
+    prerequisites: [design-patterns]
+  - slug: proxy-pattern
+    name: Proxy pattern
+    topic: software-design
+    description: A stand-in that controls access to an object, for laziness, caching or protection.
+    aliases: [protection proxy, virtual proxy, caching proxy]
+    prerequisites: [design-patterns]
+    related: [reverse-proxy]
+  - slug: composite-pattern
+    name: Composite pattern
+    topic: software-design
+    description: Treating a tree of objects and a single object through the same interface.
+    prerequisites: [design-patterns, object-composition]
+  - slug: bridge-pattern
+    name: Bridge pattern
+    topic: software-design
+    description: Separating an abstraction from its implementation so both vary independently.
+    prerequisites: [design-patterns, composition-over-inheritance]
+  - slug: flyweight-pattern
+    name: Flyweight pattern
+    topic: software-design
+    description: Sharing immutable common state across many small objects to save memory.
+    aliases: [flyweight, string interning]
+    prerequisites: [design-patterns, immutability]
+  - slug: strategy-pattern
+    name: Strategy pattern
+    topic: software-design
+    description: Choosing an algorithm at runtime from interchangeable implementations.
+    aliases: [policy pattern]
+    prerequisites: [design-patterns, encapsulate-what-varies]
+  - slug: observer-pattern
+    name: Observer pattern
+    topic: software-design
+    description: Subscribers are told when a subject changes, without the subject knowing who they are.
+    aliases: [listener pattern, event listener]
+    prerequisites: [design-patterns]
+    related: [publish-subscribe]
+  - slug: command-pattern
+    name: Command pattern
+    topic: software-design
+    description: Turning a request into an object that can be queued, logged or undone.
+    aliases: [undo stack, undo and redo]
+    prerequisites: [design-patterns]
+    related: [event-sourcing]
+  - slug: finite-state-machines
+    name: Finite state machines
+    topic: software-design
+    description: A fixed set of states and the events that move between them.
+    aliases: [finite state machine, state machine, FSM, state transition]
+    prerequisites: [enumerations]
+  - slug: state-pattern
+    name: State pattern
+    topic: software-design
+    description: An object changes its behaviour when its state changes, one class per state.
+    prerequisites: [design-patterns, finite-state-machines]
+    related: [circuit-breakers]
+  - slug: template-method-pattern
+    name: Template method pattern
+    topic: software-design
+    description: A fixed algorithm skeleton whose individual steps subclasses fill in.
+    aliases: [template method]
+    prerequisites: [design-patterns, inheritance]
+  - slug: iterator-pattern
+    name: Iterator pattern
+    topic: software-design
+    description: Walking a collection's elements without exposing how it stores them.
+    aliases: [iterator, cursor iteration]
+    prerequisites: [design-patterns]
+    related: [pagination]
+  - slug: chain-of-responsibility-pattern
+    name: Chain of responsibility pattern
+    topic: software-design
+    description: Passing a request along a chain of handlers until one deals with it.
+    aliases: [chain of responsibility, handler chain, middleware chain]
+    prerequisites: [design-patterns]
+  - slug: mediator-pattern
+    name: Mediator pattern
+    topic: software-design
+    description: Objects coordinate through one mediator instead of referring to each other.
+    prerequisites: [design-patterns]
+    related: [observer-pattern]
+  - slug: memento-pattern
+    name: Memento pattern
+    topic: software-design
+    description: Capturing an object's state so it can be restored later without exposing internals.
+    aliases: [snapshot and restore]
+    prerequisites: [design-patterns, encapsulation]
+  - slug: visitor-pattern
+    name: Visitor pattern
+    topic: software-design
+    description: Adding operations over a fixed set of element kinds without changing those kinds.
+    aliases: [double dispatch]
+    prerequisites: [design-patterns, polymorphism]
+    related: [composite-pattern]
+  - slug: interpreter-pattern
+    name: Interpreter pattern
+    topic: software-design
+    description: Representing a small language's grammar as objects that evaluate themselves.
+    aliases: [expression tree, abstract syntax tree]
+    prerequisites: [composite-pattern]
+  - slug: null-object-pattern
+    name: Null object pattern
+    topic: software-design
+    description: A do-nothing implementation that replaces null checks.
+    aliases: [null object, no-op implementation]
+    prerequisites: [polymorphism]

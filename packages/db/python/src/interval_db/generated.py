@@ -75,7 +75,9 @@ type SuggestionStatus = Literal[
     "pending", "accepted", "rejected", "skipped", "unreadable"
 ]
 type TechnologySource = Literal["seed", "suggestion"]
-type Topic = Literal["system-design", "databases", "distributed-systems", "backend"]
+type Topic = Literal[
+    "system-design", "databases", "distributed-systems", "backend", "software-design"
+]
 type UserPathStatus = Literal["active", "paused"]
 
 

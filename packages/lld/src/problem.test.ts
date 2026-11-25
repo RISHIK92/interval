@@ -72,8 +72,6 @@ test("threads only in the concurrency layer, and always there", () => {
   expect(
     ok({ ...sample, layers: { ...sample.layers, concurrency: [plain] } }),
   ).toBe(false);
-  const { visible, hidden } = sample.layers;
-  expect(ok({ ...sample, layers: { visible, hidden } })).toBe(true);
 });
 
 // P5-W31-S02a (§6.5, Q-P5-15): the extension round adds methods, and its scenarios are
@@ -162,8 +160,8 @@ test("an extension adds methods its own scenarios use, never clashing with the b
 });
 
 // ADR-0048 (Q-WD-28): each problem is in one pool. A practice problem has its topic group
-// and concepts, may leave out the extension round, and is never the AI mode; a battle
-// problem always has an extension (the reveal at 30:00) and no topic.
+// and concepts, may leave out the extension round and the concurrency layer (Q-WD-30),
+// and is never the AI mode; a battle problem always has both, and no topic.
 test("a pool for every problem, with practice's own rules", () => {
   const without = (key: string, p: object) =>
     Object.fromEntries(Object.entries(p).filter(([k]) => k !== key));
@@ -182,8 +180,17 @@ test("a pool for every problem, with practice's own rules", () => {
   expect(ok({ ...practice, topic: "algorithms" })).toBe(false);
   expect(ok({ ...practice, concepts: ["Not A Slug"] })).toBe(false);
   expect(ok(without("extension", practice))).toBe(true);
+  // Q-WD-30: a practice problem may leave out the concurrency layer too, or both.
+  const plain = { ...sample.layers, concurrency: undefined };
+  expect(ok({ ...practice, layers: plain })).toBe(true);
+  expect(ok({ ...without("extension", practice), layers: plain })).toBe(true);
   // A battle problem: an extension always, and no topic or concepts.
   expect(ok(without("extension", sample))).toBe(false);
+  const noThreads = { ...sample.layers, concurrency: [] };
+  expect(ok({ ...sample, layers: noThreads })).toBe(false);
+  expect(
+    ok({ ...sample, layers: { ...sample.layers, concurrency: undefined } }),
+  ).toBe(false);
   expect(ok({ ...sample, topic: "systems" })).toBe(false);
   expect(ok({ ...sample, concepts: [] })).toBe(false);
 });

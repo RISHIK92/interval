@@ -77,6 +77,47 @@ function Cube({
   );
 }
 
+// A class from a class diagram: its name on top, then its members, with a side face for
+// depth like the cubes.
+function ClassBox({
+  topic,
+  x,
+  y,
+  s,
+}: {
+  topic: Topic;
+  x: number;
+  y: number;
+  s: number;
+}) {
+  const w = 56 * s;
+  const h = 64 * s;
+  const depth = 8 * s;
+  const head = 18 * s;
+  const members = y + head + (h - head) / 2;
+  return (
+    <g>
+      <path
+        d={d`M${x + w} ${y} l${depth} ${depth} v${h} h${-w} l${-depth} ${-depth}z`}
+        fill={v(topic, "right")}
+      />
+      <rect x={x} y={y} width={w} height={head} fill={v(topic, "top")} />
+      <rect
+        x={x}
+        y={y + head}
+        width={w}
+        height={h - head}
+        fill={v(topic, "left")}
+      />
+      <path
+        d={d`M${x + 8 * s} ${members} h${w - 16 * s}`}
+        stroke={v(topic, "top")}
+        strokeWidth={2 * s}
+      />
+    </g>
+  );
+}
+
 const line = (topic: Topic) => ({
   stroke: v(topic, "line"),
   strokeWidth: 3,
@@ -118,6 +159,12 @@ export function TopicArt({
           <Cube topic={topic} x={95} y={30} s={1} />
           <Cube topic={topic} x={180} y={22} s={0.8} />
           <Cylinder topic={topic} x={255} y={52} s={0.7} />
+        </>
+      ) : topic === "software-design" ? (
+        <>
+          <path d="M160 60 L200 66" {...line(topic)} />
+          <ClassBox topic={topic} x={90} y={26} s={1} />
+          <ClassBox topic={topic} x={210} y={40} s={0.75} />
         </>
       ) : (
         <>

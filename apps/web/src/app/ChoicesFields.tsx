@@ -43,6 +43,7 @@ export const TOPIC_NAMES: Record<Topic, string> = {
   databases: "Databases",
   "distributed-systems": "Distributed systems",
   backend: "Backend",
+  "software-design": "Software design",
 };
 
 export const LEVEL_NAMES: Record<(typeof LEVELS)[number], string> = {
@@ -62,6 +63,21 @@ function Glyph({ topic }: { topic: Topic }) {
         <>
           <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6z" fill={ink} />
           <ellipse cx="12" cy="6" rx="7" ry="3" fill={ink} opacity="0.6" />
+        </>
+      ) : topic === "software-design" ? (
+        <>
+          <rect x="4" y="3" width="16" height="6" rx="1.5" fill={ink} />
+          <rect
+            x="5"
+            y="4"
+            width="14"
+            height="16"
+            rx="1.5"
+            fill="none"
+            stroke={ink}
+            strokeWidth="2"
+          />
+          <path d="M8 14h8" stroke={ink} strokeWidth="2" />
         </>
       ) : topic === "distributed-systems" ? (
         <g fill={ink} stroke={ink} strokeWidth="2">
@@ -236,10 +252,17 @@ export function GoalChoices({ current }: Chosen) {
   );
 }
 
-export function TopicChoices({ current }: Chosen) {
+// ADR-0049: only the offered topics (offeredTopics), plus any the user already chose,
+// so saving Profile never drops an explicit choice (PER-1).
+export function TopicChoices({
+  current,
+  offered,
+}: Chosen & { offered: readonly Topic[] }) {
   return (
     <div className={TILES}>
-      {TOPICS.map((topic) => (
+      {TOPICS.filter(
+        (t) => offered.includes(t) || current?.topics.includes(t) === true,
+      ).map((topic) => (
         <Option
           key={topic}
           input={{
@@ -307,14 +330,17 @@ function Group({ legend, children }: { legend: string; children: ReactNode }) {
 
 // The explicit choices (PER-1) on one page, for Profile (P1-W4-S08), which fills them in;
 // onboarding (C-21) asks the same groups one step at a time.
-export function ChoicesFields({ current }: Chosen) {
+export function ChoicesFields({
+  current,
+  offered,
+}: Chosen & { offered: readonly Topic[] }) {
   return (
     <>
       <Group legend="What should your breaks add up to?">
         <GoalChoices current={current} />
       </Group>
       <Group legend="Topics">
-        <TopicChoices current={current} />
+        <TopicChoices current={current} offered={offered} />
       </Group>
       <Group legend="Your level">
         <LevelChoices current={current} />

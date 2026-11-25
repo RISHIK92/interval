@@ -4,6 +4,7 @@ import pg from "pg";
 import { log } from "../log";
 import {
   isReasonKind,
+  isTopic,
   type DatabasePing,
   type Entitlements,
   type FeedCard,
@@ -262,6 +263,25 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .limit(limit)
         .execute();
       return rows.map(toCard).filter((card) => card !== null);
+    },
+    topicsWithReading: async () => {
+      const rows = await db
+        .selectFrom("starter_feed_visible as v")
+        .innerJoin("content_item as ci", "ci.id", "v.content_item_id")
+        .innerJoin("source as s", "s.id", "ci.source_id")
+        // ADR-0049: the source itself is tagged with the topic, and its rights let it
+        // be read (ING-2); a concept tag on another topic's source doesn't count.
+        .where(sql<boolean>`v.topic = any(s.topics)`)
+        .where("s.moments_enabled", "=", true)
+        .where("s.rights_profile", "in", [
+          "full_text_internal",
+          "full_text_display",
+        ])
+        .select("v.topic")
+        .distinct()
+        .execute();
+      // The view's topic is text; the worker writes only the enum's values.
+      return rows.map((r) => r.topic).filter((t) => t !== null && isTopic(t));
     },
   };
 }
