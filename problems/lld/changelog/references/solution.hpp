@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <map>
 #include <optional>
-#include <regex>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -24,12 +23,25 @@ struct ChangelogEntry {
 using ChangelogSections = std::vector<std::pair<std::string, std::vector<ChangelogEntry>>>;
 
 inline std::optional<ChangelogEntry> parseCommit(const std::string& sha, const std::string& message) {
-  static const std::regex header(R"(([a-z]+)(?:\(([^()]+)\))?(!?): (.+))");
-  std::smatch found;
-  if (!std::regex_match(message, found, header)) return std::nullopt;
+  // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+  // time limit in the judge's gcc image. Same grammar: type(scope)?!?: description.
+  std::size_t at = 0;
+  while (at < message.size() && message[at] >= 'a' && message[at] <= 'z') ++at;
+  if (at == 0) return std::nullopt;
+  std::string kind = message.substr(0, at);
   std::optional<std::string> scope;
-  if (found[2].matched) scope = found[2].str();
-  return ChangelogEntry{sha, found[1].str(), scope, found[3].str() == "!", found[4].str()};
+  if (at < message.size() && message[at] == '(') {
+    std::size_t close = message.find_first_of("()", at + 1);
+    if (close == std::string::npos || message[close] != ')' || close == at + 1) return std::nullopt;
+    scope = message.substr(at + 1, close - at - 1);
+    at = close + 1;
+  }
+  bool breaking = at < message.size() && message[at] == '!';
+  if (breaking) ++at;
+  if (message.compare(at, 2, ": ") != 0 || at + 2 >= message.size()) return std::nullopt;
+  std::string description = message.substr(at + 2);
+  if (description.find_first_of("\r\n") != std::string::npos) return std::nullopt;
+  return ChangelogEntry{sha, kind, scope, breaking, description};
 }
 
 // Sections by type, in the order they print; every other type goes under "Other".
