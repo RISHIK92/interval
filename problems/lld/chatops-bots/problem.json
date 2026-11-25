@@ -1,0 +1,974 @@
+{
+  "slug": "chatops-bots",
+  "title": "Chat-ops bots",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["composition-over-inheritance"],
+  "interface": {
+    "class": "BotFleet",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "create",
+        "params": [
+          {
+            "name": "bot",
+            "type": "string"
+          },
+          {
+            "name": "abilities",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "grant",
+        "params": [
+          {
+            "name": "bot",
+            "type": "string"
+          },
+          {
+            "name": "ability",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "revoke",
+        "params": [
+          {
+            "name": "bot",
+            "type": "string"
+          },
+          {
+            "name": "ability",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "handle",
+        "params": [
+          {
+            "name": "bot",
+            "type": "string"
+          },
+          {
+            "name": "command",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "abilities",
+        "params": [
+          {
+            "name": "bot",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["shipit", ["deploy", "status"]]
+          },
+          {
+            "method": "handle",
+            "args": ["shipit", "deploy api"]
+          },
+          {
+            "method": "handle",
+            "args": ["shipit", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["shipit", "page alice"]
+          },
+          {
+            "method": "grant",
+            "args": ["shipit", "page"]
+          },
+          {
+            "method": "handle",
+            "args": ["shipit", "page alice"]
+          },
+          {
+            "method": "revoke",
+            "args": ["shipit", "deploy"]
+          },
+          {
+            "method": "handle",
+            "args": ["shipit", "deploy api"]
+          },
+          {
+            "method": "abilities",
+            "args": ["shipit"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["ask", []]
+          },
+          {
+            "method": "abilities",
+            "args": ["ask"]
+          },
+          {
+            "method": "handle",
+            "args": ["ask", "query users"]
+          },
+          {
+            "method": "grant",
+            "args": ["ask", "query"]
+          },
+          {
+            "method": "grant",
+            "args": ["ask", "query"]
+          },
+          {
+            "method": "handle",
+            "args": ["ask", "query users by region"]
+          },
+          {
+            "method": "revoke",
+            "args": ["ask", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["ask", "status now"]
+          },
+          {
+            "method": "abilities",
+            "args": ["ask"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["", ["status"]]
+          },
+          {
+            "method": "abilities",
+            "args": [""]
+          },
+          {
+            "method": "create",
+            "args": ["a", ["status"]]
+          },
+          {
+            "method": "create",
+            "args": ["a", []]
+          },
+          {
+            "method": "abilities",
+            "args": ["a"]
+          },
+          {
+            "method": "abilities",
+            "args": ["A"]
+          },
+          {
+            "method": "grant",
+            "args": ["b", "page"]
+          },
+          {
+            "method": "revoke",
+            "args": ["b", "page"]
+          },
+          {
+            "method": "handle",
+            "args": ["b", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "create",
+            "args": ["A", ["page"]]
+          },
+          {
+            "method": "handle",
+            "args": ["A", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "page x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["x", ["deploy", "Deploy"]]
+          },
+          {
+            "method": "abilities",
+            "args": ["x"]
+          },
+          {
+            "method": "create",
+            "args": ["x", ["page", "page"]]
+          },
+          {
+            "method": "abilities",
+            "args": ["x"]
+          },
+          {
+            "method": "create",
+            "args": ["x", ["page", "status", "deploy", "query"]]
+          },
+          {
+            "method": "abilities",
+            "args": ["x"]
+          },
+          {
+            "method": "grant",
+            "args": ["x", "restart"]
+          },
+          {
+            "method": "revoke",
+            "args": ["x", "restart"]
+          },
+          {
+            "method": "grant",
+            "args": ["x", ""]
+          },
+          {
+            "method": "abilities",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["b", ["page"]]
+          },
+          {
+            "method": "revoke",
+            "args": ["b", "page"]
+          },
+          {
+            "method": "revoke",
+            "args": ["b", "page"]
+          },
+          {
+            "method": "grant",
+            "args": ["b", "page"]
+          },
+          {
+            "method": "grant",
+            "args": ["b", "page"]
+          },
+          {
+            "method": "grant",
+            "args": ["b", "status"]
+          },
+          {
+            "method": "revoke",
+            "args": ["b", "deploy"]
+          },
+          {
+            "method": "abilities",
+            "args": ["b"]
+          },
+          {
+            "method": "revoke",
+            "args": ["b", "status"]
+          },
+          {
+            "method": "abilities",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["none", []]
+          },
+          {
+            "method": "create",
+            "args": ["all", ["deploy", "page", "query", "status"]]
+          },
+          {
+            "method": "handle",
+            "args": ["none", ""]
+          },
+          {
+            "method": "handle",
+            "args": ["all", ""]
+          },
+          {
+            "method": "handle",
+            "args": ["all", "deploy"]
+          },
+          {
+            "method": "handle",
+            "args": ["none", "deploy"]
+          },
+          {
+            "method": "handle",
+            "args": ["all", "deploy "]
+          },
+          {
+            "method": "handle",
+            "args": ["all", "status "]
+          },
+          {
+            "method": "handle",
+            "args": ["none", "status x"]
+          },
+          {
+            "method": "handle",
+            "args": ["all", "restart api"]
+          },
+          {
+            "method": "handle",
+            "args": ["all", "Deploy api"]
+          },
+          {
+            "method": "handle",
+            "args": ["all", " deploy api"]
+          },
+          {
+            "method": "handle",
+            "args": ["all", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["none", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["none", "query q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["d", ["deploy", "query", "page"]]
+          },
+          {
+            "method": "handle",
+            "args": ["d", "deploy  api"]
+          },
+          {
+            "method": "handle",
+            "args": ["d", "deploy api v2 "]
+          },
+          {
+            "method": "handle",
+            "args": ["d", "query select 1"]
+          },
+          {
+            "method": "handle",
+            "args": ["d", "page on-call team"]
+          },
+          {
+            "method": "handle",
+            "args": ["d", "deploy deploy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["q", ["status", "query", "page", "deploy"]]
+          },
+          {
+            "method": "create",
+            "args": ["p", ["status"]]
+          },
+          {
+            "method": "abilities",
+            "args": ["q"]
+          },
+          {
+            "method": "abilities",
+            "args": ["p"]
+          },
+          {
+            "method": "revoke",
+            "args": ["q", "page"]
+          },
+          {
+            "method": "grant",
+            "args": ["p", "page"]
+          },
+          {
+            "method": "abilities",
+            "args": ["q"]
+          },
+          {
+            "method": "abilities",
+            "args": ["p"]
+          },
+          {
+            "method": "handle",
+            "args": ["q", "page bob"]
+          },
+          {
+            "method": "handle",
+            "args": ["p", "page bob"]
+          },
+          {
+            "method": "handle",
+            "args": ["p", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["q", "status"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["r", ["deploy"]]
+          },
+          {
+            "method": "handle",
+            "args": ["r", "deploy web"]
+          },
+          {
+            "method": "revoke",
+            "args": ["r", "deploy"]
+          },
+          {
+            "method": "handle",
+            "args": ["r", "deploy web"]
+          },
+          {
+            "method": "grant",
+            "args": ["r", "deploy"]
+          },
+          {
+            "method": "handle",
+            "args": ["r", "deploy web"]
+          },
+          {
+            "method": "revoke",
+            "args": ["r", "deploy"]
+          },
+          {
+            "method": "revoke",
+            "args": ["r", "deploy"]
+          },
+          {
+            "method": "abilities",
+            "args": ["r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["f", ["query"]]
+          },
+          {
+            "method": "grant",
+            "args": ["f", "nope"]
+          },
+          {
+            "method": "revoke",
+            "args": ["f", "nope"]
+          },
+          {
+            "method": "handle",
+            "args": ["f", "query"]
+          },
+          {
+            "method": "abilities",
+            "args": ["f"]
+          },
+          {
+            "method": "handle",
+            "args": ["f", "query ok"]
+          },
+          {
+            "method": "grant",
+            "args": ["g", "query"]
+          },
+          {
+            "method": "create",
+            "args": ["g", ["query", "Query"]]
+          },
+          {
+            "method": "handle",
+            "args": ["g", "query x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["Bot One", ["status"]]
+          },
+          {
+            "method": "create",
+            "args": ["b2", ["status", "deploy"]]
+          },
+          {
+            "method": "handle",
+            "args": ["Bot One", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["b2", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["Bot One", "deploy x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["bot0", []]
+          },
+          {
+            "method": "create",
+            "args": ["bot1", ["deploy"]]
+          },
+          {
+            "method": "create",
+            "args": ["bot2", ["deploy", "page"]]
+          },
+          {
+            "method": "create",
+            "args": ["bot3", ["deploy", "page", "query"]]
+          },
+          {
+            "method": "create",
+            "args": ["bot4", ["deploy", "page", "query", "status"]]
+          },
+          {
+            "method": "create",
+            "args": ["bot5", []]
+          },
+          {
+            "method": "abilities",
+            "args": ["bot0"]
+          },
+          {
+            "method": "abilities",
+            "args": ["bot1"]
+          },
+          {
+            "method": "abilities",
+            "args": ["bot2"]
+          },
+          {
+            "method": "abilities",
+            "args": ["bot3"]
+          },
+          {
+            "method": "abilities",
+            "args": ["bot4"]
+          },
+          {
+            "method": "abilities",
+            "args": ["bot5"]
+          },
+          {
+            "method": "handle",
+            "args": ["bot0", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["bot4", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["bot3", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["bot3", "query load"]
+          },
+          {
+            "method": "handle",
+            "args": ["bot5", "query load"]
+          },
+          {
+            "method": "revoke",
+            "args": ["bot4", "query"]
+          },
+          {
+            "method": "handle",
+            "args": ["bot4", "query load"]
+          },
+          {
+            "method": "grant",
+            "args": ["bot0", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["bot0", "status"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "audit",
+        "params": [
+          {
+            "name": "bot",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "auditLog",
+        "params": [
+          {
+            "name": "bot",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["ops", ["deploy", "status"]]
+          },
+          {
+            "method": "handle",
+            "args": ["ops", "deploy api"]
+          },
+          {
+            "method": "audit",
+            "args": ["ops"]
+          },
+          {
+            "method": "handle",
+            "args": ["ops", "deploy web"]
+          },
+          {
+            "method": "handle",
+            "args": ["ops", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["ops", "page bob"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["ops"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": ["x"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["x"]
+          },
+          {
+            "method": "audit",
+            "args": [""]
+          },
+          {
+            "method": "create",
+            "args": ["x", ["query"]]
+          },
+          {
+            "method": "auditLog",
+            "args": ["x"]
+          },
+          {
+            "method": "handle",
+            "args": ["x", "query a"]
+          },
+          {
+            "method": "audit",
+            "args": ["x"]
+          },
+          {
+            "method": "audit",
+            "args": ["x"]
+          },
+          {
+            "method": "handle",
+            "args": ["x", "query b"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["x"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["X"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["a", []]
+          },
+          {
+            "method": "audit",
+            "args": ["a"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "grant",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "grant",
+            "args": ["a", "page"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "page oncall"]
+          },
+          {
+            "method": "revoke",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "grant",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "status"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["a", ["deploy", "query"]]
+          },
+          {
+            "method": "create",
+            "args": ["b", ["deploy", "query"]]
+          },
+          {
+            "method": "audit",
+            "args": ["a"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "deploy x y"]
+          },
+          {
+            "method": "handle",
+            "args": ["b", "deploy z"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "deploy"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "restart x"]
+          },
+          {
+            "method": "handle",
+            "args": ["a", "query  two"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["a"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["b"]
+          },
+          {
+            "method": "abilities",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "create",
+            "args": ["s", ["status", "page"]]
+          },
+          {
+            "method": "handle",
+            "args": ["s", "page amy"]
+          },
+          {
+            "method": "audit",
+            "args": ["s"]
+          },
+          {
+            "method": "handle",
+            "args": ["s", "page amy"]
+          },
+          {
+            "method": "abilities",
+            "args": ["s"]
+          },
+          {
+            "method": "grant",
+            "args": ["s", "page"]
+          },
+          {
+            "method": "revoke",
+            "args": ["s", "deploy"]
+          },
+          {
+            "method": "handle",
+            "args": ["s", "status"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["s"]
+          },
+          {
+            "method": "handle",
+            "args": ["s", "deploy x"]
+          },
+          {
+            "method": "auditLog",
+            "args": ["s"]
+          }
+        ]
+      }
+    ]
+  }
+}

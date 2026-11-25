@@ -1,0 +1,736 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "Total: $1,234.56"
+      },
+      {
+        "call": 2,
+        "value": "Total: 1.234,56 EUR"
+      },
+      {
+        "call": 3,
+        "value": "Total: 123,456 JPY"
+      },
+      {
+        "call": 4,
+        "value": "coffee 2 x $3.50 = $7.00"
+      },
+      {
+        "call": 5,
+        "value": "Your order comes to $7.00."
+      },
+      {
+        "call": 6,
+        "value": "Your order comes to 7,00 EUR."
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "Total: $0.05"
+      },
+      {
+        "call": 2,
+        "value": "Total: 0 JPY"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown locale"
+      },
+      {
+        "call": 4,
+        "value": "tea 3 x 1,500 JPY = 4,500 JPY"
+      },
+      {
+        "call": 5,
+        "value": "Your order comes to 4,500 JPY."
+      },
+      {
+        "call": 6,
+        "error": "ValueError: an item has a name"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "Total: $0.00"
+      },
+      {
+        "call": 2,
+        "value": "Total: $0.01"
+      },
+      {
+        "call": 3,
+        "value": "Total: $0.09"
+      },
+      {
+        "call": 4,
+        "value": "Total: $0.10"
+      },
+      {
+        "call": 5,
+        "value": "Total: $0.99"
+      },
+      {
+        "call": 6,
+        "value": "Total: $1.00"
+      },
+      {
+        "call": 7,
+        "value": "Total: $1.01"
+      },
+      {
+        "call": 8,
+        "value": "Total: $9.99"
+      },
+      {
+        "call": 9,
+        "value": "Total: 0,00 EUR"
+      },
+      {
+        "call": 10,
+        "value": "Total: 0,01 EUR"
+      },
+      {
+        "call": 11,
+        "value": "Total: 0,09 EUR"
+      },
+      {
+        "call": 12,
+        "value": "Total: 0,10 EUR"
+      },
+      {
+        "call": 13,
+        "value": "Total: 0,99 EUR"
+      },
+      {
+        "call": 14,
+        "value": "Total: 1,00 EUR"
+      },
+      {
+        "call": 15,
+        "value": "Total: 1,01 EUR"
+      },
+      {
+        "call": 16,
+        "value": "Total: 9,99 EUR"
+      },
+      {
+        "call": 17,
+        "value": "Total: 0 JPY"
+      },
+      {
+        "call": 18,
+        "value": "Total: 1 JPY"
+      },
+      {
+        "call": 19,
+        "value": "Total: 9 JPY"
+      },
+      {
+        "call": 20,
+        "value": "Total: 10 JPY"
+      },
+      {
+        "call": 21,
+        "value": "Total: 99 JPY"
+      },
+      {
+        "call": 22,
+        "value": "Total: 100 JPY"
+      },
+      {
+        "call": 23,
+        "value": "Total: 101 JPY"
+      },
+      {
+        "call": 24,
+        "value": "Total: 999 JPY"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "Total: $999.99"
+      },
+      {
+        "call": 2,
+        "value": "Total: $1,000.00"
+      },
+      {
+        "call": 3,
+        "value": "Total: $9,999.99"
+      },
+      {
+        "call": 4,
+        "value": "Total: $10,000.00"
+      },
+      {
+        "call": 5,
+        "value": "Total: $123,456.78"
+      },
+      {
+        "call": 6,
+        "value": "Total: $1,000,000.00"
+      },
+      {
+        "call": 7,
+        "value": "Total: 999,99 EUR"
+      },
+      {
+        "call": 8,
+        "value": "Total: 1.000,00 EUR"
+      },
+      {
+        "call": 9,
+        "value": "Total: 9.999,99 EUR"
+      },
+      {
+        "call": 10,
+        "value": "Total: 10.000,00 EUR"
+      },
+      {
+        "call": 11,
+        "value": "Total: 123.456,78 EUR"
+      },
+      {
+        "call": 12,
+        "value": "Total: 1.000.000,00 EUR"
+      },
+      {
+        "call": 13,
+        "value": "Total: 99,999 JPY"
+      },
+      {
+        "call": 14,
+        "value": "Total: 100,000 JPY"
+      },
+      {
+        "call": 15,
+        "value": "Total: 999,999 JPY"
+      },
+      {
+        "call": 16,
+        "value": "Total: 1,000,000 JPY"
+      },
+      {
+        "call": 17,
+        "value": "Total: 12,345,678 JPY"
+      },
+      {
+        "call": 18,
+        "value": "Total: 100,000,000 JPY"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "Total: $10.00"
+      },
+      {
+        "call": 2,
+        "value": "Total: $100.00"
+      },
+      {
+        "call": 3,
+        "value": "Total: $1,234,567.89"
+      },
+      {
+        "call": 4,
+        "value": "Total: $10,000,000,000.00"
+      },
+      {
+        "call": 5,
+        "value": "Total: $9,999,999,999.99"
+      },
+      {
+        "call": 6,
+        "value": "Total: 10,00 EUR"
+      },
+      {
+        "call": 7,
+        "value": "Total: 100,00 EUR"
+      },
+      {
+        "call": 8,
+        "value": "Total: 1.234.567,89 EUR"
+      },
+      {
+        "call": 9,
+        "value": "Total: 10.000.000.000,00 EUR"
+      },
+      {
+        "call": 10,
+        "value": "Total: 9.999.999.999,99 EUR"
+      },
+      {
+        "call": 11,
+        "value": "Total: 1,000 JPY"
+      },
+      {
+        "call": 12,
+        "value": "Total: 10,000 JPY"
+      },
+      {
+        "call": 13,
+        "value": "Total: 123,456,789 JPY"
+      },
+      {
+        "call": 14,
+        "value": "Total: 1,000,000,000,000 JPY"
+      },
+      {
+        "call": 15,
+        "value": "Total: 999,999,999,999 JPY"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: amount out of range"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: amount out of range"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: amount out of range"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: amount out of range"
+      },
+      {
+        "call": 5,
+        "value": "Your order comes to 1,000,000,000,000 JPY."
+      },
+      {
+        "call": 6,
+        "value": "Your order comes to 0,00 EUR."
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown locale"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown locale"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown locale"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown locale"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: amount out of range"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: amount out of range"
+      },
+      {
+        "call": 3,
+        "value": "x 1000 x $10,000,000.00 = $10,000,000,000.00"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: qty must be within 1 and 1000"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: qty must be within 1 and 1000"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: qty must be within 1 and 1000"
+      },
+      {
+        "call": 7,
+        "value": "x 1000 x 0,00 EUR = 0,00 EUR"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an item has a name"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown locale"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an item has a name"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: qty must be within 1 and 1000"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown locale"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "Total: $12,345.67"
+      },
+      {
+        "call": 2,
+        "value": "Your order comes to $12,345.67."
+      },
+      {
+        "call": 3,
+        "value": "Total: 12.345,67 EUR"
+      },
+      {
+        "call": 4,
+        "value": "Your order comes to 12.345,67 EUR."
+      },
+      {
+        "call": 5,
+        "value": "Total: 1,234,567 JPY"
+      },
+      {
+        "call": 6,
+        "value": "Your order comes to 1,234,567 JPY."
+      },
+      {
+        "call": 7,
+        "value": "lamp 1 x $12,345.67 = $12,345.67"
+      },
+      {
+        "call": 8,
+        "value": "lamp 1 x 12.345,67 EUR = 12.345,67 EUR"
+      },
+      {
+        "call": 9,
+        "value": "lamp 1 x 1,234,567 JPY = 1,234,567 JPY"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "widget pack 1 x $9.99 = $9.99"
+      },
+      {
+        "call": 2,
+        "value": "widget pack 7 x $9.99 = $69.93"
+      },
+      {
+        "call": 3,
+        "value": "widget pack 1000 x $9.99 = $9,990.00"
+      },
+      {
+        "call": 4,
+        "value": "widget pack 1 x 9,99 EUR = 9,99 EUR"
+      },
+      {
+        "call": 5,
+        "value": "widget pack 7 x 9,99 EUR = 69,93 EUR"
+      },
+      {
+        "call": 6,
+        "value": "widget pack 1000 x 9,99 EUR = 9.990,00 EUR"
+      },
+      {
+        "call": 7,
+        "value": "widget pack 1 x 999 JPY = 999 JPY"
+      },
+      {
+        "call": 8,
+        "value": "widget pack 7 x 999 JPY = 6,993 JPY"
+      },
+      {
+        "call": 9,
+        "value": "widget pack 1000 x 999 JPY = 999,000 JPY"
+      },
+      {
+        "call": 10,
+        "value": "Total: $69.93"
+      },
+      {
+        "call": 11,
+        "value": "Total: $9,990.00"
+      },
+      {
+        "call": 12,
+        "value": "Total: 69,93 EUR"
+      },
+      {
+        "call": 13,
+        "value": "Total: 9.990,00 EUR"
+      },
+      {
+        "call": 14,
+        "value": "Total: 6,993 JPY"
+      },
+      {
+        "call": 15,
+        "value": "Total: 999,000 JPY"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "  Big  box  4 x 250,00 EUR = 1.000,00 EUR"
+      },
+      {
+        "call": 2,
+        "value": "x=1 10 x $1.00 = $10.00"
+      },
+      {
+        "call": 3,
+        "value": "$ 100 x 100,000 JPY = 10,000,000 JPY"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "Total: GBP 1,234.56"
+      },
+      {
+        "call": 3,
+        "value": "tea 2 x GBP 2.50 = GBP 5.00"
+      },
+      {
+        "call": 4,
+        "value": "Your order comes to GBP 5.00."
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown locale"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a locale needs a new, non-empty name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a locale needs a new, non-empty name"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a currency has a sign"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown locale"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a locale needs a new, non-empty name"
+      },
+      {
+        "call": 8,
+        "value": "Total: 1'234'567.89 CHF"
+      },
+      {
+        "call": 9,
+        "value": "Total: $1,234,567.89"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "Total: R1234567.89"
+      },
+      {
+        "call": 5,
+        "value": "Total: 123 456 789 W"
+      },
+      {
+        "call": 6,
+        "value": "Total: 123456789 B"
+      },
+      {
+        "call": 7,
+        "value": "Total: R0.05"
+      },
+      {
+        "call": 8,
+        "value": "Total: 5 W"
+      },
+      {
+        "call": 9,
+        "value": "Your order comes to 1 000 W."
+      },
+      {
+        "call": 10,
+        "value": "x 3 x R10.01 = R30.03"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "Total: <>10--000--000--000::00"
+      },
+      {
+        "call": 3,
+        "value": "Total: <>0::07"
+      },
+      {
+        "call": 4,
+        "value": "y 1000 x <>1--000::00 = <>1--000--000::00"
+      },
+      {
+        "call": 5,
+        "value": "Your order comes to <>1--000::99."
+      }
+    ]
+  }
+]

@@ -1,0 +1,1189 @@
+{
+  "slug": "blob-store",
+  "title": "Swappable blob store",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["program-to-an-interface", "object-storage"],
+  "interface": {
+    "class": "BlobStore",
+    "constructor": {
+      "params": [
+        {
+          "name": "backend",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "putBlob",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "data",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "fetch",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "remove",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "listKeys",
+        "params": [
+          {
+            "name": "prefix",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "migrate",
+        "params": [
+          {
+            "name": "backend",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["logs/a.txt", "first"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["logs/a.txt", "second"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["img/b.png", "PNG"]
+          },
+          {
+            "method": "fetch",
+            "args": ["logs/a.txt"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["logs/"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "fetch",
+            "args": ["logs/a.txt"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["logs/a.txt", "third"]
+          },
+          {
+            "method": "remove",
+            "args": ["img/b.png"]
+          },
+          {
+            "method": "fetch",
+            "args": ["img/b.png"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "fetch",
+            "args": ["x"]
+          },
+          {
+            "method": "remove",
+            "args": ["x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["x", ""]
+          },
+          {
+            "method": "fetch",
+            "args": ["x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["x", "1"]
+          },
+          {
+            "method": "remove",
+            "args": ["x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["x", "again"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "migrate",
+            "args": ["plain"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["y"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Plain"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["", "d"]
+          },
+          {
+            "method": "fetch",
+            "args": [""]
+          },
+          {
+            "method": "remove",
+            "args": [""]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          },
+          {
+            "method": "listKeys",
+            "args": ["k"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["kk"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["K"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["", "d"]
+          },
+          {
+            "method": "fetch",
+            "args": [""]
+          },
+          {
+            "method": "remove",
+            "args": [""]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          },
+          {
+            "method": "listKeys",
+            "args": ["k"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["kk"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["K"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "3"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", "x"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "4"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "4"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "3"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", "x"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "4"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "4"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b/2", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["B/1", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b/10", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["ab", "x"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          },
+          {
+            "method": "listKeys",
+            "args": ["b"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["b/"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["a"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["ab/"]
+          },
+          {
+            "method": "remove",
+            "args": ["b"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b/2", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["B/1", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b/10", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", "x"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["ab", "x"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          },
+          {
+            "method": "listKeys",
+            "args": ["b"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["b/"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["a"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["ab/"]
+          },
+          {
+            "method": "remove",
+            "args": ["b"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "old"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "new"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", ""]
+          },
+          {
+            "method": "putBlob",
+            "args": ["c", "gone"]
+          },
+          {
+            "method": "remove",
+            "args": ["c"]
+          },
+          {
+            "method": "migrate",
+            "args": ["plain"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "migrate",
+            "args": ["cold"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "fetch",
+            "args": ["b"]
+          },
+          {
+            "method": "fetch",
+            "args": ["c"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "next"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", "next"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "old"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "new"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", ""]
+          },
+          {
+            "method": "putBlob",
+            "args": ["c", "gone"]
+          },
+          {
+            "method": "remove",
+            "args": ["c"]
+          },
+          {
+            "method": "migrate",
+            "args": ["plain"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "migrate",
+            "args": ["cold"]
+          },
+          {
+            "method": "fetch",
+            "args": ["a"]
+          },
+          {
+            "method": "fetch",
+            "args": ["b"]
+          },
+          {
+            "method": "fetch",
+            "args": ["c"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "next"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["b", "next"]
+          },
+          {
+            "method": "listKeys",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "migrate",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "v1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "v2"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "v3"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "v4"]
+          },
+          {
+            "method": "migrate",
+            "args": ["plain"]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "v5"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          },
+          {
+            "method": "listKeys",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["K", " a  b "]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "lower"]
+          },
+          {
+            "method": "fetch",
+            "args": ["K"]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          },
+          {
+            "method": "remove",
+            "args": ["K"]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          },
+          {
+            "method": "fetch",
+            "args": ["K"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", ""]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["K", " a  b "]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", "lower"]
+          },
+          {
+            "method": "fetch",
+            "args": ["K"]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          },
+          {
+            "method": "remove",
+            "args": ["K"]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          },
+          {
+            "method": "fetch",
+            "args": ["K"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k", ""]
+          },
+          {
+            "method": "fetch",
+            "args": ["k"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "fetchVersion",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "type": "int"
+          }
+        ],
+        "returns": "optional<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["doc", "v1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["doc", "v2"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["doc", "v3"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["doc", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["doc", 3]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["doc", 4]
+          },
+          {
+            "method": "migrate",
+            "args": ["plain"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["doc", 1]
+          },
+          {
+            "method": "putBlob",
+            "args": ["doc", "v4"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["doc", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["doc", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 3]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["b", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 0]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", -1]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", ""]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 0]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["", 2]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", ""]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 3]
+          },
+          {
+            "method": "remove",
+            "args": ["a"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 1]
+          },
+          {
+            "method": "putBlob",
+            "args": ["a", "y"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["a", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["p", "1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["p", "2"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["p", "3"]
+          },
+          {
+            "method": "migrate",
+            "args": ["versioned"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["p", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["p", 3]
+          },
+          {
+            "method": "putBlob",
+            "args": ["p", "4"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["p", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["p", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["plain"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k0", "d0"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k1", "d1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k2", "d2"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k0", "d3"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k1", "d4"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k2", "d5"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k0", "d6"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k1", "d7"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k0", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k0", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k0", 3]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k1", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k1", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k1", 3]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k2", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k2", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k2", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["versioned"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k0", "d0"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k1", "d1"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k2", "d2"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k0", "d3"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k1", "d4"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k2", "d5"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k0", "d6"]
+          },
+          {
+            "method": "putBlob",
+            "args": ["k1", "d7"]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k0", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k0", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k0", 3]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k1", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k1", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k1", 3]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k2", 1]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k2", 2]
+          },
+          {
+            "method": "fetchVersion",
+            "args": ["k2", 3]
+          }
+        ]
+      }
+    ]
+  }
+}

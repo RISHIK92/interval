@@ -1,0 +1,812 @@
+{
+  "slug": "price-display",
+  "title": "Prices everywhere",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["dry-principle"],
+  "interface": {
+    "class": "PriceFormatter",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "checkoutLine",
+        "params": [
+          {
+            "name": "cents",
+            "type": "int"
+          },
+          {
+            "name": "locale",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "receiptLine",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          },
+          {
+            "name": "qty",
+            "type": "int"
+          },
+          {
+            "name": "locale",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "emailSummary",
+        "params": [
+          {
+            "name": "totalCents",
+            "type": "int"
+          },
+          {
+            "name": "locale",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456, "ja-JP"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["coffee", 350, 2, "en-US"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [700, "en-US"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [700, "de-DE"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [5, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [0, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [5, "fr-FR"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["tea", 1500, 3, "ja-JP"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [4500, "ja-JP"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["", 1, 1, "en-US"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [0, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [9, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [10, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [99, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [101, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [0, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [9, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [10, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [99, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [101, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [0, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [9, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [10, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [99, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [101, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999, "ja-JP"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [99999, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100000, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999999, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [12345678, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100000000, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [99999, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100000, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999999, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [12345678, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100000000, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [99999, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100000, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999999, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [12345678, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [100000000, "ja-JP"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [10000, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000000000, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999999999999, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [10000, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000000000, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999999999999, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [10000, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000000000, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999999999999, "ja-JP"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [-1, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000000001, "en-US"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [-1, "de-DE"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [1000000000001, "ja-JP"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [1000000000000, "ja-JP"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [0, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1, ""]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1, "en-us"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [1, "EN-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1, 1, "de"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", -1, 1, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1000000001, 1, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1000000000, 1000, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1, 0, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1, 1001, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1, -2, "de-DE"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 0, 1000, "de-DE"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["", 5, 5, "ja-JP"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1, 1, "xx"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receiptLine",
+            "args": ["", 5, 5, "zz"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["a", 5, 0, "zz"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [-5, "zz"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1234567, "en-US"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [1234567, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1234567, "de-DE"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [1234567, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1234567, "ja-JP"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [1234567, "ja-JP"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["lamp", 1234567, 1, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["lamp", 1234567, 1, "de-DE"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["lamp", 1234567, 1, "ja-JP"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 1, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 7, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 1000, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 1, "de-DE"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 7, "de-DE"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 1000, "de-DE"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 1, "ja-JP"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 7, "ja-JP"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["widget pack", 999, 1000, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [6993, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999000, "en-US"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [6993, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999000, "de-DE"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [6993, "ja-JP"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [999000, "ja-JP"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receiptLine",
+            "args": ["  Big  box ", 25000, 4, "de-DE"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x=1", 100, 10, "en-US"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["$", 100000, 100, "ja-JP"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "addLocale",
+        "params": [
+          {
+            "name": "locale",
+            "type": "string"
+          },
+          {
+            "name": "currencySign",
+            "type": "string"
+          },
+          {
+            "name": "signFirst",
+            "type": "bool"
+          },
+          {
+            "name": "grouping",
+            "type": "string"
+          },
+          {
+            "name": "decimal",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLocale",
+            "args": ["en-GB", "GBP ", true, ",", "."]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456, "en-GB"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["tea", 250, 2, "en-GB"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [500, "en-GB"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1, "fr-CH"]
+          },
+          {
+            "method": "addLocale",
+            "args": ["", "CHF", false, "'", "."]
+          },
+          {
+            "method": "addLocale",
+            "args": ["en-US", "USD", false, ",", "."]
+          },
+          {
+            "method": "addLocale",
+            "args": ["fr-CH", "", false, "'", "."]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1, "fr-CH"]
+          },
+          {
+            "method": "addLocale",
+            "args": ["fr-CH", "CHF", false, "'", "."]
+          },
+          {
+            "method": "addLocale",
+            "args": ["fr-CH", "Fr.", true, "'", "."]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "fr-CH"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "en-US"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLocale",
+            "args": ["raw", "R", true, "", "."]
+          },
+          {
+            "method": "addLocale",
+            "args": ["whole", "W", false, " ", ""]
+          },
+          {
+            "method": "addLocale",
+            "args": ["both", "B", false, "", ""]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "raw"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "whole"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [123456789, "both"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [5, "raw"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [5, "whole"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [1000, "whole"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["x", 1001, 3, "raw"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLocale",
+            "args": ["odd", "<>", true, "--", "::"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [1000000000000, "odd"]
+          },
+          {
+            "method": "checkoutLine",
+            "args": [7, "odd"]
+          },
+          {
+            "method": "receiptLine",
+            "args": ["y", 100000, 1000, "odd"]
+          },
+          {
+            "method": "emailSummary",
+            "args": [100099, "odd"]
+          }
+        ]
+      }
+    ]
+  }
+}

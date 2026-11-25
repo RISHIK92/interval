@@ -1,0 +1,986 @@
+{
+  "slug": "migration-plan",
+  "title": "Schema migration plan",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["design-by-contract", "fail-fast", "schema-migrations"],
+  "interface": {
+    "class": "MigrationPlan",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "add",
+        "params": [
+          {
+            "name": "version",
+            "type": "int"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "applyUpTo",
+        "params": [
+          {
+            "name": "version",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "rollback",
+        "params": [
+          {
+            "name": "steps",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "current",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "pending",
+        "params": [],
+        "returns": "list<int>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1, "create users"]
+          },
+          {
+            "method": "add",
+            "args": [2, "add email"]
+          },
+          {
+            "method": "add",
+            "args": [5, "index email"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [2]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [5]
+          },
+          {
+            "method": "rollback",
+            "args": [2]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [0]
+          },
+          {
+            "method": "add",
+            "args": [3, "c"]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [4]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": [2, "b"]
+          },
+          {
+            "method": "add",
+            "args": [3, "again"]
+          },
+          {
+            "method": "rollback",
+            "args": [2]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [0, "zero"]
+          },
+          {
+            "method": "add",
+            "args": [-1, "neg"]
+          },
+          {
+            "method": "add",
+            "args": [1000000001, "big"]
+          },
+          {
+            "method": "add",
+            "args": [1, ""]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1000000000, "max"]
+          },
+          {
+            "method": "add",
+            "args": [1, "one"]
+          },
+          {
+            "method": "add",
+            "args": [1, "dup"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [1000000000]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [999999999, "late"]
+          },
+          {
+            "method": "add",
+            "args": [1000000000, "dup"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [40, "d"]
+          },
+          {
+            "method": "add",
+            "args": [10, "a"]
+          },
+          {
+            "method": "add",
+            "args": [30, "c"]
+          },
+          {
+            "method": "add",
+            "args": [20, "b"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [20]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [40]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1, "a"]
+          },
+          {
+            "method": "add",
+            "args": [2, "b"]
+          },
+          {
+            "method": "add",
+            "args": [3, "c"]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [4]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [-1]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [2]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [2]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [2]
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "rollback",
+            "args": [0]
+          },
+          {
+            "method": "add",
+            "args": [1, "a"]
+          },
+          {
+            "method": "add",
+            "args": [2, "b"]
+          },
+          {
+            "method": "add",
+            "args": [3, "c"]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "rollback",
+            "args": [0]
+          },
+          {
+            "method": "rollback",
+            "args": [-1]
+          },
+          {
+            "method": "rollback",
+            "args": [4]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [3]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [10, "a"]
+          },
+          {
+            "method": "add",
+            "args": [20, "b"]
+          },
+          {
+            "method": "add",
+            "args": [30, "c"]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [30]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [25, "b2"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [15, "early"]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "add",
+            "args": [15, "early"]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [25]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [3]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1, "a"]
+          },
+          {
+            "method": "add",
+            "args": [2, "b"]
+          },
+          {
+            "method": "add",
+            "args": [3, "c"]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "rollback",
+            "args": [2]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [2]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [7, "same"]
+          },
+          {
+            "method": "add",
+            "args": [8, "same"]
+          },
+          {
+            "method": "add",
+            "args": [9, " Spaced  name "]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [9]
+          },
+          {
+            "method": "rollback",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [2, "m2"]
+          },
+          {
+            "method": "add",
+            "args": [5, "m5"]
+          },
+          {
+            "method": "add",
+            "args": [8, "m8"]
+          },
+          {
+            "method": "add",
+            "args": [11, "m11"]
+          },
+          {
+            "method": "add",
+            "args": [14, "m14"]
+          },
+          {
+            "method": "add",
+            "args": [17, "m17"]
+          },
+          {
+            "method": "add",
+            "args": [20, "m20"]
+          },
+          {
+            "method": "add",
+            "args": [23, "m23"]
+          },
+          {
+            "method": "add",
+            "args": [26, "m26"]
+          },
+          {
+            "method": "add",
+            "args": [29, "m29"]
+          },
+          {
+            "method": "add",
+            "args": [32, "m32"]
+          },
+          {
+            "method": "add",
+            "args": [35, "m35"]
+          },
+          {
+            "method": "add",
+            "args": [38, "m38"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [20]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [4]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [38]
+          },
+          {
+            "method": "rollback",
+            "args": [13]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [5, "a"]
+          },
+          {
+            "method": "add",
+            "args": [6, "b"]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [7]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [6]
+          },
+          {
+            "method": "rollback",
+            "args": [3]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [6, "x"]
+          },
+          {
+            "method": "add",
+            "args": [4, "x"]
+          },
+          {
+            "method": "pending",
+            "args": []
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [2]
+          },
+          {
+            "method": "current",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "irreversible",
+        "params": [
+          {
+            "name": "version",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1, "create users"]
+          },
+          {
+            "method": "add",
+            "args": [2, "drop legacy"]
+          },
+          {
+            "method": "add",
+            "args": [3, "add index"]
+          },
+          {
+            "method": "irreversible",
+            "args": [2]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [3]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "irreversible",
+            "args": [1]
+          },
+          {
+            "method": "add",
+            "args": [1, "a"]
+          },
+          {
+            "method": "add",
+            "args": [2, "b"]
+          },
+          {
+            "method": "irreversible",
+            "args": [3]
+          },
+          {
+            "method": "irreversible",
+            "args": [0]
+          },
+          {
+            "method": "irreversible",
+            "args": [2]
+          },
+          {
+            "method": "irreversible",
+            "args": [2]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [2]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "rollback",
+            "args": [2]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1, "m1"]
+          },
+          {
+            "method": "add",
+            "args": [2, "m2"]
+          },
+          {
+            "method": "add",
+            "args": [3, "m3"]
+          },
+          {
+            "method": "add",
+            "args": [4, "m4"]
+          },
+          {
+            "method": "add",
+            "args": [5, "m5"]
+          },
+          {
+            "method": "add",
+            "args": [6, "m6"]
+          },
+          {
+            "method": "irreversible",
+            "args": [3]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [6]
+          },
+          {
+            "method": "rollback",
+            "args": [4]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [3]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "applyUpTo",
+            "args": [6]
+          },
+          {
+            "method": "rollback",
+            "args": [3]
+          },
+          {
+            "method": "pending",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [10, "a"]
+          },
+          {
+            "method": "add",
+            "args": [20, "b"]
+          },
+          {
+            "method": "irreversible",
+            "args": [10]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [20]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "applyUpTo",
+            "args": [20]
+          },
+          {
+            "method": "rollback",
+            "args": [2]
+          },
+          {
+            "method": "current",
+            "args": []
+          },
+          {
+            "method": "irreversible",
+            "args": [20]
+          },
+          {
+            "method": "rollback",
+            "args": [1]
+          },
+          {
+            "method": "current",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

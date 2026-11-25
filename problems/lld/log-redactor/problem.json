@@ -1,0 +1,918 @@
+{
+  "slug": "log-redactor",
+  "title": "Log redaction",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": [
+    "encapsulate-what-varies",
+    "separation-of-concerns",
+    "structured-logging"
+  ],
+  "interface": {
+    "class": "Redactor",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "enable",
+        "params": [
+          {
+            "name": "rule",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "disable",
+        "params": [
+          {
+            "name": "rule",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "redact",
+        "params": [
+          {
+            "name": "line",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "hits",
+        "params": [
+          {
+            "name": "rule",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "redact",
+            "args": ["user bob@example.com paid with 4111111111111111"]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": ["user bob@example.com paid with 4111111111111111"]
+          },
+          {
+            "method": "redact",
+            "args": ["auth: Bearer abc.def"]
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["auth: Bearer abc.def"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer a@b.io"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "disable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer a@b.io"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          },
+          {
+            "method": "enable",
+            "args": ["Email"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": [""]
+          },
+          {
+            "method": "disable",
+            "args": [""]
+          },
+          {
+            "method": "hits",
+            "args": [""]
+          },
+          {
+            "method": "enable",
+            "args": ["phone"]
+          },
+          {
+            "method": "disable",
+            "args": ["phone"]
+          },
+          {
+            "method": "hits",
+            "args": ["phone"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          },
+          {
+            "method": "hits",
+            "args": ["Card"]
+          },
+          {
+            "method": "enable",
+            "args": ["CARD"]
+          },
+          {
+            "method": "redact",
+            "args": [""]
+          },
+          {
+            "method": "redact",
+            "args": ["   "]
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": [""]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@b.c"]
+          },
+          {
+            "method": "redact",
+            "args": ["@b.c"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@.bc"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@bc."]
+          },
+          {
+            "method": "redact",
+            "args": ["a@bc"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@b@c.d"]
+          },
+          {
+            "method": "redact",
+            "args": ["x@y.z,"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@b..c"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@.b.c"]
+          },
+          {
+            "method": "redact",
+            "args": ["mail:me@host.net!"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@b."]
+          },
+          {
+            "method": "redact",
+            "args": ["a.b@c"]
+          },
+          {
+            "method": "redact",
+            "args": ["@"]
+          },
+          {
+            "method": "redact",
+            "args": ["x@y.z x@y.z"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": ["123456789012"]
+          },
+          {
+            "method": "redact",
+            "args": ["1234567890123"]
+          },
+          {
+            "method": "redact",
+            "args": ["1234567890123456789"]
+          },
+          {
+            "method": "redact",
+            "args": ["12345678901234567890"]
+          },
+          {
+            "method": "redact",
+            "args": ["4111-1111-1111-1111"]
+          },
+          {
+            "method": "redact",
+            "args": ["4111 1111 1111 1111"]
+          },
+          {
+            "method": "redact",
+            "args": ["41111111111111x1"]
+          },
+          {
+            "method": "redact",
+            "args": ["#4111111111111111"]
+          },
+          {
+            "method": "redact",
+            "args": ["9999888877776666 and 0000111122223333"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer x"]
+          },
+          {
+            "method": "redact",
+            "args": ["bearer x"]
+          },
+          {
+            "method": "redact",
+            "args": ["BEARER x"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer  x"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer Bearer x"]
+          },
+          {
+            "method": "redact",
+            "args": ["x Bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer: x"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer x Bearer y z"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer "]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": ["  a@b.cd   1234567890123 "]
+          },
+          {
+            "method": "redact",
+            "args": [" "]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer 4111111111111111"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer 4111111111111111"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          },
+          {
+            "method": "disable",
+            "args": ["card"]
+          },
+          {
+            "method": "disable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer 4111111111111111"]
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer 4111111111111111"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer a@b.cc Bearer 1234567890123 a@b.cc 1234567890123"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          },
+          {
+            "method": "disable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer a@b.cc Bearer 1234567890123 a@b.cc 1234567890123"]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer a@b.cc Bearer 1234567890123 a@b.cc 1234567890123"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@b.co"]
+          },
+          {
+            "method": "disable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["a@b.co"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "disable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["to a@b.co"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer t a@b.cc 4111111111111111"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "enable",
+            "args": ["card"]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer [token] ************1111 [email]"]
+          },
+          {
+            "method": "hits",
+            "args": ["card"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "maskAfter",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "prefix",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "maskAfter",
+            "args": ["password", "password:"]
+          },
+          {
+            "method": "redact",
+            "args": ["login password: hunter2"]
+          },
+          {
+            "method": "enable",
+            "args": ["password"]
+          },
+          {
+            "method": "redact",
+            "args": ["login password: hunter2"]
+          },
+          {
+            "method": "hits",
+            "args": ["password"]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["password: a@b.cc"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["password"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "hits",
+            "args": ["pin"]
+          },
+          {
+            "method": "enable",
+            "args": ["pin"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["", "pin"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["email", "x"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["bearer", "x"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["pin", ""]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["pin", "my pin"]
+          },
+          {
+            "method": "hits",
+            "args": ["pin"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["pin", "pin"]
+          },
+          {
+            "method": "hits",
+            "args": ["pin"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["pin", "PIN"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["Pin", "PIN"]
+          },
+          {
+            "method": "enable",
+            "args": ["pin"]
+          },
+          {
+            "method": "enable",
+            "args": ["Pin"]
+          },
+          {
+            "method": "redact",
+            "args": ["pin 1234 PIN 9 pin"]
+          },
+          {
+            "method": "hits",
+            "args": ["pin"]
+          },
+          {
+            "method": "hits",
+            "args": ["Pin"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "maskAfter",
+            "args": ["user", "user="]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "enable",
+            "args": ["user"]
+          },
+          {
+            "method": "redact",
+            "args": ["user= a@b.cc"]
+          },
+          {
+            "method": "disable",
+            "args": ["email"]
+          },
+          {
+            "method": "enable",
+            "args": ["email"]
+          },
+          {
+            "method": "redact",
+            "args": ["user= a@b.cc"]
+          },
+          {
+            "method": "hits",
+            "args": ["email"]
+          },
+          {
+            "method": "hits",
+            "args": ["user"]
+          },
+          {
+            "method": "disable",
+            "args": ["user"]
+          },
+          {
+            "method": "redact",
+            "args": ["user= x"]
+          },
+          {
+            "method": "hits",
+            "args": ["user"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "maskAfter",
+            "args": ["auth", "Bearer"]
+          },
+          {
+            "method": "enable",
+            "args": ["auth"]
+          },
+          {
+            "method": "enable",
+            "args": ["bearer"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer abc"]
+          },
+          {
+            "method": "hits",
+            "args": ["auth"]
+          },
+          {
+            "method": "hits",
+            "args": ["bearer"]
+          },
+          {
+            "method": "maskAfter",
+            "args": ["auth", "x"]
+          },
+          {
+            "method": "redact",
+            "args": ["Bearer  abc Bearer"]
+          },
+          {
+            "method": "hits",
+            "args": ["auth"]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1156 @@
+{
+  "slug": "invoice-run",
+  "title": "Invoice run",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "principles",
+  "concepts": ["separation-of-concerns", "cohesion-and-coupling"],
+  "interface": {
+    "class": "InvoiceRun",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "usage",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "credit",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "region",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "region",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "invoice",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          }
+        ],
+        "returns": "list<int>"
+      },
+      {
+        "name": "carryOver",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "usage",
+            "args": ["acme", 10000]
+          },
+          {
+            "method": "usage",
+            "args": ["acme", 2000]
+          },
+          {
+            "method": "credit",
+            "args": ["acme", 2000]
+          },
+          {
+            "method": "region",
+            "args": ["acme", "us"]
+          },
+          {
+            "method": "invoice",
+            "args": ["acme"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["acme"]
+          },
+          {
+            "method": "usage",
+            "args": ["acme", 500]
+          },
+          {
+            "method": "invoice",
+            "args": ["acme"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "credit",
+            "args": ["zed", 5000]
+          },
+          {
+            "method": "usage",
+            "args": ["zed", 3000]
+          },
+          {
+            "method": "region",
+            "args": ["zed", "eu"]
+          },
+          {
+            "method": "invoice",
+            "args": ["zed"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["zed"]
+          },
+          {
+            "method": "usage",
+            "args": ["zed", 3000]
+          },
+          {
+            "method": "invoice",
+            "args": ["zed"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["zed"]
+          },
+          {
+            "method": "invoice",
+            "args": ["zed"]
+          },
+          {
+            "method": "invoice",
+            "args": ["nobody"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["a"]
+          },
+          {
+            "method": "usage",
+            "args": ["", 5]
+          },
+          {
+            "method": "credit",
+            "args": ["", 5]
+          },
+          {
+            "method": "region",
+            "args": ["", "us"]
+          },
+          {
+            "method": "invoice",
+            "args": [""]
+          },
+          {
+            "method": "carryOver",
+            "args": [""]
+          },
+          {
+            "method": "usage",
+            "args": ["a", 0]
+          },
+          {
+            "method": "credit",
+            "args": ["a", 0]
+          },
+          {
+            "method": "usage",
+            "args": ["a", -5]
+          },
+          {
+            "method": "usage",
+            "args": ["a", 10000001]
+          },
+          {
+            "method": "credit",
+            "args": ["a", 10000001]
+          },
+          {
+            "method": "region",
+            "args": ["a", "US"]
+          },
+          {
+            "method": "region",
+            "args": ["a", "mars"]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "usage",
+            "args": ["a", 10000000]
+          },
+          {
+            "method": "credit",
+            "args": ["b", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["c", 1]
+          },
+          {
+            "method": "credit",
+            "args": ["d", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["b"]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "invoice",
+            "args": ["d"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "region",
+            "args": ["r", "jp"]
+          },
+          {
+            "method": "invoice",
+            "args": ["r"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["r"]
+          },
+          {
+            "method": "usage",
+            "args": ["n", 999]
+          },
+          {
+            "method": "invoice",
+            "args": ["n"]
+          },
+          {
+            "method": "usage",
+            "args": ["r", 999]
+          },
+          {
+            "method": "invoice",
+            "args": ["r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "region",
+            "args": ["u", "us"]
+          },
+          {
+            "method": "usage",
+            "args": ["u", 100]
+          },
+          {
+            "method": "invoice",
+            "args": ["u"]
+          },
+          {
+            "method": "usage",
+            "args": ["u", 200]
+          },
+          {
+            "method": "invoice",
+            "args": ["u"]
+          },
+          {
+            "method": "usage",
+            "args": ["u", 1000]
+          },
+          {
+            "method": "invoice",
+            "args": ["u"]
+          },
+          {
+            "method": "usage",
+            "args": ["u", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["u"]
+          },
+          {
+            "method": "usage",
+            "args": ["u", 7]
+          },
+          {
+            "method": "invoice",
+            "args": ["u"]
+          },
+          {
+            "method": "usage",
+            "args": ["u", 6]
+          },
+          {
+            "method": "invoice",
+            "args": ["u"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "region",
+            "args": ["e", "eu"]
+          },
+          {
+            "method": "usage",
+            "args": ["e", 50]
+          },
+          {
+            "method": "invoice",
+            "args": ["e"]
+          },
+          {
+            "method": "usage",
+            "args": ["e", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["e"]
+          },
+          {
+            "method": "usage",
+            "args": ["e", 3]
+          },
+          {
+            "method": "invoice",
+            "args": ["e"]
+          },
+          {
+            "method": "region",
+            "args": ["j", "jp"]
+          },
+          {
+            "method": "usage",
+            "args": ["j", 5]
+          },
+          {
+            "method": "invoice",
+            "args": ["j"]
+          },
+          {
+            "method": "usage",
+            "args": ["j", 4]
+          },
+          {
+            "method": "invoice",
+            "args": ["j"]
+          },
+          {
+            "method": "usage",
+            "args": ["j", 15]
+          },
+          {
+            "method": "invoice",
+            "args": ["j"]
+          },
+          {
+            "method": "usage",
+            "args": ["j", 14]
+          },
+          {
+            "method": "invoice",
+            "args": ["j"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "region",
+            "args": ["c", "eu"]
+          },
+          {
+            "method": "credit",
+            "args": ["c", 700]
+          },
+          {
+            "method": "credit",
+            "args": ["c", 300]
+          },
+          {
+            "method": "usage",
+            "args": ["c", 400]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["c"]
+          },
+          {
+            "method": "usage",
+            "args": ["c", 1000]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["c"]
+          },
+          {
+            "method": "usage",
+            "args": ["c", 1000]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "credit",
+            "args": ["c", 1000]
+          },
+          {
+            "method": "usage",
+            "args": ["c", 1000]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "credit",
+            "args": ["e", 50]
+          },
+          {
+            "method": "invoice",
+            "args": ["e"]
+          },
+          {
+            "method": "invoice",
+            "args": ["e"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["e"]
+          },
+          {
+            "method": "usage",
+            "args": ["e", 49]
+          },
+          {
+            "method": "invoice",
+            "args": ["e"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["e"]
+          },
+          {
+            "method": "usage",
+            "args": ["e", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["e"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "usage",
+            "args": ["m", 10000]
+          },
+          {
+            "method": "region",
+            "args": ["m", "us"]
+          },
+          {
+            "method": "region",
+            "args": ["m", "jp"]
+          },
+          {
+            "method": "invoice",
+            "args": ["m"]
+          },
+          {
+            "method": "usage",
+            "args": ["m", 10000]
+          },
+          {
+            "method": "region",
+            "args": ["m", "eu"]
+          },
+          {
+            "method": "invoice",
+            "args": ["m"]
+          },
+          {
+            "method": "usage",
+            "args": ["m", 10000]
+          },
+          {
+            "method": "region",
+            "args": ["m", "us"]
+          },
+          {
+            "method": "invoice",
+            "args": ["m"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "usage",
+            "args": ["a", 1000]
+          },
+          {
+            "method": "credit",
+            "args": ["b", 600]
+          },
+          {
+            "method": "usage",
+            "args": ["b", 1000]
+          },
+          {
+            "method": "region",
+            "args": ["a", "eu"]
+          },
+          {
+            "method": "invoice",
+            "args": ["b"]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["a"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["b"]
+          },
+          {
+            "method": "usage",
+            "args": ["A", 5]
+          },
+          {
+            "method": "invoice",
+            "args": ["A"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["A"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "usage",
+            "args": ["f", 100]
+          },
+          {
+            "method": "usage",
+            "args": ["f", 0]
+          },
+          {
+            "method": "credit",
+            "args": ["f", 99999999]
+          },
+          {
+            "method": "region",
+            "args": ["f", "uk"]
+          },
+          {
+            "method": "region",
+            "args": ["f", "eu"]
+          },
+          {
+            "method": "region",
+            "args": ["f", "EU"]
+          },
+          {
+            "method": "invoice",
+            "args": ["f"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["f"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "region",
+            "args": ["big", "eu"]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "credit",
+            "args": ["big", 9999999]
+          },
+          {
+            "method": "invoice",
+            "args": ["big"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["big"]
+          },
+          {
+            "method": "credit",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "credit",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "credit",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "credit",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "credit",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "usage",
+            "args": ["big", 3]
+          },
+          {
+            "method": "invoice",
+            "args": ["big"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["big"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "region",
+            "args": ["s", "us"]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "usage",
+            "args": ["s", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["s"]
+          },
+          {
+            "method": "region",
+            "args": ["t", "us"]
+          },
+          {
+            "method": "usage",
+            "args": ["t", 3]
+          },
+          {
+            "method": "usage",
+            "args": ["t", 3]
+          },
+          {
+            "method": "usage",
+            "args": ["t", 3]
+          },
+          {
+            "method": "usage",
+            "args": ["t", 3]
+          },
+          {
+            "method": "usage",
+            "args": ["t", 3]
+          },
+          {
+            "method": "credit",
+            "args": ["t", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["t"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "coupon",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "percent",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "usage",
+            "args": ["acme", 10000]
+          },
+          {
+            "method": "credit",
+            "args": ["acme", 2000]
+          },
+          {
+            "method": "region",
+            "args": ["acme", "us"]
+          },
+          {
+            "method": "coupon",
+            "args": ["acme", 10]
+          },
+          {
+            "method": "invoice",
+            "args": ["acme"]
+          },
+          {
+            "method": "usage",
+            "args": ["acme", 10000]
+          },
+          {
+            "method": "invoice",
+            "args": ["acme"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["acme"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "coupon",
+            "args": ["c", 0]
+          },
+          {
+            "method": "coupon",
+            "args": ["c", 101]
+          },
+          {
+            "method": "coupon",
+            "args": ["", 10]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "coupon",
+            "args": ["c", 50]
+          },
+          {
+            "method": "coupon",
+            "args": ["c", 100]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "usage",
+            "args": ["c", 999]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "coupon",
+            "args": ["c", 100]
+          },
+          {
+            "method": "coupon",
+            "args": ["c", 25]
+          },
+          {
+            "method": "usage",
+            "args": ["c", 999]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "region",
+            "args": ["d", "eu"]
+          },
+          {
+            "method": "usage",
+            "args": ["d", 999]
+          },
+          {
+            "method": "credit",
+            "args": ["d", 900]
+          },
+          {
+            "method": "coupon",
+            "args": ["d", 15]
+          },
+          {
+            "method": "invoice",
+            "args": ["d"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["d"]
+          },
+          {
+            "method": "usage",
+            "args": ["d", 3]
+          },
+          {
+            "method": "coupon",
+            "args": ["d", 33]
+          },
+          {
+            "method": "invoice",
+            "args": ["d"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "usage",
+            "args": ["f", 5000]
+          },
+          {
+            "method": "credit",
+            "args": ["f", 400]
+          },
+          {
+            "method": "coupon",
+            "args": ["f", 100]
+          },
+          {
+            "method": "invoice",
+            "args": ["f"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["f"]
+          },
+          {
+            "method": "usage",
+            "args": ["f", 5000]
+          },
+          {
+            "method": "coupon",
+            "args": ["f", 99]
+          },
+          {
+            "method": "region",
+            "args": ["f", "jp"]
+          },
+          {
+            "method": "invoice",
+            "args": ["f"]
+          },
+          {
+            "method": "carryOver",
+            "args": ["f"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "usage",
+            "args": ["a", 1000]
+          },
+          {
+            "method": "usage",
+            "args": ["b", 1000]
+          },
+          {
+            "method": "coupon",
+            "args": ["a", 20]
+          },
+          {
+            "method": "invoice",
+            "args": ["b"]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "usage",
+            "args": ["b", 1000]
+          },
+          {
+            "method": "invoice",
+            "args": ["b"]
+          },
+          {
+            "method": "usage",
+            "args": ["a", 1000]
+          },
+          {
+            "method": "coupon",
+            "args": ["a", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  }
+}

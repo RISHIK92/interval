@@ -1,0 +1,896 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "deployed api"
+      },
+      {
+        "call": 3,
+        "value": "shipit ok"
+      },
+      {
+        "call": 4,
+        "value": "refused"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "paged alice"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "refused"
+      },
+      {
+        "call": 9,
+        "value": ["page", "status"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": "refused"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": "queried users by region"
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 9,
+        "value": ["query"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a bot needs a new, non-empty name"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a bot needs a new, non-empty name"
+      },
+      {
+        "call": 5,
+        "value": ["status"]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 10,
+        "value": "a ok"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": "refused"
+      },
+      {
+        "call": 13,
+        "value": "refused"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an ability is listed twice"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["deploy", "page", "query", "status"]
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 10,
+        "value": ["deploy", "page", "query", "status"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": ["page", "status"]
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": ["page"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 13,
+        "value": "all ok"
+      },
+      {
+        "call": 14,
+        "value": "refused"
+      },
+      {
+        "call": 15,
+        "value": "refused"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "deployed  api"
+      },
+      {
+        "call": 3,
+        "value": "deployed api v2 "
+      },
+      {
+        "call": 4,
+        "value": "queried select 1"
+      },
+      {
+        "call": 5,
+        "value": "paged on-call team"
+      },
+      {
+        "call": 6,
+        "value": "deployed deploy"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["deploy", "page", "query", "status"]
+      },
+      {
+        "call": 4,
+        "value": ["status"]
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["deploy", "query", "status"]
+      },
+      {
+        "call": 8,
+        "value": ["page", "status"]
+      },
+      {
+        "call": 9,
+        "value": "refused"
+      },
+      {
+        "call": 10,
+        "value": "paged bob"
+      },
+      {
+        "call": 11,
+        "value": "p ok"
+      },
+      {
+        "call": 12,
+        "value": "q ok"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "deployed web"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "refused"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "deployed web"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 5,
+        "value": ["query"]
+      },
+      {
+        "call": 6,
+        "value": "queried ok"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown bot"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "Bot One ok"
+      },
+      {
+        "call": 4,
+        "value": "b2 ok"
+      },
+      {
+        "call": 5,
+        "value": "refused"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["deploy"]
+      },
+      {
+        "call": 9,
+        "value": ["deploy", "page"]
+      },
+      {
+        "call": 10,
+        "value": ["deploy", "page", "query"]
+      },
+      {
+        "call": 11,
+        "value": ["deploy", "page", "query", "status"]
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": "refused"
+      },
+      {
+        "call": 14,
+        "value": "bot4 ok"
+      },
+      {
+        "call": 15,
+        "value": "refused"
+      },
+      {
+        "call": 16,
+        "value": "queried load"
+      },
+      {
+        "call": 17,
+        "value": "refused"
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": "refused"
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": "bot0 ok"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "deployed api"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "deployed web"
+      },
+      {
+        "call": 5,
+        "value": "ops ok"
+      },
+      {
+        "call": 6,
+        "value": "refused"
+      },
+      {
+        "call": 7,
+        "value": ["deploy web -> deployed web", "status -> ops ok"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown bot"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": "queried a"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "queried b"
+      },
+      {
+        "call": 10,
+        "value": ["query b -> queried b"]
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown bot"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "refused"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "a ok"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "paged oncall"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "refused"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "a ok"
+      },
+      {
+        "call": 12,
+        "value": [
+          "status -> a ok",
+          "page oncall -> paged oncall",
+          "status -> a ok"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "deployed x y"
+      },
+      {
+        "call": 5,
+        "value": "deployed z"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: the command doesn't fit its ability"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown ability"
+      },
+      {
+        "call": 8,
+        "value": "queried  two"
+      },
+      {
+        "call": 9,
+        "value": ["deploy x y -> deployed x y", "query  two -> queried  two"]
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": ["deploy", "query"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "paged amy"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "paged amy"
+      },
+      {
+        "call": 5,
+        "value": ["page", "status"]
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "s ok"
+      },
+      {
+        "call": 9,
+        "value": ["page amy -> paged amy", "status -> s ok"]
+      },
+      {
+        "call": 10,
+        "value": "refused"
+      },
+      {
+        "call": 11,
+        "value": ["page amy -> paged amy", "status -> s ok"]
+      }
+    ]
+  }
+]

@@ -1,0 +1,862 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "user bob@example.com paid with 4111111111111111"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "user [email] paid with ************1111"
+      },
+      {
+        "call": 5,
+        "value": "auth: Bearer abc.def"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "auth: Bearer [token]"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown rule"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 10,
+        "value": ""
+      },
+      {
+        "call": 11,
+        "value": "   "
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": ""
+      },
+      {
+        "call": 14,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "[email]"
+      },
+      {
+        "call": 3,
+        "value": "@b.c"
+      },
+      {
+        "call": 4,
+        "value": "a@.bc"
+      },
+      {
+        "call": 5,
+        "value": "a@bc."
+      },
+      {
+        "call": 6,
+        "value": "a@bc"
+      },
+      {
+        "call": 7,
+        "value": "a@b@c.d"
+      },
+      {
+        "call": 8,
+        "value": "[email]"
+      },
+      {
+        "call": 9,
+        "value": "[email]"
+      },
+      {
+        "call": 10,
+        "value": "[email]"
+      },
+      {
+        "call": 11,
+        "value": "[email]"
+      },
+      {
+        "call": 12,
+        "value": "a@b."
+      },
+      {
+        "call": 13,
+        "value": "a.b@c"
+      },
+      {
+        "call": 14,
+        "value": "@"
+      },
+      {
+        "call": 15,
+        "value": "[email] [email]"
+      },
+      {
+        "call": 16,
+        "value": 7
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "123456789012"
+      },
+      {
+        "call": 3,
+        "value": "*********0123"
+      },
+      {
+        "call": 4,
+        "value": "***************6789"
+      },
+      {
+        "call": 5,
+        "value": "12345678901234567890"
+      },
+      {
+        "call": 6,
+        "value": "4111-1111-1111-1111"
+      },
+      {
+        "call": 7,
+        "value": "4111 1111 1111 1111"
+      },
+      {
+        "call": 8,
+        "value": "41111111111111x1"
+      },
+      {
+        "call": 9,
+        "value": "#4111111111111111"
+      },
+      {
+        "call": 10,
+        "value": "************6666 and ************3333"
+      },
+      {
+        "call": 11,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "Bearer"
+      },
+      {
+        "call": 3,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 4,
+        "value": "bearer x"
+      },
+      {
+        "call": 5,
+        "value": "BEARER x"
+      },
+      {
+        "call": 6,
+        "value": "Bearer  x"
+      },
+      {
+        "call": 7,
+        "value": "Bearer [token] x"
+      },
+      {
+        "call": 8,
+        "value": "x Bearer"
+      },
+      {
+        "call": 9,
+        "value": "Bearer: x"
+      },
+      {
+        "call": 10,
+        "value": "Bearer [token] Bearer [token] z"
+      },
+      {
+        "call": 11,
+        "value": "Bearer "
+      },
+      {
+        "call": 12,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "  [email]   *********0123 "
+      },
+      {
+        "call": 4,
+        "value": " "
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 14,
+        "value": 2
+      },
+      {
+        "call": 15,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "Bearer [token] Bearer [token] [email] *********0123"
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "Bearer [token] Bearer [token] a@b.cc *********0123"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "Bearer [token] Bearer [token] [email] *********0123"
+      },
+      {
+        "call": 12,
+        "value": 3
+      },
+      {
+        "call": 13,
+        "value": 6
+      },
+      {
+        "call": 14,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "[email]"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a@b.co"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "to [email]"
+      },
+      {
+        "call": 9,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "Bearer t a@b.cc 4111111111111111"
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "Bearer [token] ************1111 [email]"
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "login password: hunter2"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "login password: [password]"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "password: [password]"
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a rule needs a new, non-empty name"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a rule needs a new, non-empty name"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a rule needs a new, non-empty name"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: the prefix is one word"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: the prefix is one word"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown rule"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a rule needs a new, non-empty name"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": "pin [pin] PIN [Pin] pin"
+      },
+      {
+        "call": 16,
+        "value": 1
+      },
+      {
+        "call": 17,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "user= [user]"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "user= [user]"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "user= x"
+      },
+      {
+        "call": 12,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "Bearer [token]"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a rule needs a new, non-empty name"
+      },
+      {
+        "call": 8,
+        "value": "Bearer  abc Bearer"
+      },
+      {
+        "call": 9,
+        "value": 1
+      }
+    ]
+  }
+]
