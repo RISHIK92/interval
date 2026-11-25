@@ -1,0 +1,1484 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 360
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 20000
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 21200
+      },
+      {
+        "call": 8,
+        "value": 21560
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 150
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 150
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "error": "ValueError: only a spot instance can be interrupted"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 12,
+        "value": 150
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'no such instance'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'no such instance'"
+      },
+      {
+        "call": 4,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: hourlyCents must be within 1 and 10^6"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: hourlyCents must be within 1 and 10^6"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: hourlyCents must be within 1 and 10^6"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "error": "ValueError: hours must be within 1 and 10^4"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: hours must be within 1 and 10^4"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: hours must be within 1 and 10^4"
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": 10000000000
+      },
+      {
+        "call": 16,
+        "error": "KeyError: 'no such instance'"
+      },
+      {
+        "call": 17,
+        "value": 10000000000
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 700
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 704
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 708
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 721
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": 100600
+      },
+      {
+        "call": 12,
+        "value": 101321
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 7
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 2100
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": 2400
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": 2400
+      },
+      {
+        "call": 16,
+        "value": 2407
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 1200
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 1650
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 3000
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": 3000
+      },
+      {
+        "call": 12,
+        "value": 1650
+      },
+      {
+        "call": 13,
+        "value": 4650
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 500
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 500
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 12
+      },
+      {
+        "call": 8,
+        "value": 307
+      },
+      {
+        "call": 9,
+        "value": 3
+      },
+      {
+        "call": 10,
+        "value": 322
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": null
+      },
+      {
+        "call": 21,
+        "value": null
+      },
+      {
+        "call": 22,
+        "value": null
+      },
+      {
+        "call": 23,
+        "value": null
+      },
+      {
+        "call": 24,
+        "value": null
+      },
+      {
+        "call": 25,
+        "value": null
+      },
+      {
+        "call": 26,
+        "value": null
+      },
+      {
+        "call": 27,
+        "value": null
+      },
+      {
+        "call": 28,
+        "value": null
+      },
+      {
+        "call": 29,
+        "value": null
+      },
+      {
+        "call": 30,
+        "value": null
+      },
+      {
+        "call": 31,
+        "value": null
+      },
+      {
+        "call": 32,
+        "value": null
+      },
+      {
+        "call": 33,
+        "value": null
+      },
+      {
+        "call": 34,
+        "value": null
+      },
+      {
+        "call": 35,
+        "value": null
+      },
+      {
+        "call": 36,
+        "value": null
+      },
+      {
+        "call": 37,
+        "value": null
+      },
+      {
+        "call": 38,
+        "value": null
+      },
+      {
+        "call": 39,
+        "value": null
+      },
+      {
+        "call": 40,
+        "value": null
+      },
+      {
+        "call": 41,
+        "value": null
+      },
+      {
+        "call": 42,
+        "value": null
+      },
+      {
+        "call": 43,
+        "value": null
+      },
+      {
+        "call": 44,
+        "value": null
+      },
+      {
+        "call": 45,
+        "value": null
+      },
+      {
+        "call": 46,
+        "value": null
+      },
+      {
+        "call": 47,
+        "value": null
+      },
+      {
+        "call": 48,
+        "value": null
+      },
+      {
+        "call": 49,
+        "value": null
+      },
+      {
+        "call": 50,
+        "value": null
+      },
+      {
+        "call": 51,
+        "value": null
+      },
+      {
+        "call": 52,
+        "value": null
+      },
+      {
+        "call": 53,
+        "value": null
+      },
+      {
+        "call": 54,
+        "value": null
+      },
+      {
+        "call": 55,
+        "value": null
+      },
+      {
+        "call": 56,
+        "value": null
+      },
+      {
+        "call": 57,
+        "value": null
+      },
+      {
+        "call": 58,
+        "value": null
+      },
+      {
+        "call": 59,
+        "value": null
+      },
+      {
+        "call": 60,
+        "value": null
+      },
+      {
+        "call": 61,
+        "value": null
+      },
+      {
+        "call": 62,
+        "value": null
+      },
+      {
+        "call": 63,
+        "value": null
+      },
+      {
+        "call": 64,
+        "value": null
+      },
+      {
+        "call": 65,
+        "value": null
+      },
+      {
+        "call": 66,
+        "value": null
+      },
+      {
+        "call": 67,
+        "value": null
+      },
+      {
+        "call": 68,
+        "value": null
+      },
+      {
+        "call": 69,
+        "value": null
+      },
+      {
+        "call": 70,
+        "value": null
+      },
+      {
+        "call": 71,
+        "value": null
+      },
+      {
+        "call": 72,
+        "value": null
+      },
+      {
+        "call": 73,
+        "value": null
+      },
+      {
+        "call": 74,
+        "value": null
+      },
+      {
+        "call": 75,
+        "value": null
+      },
+      {
+        "call": 76,
+        "value": null
+      },
+      {
+        "call": 77,
+        "value": null
+      },
+      {
+        "call": 78,
+        "value": null
+      },
+      {
+        "call": 79,
+        "value": null
+      },
+      {
+        "call": 80,
+        "value": null
+      },
+      {
+        "call": 81,
+        "value": null
+      },
+      {
+        "call": 82,
+        "value": null
+      },
+      {
+        "call": 83,
+        "value": null
+      },
+      {
+        "call": 84,
+        "value": null
+      },
+      {
+        "call": 85,
+        "value": null
+      },
+      {
+        "call": 86,
+        "value": null
+      },
+      {
+        "call": 87,
+        "value": null
+      },
+      {
+        "call": 88,
+        "value": null
+      },
+      {
+        "call": 89,
+        "value": null
+      },
+      {
+        "call": 90,
+        "value": null
+      },
+      {
+        "call": 91,
+        "value": null
+      },
+      {
+        "call": 92,
+        "value": null
+      },
+      {
+        "call": 93,
+        "value": null
+      },
+      {
+        "call": 94,
+        "value": 300000000000
+      },
+      {
+        "call": 95,
+        "value": 180100000000
+      },
+      {
+        "call": 96,
+        "value": 90000000000
+      },
+      {
+        "call": 97,
+        "value": 570100000000
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 100
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 100
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 101
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 33899
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 299
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 999
+      },
+      {
+        "call": 10,
+        "value": 35197
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'no such instance'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'no such instance'"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: only a spot instance can be interrupted"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: only a spot instance can be interrupted"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 1012
+      },
+      {
+        "call": 10,
+        "value": 20
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": false
+      },
+      {
+        "call": 17,
+        "value": false
+      },
+      {
+        "call": 18,
+        "error": "KeyError: 'no such instance'"
+      },
+      {
+        "call": 19,
+        "value": 1032
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 30
+      },
+      {
+        "call": 9,
+        "value": 60
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": 60
+      },
+      {
+        "call": 13,
+        "value": 90
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 10
+      },
+      {
+        "call": 6,
+        "value": 40
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such instance'"
+      },
+      {
+        "call": 8,
+        "value": 50
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 905
+      },
+      {
+        "call": 5,
+        "error": "ValueError: hours must be within 1 and 10^4"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 923
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 927
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 700
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 1500
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 8,
+        "value": 1500
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: hourlyCents must be within 1 and 10^6"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: hourlyCents must be within 1 and 10^6"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: hostFeeCents must be within 0 and 10^6"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: hostFeeCents must be within 0 and 10^6"
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 1000001
+      },
+      {
+        "call": 10,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 12,
+        "value": 1000001
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 40
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an instance needs a new, non-empty id"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 40
+      },
+      {
+        "call": 8,
+        "error": "ValueError: only a spot instance can be interrupted"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 50
+      },
+      {
+        "call": 11,
+        "value": 90
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 330
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 130
+      },
+      {
+        "call": 9,
+        "value": 460
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: hours must be within 1 and 10^4"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: hours must be within 1 and 10^4"
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 70011
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 70711
+      }
+    ]
+  }
+]

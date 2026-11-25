@@ -1,0 +1,1133 @@
+{
+  "slug": "api-key-store",
+  "title": "API keys with scopes",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": [
+    "encapsulation",
+    "immutability",
+    "class-invariants",
+    "authentication-vs-authorization"
+  ],
+  "interface": {
+    "class": "ApiKeyStore",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "issue",
+        "params": [
+          {
+            "name": "owner",
+            "type": "string"
+          },
+          {
+            "name": "scopes",
+            "type": "list<string>"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          },
+          {
+            "name": "ttlMs",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "can",
+        "params": [
+          {
+            "name": "keyId",
+            "type": "string"
+          },
+          {
+            "name": "scope",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "narrow",
+        "params": [
+          {
+            "name": "keyId",
+            "type": "string"
+          },
+          {
+            "name": "scopes",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "revoke",
+        "params": [
+          {
+            "name": "keyId",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["ci-bot", ["repo:*", "issues:read"], 1000, 60000]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:write", 2000]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "issues:write", 2000]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "issues:read", 60999]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "issues:read", 61000]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:read"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:write", 2000]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:*"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 2000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["ana", ["deploy:run"], 0, 1000]
+          },
+          {
+            "method": "issue",
+            "args": ["bo", ["logs:read", "logs:write"], 0, 1000]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "deploy:run", 10]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-9"]
+          },
+          {
+            "method": "can",
+            "args": ["key-9", "logs:read", 10]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "logs:*", 10]
+          },
+          {
+            "method": "issue",
+            "args": ["", ["a:b"], 0, 1]
+          },
+          {
+            "method": "issue",
+            "args": ["ana", [], 0, 1]
+          },
+          {
+            "method": "issue",
+            "args": ["ana", ["deploy:run"], 0, 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "logs:write", 999]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", [":read"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["Repo:read"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:Read"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:read:x"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:**"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["*:read"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo :read"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["re-po:read"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:re1"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", [""], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["*:*"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:*x"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:read "], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["ok:fine", "repo:bad:"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:read"], 0, 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], -1, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 0, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 10000000000000, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 10000000000001, 10]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 5, 0]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 5, -1]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 0, 1]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 0, 1000000000000]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 0, 1000000000001]
+          },
+          {
+            "method": "can",
+            "args": ["key-3", "a:b", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-3", "a:b", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-3", "a:b", -5]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 9]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 10]
+          },
+          {
+            "method": "can",
+            "args": ["key-4", "a:b", 999999999999]
+          },
+          {
+            "method": "can",
+            "args": ["key-4", "a:b", 1000000000000]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "a:b", 10000000000009]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "a:b", 10000000000010]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": [
+              "o",
+              [
+                "s:a",
+                "s:b",
+                "s:c",
+                "s:d",
+                "s:e",
+                "s:f",
+                "s:g",
+                "s:h",
+                "s:i",
+                "s:j",
+                "s:k",
+                "s:l",
+                "s:m",
+                "s:n",
+                "s:o",
+                "s:p",
+                "s:q",
+                "s:r",
+                "s:s",
+                "s:t"
+              ],
+              0,
+              100
+            ]
+          },
+          {
+            "method": "issue",
+            "args": [
+              "o",
+              [
+                "s:a",
+                "s:b",
+                "s:c",
+                "s:d",
+                "s:e",
+                "s:f",
+                "s:g",
+                "s:h",
+                "s:i",
+                "s:j",
+                "s:k",
+                "s:l",
+                "s:m",
+                "s:n",
+                "s:o",
+                "s:p",
+                "s:q",
+                "s:r",
+                "s:s",
+                "s:t",
+                "s:u"
+              ],
+              0,
+              100
+            ]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["x:y", "x:y"], 0, 100]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "s:t", 5]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "s:u", 5]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "x:y", 5]
+          },
+          {
+            "method": "can",
+            "args": ["key-3", "x:y", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "can",
+            "args": ["nope", "repo", 0]
+          },
+          {
+            "method": "can",
+            "args": ["nope", "repo:*", 0]
+          },
+          {
+            "method": "can",
+            "args": ["nope", "repo:read", 0]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:read"], 0, 100]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "*:read", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "Repo:read", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-0", "repo:read", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:read", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:*"], 0, 100]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repos:read", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "rep:read", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "issues:read", 1]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:read"], 0, 100]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:write", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:read", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "read:repo", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:*"], 0, 100]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:read", "repo:write"]]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:read", "issues:read"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:write", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "issues:read", 1]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", []]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["bad"]]
+          },
+          {
+            "method": "narrow",
+            "args": [
+              "key-1",
+              [
+                "s:a",
+                "s:b",
+                "s:c",
+                "s:d",
+                "s:e",
+                "s:f",
+                "s:g",
+                "s:h",
+                "s:i",
+                "s:j",
+                "s:k",
+                "s:l",
+                "s:m",
+                "s:n",
+                "s:o",
+                "s:p",
+                "s:q",
+                "s:r",
+                "s:s",
+                "s:t",
+                "s:u"
+              ]
+            ]
+          },
+          {
+            "method": "narrow",
+            "args": ["nope", ["repo:read"]]
+          },
+          {
+            "method": "narrow",
+            "args": ["nope", ["bad"]]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:read", "repo:read"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:write", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 100]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:read"]]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:read"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 0, 10]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 50]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["a:b"]]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 5]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["a", ["x:y"], 0, 100]
+          },
+          {
+            "method": "issue",
+            "args": ["b", ["x:y"], 0, 100]
+          },
+          {
+            "method": "issue",
+            "args": ["c", ["x:y"], 0, 100]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-2"]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "x:y", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "x:y", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-3", "x:y", 1]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-3", ["x:*"]]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-2", ["x:y"]]
+          },
+          {
+            "method": "issue",
+            "args": ["d", ["x:y"], 0, 100]
+          },
+          {
+            "method": "can",
+            "args": ["key-4", "x:y", 99]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:*", "ci:run"], 0, 100]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:*"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "ci:run", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:push", 1]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["ci:run"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:read", "repo:write"], 0, 100]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:*"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:admin", 1]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:write"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:write", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 10000000000000, 1000000000000]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 10999999999999]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 11000000000000]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:*", "b:c"], 0, 100]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["a:x", "a:*", "b:c"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:zz", 1]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["b:*"]]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["a:x"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:y", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:x", 1]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["a:*"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "revoke",
+            "args": [""]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          },
+          {
+            "method": "issue",
+            "args": ["svc", ["db:read"], 7, 3]
+          },
+          {
+            "method": "revoke",
+            "args": ["KEY-1"]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1 "]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "db:read", 9]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "db:read", 10]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "rotate",
+        "params": [
+          {
+            "name": "keyId",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["bot", ["repo:read"], 1000, 600000]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 5000]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 64999]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 65000]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:read", 604999]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:read", 605000]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 6000]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-2", 6000]
+          },
+          {
+            "method": "can",
+            "args": ["key-3", "repo:read", 605999]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 0, 10000]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 5000]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 9999]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 10000]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "a:b", 14999]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "a:b", 15000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 0]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 0, 100]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 100]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", -1]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 99]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-2"]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-2", 50]
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["a:b"], 10000000000000, 100]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-3", 10000000000001]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-3", 10000000000000]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-3", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "a:b", 99]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["repo:*"], 0, 1000000]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["repo:read"]]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:write", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:read", 1]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-2", ["repo:*"]]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 59999]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 60000]
+          },
+          {
+            "method": "revoke",
+            "args": ["key-1"]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "repo:read", 1]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:read", 999999]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "repo:read", 1000000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "issue",
+            "args": ["o", ["x:y"], 100000, 1000]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-1", 0]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "x:y", 59999]
+          },
+          {
+            "method": "can",
+            "args": ["key-1", "x:y", 70000]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "x:y", 999]
+          },
+          {
+            "method": "can",
+            "args": ["key-2", "x:y", 1000]
+          },
+          {
+            "method": "narrow",
+            "args": ["key-1", ["x:y"]]
+          },
+          {
+            "method": "rotate",
+            "args": ["key-2", 500]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,979 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["LOG_LEVEL", "PORT"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": ["LOG_LEVEL: not allowed", "PORT: out of range"]
+      },
+      {
+        "call": 7,
+        "value": ["PORT: missing"]
+      },
+      {
+        "call": 8,
+        "value": ["PORT: not an integer"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": ["WORKERS: out of range"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["WORKERS: out of range"]
+      },
+      {
+        "call": 9,
+        "value": ["WORKERS: out of range"]
+      },
+      {
+        "call": 10,
+        "value": ["WORKERS"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a field name is never empty, and this field can't take this rule"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a field name is never empty, and this field can't take this rule"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a field name is never empty, and this field can't take this rule"
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 18,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 19,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 20,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 21,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 22,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 23,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 24,
+        "value": []
+      },
+      {
+        "call": 25,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["N: out of range"]
+      },
+      {
+        "call": 4,
+        "value": ["N: out of range"]
+      },
+      {
+        "call": 5,
+        "value": ["N: not an integer"]
+      },
+      {
+        "call": 6,
+        "value": ["N: not an integer"]
+      },
+      {
+        "call": 7,
+        "value": ["N: not an integer"]
+      },
+      {
+        "call": 8,
+        "value": ["N: not an integer"]
+      },
+      {
+        "call": 9,
+        "value": ["N: not an integer"]
+      },
+      {
+        "call": 10,
+        "value": ["N: out of range"]
+      },
+      {
+        "call": 11,
+        "value": ["N: not an integer"]
+      },
+      {
+        "call": 12,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["BIG: not an integer"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": ["BIG: not an integer"]
+      },
+      {
+        "call": 7,
+        "value": ["BIG: not an integer"]
+      },
+      {
+        "call": 8,
+        "value": ["BIG: not an integer"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["MODE: not allowed"]
+      },
+      {
+        "call": 4,
+        "value": ["MODE: not allowed"]
+      },
+      {
+        "call": 5,
+        "value": ["MODE: not allowed"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["MODE: not allowed"]
+      },
+      {
+        "call": 9,
+        "value": ["ENV: not allowed"]
+      },
+      {
+        "call": 10,
+        "value": ["ENV", "MODE"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["A", "A_1", "B", "_x", "a", "b"]
+      },
+      {
+        "call": 8,
+        "value": [
+          "A: missing",
+          "A_1: missing",
+          "B: missing",
+          "_x: missing",
+          "a: missing",
+          "b: missing"
+        ]
+      },
+      {
+        "call": 9,
+        "value": ["A_1: missing", "B: missing", "_x: missing", "b: missing"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["X: not allowed", "X: out of range"]
+      },
+      {
+        "call": 5,
+        "value": ["X: out of range"]
+      },
+      {
+        "call": 6,
+        "value": ["X: not allowed", "X: not an integer"]
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["X: missing"]
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["X: missing", "X: missing"]
+      },
+      {
+        "call": 11,
+        "value": ["X"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["TOKEN: missing"]
+      },
+      {
+        "call": 4,
+        "value": ["TOKEN: missing"]
+      },
+      {
+        "call": 5,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["T: out of range"]
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["T: out of range"]
+      },
+      {
+        "call": 6,
+        "value": ["T: out of range"]
+      },
+      {
+        "call": 7,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["P"]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown spec"
+      },
+      {
+        "call": 7,
+        "value": ["P"]
+      },
+      {
+        "call": 8,
+        "value": ["P: missing"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["Z: out of range"]
+      },
+      {
+        "call": 4,
+        "value": ["Z: out of range"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["CACHE: not allowed", "DB_URL: missing", "POOL: out of range"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["POOL: out of range"]
+      },
+      {
+        "call": 8,
+        "value": ["DB_URL: missing", "POOL: not an integer"]
+      },
+      {
+        "call": 9,
+        "value": ["CACHE", "DB_URL", "POOL"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["R: out of range"]
+      },
+      {
+        "call": 5,
+        "value": ["R: out of range"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["S: out of range"]
+      },
+      {
+        "call": 9,
+        "value": ["S: out of range"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["LOG_LEVEL: not allowed"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a field name is never empty, and this field can't take this rule"
+      },
+      {
+        "call": 8,
+        "value": ["LOG_LEVEL: not allowed"]
+      },
+      {
+        "call": 9,
+        "value": ["LOG_LEVEL"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a fallback needs a field with rules and none required"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a fallback needs a field with rules and none required"
+      },
+      {
+        "call": 4,
+        "value": ["PORT: missing"]
+      },
+      {
+        "call": 5,
+        "value": ["PORT"]
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["W: not an integer"]
+      },
+      {
+        "call": 4,
+        "value": ["W: out of range"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["W: not an integer"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["W: out of range"]
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a fallback needs a field with rules and none required"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a fallback needs a field with rules and none required"
+      },
+      {
+        "call": 5,
+        "value": ["A: missing"]
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["B: not allowed"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["B: not allowed", "C: missing"]
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a field name is never empty, and this field can't take this rule"
+      },
+      {
+        "call": 8,
+        "value": ["B: not allowed", "C: missing"]
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a fallback needs a field with rules and none required"
+      },
+      {
+        "call": 11,
+        "value": ["B: not allowed", "C: missing"]
+      },
+      {
+        "call": 12,
+        "value": ["B", "C"]
+      }
+    ]
+  }
+]

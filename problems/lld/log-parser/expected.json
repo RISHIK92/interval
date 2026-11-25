@@ -1,0 +1,1118 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": {
+          "level": "info",
+          "msg": "started",
+          "port": "8080"
+        }
+      },
+      {
+        "call": 5,
+        "value": {
+          "ts": "1700000000",
+          "level": "warn",
+          "msg": "disk at 91%"
+        }
+      },
+      {
+        "call": 6,
+        "value": {
+          "host": "127.0.0.1",
+          "ident": "-",
+          "user": "frank",
+          "time": "10/Oct/2000:13:55:36 -0700",
+          "method": "GET",
+          "path": "/a.gif",
+          "protocol": "HTTP/1.0",
+          "status": "200",
+          "bytes": "2326"
+        }
+      },
+      {
+        "call": 7,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a format needs a new, non-empty name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown kind, or headers where none are taken"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 5,
+        "value": {
+          "query": "a=b",
+          "empty": ""
+        }
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'no such format'"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "error": "KeyError: 'no such format'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a format needs a new, non-empty name"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown kind, or headers where none are taken"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown kind, or headers where none are taken"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown kind, or headers where none are taken"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: 1-20 distinct, non-empty headers"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: 1-20 distinct, non-empty headers"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: 1-20 distinct, non-empty headers"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: 1-20 distinct, non-empty headers"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'no such format'"
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'no such format'"
+      },
+      {
+        "call": 11,
+        "error": "KeyError: 'no such format'"
+      },
+      {
+        "call": 12,
+        "error": "KeyError: 'no such format'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": {
+          "h0": "0",
+          "h1": "1",
+          "h2": "2",
+          "h3": "3",
+          "h4": "4",
+          "h5": "5",
+          "h6": "6",
+          "h7": "7",
+          "h8": "8",
+          "h9": "9",
+          "h10": "10",
+          "h11": "11",
+          "h12": "12",
+          "h13": "13",
+          "h14": "14",
+          "h15": "15",
+          "h16": "16",
+          "h17": "17",
+          "h18": "18",
+          "h19": "19"
+        }
+      },
+      {
+        "call": 3,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 5,
+        "value": {
+          "h0": "",
+          "h1": "",
+          "h2": "",
+          "h3": "",
+          "h4": "",
+          "h5": "",
+          "h6": "",
+          "h7": "",
+          "h8": "",
+          "h9": "",
+          "h10": "",
+          "h11": "",
+          "h12": "",
+          "h13": "",
+          "h14": "",
+          "h15": "",
+          "h16": "",
+          "h17": "",
+          "h18": "",
+          "h19": ""
+        }
+      },
+      {
+        "call": 6,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": {
+          "only": ""
+        }
+      },
+      {
+        "call": 3,
+        "value": {
+          "only": "x"
+        }
+      },
+      {
+        "call": 4,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 5,
+        "value": {
+          "only": " a b "
+        }
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 8,
+        "value": {
+          "a": "",
+          "b": ""
+        }
+      },
+      {
+        "call": 9,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 10,
+        "value": {
+          "a": "x",
+          "b": "y"
+        }
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": {
+          "a": ""
+        }
+      },
+      {
+        "call": 12,
+        "value": {
+          "a": "="
+        }
+      },
+      {
+        "call": 13,
+        "value": {
+          "A": "1",
+          "a": "2",
+          "b": "c=d"
+        }
+      },
+      {
+        "call": 14,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 15,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": {
+          "host": "127.0.0.1",
+          "ident": "-",
+          "user": "frank",
+          "time": "10/Oct/2000:13:55:36 -0700",
+          "method": "GET",
+          "path": "/a.gif",
+          "protocol": "HTTP/1.0",
+          "status": "200",
+          "bytes": "2326"
+        }
+      },
+      {
+        "call": 3,
+        "value": {
+          "host": "10.0.0.2",
+          "ident": "ident",
+          "user": "-",
+          "time": "01/Jan/2024:00:00:00 +0000",
+          "method": "POST",
+          "path": "/api/v1/items?id=3",
+          "protocol": "HTTP/2",
+          "status": "201",
+          "bytes": "-"
+        }
+      },
+      {
+        "call": 4,
+        "value": {
+          "host": "h",
+          "ident": "-",
+          "user": "u",
+          "time": "t",
+          "method": "M",
+          "path": "P",
+          "protocol": "Q",
+          "status": "999",
+          "bytes": "0"
+        }
+      },
+      {
+        "call": 5,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 12,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 12,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": {
+          "host": "[h]",
+          "ident": "-",
+          "user": "u",
+          "time": "time [x",
+          "method": "GET",
+          "path": "/",
+          "protocol": "H",
+          "status": "200",
+          "bytes": "1"
+        }
+      },
+      {
+        "call": 3,
+        "value": {
+          "host": "h",
+          "ident": "-",
+          "user": "u",
+          "time": "a b  c",
+          "method": "GET",
+          "path": "/",
+          "protocol": "H",
+          "status": "200",
+          "bytes": "1"
+        }
+      },
+      {
+        "call": 4,
+        "value": {
+          "host": "h",
+          "ident": "-",
+          "user": "\"u\"",
+          "time": "t",
+          "method": "GET",
+          "path": "/[x]",
+          "protocol": "H",
+          "status": "404",
+          "bytes": "0"
+        }
+      },
+      {
+        "call": 5,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": {
+          "x": "1"
+        }
+      },
+      {
+        "call": 4,
+        "value": {
+          "y": "2"
+        }
+      },
+      {
+        "call": 5,
+        "value": {
+          "z": "3"
+        }
+      },
+      {
+        "call": 6,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": {
+          "x": "q"
+        }
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": {
+          "host": "web-1",
+          "status": "200",
+          "path": "/"
+        }
+      },
+      {
+        "call": 3,
+        "value": {
+          "host": "web-2",
+          "status": "",
+          "path": ""
+        }
+      },
+      {
+        "call": 4,
+        "error": "ValueError: malformed line"
+      },
+      {
+        "call": 5,
+        "value": {
+          "host": "x=1",
+          "status": "y=2",
+          "path": "z=3"
+        }
+      },
+      {
+        "call": 6,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": {
+          "a b": "1",
+          "c": "2"
+        }
+      },
+      {
+        "call": 4,
+        "value": {
+          "A": "x",
+          "a": "y"
+        }
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such format'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": {
+          "kv": "a=1"
+        }
+      },
+      {
+        "call": 5,
+        "value": {
+          "host": "127.0.0.1",
+          "ident": "-",
+          "user": "frank",
+          "time": "10/Oct/2000:13:55:36 -0700",
+          "method": "GET",
+          "path": "/a.gif",
+          "protocol": "HTTP/1.0",
+          "status": "200",
+          "bytes": "2326"
+        }
+      },
+      {
+        "call": 6,
+        "value": {
+          "a": "1"
+        }
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": {
+          "n": "0"
+        }
+      },
+      {
+        "call": 3,
+        "value": {
+          "n": "1"
+        }
+      },
+      {
+        "call": 4,
+        "value": {
+          "n": "2"
+        }
+      },
+      {
+        "call": 5,
+        "value": {
+          "n": "3"
+        }
+      },
+      {
+        "call": 6,
+        "value": {
+          "n": "4"
+        }
+      },
+      {
+        "call": 7,
+        "value": {
+          "n": "5"
+        }
+      },
+      {
+        "call": 8,
+        "value": {
+          "n": "6"
+        }
+      },
+      {
+        "call": 9,
+        "value": {
+          "n": "7"
+        }
+      },
+      {
+        "call": 10,
+        "value": {
+          "n": "8"
+        }
+      },
+      {
+        "call": 11,
+        "value": {
+          "n": "9"
+        }
+      },
+      {
+        "call": 12,
+        "value": {
+          "n": "10"
+        }
+      },
+      {
+        "call": 13,
+        "value": {
+          "n": "11"
+        }
+      },
+      {
+        "call": 14,
+        "value": 12
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "app"
+      },
+      {
+        "call": 5,
+        "value": "events"
+      },
+      {
+        "call": 6,
+        "value": "web"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "one"
+      },
+      {
+        "call": 5,
+        "value": "one"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "one"
+      },
+      {
+        "call": 8,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "k"
+      },
+      {
+        "call": 4,
+        "value": "pair"
+      },
+      {
+        "call": 5,
+        "value": "pair"
+      },
+      {
+        "call": 6,
+        "value": "k"
+      },
+      {
+        "call": 7,
+        "value": {
+          "a": "a=1",
+          "b": "b=2"
+        }
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "w"
+      },
+      {
+        "call": 4,
+        "value": "k"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 0
+      }
+    ]
+  }
+]

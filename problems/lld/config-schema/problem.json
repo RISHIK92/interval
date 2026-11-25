@@ -1,0 +1,1305 @@
+{
+  "slug": "config-schema",
+  "title": "Service config schema",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["abstraction", "polymorphism"],
+  "interface": {
+    "class": "ConfigSchema",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "rule",
+        "params": [
+          {
+            "name": "field",
+            "type": "string"
+          },
+          {
+            "name": "spec",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "check",
+        "params": [
+          {
+            "name": "env",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "fields",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["PORT", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["PORT", "int:1:65535"]
+          },
+          {
+            "method": "rule",
+            "args": ["LOG_LEVEL", "oneOf:debug,info,warn"]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "PORT": "8080",
+                "LOG_LEVEL": "info"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "PORT": "70000",
+                "LOG_LEVEL": "trace"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "PORT": "80a",
+                "EXTRA": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["MODE", "optional"]
+          },
+          {
+            "method": "rule",
+            "args": ["MODE", "int:10:1"]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["WORKERS", "int:-5:5"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "WORKERS": "-0"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "WORKERS": "007"
+              }
+            ]
+          },
+          {
+            "method": "rule",
+            "args": ["WORKERS", "int:0:3"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "WORKERS": "4"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "WORKERS": "-1"
+              }
+            ]
+          },
+          {
+            "method": "fields",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "A": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["", "int:1:2"]
+          },
+          {
+            "method": "rule",
+            "args": ["", "oneOf:a"]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "": ""
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["X", "Required"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:1"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:a:b"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:1:2:3"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:+1:2"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int::2"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:1:"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "oneOf"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "oneOf:"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "oneOf:a,,b"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "oneOf:a,"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "oneOf:,a"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", ""]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "required "]
+          },
+          {
+            "method": "rule",
+            "args": ["X", " required"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:1234567890123456:9999999999999999"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:- 1:2"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:--1:2"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "INT:1:2"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "oneof:a"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:1.5:2"]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "X": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["N", "int:5:5"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "5"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "4"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "6"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": ""
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "-"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "+5"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": " 5"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "5.0"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "999999999999999"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "1234567890123456"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "N": "0005"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["BIG", "int:-999999999999999:999999999999999"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "BIG": "999999999999999"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "BIG": "-999999999999999"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "BIG": "0000000000000001"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "BIG": "-000000000000001"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "BIG": "-0000000000000001"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "BIG": "--1"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "BIG": "1-"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["MODE", "oneOf:a:b,c"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "MODE": "a:b"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "MODE": "a"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "MODE": "C"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "MODE": ""
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "MODE": "c"
+              }
+            ]
+          },
+          {
+            "method": "rule",
+            "args": ["ENV", "oneOf:prod"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "ENV": "prod",
+                "MODE": "b"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "ENV": "prod,stage"
+              }
+            ]
+          },
+          {
+            "method": "fields",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["b", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["B", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["a", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["A_1", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["_x", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["A", "required"]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "a": "1",
+                "A": "2"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["X", "oneOf:1,2"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "int:0:1"]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "required"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "X": "3"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "X": "2"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "X": "q"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "X": "1"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "rule",
+            "args": ["X", "required"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "fields",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["TOKEN", "required"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "TOKEN": ""
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "token": "x"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "TOKEN ": "x"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "TOKEN": "abc",
+                "OTHER": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["T", "int:-10:-1"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "T": "-10"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "T": "-11"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "T": "-1"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "T": "0"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "T": "-0"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "T": "-9"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["P", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["P", "int:9:1"]
+          },
+          {
+            "method": "rule",
+            "args": ["P", "oneOf:"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "P": "zzz"
+              }
+            ]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["Q", "int:1:x"]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["Z", "int:007:010"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "Z": "10"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "Z": "11"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "Z": "6"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "Z": "0010"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "Z": "7"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["DB_URL", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["POOL", "int:1:100"]
+          },
+          {
+            "method": "rule",
+            "args": ["POOL", "required"]
+          },
+          {
+            "method": "rule",
+            "args": ["CACHE", "oneOf:on,off"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "POOL": "0",
+                "CACHE": "maybe"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "DB_URL": "postgres://x",
+                "POOL": "100",
+                "CACHE": "on"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "DB_URL": "",
+                "POOL": "101",
+                "CACHE": "off"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "CACHE": "off",
+                "POOL": "x1"
+              }
+            ]
+          },
+          {
+            "method": "fields",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["R", "int:0:0"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "R": "0"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "R": "-0"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "R": "1"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "R": "-1"
+              }
+            ]
+          },
+          {
+            "method": "rule",
+            "args": ["S", "int:-3:-3"]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "S": "-3",
+                "R": "00"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "S": "-2"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "S": "-4"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "fallback",
+        "params": [
+          {
+            "name": "field",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["LOG_LEVEL", "oneOf:debug,info"]
+          },
+          {
+            "method": "fallback",
+            "args": ["LOG_LEVEL", "info"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "fallback",
+            "args": ["LOG_LEVEL", "trace"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "LOG_LEVEL": "debug"
+              }
+            ]
+          },
+          {
+            "method": "rule",
+            "args": ["LOG_LEVEL", "required"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "fields",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["PORT", "required"]
+          },
+          {
+            "method": "fallback",
+            "args": ["PORT", "80"]
+          },
+          {
+            "method": "fallback",
+            "args": ["UNKNOWN", "1"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "fields",
+            "args": []
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "UNKNOWN": "1",
+                "PORT": "1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["W", "int:1:8"]
+          },
+          {
+            "method": "fallback",
+            "args": ["W", "x"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "W": "9"
+              }
+            ]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "W": "8"
+              }
+            ]
+          },
+          {
+            "method": "fallback",
+            "args": ["W", ""]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "rule",
+            "args": ["W", "int:0:3"]
+          },
+          {
+            "method": "fallback",
+            "args": ["W", "5"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "fallback",
+            "args": ["W", "2"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "fallback",
+            "args": ["", "a"]
+          },
+          {
+            "method": "rule",
+            "args": ["A", "int:1:2"]
+          },
+          {
+            "method": "rule",
+            "args": ["A", "required"]
+          },
+          {
+            "method": "fallback",
+            "args": ["A", "1"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "check",
+            "args": [
+              {
+                "A": "2"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["B", "oneOf:x"]
+          },
+          {
+            "method": "fallback",
+            "args": ["B", "x"]
+          },
+          {
+            "method": "rule",
+            "args": ["B", "oneOf:y"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "rule",
+            "args": ["C", "required"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "rule",
+            "args": ["B", "required"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "rule",
+            "args": ["C", "oneOf:z"]
+          },
+          {
+            "method": "fallback",
+            "args": ["C", "z"]
+          },
+          {
+            "method": "check",
+            "args": [{}]
+          },
+          {
+            "method": "fields",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

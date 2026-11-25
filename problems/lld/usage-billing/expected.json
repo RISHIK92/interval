@@ -1,0 +1,1243 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": {
+          "api": 1400
+        }
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": {
+          "api": 1400,
+          "storage": 1200
+        }
+      },
+      {
+        "call": 7,
+        "value": 2600
+      },
+      {
+        "call": 8,
+        "value": {}
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": {
+          "calls": 30
+        }
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": {
+          "calls": 22
+        }
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 8,
+        "value": 22
+      },
+      {
+        "call": 9,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a named metric and a known model"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a named metric and a known model"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a named metric and a known model"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a named metric and a known model"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 7,
+        "value": {}
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": {
+          "m": 10
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: starts begin at 0 and rise, up to 10^9"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: starts begin at 0 and rise, up to 10^9"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: starts begin at 0 and rise, up to 10^9"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: starts begin at 0 and rise, up to 10^9"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: rates within 0-10^6"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: rates within 0-10^6"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: rates within 0-10^6"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: rates within 0-10^6"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": {
+          "m": 3000000
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: 1-10 tiers, each [start, centsPerUnit]"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "g": 550,
+          "v": 100
+        }
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": {
+          "g": 545,
+          "v": 95
+        }
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": {
+          "g": 540,
+          "v": 180
+        }
+      },
+      {
+        "call": 14,
+        "value": 720
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "g": 10,
+          "v": 10
+        }
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": {
+          "g": 1000,
+          "v": 1000
+        }
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": {
+          "g": 1008,
+          "v": 808
+        }
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": {
+          "g": 8200,
+          "v": 8000
+        }
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": {
+          "g": 8205,
+          "v": 5005
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: starts begin at 0 and rise, up to 10^9"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": {
+          "big": 1000000000000000,
+          "huge": 1000000000000000
+        }
+      },
+      {
+        "call": 7,
+        "value": 2000000000000000
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": {
+          "big": 1000000000000000
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 5,
+        "value": {}
+      },
+      {
+        "call": 6,
+        "value": {}
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 9,
+        "value": {
+          "m": 8
+        }
+      },
+      {
+        "call": 10,
+        "value": 8
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": {
+          "m": 17
+        }
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "m": 8
+        }
+      },
+      {
+        "call": 6,
+        "error": "ValueError: starts begin at 0 and rise, up to 10^9"
+      },
+      {
+        "call": 7,
+        "value": {
+          "m": 8
+        }
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a named metric and a known model"
+      },
+      {
+        "call": 9,
+        "value": {
+          "m": 8
+        }
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": 28
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "g": 0,
+          "v": 0
+        }
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": {
+          "g": 7,
+          "v": 42
+        }
+      },
+      {
+        "call": 10,
+        "value": 49
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "g": 21,
+          "v": 35
+        }
+      },
+      {
+        "call": 6,
+        "value": 56
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "api": 34,
+          "egress": 36
+        }
+      },
+      {
+        "call": 8,
+        "value": {
+          "api": 18
+        }
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": {
+          "api": 51,
+          "egress": 36
+        }
+      },
+      {
+        "call": 13,
+        "value": {
+          "api": 18,
+          "egress": 30
+        }
+      },
+      {
+        "call": 14,
+        "value": 87
+      },
+      {
+        "call": 15,
+        "value": 48
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": {
+          "g": 6
+        }
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "g": 12
+        }
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "g": 20
+        }
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": {
+          "g": 24
+        }
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": {
+          "g": 36
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": {
+          "v": 12
+        }
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "v": 12
+        }
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "v": 20
+        }
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": {
+          "v": 18
+        }
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a customer, a priced metric and 1-10^9 units"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "a": 6
+        }
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "a": 6,
+          "b": 12
+        }
+      },
+      {
+        "call": 8,
+        "value": 18
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "api": 500
+        }
+      },
+      {
+        "call": 6,
+        "value": {
+          "api": 1000
+        }
+      },
+      {
+        "call": 7,
+        "value": {}
+      },
+      {
+        "call": 8,
+        "value": 500
+      },
+      {
+        "call": 9,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a priced metric and 0-10^9 cents"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a priced metric and 0-10^9 cents"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a priced metric and 0-10^9 cents"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a priced metric and 0-10^9 cents"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "api": 6
+        }
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": {
+          "api": 1000000000
+        }
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": {
+          "api": 6
+        }
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": {
+          "api": 7
+        }
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": {
+          "api": 6
+        }
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "free": 0,
+          "paid": 12
+        }
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "free": 25,
+          "paid": 12
+        }
+      },
+      {
+        "call": 8,
+        "value": 37
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": {
+          "free": 25,
+          "paid": 12
+        }
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": {
+          "free": 25,
+          "paid": 13
+        }
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": {
+          "m": 40
+        }
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": {
+          "m": 60
+        }
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": {
+          "m": 40
+        }
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a priced metric and 0-10^9 cents"
+      },
+      {
+        "call": 10,
+        "value": {
+          "m": 40
+        }
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": {
+          "m": 52
+        }
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": {
+          "y": 2
+        }
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": {
+          "x": 9
+        }
+      },
+      {
+        "call": 8,
+        "value": 9
+      }
+    ]
+  }
+]

@@ -1,0 +1,1551 @@
+{
+  "slug": "instance-billing",
+  "title": "Instance billing",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": [
+    "polymorphism",
+    "inheritance",
+    "interfaces-and-abstract-classes"
+  ],
+  "interface": {
+    "class": "BillingMeter",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "launch",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "name": "hourlyCents",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "run",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "hours",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "bill",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "total",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "interrupt",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["web-1", "on-demand", 120]
+          },
+          {
+            "method": "run",
+            "args": ["web-1", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["web-1"]
+          },
+          {
+            "method": "launch",
+            "args": ["db-1", "reserved", 200]
+          },
+          {
+            "method": "bill",
+            "args": ["db-1"]
+          },
+          {
+            "method": "run",
+            "args": ["db-1", 10]
+          },
+          {
+            "method": "bill",
+            "args": ["db-1"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["batch", "spot", 100]
+          },
+          {
+            "method": "run",
+            "args": ["batch", 5]
+          },
+          {
+            "method": "bill",
+            "args": ["batch"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["batch"]
+          },
+          {
+            "method": "run",
+            "args": ["batch", 5]
+          },
+          {
+            "method": "bill",
+            "args": ["batch"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["batch"]
+          },
+          {
+            "method": "launch",
+            "args": ["web", "on-demand", 10]
+          },
+          {
+            "method": "interrupt",
+            "args": ["web"]
+          },
+          {
+            "method": "launch",
+            "args": ["batch", "on-demand", 1]
+          },
+          {
+            "method": "launch",
+            "args": ["x", "gpu", 10]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": ["a", 1]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["", "on-demand", 1]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "on-demand", 0]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "on-demand", 1000001]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "on-demand", -5]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "On-Demand", 5]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "", 5]
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["a", "on-demand", 1000000]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": ["a", 0]
+          },
+          {
+            "method": "run",
+            "args": ["a", 10001]
+          },
+          {
+            "method": "run",
+            "args": ["a", -1]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": ["a", 10000]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": ["b", 1]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["r", "reserved", 7]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "run",
+            "args": ["r", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "run",
+            "args": ["r", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "run",
+            "args": ["r", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "launch",
+            "args": ["big", "reserved", 1000]
+          },
+          {
+            "method": "run",
+            "args": ["big", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["big"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["s", "spot", 3]
+          },
+          {
+            "method": "run",
+            "args": ["s", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "run",
+            "args": ["s", 2]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "run",
+            "args": ["s", 5]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "launch",
+            "args": ["s2", "spot", 1000]
+          },
+          {
+            "method": "run",
+            "args": ["s2", 7]
+          },
+          {
+            "method": "bill",
+            "args": ["s2"]
+          },
+          {
+            "method": "run",
+            "args": ["s2", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["s2"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["s2"]
+          },
+          {
+            "method": "run",
+            "args": ["s2", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["s2"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["s", "spot", 500]
+          },
+          {
+            "method": "run",
+            "args": ["s", 8]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "run",
+            "args": ["s", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "launch",
+            "args": ["t", "spot", 500]
+          },
+          {
+            "method": "run",
+            "args": ["t", 20]
+          },
+          {
+            "method": "bill",
+            "args": ["t"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["t"]
+          },
+          {
+            "method": "run",
+            "args": ["t", 5]
+          },
+          {
+            "method": "bill",
+            "args": ["t"]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["a", "spot", 5]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "reserved", 5]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "spot", 5]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["b", "reserved", 5]
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["c", "on-demand", 5]
+          },
+          {
+            "method": "bill",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["o", "on-demand", 3]
+          },
+          {
+            "method": "launch",
+            "args": ["r", "reserved", 3]
+          },
+          {
+            "method": "launch",
+            "args": ["s", "spot", 3]
+          },
+          {
+            "method": "run",
+            "args": ["o", 4]
+          },
+          {
+            "method": "run",
+            "args": ["r", 4]
+          },
+          {
+            "method": "run",
+            "args": ["s", 4]
+          },
+          {
+            "method": "bill",
+            "args": ["o"]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["o", "on-demand", 1000000]
+          },
+          {
+            "method": "launch",
+            "args": ["r", "reserved", 1000000]
+          },
+          {
+            "method": "launch",
+            "args": ["s", "spot", 1000000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["o", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["r", 10000]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "bill",
+            "args": ["o"]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["r", "reserved", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "run",
+            "args": ["r", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "run",
+            "args": ["r", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "launch",
+            "args": ["p", "spot", 1]
+          },
+          {
+            "method": "run",
+            "args": ["p", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["p"]
+          },
+          {
+            "method": "run",
+            "args": ["p", 5]
+          },
+          {
+            "method": "bill",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["r", "reserved", 333]
+          },
+          {
+            "method": "run",
+            "args": ["r", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "launch",
+            "args": ["s", "spot", 333]
+          },
+          {
+            "method": "run",
+            "args": ["s", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "launch",
+            "args": ["o", "on-demand", 333]
+          },
+          {
+            "method": "run",
+            "args": ["o", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["o"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "interrupt",
+            "args": ["x"]
+          },
+          {
+            "method": "interrupt",
+            "args": [""]
+          },
+          {
+            "method": "launch",
+            "args": ["r", "reserved", 10]
+          },
+          {
+            "method": "launch",
+            "args": ["o", "on-demand", 10]
+          },
+          {
+            "method": "interrupt",
+            "args": ["r"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["o"]
+          },
+          {
+            "method": "run",
+            "args": ["r", 2]
+          },
+          {
+            "method": "run",
+            "args": ["o", 2]
+          },
+          {
+            "method": "bill",
+            "args": ["r"]
+          },
+          {
+            "method": "bill",
+            "args": ["o"]
+          },
+          {
+            "method": "launch",
+            "args": ["s", "spot", 10]
+          },
+          {
+            "method": "interrupt",
+            "args": ["s"]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "run",
+            "args": ["s", 10000]
+          },
+          {
+            "method": "bill",
+            "args": ["s"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["s"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["s"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["S"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["a", "spot", 10]
+          },
+          {
+            "method": "launch",
+            "args": ["b", "spot", 10]
+          },
+          {
+            "method": "run",
+            "args": ["a", 10]
+          },
+          {
+            "method": "run",
+            "args": ["b", 10]
+          },
+          {
+            "method": "interrupt",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": ["a", 10]
+          },
+          {
+            "method": "run",
+            "args": ["b", 10]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "bill",
+            "args": ["b"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["b"]
+          },
+          {
+            "method": "run",
+            "args": ["b", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["A", "on-demand", 10]
+          },
+          {
+            "method": "launch",
+            "args": ["a", "on-demand", 20]
+          },
+          {
+            "method": "run",
+            "args": ["A", 1]
+          },
+          {
+            "method": "run",
+            "args": ["a", 2]
+          },
+          {
+            "method": "bill",
+            "args": ["A"]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "bill",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["x", "spot", 7]
+          },
+          {
+            "method": "launch",
+            "args": ["y", "reserved", 9]
+          },
+          {
+            "method": "run",
+            "args": ["y", 1]
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "run",
+            "args": ["x", 0]
+          },
+          {
+            "method": "run",
+            "args": ["x", 9]
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "launch",
+            "args": ["spot", "on-demand", 2]
+          },
+          {
+            "method": "run",
+            "args": ["spot", 2]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "launchDedicated",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "hourlyCents",
+            "type": "int"
+          },
+          {
+            "name": "hostFeeCents",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["d", 100, 500]
+          },
+          {
+            "method": "bill",
+            "args": ["d"]
+          },
+          {
+            "method": "run",
+            "args": ["d", 2]
+          },
+          {
+            "method": "bill",
+            "args": ["d"]
+          },
+          {
+            "method": "run",
+            "args": ["d", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["d"]
+          },
+          {
+            "method": "launch",
+            "args": ["e", "dedicated", 100]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["", 1, 0]
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["d", 0, 0]
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["d", 1000001, 0]
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["d", 1, -1]
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["d", 1, 1000001]
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["d", 1, 1000000]
+          },
+          {
+            "method": "run",
+            "args": ["d", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["d"]
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["d", 1, 0]
+          },
+          {
+            "method": "launch",
+            "args": ["d", "spot", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["z", 10, 0]
+          },
+          {
+            "method": "run",
+            "args": ["z", 4]
+          },
+          {
+            "method": "bill",
+            "args": ["z"]
+          },
+          {
+            "method": "launch",
+            "args": ["o", "on-demand", 10]
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["o", 10, 5]
+          },
+          {
+            "method": "run",
+            "args": ["o", 4]
+          },
+          {
+            "method": "bill",
+            "args": ["o"]
+          },
+          {
+            "method": "interrupt",
+            "args": ["z"]
+          },
+          {
+            "method": "run",
+            "args": ["z", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["z"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["a", 10, 100]
+          },
+          {
+            "method": "run",
+            "args": ["a", 1]
+          },
+          {
+            "method": "run",
+            "args": ["a", 1]
+          },
+          {
+            "method": "run",
+            "args": ["a", 1]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["b", 10, 100]
+          },
+          {
+            "method": "run",
+            "args": ["b", 3]
+          },
+          {
+            "method": "bill",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "launchDedicated",
+            "args": ["a", 7, 11]
+          },
+          {
+            "method": "run",
+            "args": ["a", 0]
+          },
+          {
+            "method": "run",
+            "args": ["a", 10001]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "run",
+            "args": ["a", 10000]
+          },
+          {
+            "method": "bill",
+            "args": ["a"]
+          },
+          {
+            "method": "launch",
+            "args": ["r", "reserved", 7]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

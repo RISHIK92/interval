@@ -1,0 +1,2125 @@
+{
+  "slug": "sprint-board",
+  "title": "Sprint board",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["enumerations", "encapsulation", "classes-and-objects"],
+  "interface": {
+    "class": "SprintBoard",
+    "constructor": {
+      "params": [
+        {
+          "name": "wipLimit",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "add",
+        "params": [
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "points",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "move",
+        "params": [
+          {
+            "name": "ticket",
+            "type": "string"
+          },
+          {
+            "name": "column",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "column",
+        "params": [
+          {
+            "name": "ticket",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "velocity",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "add",
+            "args": ["Login page", 3]
+          },
+          {
+            "method": "add",
+            "args": ["Signup form", 5]
+          },
+          {
+            "method": "add",
+            "args": ["Search", 8]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "column",
+            "args": ["T-3"]
+          },
+          {
+            "method": "column",
+            "args": ["T-2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "add",
+            "args": ["Fix flaky test", 2]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "todo"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "Doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-9", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [101]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 1", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 2", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 3", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 4", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 5", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 6", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 7", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 8", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 9", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 10", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 11", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 12", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 13", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 14", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 15", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 16", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 17", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 18", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 19", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 20", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 21", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 22", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 23", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 24", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 25", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 26", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 27", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 28", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 29", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 30", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 31", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 32", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 33", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 34", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 35", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 36", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 37", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 38", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 39", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 40", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 41", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 42", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 43", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 44", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 45", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 46", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 47", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 48", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 49", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 50", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 51", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 52", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 53", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 54", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 55", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 56", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 57", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 58", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 59", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 60", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 61", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 62", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 63", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 64", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 65", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 66", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 67", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 68", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 69", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 70", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 71", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 72", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 73", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 74", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 75", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 76", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 77", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 78", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 79", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 80", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 81", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 82", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 83", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 84", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 85", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 86", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 87", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 88", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 89", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 90", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 91", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 92", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 93", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 94", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 95", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 96", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 97", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 98", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 99", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 100", 1]
+          },
+          {
+            "method": "add",
+            "args": ["ticket 101", 1]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-4", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-5", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-6", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-7", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-8", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-9", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-10", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-11", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-12", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-13", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-14", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-15", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-16", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-17", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-18", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-19", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-20", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-21", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-22", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-23", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-24", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-25", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-26", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-27", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-28", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-29", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-30", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-31", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-32", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-33", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-34", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-35", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-36", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-37", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-38", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-39", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-40", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-41", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-42", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-43", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-44", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-45", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-46", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-47", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-48", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-49", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-50", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-51", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-52", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-53", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-54", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-55", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-56", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-57", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-58", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-59", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-60", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-61", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-62", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-63", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-64", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-65", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-66", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-67", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-68", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-69", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-70", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-71", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-72", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-73", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-74", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-75", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-76", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-77", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-78", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-79", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-80", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-81", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-82", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-83", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-84", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-85", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-86", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-87", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-88", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-89", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-90", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-91", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-92", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-93", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-94", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-95", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-96", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-97", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-98", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-99", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-100", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-101", "doing"]
+          },
+          {
+            "method": "column",
+            "args": ["T-100"]
+          },
+          {
+            "method": "column",
+            "args": ["T-101"]
+          },
+          {
+            "method": "move",
+            "args": ["T-50", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-101", "doing"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": ["", 3]
+          },
+          {
+            "method": "add",
+            "args": ["a", 0]
+          },
+          {
+            "method": "add",
+            "args": ["a", 101]
+          },
+          {
+            "method": "add",
+            "args": ["a", -5]
+          },
+          {
+            "method": "add",
+            "args": ["big", 100]
+          },
+          {
+            "method": "add",
+            "args": ["small", 1]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "column",
+            "args": ["T-2"]
+          },
+          {
+            "method": "column",
+            "args": ["T-3"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "column",
+            "args": ["T-0"]
+          },
+          {
+            "method": "column",
+            "args": ["t-1"]
+          },
+          {
+            "method": "column",
+            "args": ["1"]
+          },
+          {
+            "method": "column",
+            "args": [""]
+          },
+          {
+            "method": "column",
+            "args": ["T-01"]
+          },
+          {
+            "method": "column",
+            "args": ["T-2"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "Todo"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", ""]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "backlog"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "DONE"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing "]
+          },
+          {
+            "method": "move",
+            "args": ["", "doing"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "add",
+            "args": ["a", 4]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "todo"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "todo"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "add",
+            "args": ["a", 2]
+          },
+          {
+            "method": "add",
+            "args": ["b", 3]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "todo"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "todo"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "column",
+            "args": ["T-2"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "add",
+            "args": ["b", 2]
+          },
+          {
+            "method": "add",
+            "args": ["c", 4]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "todo"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "column",
+            "args": ["T-2"]
+          },
+          {
+            "method": "column",
+            "args": ["T-3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "add",
+            "args": ["b", 2]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "todo"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": ["a", 10]
+          },
+          {
+            "method": "add",
+            "args": ["b", 20]
+          },
+          {
+            "method": "add",
+            "args": ["c", 30]
+          },
+          {
+            "method": "add",
+            "args": ["d", 40]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-4", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-4", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-4", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "review"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-3", "todo"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "column",
+            "args": ["T-4"]
+          },
+          {
+            "method": "column",
+            "args": ["T-3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "add",
+            "args": ["a", 7]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "todo"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "add",
+            "args": ["x", 3]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "todo"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": ["t1", 1]
+          },
+          {
+            "method": "add",
+            "args": ["t2", 2]
+          },
+          {
+            "method": "add",
+            "args": ["t3", 3]
+          },
+          {
+            "method": "add",
+            "args": ["t4", 4]
+          },
+          {
+            "method": "add",
+            "args": ["t5", 5]
+          },
+          {
+            "method": "add",
+            "args": ["t6", 6]
+          },
+          {
+            "method": "add",
+            "args": ["t7", 7]
+          },
+          {
+            "method": "add",
+            "args": ["t8", 8]
+          },
+          {
+            "method": "add",
+            "args": ["t9", 9]
+          },
+          {
+            "method": "add",
+            "args": ["t10", 10]
+          },
+          {
+            "method": "add",
+            "args": ["t11", 11]
+          },
+          {
+            "method": "move",
+            "args": ["T-8", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-9", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-10", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-11", "doing"]
+          },
+          {
+            "method": "column",
+            "args": ["T-10"]
+          },
+          {
+            "method": "column",
+            "args": ["T-11"]
+          },
+          {
+            "method": "column",
+            "args": ["T-8"]
+          },
+          {
+            "method": "move",
+            "args": ["T-11", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-11", "done"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["only", 9]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "block",
+        "params": [
+          {
+            "name": "ticket",
+            "type": "string"
+          },
+          {
+            "name": "reason",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "unblock",
+        "params": [
+          {
+            "name": "ticket",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "blocked",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "add",
+            "args": ["API client", 5]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "block",
+            "args": ["T-1", "waiting on API"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "todo"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          },
+          {
+            "method": "unblock",
+            "args": ["T-1"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "block",
+            "args": ["T-2", "x"]
+          },
+          {
+            "method": "block",
+            "args": ["T-1", ""]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          },
+          {
+            "method": "unblock",
+            "args": ["T-1"]
+          },
+          {
+            "method": "unblock",
+            "args": ["T-3"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "block",
+            "args": ["T-1", "first"]
+          },
+          {
+            "method": "block",
+            "args": ["T-1", "second: with a colon"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          },
+          {
+            "method": "unblock",
+            "args": ["T-1"]
+          },
+          {
+            "method": "unblock",
+            "args": ["T-1"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": ["t1", 1]
+          },
+          {
+            "method": "add",
+            "args": ["t2", 2]
+          },
+          {
+            "method": "add",
+            "args": ["t3", 3]
+          },
+          {
+            "method": "add",
+            "args": ["t4", 4]
+          },
+          {
+            "method": "add",
+            "args": ["t5", 5]
+          },
+          {
+            "method": "add",
+            "args": ["t6", 6]
+          },
+          {
+            "method": "add",
+            "args": ["t7", 7]
+          },
+          {
+            "method": "add",
+            "args": ["t8", 8]
+          },
+          {
+            "method": "add",
+            "args": ["t9", 9]
+          },
+          {
+            "method": "add",
+            "args": ["t10", 10]
+          },
+          {
+            "method": "add",
+            "args": ["t11", 11]
+          },
+          {
+            "method": "block",
+            "args": ["T-10", "ten"]
+          },
+          {
+            "method": "block",
+            "args": ["T-2", "two"]
+          },
+          {
+            "method": "block",
+            "args": ["T-11", "eleven"]
+          },
+          {
+            "method": "block",
+            "args": ["T-1", "one"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          },
+          {
+            "method": "unblock",
+            "args": ["T-2"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "add",
+            "args": ["b", 2]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "block",
+            "args": ["T-1", "stuck"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "unblock",
+            "args": ["T-1"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-2", "doing"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "add",
+            "args": ["a", 6]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "doing"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "done"]
+          },
+          {
+            "method": "block",
+            "args": ["T-1", "audit"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "move",
+            "args": ["T-1", "review"]
+          },
+          {
+            "method": "velocity",
+            "args": []
+          },
+          {
+            "method": "column",
+            "args": ["T-1"]
+          },
+          {
+            "method": "blocked",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

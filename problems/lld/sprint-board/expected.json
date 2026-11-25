@@ -1,0 +1,2064 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": "T-3"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": "doing"
+      },
+      {
+        "call": 13,
+        "value": "doing"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no such column"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": "review"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: wipLimit must be within 1-100"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: wipLimit must be within 1-100"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: wipLimit must be within 1-100"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": "T-3"
+      },
+      {
+        "call": 4,
+        "value": "T-4"
+      },
+      {
+        "call": 5,
+        "value": "T-5"
+      },
+      {
+        "call": 6,
+        "value": "T-6"
+      },
+      {
+        "call": 7,
+        "value": "T-7"
+      },
+      {
+        "call": 8,
+        "value": "T-8"
+      },
+      {
+        "call": 9,
+        "value": "T-9"
+      },
+      {
+        "call": 10,
+        "value": "T-10"
+      },
+      {
+        "call": 11,
+        "value": "T-11"
+      },
+      {
+        "call": 12,
+        "value": "T-12"
+      },
+      {
+        "call": 13,
+        "value": "T-13"
+      },
+      {
+        "call": 14,
+        "value": "T-14"
+      },
+      {
+        "call": 15,
+        "value": "T-15"
+      },
+      {
+        "call": 16,
+        "value": "T-16"
+      },
+      {
+        "call": 17,
+        "value": "T-17"
+      },
+      {
+        "call": 18,
+        "value": "T-18"
+      },
+      {
+        "call": 19,
+        "value": "T-19"
+      },
+      {
+        "call": 20,
+        "value": "T-20"
+      },
+      {
+        "call": 21,
+        "value": "T-21"
+      },
+      {
+        "call": 22,
+        "value": "T-22"
+      },
+      {
+        "call": 23,
+        "value": "T-23"
+      },
+      {
+        "call": 24,
+        "value": "T-24"
+      },
+      {
+        "call": 25,
+        "value": "T-25"
+      },
+      {
+        "call": 26,
+        "value": "T-26"
+      },
+      {
+        "call": 27,
+        "value": "T-27"
+      },
+      {
+        "call": 28,
+        "value": "T-28"
+      },
+      {
+        "call": 29,
+        "value": "T-29"
+      },
+      {
+        "call": 30,
+        "value": "T-30"
+      },
+      {
+        "call": 31,
+        "value": "T-31"
+      },
+      {
+        "call": 32,
+        "value": "T-32"
+      },
+      {
+        "call": 33,
+        "value": "T-33"
+      },
+      {
+        "call": 34,
+        "value": "T-34"
+      },
+      {
+        "call": 35,
+        "value": "T-35"
+      },
+      {
+        "call": 36,
+        "value": "T-36"
+      },
+      {
+        "call": 37,
+        "value": "T-37"
+      },
+      {
+        "call": 38,
+        "value": "T-38"
+      },
+      {
+        "call": 39,
+        "value": "T-39"
+      },
+      {
+        "call": 40,
+        "value": "T-40"
+      },
+      {
+        "call": 41,
+        "value": "T-41"
+      },
+      {
+        "call": 42,
+        "value": "T-42"
+      },
+      {
+        "call": 43,
+        "value": "T-43"
+      },
+      {
+        "call": 44,
+        "value": "T-44"
+      },
+      {
+        "call": 45,
+        "value": "T-45"
+      },
+      {
+        "call": 46,
+        "value": "T-46"
+      },
+      {
+        "call": 47,
+        "value": "T-47"
+      },
+      {
+        "call": 48,
+        "value": "T-48"
+      },
+      {
+        "call": 49,
+        "value": "T-49"
+      },
+      {
+        "call": 50,
+        "value": "T-50"
+      },
+      {
+        "call": 51,
+        "value": "T-51"
+      },
+      {
+        "call": 52,
+        "value": "T-52"
+      },
+      {
+        "call": 53,
+        "value": "T-53"
+      },
+      {
+        "call": 54,
+        "value": "T-54"
+      },
+      {
+        "call": 55,
+        "value": "T-55"
+      },
+      {
+        "call": 56,
+        "value": "T-56"
+      },
+      {
+        "call": 57,
+        "value": "T-57"
+      },
+      {
+        "call": 58,
+        "value": "T-58"
+      },
+      {
+        "call": 59,
+        "value": "T-59"
+      },
+      {
+        "call": 60,
+        "value": "T-60"
+      },
+      {
+        "call": 61,
+        "value": "T-61"
+      },
+      {
+        "call": 62,
+        "value": "T-62"
+      },
+      {
+        "call": 63,
+        "value": "T-63"
+      },
+      {
+        "call": 64,
+        "value": "T-64"
+      },
+      {
+        "call": 65,
+        "value": "T-65"
+      },
+      {
+        "call": 66,
+        "value": "T-66"
+      },
+      {
+        "call": 67,
+        "value": "T-67"
+      },
+      {
+        "call": 68,
+        "value": "T-68"
+      },
+      {
+        "call": 69,
+        "value": "T-69"
+      },
+      {
+        "call": 70,
+        "value": "T-70"
+      },
+      {
+        "call": 71,
+        "value": "T-71"
+      },
+      {
+        "call": 72,
+        "value": "T-72"
+      },
+      {
+        "call": 73,
+        "value": "T-73"
+      },
+      {
+        "call": 74,
+        "value": "T-74"
+      },
+      {
+        "call": 75,
+        "value": "T-75"
+      },
+      {
+        "call": 76,
+        "value": "T-76"
+      },
+      {
+        "call": 77,
+        "value": "T-77"
+      },
+      {
+        "call": 78,
+        "value": "T-78"
+      },
+      {
+        "call": 79,
+        "value": "T-79"
+      },
+      {
+        "call": 80,
+        "value": "T-80"
+      },
+      {
+        "call": 81,
+        "value": "T-81"
+      },
+      {
+        "call": 82,
+        "value": "T-82"
+      },
+      {
+        "call": 83,
+        "value": "T-83"
+      },
+      {
+        "call": 84,
+        "value": "T-84"
+      },
+      {
+        "call": 85,
+        "value": "T-85"
+      },
+      {
+        "call": 86,
+        "value": "T-86"
+      },
+      {
+        "call": 87,
+        "value": "T-87"
+      },
+      {
+        "call": 88,
+        "value": "T-88"
+      },
+      {
+        "call": 89,
+        "value": "T-89"
+      },
+      {
+        "call": 90,
+        "value": "T-90"
+      },
+      {
+        "call": 91,
+        "value": "T-91"
+      },
+      {
+        "call": 92,
+        "value": "T-92"
+      },
+      {
+        "call": 93,
+        "value": "T-93"
+      },
+      {
+        "call": 94,
+        "value": "T-94"
+      },
+      {
+        "call": 95,
+        "value": "T-95"
+      },
+      {
+        "call": 96,
+        "value": "T-96"
+      },
+      {
+        "call": 97,
+        "value": "T-97"
+      },
+      {
+        "call": 98,
+        "value": "T-98"
+      },
+      {
+        "call": 99,
+        "value": "T-99"
+      },
+      {
+        "call": 100,
+        "value": "T-100"
+      },
+      {
+        "call": 101,
+        "value": "T-101"
+      },
+      {
+        "call": 102,
+        "value": true
+      },
+      {
+        "call": 103,
+        "value": true
+      },
+      {
+        "call": 104,
+        "value": true
+      },
+      {
+        "call": 105,
+        "value": true
+      },
+      {
+        "call": 106,
+        "value": true
+      },
+      {
+        "call": 107,
+        "value": true
+      },
+      {
+        "call": 108,
+        "value": true
+      },
+      {
+        "call": 109,
+        "value": true
+      },
+      {
+        "call": 110,
+        "value": true
+      },
+      {
+        "call": 111,
+        "value": true
+      },
+      {
+        "call": 112,
+        "value": true
+      },
+      {
+        "call": 113,
+        "value": true
+      },
+      {
+        "call": 114,
+        "value": true
+      },
+      {
+        "call": 115,
+        "value": true
+      },
+      {
+        "call": 116,
+        "value": true
+      },
+      {
+        "call": 117,
+        "value": true
+      },
+      {
+        "call": 118,
+        "value": true
+      },
+      {
+        "call": 119,
+        "value": true
+      },
+      {
+        "call": 120,
+        "value": true
+      },
+      {
+        "call": 121,
+        "value": true
+      },
+      {
+        "call": 122,
+        "value": true
+      },
+      {
+        "call": 123,
+        "value": true
+      },
+      {
+        "call": 124,
+        "value": true
+      },
+      {
+        "call": 125,
+        "value": true
+      },
+      {
+        "call": 126,
+        "value": true
+      },
+      {
+        "call": 127,
+        "value": true
+      },
+      {
+        "call": 128,
+        "value": true
+      },
+      {
+        "call": 129,
+        "value": true
+      },
+      {
+        "call": 130,
+        "value": true
+      },
+      {
+        "call": 131,
+        "value": true
+      },
+      {
+        "call": 132,
+        "value": true
+      },
+      {
+        "call": 133,
+        "value": true
+      },
+      {
+        "call": 134,
+        "value": true
+      },
+      {
+        "call": 135,
+        "value": true
+      },
+      {
+        "call": 136,
+        "value": true
+      },
+      {
+        "call": 137,
+        "value": true
+      },
+      {
+        "call": 138,
+        "value": true
+      },
+      {
+        "call": 139,
+        "value": true
+      },
+      {
+        "call": 140,
+        "value": true
+      },
+      {
+        "call": 141,
+        "value": true
+      },
+      {
+        "call": 142,
+        "value": true
+      },
+      {
+        "call": 143,
+        "value": true
+      },
+      {
+        "call": 144,
+        "value": true
+      },
+      {
+        "call": 145,
+        "value": true
+      },
+      {
+        "call": 146,
+        "value": true
+      },
+      {
+        "call": 147,
+        "value": true
+      },
+      {
+        "call": 148,
+        "value": true
+      },
+      {
+        "call": 149,
+        "value": true
+      },
+      {
+        "call": 150,
+        "value": true
+      },
+      {
+        "call": 151,
+        "value": true
+      },
+      {
+        "call": 152,
+        "value": true
+      },
+      {
+        "call": 153,
+        "value": true
+      },
+      {
+        "call": 154,
+        "value": true
+      },
+      {
+        "call": 155,
+        "value": true
+      },
+      {
+        "call": 156,
+        "value": true
+      },
+      {
+        "call": 157,
+        "value": true
+      },
+      {
+        "call": 158,
+        "value": true
+      },
+      {
+        "call": 159,
+        "value": true
+      },
+      {
+        "call": 160,
+        "value": true
+      },
+      {
+        "call": 161,
+        "value": true
+      },
+      {
+        "call": 162,
+        "value": true
+      },
+      {
+        "call": 163,
+        "value": true
+      },
+      {
+        "call": 164,
+        "value": true
+      },
+      {
+        "call": 165,
+        "value": true
+      },
+      {
+        "call": 166,
+        "value": true
+      },
+      {
+        "call": 167,
+        "value": true
+      },
+      {
+        "call": 168,
+        "value": true
+      },
+      {
+        "call": 169,
+        "value": true
+      },
+      {
+        "call": 170,
+        "value": true
+      },
+      {
+        "call": 171,
+        "value": true
+      },
+      {
+        "call": 172,
+        "value": true
+      },
+      {
+        "call": 173,
+        "value": true
+      },
+      {
+        "call": 174,
+        "value": true
+      },
+      {
+        "call": 175,
+        "value": true
+      },
+      {
+        "call": 176,
+        "value": true
+      },
+      {
+        "call": 177,
+        "value": true
+      },
+      {
+        "call": 178,
+        "value": true
+      },
+      {
+        "call": 179,
+        "value": true
+      },
+      {
+        "call": 180,
+        "value": true
+      },
+      {
+        "call": 181,
+        "value": true
+      },
+      {
+        "call": 182,
+        "value": true
+      },
+      {
+        "call": 183,
+        "value": true
+      },
+      {
+        "call": 184,
+        "value": true
+      },
+      {
+        "call": 185,
+        "value": true
+      },
+      {
+        "call": 186,
+        "value": true
+      },
+      {
+        "call": 187,
+        "value": true
+      },
+      {
+        "call": 188,
+        "value": true
+      },
+      {
+        "call": 189,
+        "value": true
+      },
+      {
+        "call": 190,
+        "value": true
+      },
+      {
+        "call": 191,
+        "value": true
+      },
+      {
+        "call": 192,
+        "value": true
+      },
+      {
+        "call": 193,
+        "value": true
+      },
+      {
+        "call": 194,
+        "value": true
+      },
+      {
+        "call": 195,
+        "value": true
+      },
+      {
+        "call": 196,
+        "value": true
+      },
+      {
+        "call": 197,
+        "value": true
+      },
+      {
+        "call": 198,
+        "value": true
+      },
+      {
+        "call": 199,
+        "value": true
+      },
+      {
+        "call": 200,
+        "value": true
+      },
+      {
+        "call": 201,
+        "value": true
+      },
+      {
+        "call": 202,
+        "value": false
+      },
+      {
+        "call": 203,
+        "value": "doing"
+      },
+      {
+        "call": 204,
+        "value": "todo"
+      },
+      {
+        "call": 205,
+        "value": true
+      },
+      {
+        "call": 206,
+        "value": true
+      },
+      {
+        "call": 207,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a ticket needs a title and 1-100 points"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a ticket needs a title and 1-100 points"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a ticket needs a title and 1-100 points"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a ticket needs a title and 1-100 points"
+      },
+      {
+        "call": 5,
+        "value": "T-1"
+      },
+      {
+        "call": 6,
+        "value": "T-2"
+      },
+      {
+        "call": 7,
+        "value": "todo"
+      },
+      {
+        "call": 8,
+        "value": "todo"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": 100
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": 101
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 8,
+        "value": "todo"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: no such column"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: no such column"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no such column"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: no such column"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: no such column"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 8,
+        "value": "todo"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "doing"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": 4
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": "todo"
+      },
+      {
+        "call": 15,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": "doing"
+      },
+      {
+        "call": 16,
+        "value": "todo"
+      },
+      {
+        "call": 17,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": "T-3"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": "doing"
+      },
+      {
+        "call": 14,
+        "value": "todo"
+      },
+      {
+        "call": 15,
+        "value": "doing"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": "T-3"
+      },
+      {
+        "call": 4,
+        "value": "T-4"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": 100
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": 70
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": 70
+      },
+      {
+        "call": 23,
+        "value": "done"
+      },
+      {
+        "call": 24,
+        "value": "todo"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": "done"
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": 7
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": "done"
+      },
+      {
+        "call": 8,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 14,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": "T-3"
+      },
+      {
+        "call": 4,
+        "value": "T-4"
+      },
+      {
+        "call": 5,
+        "value": "T-5"
+      },
+      {
+        "call": 6,
+        "value": "T-6"
+      },
+      {
+        "call": 7,
+        "value": "T-7"
+      },
+      {
+        "call": 8,
+        "value": "T-8"
+      },
+      {
+        "call": 9,
+        "value": "T-9"
+      },
+      {
+        "call": 10,
+        "value": "T-10"
+      },
+      {
+        "call": 11,
+        "value": "T-11"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": false
+      },
+      {
+        "call": 16,
+        "value": "doing"
+      },
+      {
+        "call": 17,
+        "value": "todo"
+      },
+      {
+        "call": 18,
+        "value": "doing"
+      },
+      {
+        "call": 19,
+        "value": false
+      },
+      {
+        "call": 20,
+        "value": false
+      },
+      {
+        "call": 21,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 15,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": "T-1"
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": "todo"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": "doing"
+      },
+      {
+        "call": 7,
+        "value": ["T-1: waiting on API"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "review"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a block needs a reason"
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'no such ticket'"
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": ["T-1: second: with a colon"]
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": []
+      },
+      {
+        "call": 15,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": "T-3"
+      },
+      {
+        "call": 4,
+        "value": "T-4"
+      },
+      {
+        "call": 5,
+        "value": "T-5"
+      },
+      {
+        "call": 6,
+        "value": "T-6"
+      },
+      {
+        "call": 7,
+        "value": "T-7"
+      },
+      {
+        "call": 8,
+        "value": "T-8"
+      },
+      {
+        "call": 9,
+        "value": "T-9"
+      },
+      {
+        "call": 10,
+        "value": "T-10"
+      },
+      {
+        "call": 11,
+        "value": "T-11"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": ["T-1: one", "T-2: two", "T-10: ten", "T-11: eleven"]
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": ["T-1: one", "T-10: ten", "T-11: eleven"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": "T-2"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T-1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 6
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": 6
+      },
+      {
+        "call": 9,
+        "value": "done"
+      },
+      {
+        "call": 10,
+        "value": ["T-1: audit"]
+      }
+    ]
+  }
+]

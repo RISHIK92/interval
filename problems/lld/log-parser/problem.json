@@ -1,0 +1,1084 @@
+{
+  "slug": "log-parser",
+  "title": "Log line parser",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["polymorphism", "abstraction", "structured-logging"],
+  "interface": {
+    "class": "LogParser",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addFormat",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "name": "headers",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "parse",
+        "params": [
+          {
+            "name": "format",
+            "type": "string"
+          },
+          {
+            "name": "line",
+            "type": "string"
+          }
+        ],
+        "returns": "map<string,string>"
+      },
+      {
+        "name": "parsed",
+        "params": [
+          {
+            "name": "format",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["app", "kv", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["events", "csv", ["ts", "level", "msg"]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["web", "access", []]
+          },
+          {
+            "method": "parse",
+            "args": ["app", "level=info msg=started port=8080"]
+          },
+          {
+            "method": "parse",
+            "args": ["events", "1700000000,warn,disk at 91%"]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "web",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": ["events", "1700000000,warn"]
+          },
+          {
+            "method": "parsed",
+            "args": ["app"]
+          },
+          {
+            "method": "parsed",
+            "args": ["events"]
+          },
+          {
+            "method": "parsed",
+            "args": ["web"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["app", "kv", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["app", "csv", ["a"]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["x", "json", []]
+          },
+          {
+            "method": "parse",
+            "args": ["app", "a=1  b=2"]
+          },
+          {
+            "method": "parse",
+            "args": ["app", "query=a=b empty="]
+          },
+          {
+            "method": "parse",
+            "args": ["nope", "a=1"]
+          },
+          {
+            "method": "parsed",
+            "args": ["app"]
+          },
+          {
+            "method": "parsed",
+            "args": ["nope"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["", "kv", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["k", "KV", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["k", "kv", ["a"]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["w", "access", ["host"]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["c", "csv", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["c", "csv", ["a", ""]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["c", "csv", ["a", "b", "a"]]
+          },
+          {
+            "method": "addFormat",
+            "args": [
+              "c",
+              "csv",
+              [
+                "h0",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "h7",
+                "h8",
+                "h9",
+                "h10",
+                "h11",
+                "h12",
+                "h13",
+                "h14",
+                "h15",
+                "h16",
+                "h17",
+                "h18",
+                "h19",
+                "h20"
+              ]
+            ]
+          },
+          {
+            "method": "parsed",
+            "args": ["k"]
+          },
+          {
+            "method": "parsed",
+            "args": ["c"]
+          },
+          {
+            "method": "parsed",
+            "args": ["w"]
+          },
+          {
+            "method": "parsed",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": [
+              "c",
+              "csv",
+              [
+                "h0",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "h7",
+                "h8",
+                "h9",
+                "h10",
+                "h11",
+                "h12",
+                "h13",
+                "h14",
+                "h15",
+                "h16",
+                "h17",
+                "h18",
+                "h19"
+              ]
+            ]
+          },
+          {
+            "method": "parse",
+            "args": ["c", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19"]
+          },
+          {
+            "method": "parse",
+            "args": ["c", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "c",
+              "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": ["c", ",,,,,,,,,,,,,,,,,,,"]
+          },
+          {
+            "method": "parsed",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["one", "csv", ["only"]]
+          },
+          {
+            "method": "parse",
+            "args": ["one", ""]
+          },
+          {
+            "method": "parse",
+            "args": ["one", "x"]
+          },
+          {
+            "method": "parse",
+            "args": ["one", ","]
+          },
+          {
+            "method": "parse",
+            "args": ["one", " a b "]
+          },
+          {
+            "method": "addFormat",
+            "args": ["two", "csv", ["a", "b"]]
+          },
+          {
+            "method": "parse",
+            "args": ["two", ""]
+          },
+          {
+            "method": "parse",
+            "args": ["two", ","]
+          },
+          {
+            "method": "parse",
+            "args": ["two", "a,b,"]
+          },
+          {
+            "method": "parse",
+            "args": ["two", "x,y"]
+          },
+          {
+            "method": "parsed",
+            "args": ["one"]
+          },
+          {
+            "method": "parsed",
+            "args": ["two"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["k", "kv", []]
+          },
+          {
+            "method": "parse",
+            "args": ["k", ""]
+          },
+          {
+            "method": "parse",
+            "args": ["k", " a=1"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "a=1 "]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "a"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "=1"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "a=1 a=2"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "a=1 b"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "a=1 =2"]
+          },
+          {
+            "method": "parsed",
+            "args": ["k"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "a="]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "a=="]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "A=1 a=2 b=c=d"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "x=\"quoted value\""]
+          },
+          {
+            "method": "parsed",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["w", "access", []]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "10.0.0.2 ident - [01/Jan/2024:00:00:00 +0000] \"POST /api/v1/items?id=3 HTTP/2\" 201 -"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": ["w", "h - u [t] \"M P Q\" 999 0"]
+          },
+          {
+            "method": "parsed",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["w", "access", []]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 20 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 2000 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 2x0 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 23a6"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 --"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 "
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\"  200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326 "
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              " 127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parsed",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["w", "access", []]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1  - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct]2000] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank 10/Oct/2000 \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a b.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] GET /a.gif HTTP/1.0 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a\".gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "w",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700]  \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parsed",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["w", "access", []]
+          },
+          {
+            "method": "parse",
+            "args": ["w", "[h] - u [time [x] \"GET / H\" 200 1"]
+          },
+          {
+            "method": "parse",
+            "args": ["w", "h - u [a b  c] \"GET / H\" 200 1"]
+          },
+          {
+            "method": "parse",
+            "args": ["w", "h - \"u\" [t] \"GET /[x] H\" 404 0"]
+          },
+          {
+            "method": "parsed",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["a", "kv", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["b", "kv", []]
+          },
+          {
+            "method": "parse",
+            "args": ["a", "x=1"]
+          },
+          {
+            "method": "parse",
+            "args": ["a", "y=2"]
+          },
+          {
+            "method": "parse",
+            "args": ["b", "z=3"]
+          },
+          {
+            "method": "parse",
+            "args": ["a", "bad"]
+          },
+          {
+            "method": "parsed",
+            "args": ["a"]
+          },
+          {
+            "method": "parsed",
+            "args": ["b"]
+          },
+          {
+            "method": "addFormat",
+            "args": ["B", "csv", ["x"]]
+          },
+          {
+            "method": "parse",
+            "args": ["B", "q"]
+          },
+          {
+            "method": "parsed",
+            "args": ["B"]
+          },
+          {
+            "method": "parsed",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["c", "csv", ["host", "status", "path"]]
+          },
+          {
+            "method": "parse",
+            "args": ["c", "web-1,200,/"]
+          },
+          {
+            "method": "parse",
+            "args": ["c", "web-2,,"]
+          },
+          {
+            "method": "parse",
+            "args": ["c", "a,b,c,d"]
+          },
+          {
+            "method": "parse",
+            "args": ["c", "x=1,y=2,z=3"]
+          },
+          {
+            "method": "parsed",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["f", "csv", ["a b", "c"]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["g", "csv", ["A", "a"]]
+          },
+          {
+            "method": "parse",
+            "args": ["f", "1,2"]
+          },
+          {
+            "method": "parse",
+            "args": ["g", "x,y"]
+          },
+          {
+            "method": "parsed",
+            "args": ["f"]
+          },
+          {
+            "method": "parsed",
+            "args": ["g"]
+          },
+          {
+            "method": "parsed",
+            "args": ["a b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["kv", "csv", ["kv"]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["csv", "access", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["access", "kv", []]
+          },
+          {
+            "method": "parse",
+            "args": ["kv", "a=1"]
+          },
+          {
+            "method": "parse",
+            "args": [
+              "csv",
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "parse",
+            "args": ["access", "a=1"]
+          },
+          {
+            "method": "parsed",
+            "args": ["kv"]
+          },
+          {
+            "method": "parsed",
+            "args": ["csv"]
+          },
+          {
+            "method": "parsed",
+            "args": ["access"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["k", "kv", []]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=0"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=1"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=2"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=3"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=4"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=5"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=6"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=7"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=8"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=9"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=10"]
+          },
+          {
+            "method": "parse",
+            "args": ["k", "n=11"]
+          },
+          {
+            "method": "parsed",
+            "args": ["k"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "detect",
+        "params": [
+          {
+            "name": "line",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["app", "kv", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["events", "csv", ["ts", "level", "msg"]]
+          },
+          {
+            "method": "addFormat",
+            "args": ["web", "access", []]
+          },
+          {
+            "method": "detect",
+            "args": ["level=info msg=ok"]
+          },
+          {
+            "method": "detect",
+            "args": ["1,warn,disk full"]
+          },
+          {
+            "method": "detect",
+            "args": [
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "detect",
+            "args": ["just text"]
+          },
+          {
+            "method": "parsed",
+            "args": ["app"]
+          },
+          {
+            "method": "parsed",
+            "args": ["events"]
+          },
+          {
+            "method": "parsed",
+            "args": ["web"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "detect",
+            "args": ["a=1"]
+          },
+          {
+            "method": "detect",
+            "args": [""]
+          },
+          {
+            "method": "addFormat",
+            "args": ["one", "csv", ["x"]]
+          },
+          {
+            "method": "detect",
+            "args": [""]
+          },
+          {
+            "method": "detect",
+            "args": ["a=1"]
+          },
+          {
+            "method": "addFormat",
+            "args": ["k", "kv", []]
+          },
+          {
+            "method": "detect",
+            "args": ["a=1"]
+          },
+          {
+            "method": "parsed",
+            "args": ["one"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["k", "kv", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["pair", "csv", ["a", "b"]]
+          },
+          {
+            "method": "detect",
+            "args": ["a=1,b=2"]
+          },
+          {
+            "method": "detect",
+            "args": ["a=1 b,c"]
+          },
+          {
+            "method": "detect",
+            "args": ["a,b"]
+          },
+          {
+            "method": "detect",
+            "args": ["a=1 b=2"]
+          },
+          {
+            "method": "parse",
+            "args": ["pair", "a=1,b=2"]
+          },
+          {
+            "method": "parsed",
+            "args": ["pair"]
+          },
+          {
+            "method": "parsed",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addFormat",
+            "args": ["w", "access", []]
+          },
+          {
+            "method": "addFormat",
+            "args": ["k", "kv", []]
+          },
+          {
+            "method": "detect",
+            "args": [
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 2326"
+            ]
+          },
+          {
+            "method": "detect",
+            "args": ["host=a status=200"]
+          },
+          {
+            "method": "detect",
+            "args": [
+              "127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] \"GET /a.gif HTTP/1.0\" 200 232x"
+            ]
+          },
+          {
+            "method": "parsed",
+            "args": ["w"]
+          },
+          {
+            "method": "parsed",
+            "args": ["k"]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,772 @@
+{
+  "slug": "metric-registry",
+  "title": "Metric registry",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["encapsulation", "classes-and-objects", "metrics"],
+  "interface": {
+    "class": "MetricRegistry",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "inc",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "by",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "gauge",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "read",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "names",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["http.requests", 1]
+          },
+          {
+            "method": "inc",
+            "args": ["http.requests", 4]
+          },
+          {
+            "method": "gauge",
+            "args": ["queue.depth", 12]
+          },
+          {
+            "method": "read",
+            "args": ["http.requests"]
+          },
+          {
+            "method": "read",
+            "args": ["queue.depth"]
+          },
+          {
+            "method": "read",
+            "args": ["cpu"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "gauge",
+            "args": ["temp", 30]
+          },
+          {
+            "method": "inc",
+            "args": ["temp", 1]
+          },
+          {
+            "method": "gauge",
+            "args": ["temp", -5]
+          },
+          {
+            "method": "read",
+            "args": ["temp"]
+          },
+          {
+            "method": "inc",
+            "args": ["hits", 2]
+          },
+          {
+            "method": "gauge",
+            "args": ["hits", 7]
+          },
+          {
+            "method": "inc",
+            "args": ["hits", 0]
+          },
+          {
+            "method": "read",
+            "args": ["hits"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": [""]
+          },
+          {
+            "method": "read",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["", 1]
+          },
+          {
+            "method": "gauge",
+            "args": ["", 1]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["a", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["a", 1000000001]
+          },
+          {
+            "method": "inc",
+            "args": ["a", -1]
+          },
+          {
+            "method": "inc",
+            "args": ["a", 0]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "inc",
+            "args": ["b", 1]
+          },
+          {
+            "method": "inc",
+            "args": ["a", 1000000000]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "gauge",
+            "args": ["g", 1000000000000]
+          },
+          {
+            "method": "read",
+            "args": ["g"]
+          },
+          {
+            "method": "gauge",
+            "args": ["g", 1000000000001]
+          },
+          {
+            "method": "read",
+            "args": ["g"]
+          },
+          {
+            "method": "gauge",
+            "args": ["g", -1000000000000]
+          },
+          {
+            "method": "read",
+            "args": ["g"]
+          },
+          {
+            "method": "gauge",
+            "args": ["g", -1000000000001]
+          },
+          {
+            "method": "read",
+            "args": ["g"]
+          },
+          {
+            "method": "gauge",
+            "args": ["g", 0]
+          },
+          {
+            "method": "read",
+            "args": ["g"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "gauge",
+            "args": ["load", 3]
+          },
+          {
+            "method": "gauge",
+            "args": ["load", 1]
+          },
+          {
+            "method": "read",
+            "args": ["load"]
+          },
+          {
+            "method": "inc",
+            "args": ["load", 1]
+          },
+          {
+            "method": "read",
+            "args": ["load"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["errors", 3]
+          },
+          {
+            "method": "gauge",
+            "args": ["errors", 0]
+          },
+          {
+            "method": "gauge",
+            "args": ["errors", -1]
+          },
+          {
+            "method": "read",
+            "args": ["errors"]
+          },
+          {
+            "method": "inc",
+            "args": ["errors", 1]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["z", 1]
+          },
+          {
+            "method": "gauge",
+            "args": ["a", 1]
+          },
+          {
+            "method": "inc",
+            "args": ["B", 1]
+          },
+          {
+            "method": "gauge",
+            "args": ["b", 2]
+          },
+          {
+            "method": "inc",
+            "args": ["a.b", 1]
+          },
+          {
+            "method": "inc",
+            "args": ["a_b", 1]
+          },
+          {
+            "method": "gauge",
+            "args": ["Z", 0]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "gauge",
+            "args": ["fails", 1000000001]
+          },
+          {
+            "method": "inc",
+            "args": ["fails", 1]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["ok", 1000000001]
+          },
+          {
+            "method": "gauge",
+            "args": ["ok", 1]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["fails"]
+          },
+          {
+            "method": "read",
+            "args": ["ok"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1000000000]
+          },
+          {
+            "method": "read",
+            "args": ["n"]
+          },
+          {
+            "method": "inc",
+            "args": ["n", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["c", 7]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["c"]
+          },
+          {
+            "method": "read",
+            "args": ["C"]
+          },
+          {
+            "method": "read",
+            "args": ["c "]
+          },
+          {
+            "method": "gauge",
+            "args": ["c ", -3]
+          },
+          {
+            "method": "read",
+            "args": ["c "]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "gauge",
+            "args": ["g", 5]
+          },
+          {
+            "method": "gauge",
+            "args": ["h", 5]
+          },
+          {
+            "method": "inc",
+            "args": ["h", 5]
+          },
+          {
+            "method": "inc",
+            "args": ["i", 5]
+          },
+          {
+            "method": "gauge",
+            "args": ["i", 5]
+          },
+          {
+            "method": "read",
+            "args": ["g"]
+          },
+          {
+            "method": "read",
+            "args": ["h"]
+          },
+          {
+            "method": "read",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["x", 1]
+          },
+          {
+            "method": "inc",
+            "args": ["x", 2]
+          },
+          {
+            "method": "inc",
+            "args": ["x", 3]
+          },
+          {
+            "method": "inc",
+            "args": ["y", 10]
+          },
+          {
+            "method": "inc",
+            "args": ["x", 4]
+          },
+          {
+            "method": "read",
+            "args": ["y"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "snapshotAndReset",
+        "params": [],
+        "returns": "map<string,int>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["requests", 5]
+          },
+          {
+            "method": "inc",
+            "args": ["errors", 1]
+          },
+          {
+            "method": "gauge",
+            "args": ["depth", 9]
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["requests"]
+          },
+          {
+            "method": "read",
+            "args": ["depth"]
+          },
+          {
+            "method": "inc",
+            "args": ["requests", 2]
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "gauge",
+            "args": ["g", 4]
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["g"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["a", 3]
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "gauge",
+            "args": ["a", 1]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "inc",
+            "args": ["a", 1]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["a", 1]
+          },
+          {
+            "method": "inc",
+            "args": ["b", 2]
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "inc",
+            "args": ["b", 1000000000]
+          },
+          {
+            "method": "inc",
+            "args": ["c", 3]
+          },
+          {
+            "method": "snapshotAndReset",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "read",
+            "args": ["b"]
+          },
+          {
+            "method": "read",
+            "args": ["c"]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1452 @@
+{
+  "slug": "usage-billing",
+  "title": "Usage-based billing",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["polymorphism", "encapsulation"],
+  "interface": {
+    "class": "UsageBilling",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "price",
+        "params": [
+          {
+            "name": "metric",
+            "type": "string"
+          },
+          {
+            "name": "model",
+            "type": "string"
+          },
+          {
+            "name": "tiers",
+            "type": "list<list<int>>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "meter",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "metric",
+            "type": "string"
+          },
+          {
+            "name": "units",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "invoice",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          }
+        ],
+        "returns": "map<string,int>"
+      },
+      {
+        "name": "total",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "api",
+              "graduated",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["acme", "api", 150]
+          },
+          {
+            "method": "invoice",
+            "args": ["acme"]
+          },
+          {
+            "method": "price",
+            "args": [
+              "storage",
+              "volume",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["acme", "storage", 150]
+          },
+          {
+            "method": "invoice",
+            "args": ["acme"]
+          },
+          {
+            "method": "total",
+            "args": ["acme"]
+          },
+          {
+            "method": "invoice",
+            "args": ["globex"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "calls",
+              "volume",
+              [
+                [0, 3],
+                [10, 2]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["bob", "calls", 4]
+          },
+          {
+            "method": "meter",
+            "args": ["bob", "calls", 6]
+          },
+          {
+            "method": "invoice",
+            "args": ["bob"]
+          },
+          {
+            "method": "meter",
+            "args": ["bob", "calls", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["bob"]
+          },
+          {
+            "method": "meter",
+            "args": ["bob", "sms", 1]
+          },
+          {
+            "method": "total",
+            "args": ["bob"]
+          },
+          {
+            "method": "total",
+            "args": ["zed"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "Graduated",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "tiered",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "",
+              "volume",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 1]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "volume",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", []]
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[1, 10]]]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "volume",
+              [
+                [0, 10],
+                [0, 5]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "graduated",
+              [
+                [0, 10],
+                [5, 3],
+                [4, 1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, 10, 1]]]
+          },
+          {
+            "method": "price",
+            "args": ["m", "volume", [[0]]]
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, 1], [5]]]
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, 1], []]]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "volume",
+              [
+                [0, 1],
+                [5, 1, 2]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "graduated",
+              [
+                [-1, 2],
+                [5, 1]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, -1]]]
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, 1000001]]]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "volume",
+              [
+                [0, 2],
+                [100, -1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "volume",
+              [
+                [0, 2],
+                [100, 1000001]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 1]
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, 1000000]]]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 3]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "g",
+              "graduated",
+              [
+                [0, 10],
+                [10, 9],
+                [20, 8],
+                [30, 7],
+                [40, 6],
+                [50, 5],
+                [60, 4],
+                [70, 3],
+                [80, 2],
+                [90, 1],
+                [100, 1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "v",
+              "volume",
+              [
+                [0, 10],
+                [10, 9],
+                [20, 8],
+                [30, 7],
+                [40, 6],
+                [50, 5],
+                [60, 4],
+                [70, 3],
+                [80, 2],
+                [90, 1],
+                [100, 1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "g",
+              "graduated",
+              [
+                [0, 10],
+                [10, 9],
+                [20, 8],
+                [30, 7],
+                [40, 6],
+                [50, 5],
+                [60, 4],
+                [70, 3],
+                [80, 2],
+                [90, 1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "v",
+              "volume",
+              [
+                [0, 10],
+                [10, 9],
+                [20, 8],
+                [30, 7],
+                [40, 6],
+                [50, 5],
+                [60, 4],
+                [70, 3],
+                [80, 2],
+                [90, 1]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 100]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "v", 100]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["b", "g", 95]
+          },
+          {
+            "method": "meter",
+            "args": ["b", "v", 95]
+          },
+          {
+            "method": "invoice",
+            "args": ["b"]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "g", 90]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "v", 90]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "g",
+              "graduated",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "v",
+              "volume",
+              [
+                [0, 10],
+                [100, 8],
+                [1000, 5]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["c1", "g", 1]
+          },
+          {
+            "method": "meter",
+            "args": ["c1", "v", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["c1"]
+          },
+          {
+            "method": "meter",
+            "args": ["c100", "g", 100]
+          },
+          {
+            "method": "meter",
+            "args": ["c100", "v", 100]
+          },
+          {
+            "method": "invoice",
+            "args": ["c100"]
+          },
+          {
+            "method": "meter",
+            "args": ["c101", "g", 101]
+          },
+          {
+            "method": "meter",
+            "args": ["c101", "v", 101]
+          },
+          {
+            "method": "invoice",
+            "args": ["c101"]
+          },
+          {
+            "method": "meter",
+            "args": ["c1000", "g", 1000]
+          },
+          {
+            "method": "meter",
+            "args": ["c1000", "v", 1000]
+          },
+          {
+            "method": "invoice",
+            "args": ["c1000"]
+          },
+          {
+            "method": "meter",
+            "args": ["c1001", "g", 1001]
+          },
+          {
+            "method": "meter",
+            "args": ["c1001", "v", 1001]
+          },
+          {
+            "method": "invoice",
+            "args": ["c1001"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "big",
+              "graduated",
+              [
+                [0, 1000000],
+                [1000000001, 1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "big",
+              "graduated",
+              [
+                [0, 1000000],
+                [1000000000, 3]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": ["huge", "volume", [[0, 1000000]]]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "big", 1000000000]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "huge", 1000000000]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": ["c"]
+          },
+          {
+            "method": "meter",
+            "args": ["d", "big", 1000000001]
+          },
+          {
+            "method": "meter",
+            "args": ["d", "big", 999999999]
+          },
+          {
+            "method": "meter",
+            "args": ["d", "big", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": ["m", "volume", [[0, 4]]]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 0]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", -1]
+          },
+          {
+            "method": "meter",
+            "args": ["", "m", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "invoice",
+            "args": [""]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 2]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "M", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "graduated",
+              [
+                [0, 5],
+                [3, 2]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "m", 4]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "volume",
+              [
+                [0, 5],
+                [3, 2]
+              ]
+            ]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "price",
+            "args": [
+              "m",
+              "graduated",
+              [
+                [0, 9],
+                [0, 1]
+              ]
+            ]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "price",
+            "args": ["m", "flat", [[0, 9]]]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, 7]]]
+          },
+          {
+            "method": "total",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "g",
+              "graduated",
+              [
+                [0, 0],
+                [5, 7]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "v",
+              "volume",
+              [
+                [0, 0],
+                [5, 7]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 3]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "v", 3]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["b", "g", 6]
+          },
+          {
+            "method": "meter",
+            "args": ["b", "v", 6]
+          },
+          {
+            "method": "invoice",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": ["g", "graduated", [[0, 7]]]
+          },
+          {
+            "method": "price",
+            "args": ["v", "volume", [[0, 7]]]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 3]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "v", 5]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "api",
+              "graduated",
+              [
+                [0, 3],
+                [10, 2],
+                [20, 1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": [
+              "egress",
+              "volume",
+              [
+                [0, 9],
+                [4, 6],
+                [8, 4]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["x", "api", 6]
+          },
+          {
+            "method": "meter",
+            "args": ["y", "api", 6]
+          },
+          {
+            "method": "meter",
+            "args": ["x", "api", 6]
+          },
+          {
+            "method": "meter",
+            "args": ["x", "egress", 4]
+          },
+          {
+            "method": "invoice",
+            "args": ["x"]
+          },
+          {
+            "method": "invoice",
+            "args": ["y"]
+          },
+          {
+            "method": "meter",
+            "args": ["x", "api", 9]
+          },
+          {
+            "method": "meter",
+            "args": ["y", "egress", 5]
+          },
+          {
+            "method": "meter",
+            "args": ["x", "egress", 5]
+          },
+          {
+            "method": "invoice",
+            "args": ["x"]
+          },
+          {
+            "method": "invoice",
+            "args": ["y"]
+          },
+          {
+            "method": "total",
+            "args": ["x"]
+          },
+          {
+            "method": "total",
+            "args": ["y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "g",
+              "graduated",
+              [
+                [0, 6],
+                [2, 4],
+                [5, 3]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "g", 4]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "v",
+              "volume",
+              [
+                [0, 6],
+                [2, 4],
+                [5, 3]
+              ]
+            ]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "v", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "v", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "v", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "v", 1]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": ["a", "volume", [[0, 2]]]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "a", 3]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "b", 3]
+          },
+          {
+            "method": "price",
+            "args": [
+              "b",
+              "graduated",
+              [
+                [0, 2],
+                [1, 5]
+              ]
+            ]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "meter",
+            "args": ["c", "b", 3]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": ["c"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "minimum",
+        "params": [
+          {
+            "name": "metric",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "api",
+              "graduated",
+              [
+                [0, 10],
+                [100, 8]
+              ]
+            ]
+          },
+          {
+            "method": "minimum",
+            "args": ["api", 500]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "api", 10]
+          },
+          {
+            "method": "meter",
+            "args": ["b", "api", 100]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "invoice",
+            "args": ["b"]
+          },
+          {
+            "method": "invoice",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "minimum",
+            "args": ["api", 5]
+          },
+          {
+            "method": "price",
+            "args": ["api", "volume", [[0, 3]]]
+          },
+          {
+            "method": "minimum",
+            "args": ["api", -1]
+          },
+          {
+            "method": "minimum",
+            "args": ["api", 1000000001]
+          },
+          {
+            "method": "minimum",
+            "args": ["", 5]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "api", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["api", 1000000000]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["api", 0]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["api", 7]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["api", 6]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": [
+              "free",
+              "graduated",
+              [
+                [0, 0],
+                [100, 1]
+              ]
+            ]
+          },
+          {
+            "method": "price",
+            "args": ["paid", "volume", [[0, 4]]]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "free", 3]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "paid", 3]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["free", 25]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["paid", 12]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["paid", 13]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": ["m", "graduated", [[0, 5]]]
+          },
+          {
+            "method": "minimum",
+            "args": ["m", 40]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "m", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "price",
+            "args": ["m", "volume", [[0, 30]]]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "price",
+            "args": ["m", "volume", [[0, 1]]]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "minimum",
+            "args": ["m", -3]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "m", 50]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "price",
+            "args": ["x", "volume", [[0, 1]]]
+          },
+          {
+            "method": "price",
+            "args": ["y", "volume", [[0, 1]]]
+          },
+          {
+            "method": "minimum",
+            "args": ["x", 9]
+          },
+          {
+            "method": "meter",
+            "args": ["a", "y", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["a"]
+          },
+          {
+            "method": "meter",
+            "args": ["b", "x", 2]
+          },
+          {
+            "method": "invoice",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": ["b"]
+          }
+        ]
+      }
+    ]
+  }
+}

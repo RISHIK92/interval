@@ -1,0 +1,1036 @@
+{
+  "slug": "warehouse-stock",
+  "title": "Warehouse stock",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["encapsulation", "class-invariants"],
+  "interface": {
+    "class": "Warehouse",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "receive",
+        "params": [
+          {
+            "name": "sku",
+            "type": "string"
+          },
+          {
+            "name": "qty",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "reserve",
+        "params": [
+          {
+            "name": "orderId",
+            "type": "string"
+          },
+          {
+            "name": "sku",
+            "type": "string"
+          },
+          {
+            "name": "qty",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "ship",
+        "params": [
+          {
+            "name": "orderId",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "cancel",
+        "params": [
+          {
+            "name": "orderId",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "available",
+        "params": [
+          {
+            "name": "sku",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["widget", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "widget", 4]
+          },
+          {
+            "method": "available",
+            "args": ["widget"]
+          },
+          {
+            "method": "receive",
+            "args": ["widget", 5]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["widget"]
+          },
+          {
+            "method": "receive",
+            "args": ["widget", 1]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["bolt", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "bolt", 5]
+          },
+          {
+            "method": "available",
+            "args": ["bolt"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "bolt", 3]
+          },
+          {
+            "method": "cancel",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["bolt"]
+          },
+          {
+            "method": "cancel",
+            "args": ["o1"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "bolt", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["o2", "nut", 1]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "available",
+            "args": ["x"]
+          },
+          {
+            "method": "ship",
+            "args": ["x"]
+          },
+          {
+            "method": "cancel",
+            "args": ["x"]
+          },
+          {
+            "method": "receive",
+            "args": ["", 1]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 0]
+          },
+          {
+            "method": "receive",
+            "args": ["a", -1]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1000000001]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "available",
+            "args": [""]
+          },
+          {
+            "method": "ship",
+            "args": [""]
+          },
+          {
+            "method": "cancel",
+            "args": [""]
+          },
+          {
+            "method": "reserve",
+            "args": ["", "a", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "", 1]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1000000000]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1000000000]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1000000000]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", 0]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", -2]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", 1000000001]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", 1000000000]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["p", "a", 1000000000]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "reserve",
+            "args": ["q", "a", 1]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["s", 5]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "s", 5]
+          },
+          {
+            "method": "available",
+            "args": ["s"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o2", "s", 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["s"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o2", "s", 5]
+          },
+          {
+            "method": "available",
+            "args": ["s"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o3", "s", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["s", 4]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "s", 2]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "s", 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["o1"]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["s"]
+          },
+          {
+            "method": "receive",
+            "args": ["s", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["s", 4]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "s", 3]
+          },
+          {
+            "method": "cancel",
+            "args": ["o1"]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["s"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "s", 999]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "s", 1]
+          },
+          {
+            "method": "receive",
+            "args": ["s", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["a", 5]
+          },
+          {
+            "method": "receive",
+            "args": ["b", 7]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "a", 5]
+          },
+          {
+            "method": "available",
+            "args": ["b"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o2", "b", 8]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "available",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["x", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "x", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["o2", "x", 3]
+          },
+          {
+            "method": "available",
+            "args": ["x"]
+          },
+          {
+            "method": "receive",
+            "args": ["x", 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["o1"]
+          },
+          {
+            "method": "receive",
+            "args": ["x", 1]
+          },
+          {
+            "method": "ship",
+            "args": ["o2"]
+          },
+          {
+            "method": "receive",
+            "args": ["x", 1]
+          },
+          {
+            "method": "available",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["k", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "k", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "k", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "k", 2]
+          },
+          {
+            "method": "available",
+            "args": ["k"]
+          },
+          {
+            "method": "ship",
+            "args": ["o"]
+          },
+          {
+            "method": "available",
+            "args": ["k"]
+          },
+          {
+            "method": "receive",
+            "args": ["k", 6]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["a", 3]
+          },
+          {
+            "method": "receive",
+            "args": ["b", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "a", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "b", 1]
+          },
+          {
+            "method": "available",
+            "args": ["b"]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "available",
+            "args": ["b"]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1]
+          },
+          {
+            "method": "receive",
+            "args": ["b", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "ghost", 1]
+          },
+          {
+            "method": "available",
+            "args": ["ghost"]
+          },
+          {
+            "method": "receive",
+            "args": ["ghost", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "ghost", 1]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["ghost"]
+          },
+          {
+            "method": "receive",
+            "args": ["ghost", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["w", 100]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "w", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["o2", "w", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["o3", "w", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["o4", "w", 4]
+          },
+          {
+            "method": "reserve",
+            "args": ["o5", "w", 5]
+          },
+          {
+            "method": "reserve",
+            "args": ["o6", "w", 6]
+          },
+          {
+            "method": "reserve",
+            "args": ["o7", "w", 7]
+          },
+          {
+            "method": "reserve",
+            "args": ["o8", "w", 8]
+          },
+          {
+            "method": "reserve",
+            "args": ["o9", "w", 9]
+          },
+          {
+            "method": "reserve",
+            "args": ["o10", "w", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["o11", "w", 11]
+          },
+          {
+            "method": "reserve",
+            "args": ["o12", "w", 12]
+          },
+          {
+            "method": "reserve",
+            "args": ["o13", "w", 13]
+          },
+          {
+            "method": "available",
+            "args": ["w"]
+          },
+          {
+            "method": "ship",
+            "args": ["o13"]
+          },
+          {
+            "method": "cancel",
+            "args": ["o12"]
+          },
+          {
+            "method": "ship",
+            "args": ["o2"]
+          },
+          {
+            "method": "cancel",
+            "args": ["o5"]
+          },
+          {
+            "method": "available",
+            "args": ["w"]
+          },
+          {
+            "method": "receive",
+            "args": ["w", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["W", 2]
+          },
+          {
+            "method": "receive",
+            "args": ["w", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["A", "W", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", "w", 2]
+          },
+          {
+            "method": "available",
+            "args": ["W"]
+          },
+          {
+            "method": "available",
+            "args": ["w"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "ship",
+            "args": ["A"]
+          },
+          {
+            "method": "receive",
+            "args": ["W", 1]
+          },
+          {
+            "method": "receive",
+            "args": ["w", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["p", 9]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "p", 4]
+          },
+          {
+            "method": "reserve",
+            "args": ["o2", "p", 4]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "reserve",
+            "args": ["o3", "p", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["o3", "p", 1]
+          },
+          {
+            "method": "available",
+            "args": ["p"]
+          },
+          {
+            "method": "cancel",
+            "args": ["o2"]
+          },
+          {
+            "method": "available",
+            "args": ["p"]
+          },
+          {
+            "method": "receive",
+            "args": ["p", 1]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "writeOff",
+        "params": [
+          {
+            "name": "sku",
+            "type": "string"
+          },
+          {
+            "name": "qty",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["w", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["o1", "w", 4]
+          },
+          {
+            "method": "writeOff",
+            "args": ["w", 7]
+          },
+          {
+            "method": "writeOff",
+            "args": ["w", 6]
+          },
+          {
+            "method": "available",
+            "args": ["w"]
+          },
+          {
+            "method": "receive",
+            "args": ["w", 1]
+          },
+          {
+            "method": "ship",
+            "args": ["o1"]
+          },
+          {
+            "method": "available",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "writeOff",
+            "args": ["", 1]
+          },
+          {
+            "method": "writeOff",
+            "args": ["w", 0]
+          },
+          {
+            "method": "writeOff",
+            "args": ["w", -1]
+          },
+          {
+            "method": "writeOff",
+            "args": ["w", 1000000001]
+          },
+          {
+            "method": "writeOff",
+            "args": ["nope", 1]
+          },
+          {
+            "method": "available",
+            "args": ["nope"]
+          },
+          {
+            "method": "receive",
+            "args": ["nope", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["a", 5]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", 2]
+          },
+          {
+            "method": "writeOff",
+            "args": ["a", 3]
+          },
+          {
+            "method": "cancel",
+            "args": ["o"]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1000000000]
+          },
+          {
+            "method": "writeOff",
+            "args": ["a", 1000000000]
+          },
+          {
+            "method": "available",
+            "args": ["a"]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1]
+          },
+          {
+            "method": "writeOff",
+            "args": ["a", 2]
+          },
+          {
+            "method": "writeOff",
+            "args": ["a", 1]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "receive",
+            "args": ["a", 6]
+          },
+          {
+            "method": "writeOff",
+            "args": ["a", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", 5]
+          },
+          {
+            "method": "reserve",
+            "args": ["o", "a", 4]
+          },
+          {
+            "method": "writeOff",
+            "args": ["a", 1]
+          },
+          {
+            "method": "ship",
+            "args": ["o"]
+          },
+          {
+            "method": "receive",
+            "args": ["a", 1]
+          }
+        ]
+      }
+    ]
+  }
+}
