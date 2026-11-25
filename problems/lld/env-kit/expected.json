@@ -1,0 +1,954 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "inmem-queue#1"
+      },
+      {
+        "call": 3,
+        "value": "sqlite-store#2"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "valkey-queue#3"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "ci"
+      },
+      {
+        "call": 9,
+        "value": "local"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "system-clock#1"
+      },
+      {
+        "call": 3,
+        "value": "system-clock#2"
+      },
+      {
+        "call": 4,
+        "value": "rds-store#3"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "staging"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "inmem-queue#1"
+      },
+      {
+        "call": 3,
+        "value": "sqlite-store#2"
+      },
+      {
+        "call": 4,
+        "value": "fake-clock#3"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "valkey-queue#4"
+      },
+      {
+        "call": 7,
+        "value": "postgres-store#5"
+      },
+      {
+        "call": 8,
+        "value": "fixed-clock#6"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "sqs-queue#7"
+      },
+      {
+        "call": 11,
+        "value": "rds-store#8"
+      },
+      {
+        "call": 12,
+        "value": "system-clock#9"
+      },
+      {
+        "call": 13,
+        "value": "local"
+      },
+      {
+        "call": 14,
+        "value": "local"
+      },
+      {
+        "call": 15,
+        "value": "local"
+      },
+      {
+        "call": 16,
+        "value": "ci"
+      },
+      {
+        "call": 17,
+        "value": "ci"
+      },
+      {
+        "call": 18,
+        "value": "ci"
+      },
+      {
+        "call": 19,
+        "value": "staging"
+      },
+      {
+        "call": 20,
+        "value": "staging"
+      },
+      {
+        "call": 21,
+        "value": "staging"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: no family in use"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown family"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: no family in use"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown family"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown family"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: no family in use"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 11,
+        "value": "fake-clock#1"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: unknown family"
+      },
+      {
+        "call": 13,
+        "value": "sqlite-store#2"
+      },
+      {
+        "call": 14,
+        "value": "local"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "postgres-store#1"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "sqlite-store#2"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "fixed-clock#3"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "inmem-queue#4"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "value": "ci"
+      },
+      {
+        "call": 16,
+        "value": "local"
+      },
+      {
+        "call": 17,
+        "value": "ci"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "sqs-queue#1"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a component can't be wired to itself"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 7,
+        "value": "sqs-queue#2"
+      },
+      {
+        "call": 8,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "fake-clock#1"
+      },
+      {
+        "call": 3,
+        "value": "local"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown component"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "inmem-queue#1"
+      },
+      {
+        "call": 4,
+        "value": "sqlite-store#2"
+      },
+      {
+        "call": 5,
+        "value": "fake-clock#3"
+      },
+      {
+        "call": 6,
+        "value": "inmem-queue#4"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "postgres-store#5"
+      },
+      {
+        "call": 9,
+        "value": "fixed-clock#6"
+      },
+      {
+        "call": 10,
+        "value": "valkey-queue#7"
+      },
+      {
+        "call": 11,
+        "value": "postgres-store#8"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "system-clock#9"
+      },
+      {
+        "call": 14,
+        "value": "sqs-queue#10"
+      },
+      {
+        "call": 15,
+        "value": "rds-store#11"
+      },
+      {
+        "call": 16,
+        "value": "system-clock#12"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 18,
+        "value": "staging"
+      },
+      {
+        "call": 19,
+        "value": "local"
+      },
+      {
+        "call": 20,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 21,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 22,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 23,
+        "error": "ValueError: unknown component"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "fake-clock#1"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "system-clock#2"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "fixed-clock#3"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "sqs-queue#4"
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "value": "local"
+      },
+      {
+        "call": 16,
+        "value": "staging"
+      },
+      {
+        "call": 17,
+        "value": "ci"
+      },
+      {
+        "call": 18,
+        "value": "staging"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "sqs-queue#1"
+      },
+      {
+        "call": 3,
+        "value": "sqs-queue#2"
+      },
+      {
+        "call": 4,
+        "value": "sqs-queue#3"
+      },
+      {
+        "call": 5,
+        "value": "sqs-queue#4"
+      },
+      {
+        "call": 6,
+        "value": "sqs-queue#5"
+      },
+      {
+        "call": 7,
+        "value": "sqs-queue#6"
+      },
+      {
+        "call": 8,
+        "value": "sqs-queue#7"
+      },
+      {
+        "call": 9,
+        "value": "sqs-queue#8"
+      },
+      {
+        "call": 10,
+        "value": "sqs-queue#9"
+      },
+      {
+        "call": 11,
+        "value": "sqs-queue#10"
+      },
+      {
+        "call": 12,
+        "value": "sqs-queue#11"
+      },
+      {
+        "call": 13,
+        "value": "sqs-queue#12"
+      },
+      {
+        "call": 14,
+        "value": "sqs-queue#13"
+      },
+      {
+        "call": 15,
+        "value": "sqs-queue#14"
+      },
+      {
+        "call": 16,
+        "value": "sqs-queue#15"
+      },
+      {
+        "call": 17,
+        "value": "sqs-queue#16"
+      },
+      {
+        "call": 18,
+        "value": "sqs-queue#17"
+      },
+      {
+        "call": 19,
+        "value": "sqs-queue#18"
+      },
+      {
+        "call": 20,
+        "value": "sqs-queue#19"
+      },
+      {
+        "call": 21,
+        "value": "sqs-queue#20"
+      },
+      {
+        "call": 22,
+        "value": "sqs-queue#21"
+      },
+      {
+        "call": 23,
+        "value": "sqs-queue#22"
+      },
+      {
+        "call": 24,
+        "value": "sqs-queue#23"
+      },
+      {
+        "call": 25,
+        "value": "sqs-queue#24"
+      },
+      {
+        "call": 26,
+        "value": "sqs-queue#25"
+      },
+      {
+        "call": 27,
+        "value": "staging"
+      },
+      {
+        "call": 28,
+        "error": "ValueError: unknown component"
+      },
+      {
+        "call": 29,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "kind-queue#1"
+      },
+      {
+        "call": 4,
+        "value": "kind-store#2"
+      },
+      {
+        "call": 5,
+        "value": "kind-clock#3"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "inmem-queue#4"
+      },
+      {
+        "call": 8,
+        "value": "preview"
+      },
+      {
+        "call": 9,
+        "value": "preview"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "x-store#1"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "x-store#2"
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "a"
+      },
+      {
+        "call": 9,
+        "value": "b"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: family exists"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "inmem-queue#1"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: family exists"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: family exists"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown family"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown family"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "inmem-queue#1"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "inmem-queue#2"
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": "Local"
+      },
+      {
+        "call": 8,
+        "value": "local"
+      }
+    ]
+  }
+]

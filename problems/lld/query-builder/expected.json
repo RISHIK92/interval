@@ -1,0 +1,715 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "SELECT * FROM users"
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "SELECT id, email FROM users WHERE age >= $1 AND name LIKE $2 ORDER BY created_at DESC LIMIT 10"
+      },
+      {
+        "call": 9,
+        "value": ["18", "A%"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "SELECT id FROM orders WHERE status = $1 ORDER BY id ASC LIMIT 5"
+      },
+      {
+        "call": 6,
+        "value": ["x' OR '1'='1"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "SELECT id FROM orders WHERE status = $1 AND customer = $2 ORDER BY id ASC LIMIT 5"
+      },
+      {
+        "call": 9,
+        "value": ["x' OR '1'='1", "Robert'); DROP TABLE orders;--"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: not a plain name"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: not a plain name"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: not a plain name"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: not a plain name"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "SELECT * FROM _Users_2"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "SELECT a, B_1, _c FROM _Users_2"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no columns, or one twice"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: no columns, or one twice"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "SELECT a, b, A FROM _Users_2"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "SELECT * FROM t WHERE c = $1 AND c <> $2 AND c < $3 AND c <= $4 AND c > $5 AND c >= $6 AND c LIKE $7"
+      },
+      {
+        "call": 9,
+        "value": ["v", "v", "v", "v", "v", "v", "v"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown operator"
+      },
+      {
+        "call": 9,
+        "value": "SELECT * FROM t"
+      },
+      {
+        "call": 10,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty value"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "SELECT * FROM t WHERE a = $1 AND b < $2 AND c LIKE $3"
+      },
+      {
+        "call": 8,
+        "value": ["1", "$1", "%' --"]
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 10,
+        "value": ["1", "$1", "%' --"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: already ordered by it"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "SELECT * FROM t ORDER BY b ASC, a DESC, c ASC"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "SELECT * FROM t ORDER BY b ASC, a DESC, c ASC, B DESC"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: limit out of range"
+      },
+      {
+        "call": 2,
+        "value": "SELECT * FROM t"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: limit out of range"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: limit out of range"
+      },
+      {
+        "call": 5,
+        "value": "SELECT * FROM t"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "SELECT * FROM t LIMIT 1000000000"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "SELECT * FROM t LIMIT 1"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": "SELECT * FROM t LIMIT 3"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "SELECT kind FROM events"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "SELECT kind FROM events ORDER BY at DESC"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "SELECT kind FROM events WHERE kind <> $1 ORDER BY at DESC"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "SELECT kind, at FROM events WHERE kind <> $1 ORDER BY at DESC LIMIT 100"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "SELECT kind, at FROM events WHERE kind <> $1 AND at > $2 ORDER BY at DESC LIMIT 100"
+      },
+      {
+        "call": 12,
+        "value": ["debug", "2026-01-01"]
+      },
+      {
+        "call": 13,
+        "value": ["debug", "2026-01-01"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "SELECT * FROM t WHERE c0 = $1 AND c1 < $2 AND c2 LIKE $3 AND c3 = $4 AND c0 < $5 AND c1 LIKE $6 AND c2 = $7 AND c3 < $8 AND c0 LIKE $9 AND c1 = $10 AND c2 < $11 AND c3 LIKE $12"
+      },
+      {
+        "call": 14,
+        "value": [
+          "v0",
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5",
+          "v6",
+          "v7",
+          "v8",
+          "v9",
+          "v10",
+          "v11"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "SELECT id, total FROM orders INNER JOIN users ON orders.user_id = users.id WHERE country = $1 ORDER BY total DESC LIMIT 20"
+      },
+      {
+        "call": 7,
+        "value": ["NZ"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "SELECT * FROM a INNER JOIN b ON a.b_id = b.id INNER JOIN c ON a.c_id = c.id"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: table already in the query"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: table already in the query"
+      },
+      {
+        "call": 6,
+        "value": "SELECT * FROM a INNER JOIN b ON a.b_id = b.id INNER JOIN c ON a.c_id = c.id"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a plain name"
+      },
+      {
+        "call": 7,
+        "value": "SELECT * FROM a"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "SELECT * FROM a INNER JOIN B ON a.x = B.y INNER JOIN b ON a.x = b.y WHERE v = $1"
+      },
+      {
+        "call": 5,
+        "value": ["1"]
+      }
+    ]
+  }
+]

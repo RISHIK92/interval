@@ -1,0 +1,1071 @@
+{
+  "slug": "di-container",
+  "title": "Dependency injection container",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": [
+    "dependency-injection",
+    "singleton-pattern",
+    "factory-method-pattern",
+    "lazy-initialization"
+  ],
+  "interface": {
+    "class": "DiContainer",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "provide",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "lifetime",
+            "type": "string"
+          },
+          {
+            "name": "deps",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "resolve",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "scope",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "constructed",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "endScope",
+        "params": [
+          {
+            "name": "scope",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["config", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["db", "scoped", ["config"]]
+          },
+          {
+            "method": "provide",
+            "args": ["repo", "transient", ["db", "config"]]
+          },
+          {
+            "method": "provide",
+            "args": ["api", "transient", ["repo", "db"]]
+          },
+          {
+            "method": "constructed",
+            "args": ["config"]
+          },
+          {
+            "method": "resolve",
+            "args": ["api", "req1"]
+          },
+          {
+            "method": "resolve",
+            "args": ["api", "req1"]
+          },
+          {
+            "method": "constructed",
+            "args": ["db"]
+          },
+          {
+            "method": "constructed",
+            "args": ["repo"]
+          },
+          {
+            "method": "resolve",
+            "args": ["api", "req2"]
+          },
+          {
+            "method": "endScope",
+            "args": ["req1"]
+          },
+          {
+            "method": "endScope",
+            "args": ["req1"]
+          },
+          {
+            "method": "resolve",
+            "args": ["db", "req1"]
+          },
+          {
+            "method": "constructed",
+            "args": ["config"]
+          },
+          {
+            "method": "constructed",
+            "args": ["db"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["clock", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["cache", "singleton", ["clock", "store"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["cache", "s"]
+          },
+          {
+            "method": "provide",
+            "args": ["store", "transient", []]
+          },
+          {
+            "method": "resolve",
+            "args": ["cache", "s"]
+          },
+          {
+            "method": "resolve",
+            "args": ["cache", "t"]
+          },
+          {
+            "method": "resolve",
+            "args": ["store", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["store"]
+          },
+          {
+            "method": "provide",
+            "args": ["session", "scoped", []]
+          },
+          {
+            "method": "provide",
+            "args": ["audit", "singleton", ["session"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["audit", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["audit"]
+          },
+          {
+            "method": "constructed",
+            "args": ["session"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["a", "Singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["a", "request", []]
+          },
+          {
+            "method": "provide",
+            "args": ["", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["a", "singleton", [""]]
+          },
+          {
+            "method": "provide",
+            "args": ["a", "singleton", ["b", "b"]]
+          },
+          {
+            "method": "constructed",
+            "args": ["a"]
+          },
+          {
+            "method": "provide",
+            "args": ["a", "singleton", ["b"]]
+          },
+          {
+            "method": "provide",
+            "args": ["a", "transient", []]
+          },
+          {
+            "method": "constructed",
+            "args": ["a"]
+          },
+          {
+            "method": "provide",
+            "args": ["b", "transient", []]
+          },
+          {
+            "method": "provide",
+            "args": ["c", "scoped", []]
+          },
+          {
+            "method": "constructed",
+            "args": ["b"]
+          },
+          {
+            "method": "constructed",
+            "args": ["c"]
+          },
+          {
+            "method": "constructed",
+            "args": ["d"]
+          },
+          {
+            "method": "constructed",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["s", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["t", "transient", []]
+          },
+          {
+            "method": "provide",
+            "args": ["x", "scoped", []]
+          },
+          {
+            "method": "resolve",
+            "args": ["s", "one"]
+          },
+          {
+            "method": "resolve",
+            "args": ["t", "one"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", "one"]
+          },
+          {
+            "method": "resolve",
+            "args": ["s", "two"]
+          },
+          {
+            "method": "resolve",
+            "args": ["t", "two"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", "two"]
+          },
+          {
+            "method": "resolve",
+            "args": ["s", "one"]
+          },
+          {
+            "method": "resolve",
+            "args": ["t", "one"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", "one"]
+          },
+          {
+            "method": "constructed",
+            "args": ["s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["t"]
+          },
+          {
+            "method": "constructed",
+            "args": ["x"]
+          },
+          {
+            "method": "endScope",
+            "args": ["two"]
+          },
+          {
+            "method": "endScope",
+            "args": ["one"]
+          },
+          {
+            "method": "endScope",
+            "args": ["three"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", "two"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", "one"]
+          },
+          {
+            "method": "constructed",
+            "args": ["x"]
+          },
+          {
+            "method": "endScope",
+            "args": ["one"]
+          },
+          {
+            "method": "endScope",
+            "args": ["two"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["t", "transient", []]
+          },
+          {
+            "method": "provide",
+            "args": ["s", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["x", "scoped", []]
+          },
+          {
+            "method": "provide",
+            "args": ["pair", "transient", ["t", "s", "x"]]
+          },
+          {
+            "method": "provide",
+            "args": ["top", "transient", ["pair", "t", "x"]]
+          },
+          {
+            "method": "provide",
+            "args": ["both", "transient", ["pair", "top"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["both", "a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["t"]
+          },
+          {
+            "method": "constructed",
+            "args": ["pair"]
+          },
+          {
+            "method": "resolve",
+            "args": ["both", "b"]
+          },
+          {
+            "method": "endScope",
+            "args": ["a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["top", "a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["a", "transient", ["b"]]
+          },
+          {
+            "method": "provide",
+            "args": ["b", "transient", ["c"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["a", "s"]
+          },
+          {
+            "method": "resolve",
+            "args": ["zz", "s"]
+          },
+          {
+            "method": "provide",
+            "args": ["c", "transient", ["a"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["a", "s"]
+          },
+          {
+            "method": "resolve",
+            "args": ["c", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["b"]
+          },
+          {
+            "method": "constructed",
+            "args": ["c"]
+          },
+          {
+            "method": "provide",
+            "args": ["d", "transient", ["d"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["d", "s"]
+          },
+          {
+            "method": "provide",
+            "args": ["e", "singleton", ["f"]]
+          },
+          {
+            "method": "provide",
+            "args": ["f", "transient", []]
+          },
+          {
+            "method": "resolve",
+            "args": ["e", ""]
+          },
+          {
+            "method": "resolve",
+            "args": ["e", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["e"]
+          },
+          {
+            "method": "constructed",
+            "args": ["f"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["leaf", "transient", []]
+          },
+          {
+            "method": "provide",
+            "args": ["mid", "transient", ["leaf"]]
+          },
+          {
+            "method": "provide",
+            "args": ["loop", "transient", ["loop2"]]
+          },
+          {
+            "method": "provide",
+            "args": ["loop2", "transient", ["loop"]]
+          },
+          {
+            "method": "provide",
+            "args": ["top", "transient", ["mid", "loop"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["top", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["leaf"]
+          },
+          {
+            "method": "constructed",
+            "args": ["mid"]
+          },
+          {
+            "method": "resolve",
+            "args": ["mid", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["leaf"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["req", "scoped", []]
+          },
+          {
+            "method": "provide",
+            "args": ["t", "transient", ["req"]]
+          },
+          {
+            "method": "provide",
+            "args": ["s1", "singleton", ["t"]]
+          },
+          {
+            "method": "provide",
+            "args": ["s2", "singleton", ["s3"]]
+          },
+          {
+            "method": "provide",
+            "args": ["s3", "singleton", ["req"]]
+          },
+          {
+            "method": "provide",
+            "args": ["ok", "scoped", ["t"]]
+          },
+          {
+            "method": "provide",
+            "args": ["ok2", "transient", ["ok", "req"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["s1", "a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["s2", "a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["s3", "a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["req"]
+          },
+          {
+            "method": "constructed",
+            "args": ["t"]
+          },
+          {
+            "method": "resolve",
+            "args": ["ok2", "a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["ok2", "a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["req"]
+          },
+          {
+            "method": "constructed",
+            "args": ["t"]
+          },
+          {
+            "method": "constructed",
+            "args": ["ok"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["cfg", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["log", "singleton", ["cfg"]]
+          },
+          {
+            "method": "provide",
+            "args": ["req", "scoped", ["log", "cfg"]]
+          },
+          {
+            "method": "provide",
+            "args": ["h", "transient", ["req", "log"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["h", "r1"]
+          },
+          {
+            "method": "resolve",
+            "args": ["h", "r2"]
+          },
+          {
+            "method": "resolve",
+            "args": ["h", "r1"]
+          },
+          {
+            "method": "endScope",
+            "args": ["r1"]
+          },
+          {
+            "method": "resolve",
+            "args": ["h", "r1"]
+          },
+          {
+            "method": "constructed",
+            "args": ["cfg"]
+          },
+          {
+            "method": "constructed",
+            "args": ["log"]
+          },
+          {
+            "method": "constructed",
+            "args": ["req"]
+          },
+          {
+            "method": "constructed",
+            "args": ["h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["a", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["b", "singleton", ["a"]]
+          },
+          {
+            "method": "constructed",
+            "args": ["a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["b"]
+          },
+          {
+            "method": "resolve",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "constructed",
+            "args": ["a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["b"]
+          },
+          {
+            "method": "resolve",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "resolve",
+            "args": ["b", "z"]
+          },
+          {
+            "method": "constructed",
+            "args": ["a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["x", "scoped", []]
+          },
+          {
+            "method": "provide",
+            "args": ["y", "scoped", ["x"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["y", "S"]
+          },
+          {
+            "method": "resolve",
+            "args": ["y", "s"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", "S"]
+          },
+          {
+            "method": "endScope",
+            "args": [""]
+          },
+          {
+            "method": "endScope",
+            "args": ["s"]
+          },
+          {
+            "method": "resolve",
+            "args": ["y", "S"]
+          },
+          {
+            "method": "resolve",
+            "args": ["x", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["x"]
+          },
+          {
+            "method": "constructed",
+            "args": ["y"]
+          },
+          {
+            "method": "endScope",
+            "args": ["S"]
+          },
+          {
+            "method": "endScope",
+            "args": ["S"]
+          },
+          {
+            "method": "endScope",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["n0", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["n1", "scoped", ["n0"]]
+          },
+          {
+            "method": "provide",
+            "args": ["n2", "transient", ["n1", "n0"]]
+          },
+          {
+            "method": "provide",
+            "args": ["n3", "transient", ["n2", "n1"]]
+          },
+          {
+            "method": "provide",
+            "args": ["n4", "scoped", ["n3", "n2"]]
+          },
+          {
+            "method": "provide",
+            "args": ["n5", "transient", ["n4", "n3"]]
+          },
+          {
+            "method": "provide",
+            "args": ["n6", "transient", ["n5", "n4"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["n6", "a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["n1"]
+          },
+          {
+            "method": "constructed",
+            "args": ["n2"]
+          },
+          {
+            "method": "constructed",
+            "args": ["n3"]
+          },
+          {
+            "method": "constructed",
+            "args": ["n4"]
+          },
+          {
+            "method": "constructed",
+            "args": ["n5"]
+          },
+          {
+            "method": "resolve",
+            "args": ["n4", "a"]
+          },
+          {
+            "method": "endScope",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "decorate",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "wrapper",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["db", "singleton", []]
+          },
+          {
+            "method": "provide",
+            "args": ["repo", "transient", ["db"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "s"]
+          },
+          {
+            "method": "decorate",
+            "args": ["repo", "cache"]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "s"]
+          },
+          {
+            "method": "decorate",
+            "args": ["repo", "metrics"]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "s"]
+          },
+          {
+            "method": "decorate",
+            "args": ["db", "pool"]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["repo"]
+          },
+          {
+            "method": "constructed",
+            "args": ["db"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["db", "singleton", []]
+          },
+          {
+            "method": "decorate",
+            "args": ["db", "pool"]
+          },
+          {
+            "method": "provide",
+            "args": ["repo", "scoped", ["db"]]
+          },
+          {
+            "method": "decorate",
+            "args": ["repo", "log"]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "b"]
+          },
+          {
+            "method": "endScope",
+            "args": ["a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["repo", "a"]
+          },
+          {
+            "method": "constructed",
+            "args": ["repo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "decorate",
+            "args": ["nope", "x"]
+          },
+          {
+            "method": "provide",
+            "args": ["a", "transient", []]
+          },
+          {
+            "method": "decorate",
+            "args": ["a", ""]
+          },
+          {
+            "method": "resolve",
+            "args": ["a", "s"]
+          },
+          {
+            "method": "decorate",
+            "args": ["a", "a"]
+          },
+          {
+            "method": "resolve",
+            "args": ["a", "s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provide",
+            "args": ["t", "transient", []]
+          },
+          {
+            "method": "decorate",
+            "args": ["t", "w"]
+          },
+          {
+            "method": "decorate",
+            "args": ["t", "w"]
+          },
+          {
+            "method": "provide",
+            "args": ["u", "transient", ["t", "t"]]
+          },
+          {
+            "method": "resolve",
+            "args": ["u", "s"]
+          },
+          {
+            "method": "constructed",
+            "args": ["t"]
+          }
+        ]
+      }
+    ]
+  }
+}

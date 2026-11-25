@@ -1,0 +1,1360 @@
+{
+  "slug": "stack-builder",
+  "title": "Infrastructure stack builder",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["builder-pattern", "abstract-factory-pattern"],
+  "interface": {
+    "class": "StackBuilder",
+    "constructor": {
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "resource",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "props",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "dependsOn",
+        "params": [
+          {
+            "name": "a",
+            "type": "string"
+          },
+          {
+            "name": "b",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "preset",
+        "params": [
+          {
+            "name": "recipe",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "validate",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "plan",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["shop"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "store"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "assets",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["store-app", "assets"]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "dependsOn",
+            "args": ["assets", "store-lb"]
+          },
+          {
+            "method": "resource",
+            "args": ["bucket", "assets", {}]
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "mail"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "service",
+              "api",
+              {
+                "image": "api:1"
+              }
+            ]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "dependsOn",
+            "args": ["mail-jobs", "mail-worker"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["api", "mail-jobs"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "service",
+              "api",
+              {
+                "image": "api:1",
+                "port": "80"
+              }
+            ]
+          },
+          {
+            "method": "validate",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "resource",
+            "args": ["bucket", "b", {}]
+          },
+          {
+            "method": "resource",
+            "args": ["queue", "q", {}]
+          },
+          {
+            "method": "resource",
+            "args": ["database", "d", {}]
+          },
+          {
+            "method": "resource",
+            "args": ["service", "s", {}]
+          },
+          {
+            "method": "resource",
+            "args": ["worker", "w", {}]
+          },
+          {
+            "method": "resource",
+            "args": ["balancer", "l", {}]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "resource",
+            "args": [
+              "database",
+              "d2",
+              {
+                "engine": "mysql"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "service",
+              "s2",
+              {
+                "port": "1",
+                "extra": "x"
+              }
+            ]
+          },
+          {
+            "method": "validate",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "q",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "database",
+              "d",
+              {
+                "engine": "pg",
+                "size": "l"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "service",
+              "s",
+              {
+                "image": "i",
+                "port": "1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "worker",
+              "w",
+              {
+                "image": "i"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "balancer",
+              "l",
+              {
+                "port": "80"
+              }
+            ]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "Bucket",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "lambda",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "b",
+              {
+                "": "x"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "b",
+              {
+                "region": ""
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "B",
+              {
+                "Region": "x"
+              }
+            ]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "a",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "b",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "c",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "d",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "e",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["b", "c"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["c", "a"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["c", "d"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["d", "a"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["d", "b"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["e", "a"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a", "e"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a", "a"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["x", "a"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["", "a"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n0",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n1",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n2",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n3",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n4",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n5",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n6",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "n7",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n0", "n1"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n1", "n2"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n2", "n3"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n3", "n4"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n4", "n5"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n5", "n6"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n6", "n7"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n7", "n0"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n7", "n3"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n3", "n7"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["n0", "n7"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prod"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "zeta",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "alpha",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "Mid",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "beta",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "_x",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "a-1",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "dependsOn",
+            "args": ["alpha", "zeta"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "dependsOn",
+            "args": ["Mid", "beta"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["beta", "alpha"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "dependsOn",
+            "args": ["_x", "a-1"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a-1", "Mid"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "validate",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "a"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "a"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "a"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "a"]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "x-db",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "x"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "x"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "queue",
+              "y-worker",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "y"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "y"]
+          },
+          {
+            "method": "preset",
+            "args": ["Web", "z"]
+          },
+          {
+            "method": "preset",
+            "args": ["api", "z"]
+          },
+          {
+            "method": "preset",
+            "args": ["", "z"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", ""]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "dependsOn",
+            "args": ["x-jobs", "y-db"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["y-db", "x-worker"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "w"]
+          },
+          {
+            "method": "resource",
+            "args": ["worker", "cron", {}]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "database",
+              "cache",
+              {
+                "size": "s"
+              }
+            ]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "resource",
+            "args": [
+              "worker",
+              "cron2",
+              {
+                "image": "c"
+              }
+            ]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["cron2", "w-db"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["big"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r0"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r1"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r2"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r3"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r3-worker", "r0-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r4"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r4-lb", "r1-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r5"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r5-worker", "r2-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r6"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r6-lb", "r3-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r7"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r7-worker", "r4-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r8"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r8-lb", "r5-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r9"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r9-worker", "r6-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r10"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r10-lb", "r7-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r11"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r11-worker", "r8-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r12"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r12-lb", "r9-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r13"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r13-worker", "r10-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r14"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r14-lb", "r11-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r15"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r15-worker", "r12-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r16"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r16-lb", "r13-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r17"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r17-worker", "r14-app"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "r18"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r18-lb", "r15-jobs"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "r19"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["r19-worker", "r16-app"]
+          },
+          {
+            "method": "validate",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "destroyPlan",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["shop"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "store"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "assets",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["store-app", "assets"]
+          },
+          {
+            "method": "plan",
+            "args": []
+          },
+          {
+            "method": "destroyPlan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "zeta",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "alpha",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "Mid",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "beta",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "_x",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "resource",
+            "args": [
+              "bucket",
+              "a-1",
+              {
+                "region": "eu-west-1"
+              }
+            ]
+          },
+          {
+            "method": "destroyPlan",
+            "args": []
+          },
+          {
+            "method": "dependsOn",
+            "args": ["alpha", "zeta"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["Mid", "beta"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["beta", "alpha"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["_x", "a-1"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a-1", "Mid"]
+          },
+          {
+            "method": "destroyPlan",
+            "args": []
+          },
+          {
+            "method": "plan",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "destroyPlan",
+            "args": []
+          },
+          {
+            "method": "resource",
+            "args": ["worker", "w", {}]
+          },
+          {
+            "method": "resource",
+            "args": ["queue", "q", {}]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["w", "q"]
+          },
+          {
+            "method": "destroyPlan",
+            "args": []
+          },
+          {
+            "method": "validate",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["s"]
+          },
+          {
+            "method": "preset",
+            "args": ["web", "a"]
+          },
+          {
+            "method": "preset",
+            "args": ["worker", "b"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["b-worker", "a-db"]
+          },
+          {
+            "method": "dependsOn",
+            "args": ["a-lb", "b-jobs"]
+          },
+          {
+            "method": "destroyPlan",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

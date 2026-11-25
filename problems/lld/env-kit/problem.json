@@ -1,0 +1,1006 @@
+{
+  "slug": "env-kit",
+  "title": "Test environment kit",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["abstract-factory-pattern"],
+  "interface": {
+    "class": "EnvKit",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "use",
+        "params": [
+          {
+            "name": "family",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "component",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "wire",
+        "params": [
+          {
+            "name": "a",
+            "type": "string"
+          },
+          {
+            "name": "b",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "family",
+        "params": [
+          {
+            "name": "componentId",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "use",
+            "args": ["ci"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "wire",
+            "args": ["inmem-queue#1", "sqlite-store#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqlite-store#2", "valkey-queue#3"]
+          },
+          {
+            "method": "family",
+            "args": ["valkey-queue#3"]
+          },
+          {
+            "method": "family",
+            "args": ["inmem-queue#1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["staging"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "wire",
+            "args": ["system-clock#1", "system-clock#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["rds-store#3", "system-clock#1"]
+          },
+          {
+            "method": "family",
+            "args": ["rds-store#3"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["ci"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["staging"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "family",
+            "args": ["inmem-queue#1"]
+          },
+          {
+            "method": "family",
+            "args": ["sqlite-store#2"]
+          },
+          {
+            "method": "family",
+            "args": ["fake-clock#3"]
+          },
+          {
+            "method": "family",
+            "args": ["valkey-queue#4"]
+          },
+          {
+            "method": "family",
+            "args": ["postgres-store#5"]
+          },
+          {
+            "method": "family",
+            "args": ["fixed-clock#6"]
+          },
+          {
+            "method": "family",
+            "args": ["sqs-queue#7"]
+          },
+          {
+            "method": "family",
+            "args": ["rds-store#8"]
+          },
+          {
+            "method": "family",
+            "args": ["system-clock#9"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "use",
+            "args": ["prod"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "use",
+            "args": ["Local"]
+          },
+          {
+            "method": "use",
+            "args": [""]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["Queue"]
+          },
+          {
+            "method": "component",
+            "args": ["cache"]
+          },
+          {
+            "method": "component",
+            "args": [""]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["prod"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "family",
+            "args": ["sqlite-store#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["ci"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "use",
+            "args": ["ci"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "wire",
+            "args": ["postgres-store#1", "fixed-clock#3"]
+          },
+          {
+            "method": "wire",
+            "args": ["fixed-clock#3", "postgres-store#1"]
+          },
+          {
+            "method": "wire",
+            "args": ["postgres-store#1", "sqlite-store#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["inmem-queue#4", "sqlite-store#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqlite-store#2", "fixed-clock#3"]
+          },
+          {
+            "method": "family",
+            "args": ["postgres-store#1"]
+          },
+          {
+            "method": "family",
+            "args": ["sqlite-store#2"]
+          },
+          {
+            "method": "family",
+            "args": ["fixed-clock#3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["staging"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#1", "sqs-queue#1"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#1", "sqs-queue#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#9", "sqs-queue#1"]
+          },
+          {
+            "method": "wire",
+            "args": ["", "sqs-queue#1"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#1", "sqs-queue#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "family",
+            "args": ["fake-clock#1"]
+          },
+          {
+            "method": "family",
+            "args": ["fake-clock#0"]
+          },
+          {
+            "method": "family",
+            "args": ["fake-clock"]
+          },
+          {
+            "method": "family",
+            "args": ["#1"]
+          },
+          {
+            "method": "family",
+            "args": ["Fake-clock#1"]
+          },
+          {
+            "method": "family",
+            "args": [""]
+          },
+          {
+            "method": "family",
+            "args": ["fake-clock#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["ci"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "use",
+            "args": ["ci"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "use",
+            "args": ["staging"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "family",
+            "args": ["valkey-queue#1"]
+          },
+          {
+            "method": "family",
+            "args": ["system-clock#9"]
+          },
+          {
+            "method": "family",
+            "args": ["fake-clock#3"]
+          },
+          {
+            "method": "wire",
+            "args": ["valkey-queue#1", "postgres-store#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#4", "rds-store#5"]
+          },
+          {
+            "method": "wire",
+            "args": ["rds-store#5", "fixed-clock#6"]
+          },
+          {
+            "method": "wire",
+            "args": ["fixed-clock#12", "inmem-queue#10"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["staging"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["ci"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["staging"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "wire",
+            "args": ["fake-clock#1", "system-clock#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["system-clock#2", "fixed-clock#3"]
+          },
+          {
+            "method": "wire",
+            "args": ["fixed-clock#3", "fake-clock#1"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#4", "system-clock#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["system-clock#2", "sqs-queue#4"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#4", "fake-clock#1"]
+          },
+          {
+            "method": "family",
+            "args": ["fake-clock#1"]
+          },
+          {
+            "method": "family",
+            "args": ["system-clock#2"]
+          },
+          {
+            "method": "family",
+            "args": ["fixed-clock#3"]
+          },
+          {
+            "method": "family",
+            "args": ["sqs-queue#4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "use",
+            "args": ["staging"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "family",
+            "args": ["sqs-queue#25"]
+          },
+          {
+            "method": "family",
+            "args": ["sqs-queue#26"]
+          },
+          {
+            "method": "wire",
+            "args": ["sqs-queue#10", "sqs-queue#25"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "defineFamily",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "prefix",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["preview", "kind"]
+          },
+          {
+            "method": "use",
+            "args": ["preview"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "component",
+            "args": ["clock"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "family",
+            "args": ["kind-queue#1"]
+          },
+          {
+            "method": "family",
+            "args": ["kind-clock#3"]
+          },
+          {
+            "method": "wire",
+            "args": ["kind-queue#1", "kind-store#2"]
+          },
+          {
+            "method": "wire",
+            "args": ["kind-queue#1", "inmem-queue#4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "defineFamily",
+            "args": ["b", "x"]
+          },
+          {
+            "method": "use",
+            "args": ["a"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "use",
+            "args": ["b"]
+          },
+          {
+            "method": "component",
+            "args": ["store"]
+          },
+          {
+            "method": "wire",
+            "args": ["x-store#1", "x-store#2"]
+          },
+          {
+            "method": "family",
+            "args": ["x-store#1"]
+          },
+          {
+            "method": "family",
+            "args": ["x-store#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["local", "mine"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["staging", "mine"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["p", "q"]
+          },
+          {
+            "method": "defineFamily",
+            "args": ["p", "r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["", "x"]
+          },
+          {
+            "method": "use",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["p", ""]
+          },
+          {
+            "method": "use",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "defineFamily",
+            "args": ["Local", "inmem"]
+          },
+          {
+            "method": "use",
+            "args": ["Local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "use",
+            "args": ["local"]
+          },
+          {
+            "method": "component",
+            "args": ["queue"]
+          },
+          {
+            "method": "wire",
+            "args": ["inmem-queue#1", "inmem-queue#2"]
+          },
+          {
+            "method": "family",
+            "args": ["inmem-queue#1"]
+          },
+          {
+            "method": "family",
+            "args": ["inmem-queue#2"]
+          }
+        ]
+      }
+    ]
+  }
+}

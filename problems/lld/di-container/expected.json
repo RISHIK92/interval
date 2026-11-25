@@ -1,0 +1,1002 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": "api#1(repo#1(db#1(config#1),config#1),db#1(config#1))"
+      },
+      {
+        "call": 7,
+        "value": "api#2(repo#2(db#1(config#1),config#1),db#1(config#1))"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": "api#3(repo#3(db#2(config#1),config#1),db#2(config#1))"
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": "db#3(config#1)"
+      },
+      {
+        "call": 14,
+        "value": 1
+      },
+      {
+        "call": 15,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown service"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "cache#1(clock#1,store#1)"
+      },
+      {
+        "call": 6,
+        "value": "cache#1(clock#1,store#1)"
+      },
+      {
+        "call": 7,
+        "value": "store#2"
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a singleton would hold on to a scoped instance"
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown lifetime"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown lifetime"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a dependency listed twice"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown service"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "error": "ValueError: already provided"
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "error": "ValueError: unknown service"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: unknown service"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "s#1"
+      },
+      {
+        "call": 5,
+        "value": "t#1"
+      },
+      {
+        "call": 6,
+        "value": "x#1"
+      },
+      {
+        "call": 7,
+        "value": "s#1"
+      },
+      {
+        "call": 8,
+        "value": "t#2"
+      },
+      {
+        "call": 9,
+        "value": "x#2"
+      },
+      {
+        "call": 10,
+        "value": "s#1"
+      },
+      {
+        "call": 11,
+        "value": "t#3"
+      },
+      {
+        "call": 12,
+        "value": "x#1"
+      },
+      {
+        "call": 13,
+        "value": 1
+      },
+      {
+        "call": 14,
+        "value": 3
+      },
+      {
+        "call": 15,
+        "value": 2
+      },
+      {
+        "call": 16,
+        "value": 1
+      },
+      {
+        "call": 17,
+        "value": 1
+      },
+      {
+        "call": 18,
+        "value": 0
+      },
+      {
+        "call": 19,
+        "value": "x#3"
+      },
+      {
+        "call": 20,
+        "value": "x#4"
+      },
+      {
+        "call": 21,
+        "value": 4
+      },
+      {
+        "call": 22,
+        "value": 1
+      },
+      {
+        "call": 23,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "both#1(pair#1(t#1,s#1,x#1),top#1(pair#2(t#2,s#1,x#1),t#3,x#1))"
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": "both#2(pair#3(t#4,s#1,x#2),top#2(pair#4(t#5,s#1,x#2),t#6,x#2))"
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": "top#3(pair#5(t#7,s#1,x#3),t#8,x#3)"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown service"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown service"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a dependency cycle"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a dependency cycle"
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "error": "ValueError: a dependency cycle"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 16,
+        "value": "e#1(f#1)"
+      },
+      {
+        "call": 17,
+        "value": 1
+      },
+      {
+        "call": 18,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a dependency cycle"
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": "mid#1(leaf#1)"
+      },
+      {
+        "call": 10,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a singleton would hold on to a scoped instance"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a singleton would hold on to a scoped instance"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a singleton would hold on to a scoped instance"
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": "ok2#1(ok#1(t#1(req#1)),req#1)"
+      },
+      {
+        "call": 14,
+        "value": "ok2#2(ok#1(t#1(req#1)),req#1)"
+      },
+      {
+        "call": 15,
+        "value": "t#2(req#1)"
+      },
+      {
+        "call": 16,
+        "value": 1
+      },
+      {
+        "call": 17,
+        "value": 2
+      },
+      {
+        "call": 18,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "h#1(req#1(log#1(cfg#1),cfg#1),log#1(cfg#1))"
+      },
+      {
+        "call": 6,
+        "value": "h#2(req#2(log#1(cfg#1),cfg#1),log#1(cfg#1))"
+      },
+      {
+        "call": 7,
+        "value": "h#3(req#1(log#1(cfg#1),cfg#1),log#1(cfg#1))"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": "h#4(req#3(log#1(cfg#1),cfg#1),log#1(cfg#1))"
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 3
+      },
+      {
+        "call": 13,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": "a#1"
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": "b#1(a#1)"
+      },
+      {
+        "call": 9,
+        "value": "b#1(a#1)"
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "y#1(x#1)"
+      },
+      {
+        "call": 4,
+        "value": "y#2(x#2)"
+      },
+      {
+        "call": 5,
+        "value": "x#1"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": "y#1(x#1)"
+      },
+      {
+        "call": 9,
+        "value": "x#3"
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": 2
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "n6#1(n5#1(n4#1(n3#1(n2#1(n1#1(n0#1),n0#1),n1#1(n0#1)),n2#2(n1#1(n0#1),n0#1)),n3#2(n2#3(n1#1(n0#1),n0#1),n1#1(n0#1))),n4#1(n3#1(n2#1(n1#1(n0#1),n0#1),n1#1(n0#1)),n2#2(n1#1(n0#1),n0#1)))"
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": 2
+      },
+      {
+        "call": 12,
+        "value": 1
+      },
+      {
+        "call": 13,
+        "value": 1
+      },
+      {
+        "call": 14,
+        "value": "n4#1(n3#1(n2#1(n1#1(n0#1),n0#1),n1#1(n0#1)),n2#2(n1#1(n0#1),n0#1))"
+      },
+      {
+        "call": 15,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "repo#1(db#1)"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "cache[repo#2(db#1)]"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "metrics[cache[repo#3(db#1)]]"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "metrics[cache[repo#4(db#1)]]"
+      },
+      {
+        "call": 10,
+        "value": 4
+      },
+      {
+        "call": 11,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "log[repo#1(pool[db#1])]"
+      },
+      {
+        "call": 6,
+        "value": "log[repo#1(pool[db#1])]"
+      },
+      {
+        "call": 7,
+        "value": "log[repo#2(pool[db#1])]"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": "log[repo#3(pool[db#1])]"
+      },
+      {
+        "call": 10,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown service"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 4,
+        "value": "a#1"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "a[a#2]"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a dependency listed twice"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown service"
+      },
+      {
+        "call": 6,
+        "value": 0
+      }
+    ]
+  }
+]

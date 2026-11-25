@@ -1,0 +1,781 @@
+{
+  "slug": "query-builder",
+  "title": "SQL query builder",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": ["builder-pattern", "sql-injection"],
+  "interface": {
+    "class": "QueryBuilder",
+    "constructor": {
+      "params": [
+        {
+          "name": "table",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "columns",
+        "params": [
+          {
+            "name": "cols",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "where",
+        "params": [
+          {
+            "name": "column",
+            "type": "string"
+          },
+          {
+            "name": "op",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "orderBy",
+        "params": [
+          {
+            "name": "column",
+            "type": "string"
+          },
+          {
+            "name": "desc",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "limit",
+        "params": [
+          {
+            "name": "n",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "build",
+        "params": [],
+        "returns": "string"
+      },
+      {
+        "name": "params",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          },
+          {
+            "method": "columns",
+            "args": [["id", "email"]]
+          },
+          {
+            "method": "where",
+            "args": ["age", ">=", "18"]
+          },
+          {
+            "method": "where",
+            "args": ["name", "LIKE", "A%"]
+          },
+          {
+            "method": "orderBy",
+            "args": ["created_at", true]
+          },
+          {
+            "method": "limit",
+            "args": [10]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["orders"]
+          },
+          {
+            "method": "limit",
+            "args": [5]
+          },
+          {
+            "method": "where",
+            "args": ["status", "=", "x' OR '1'='1"]
+          },
+          {
+            "method": "orderBy",
+            "args": ["id", false]
+          },
+          {
+            "method": "columns",
+            "args": [["id"]]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          },
+          {
+            "method": "where",
+            "args": ["customer", "=", "Robert'); DROP TABLE orders;--"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users; DROP TABLE users"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["public.users"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1users"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["_Users_2"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "columns",
+            "args": [["a", "B_1", "_c"]]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "columns",
+            "args": [["x y"]]
+          },
+          {
+            "method": "columns",
+            "args": [["a", "\"b\""]]
+          },
+          {
+            "method": "columns",
+            "args": [["a", ""]]
+          },
+          {
+            "method": "columns",
+            "args": [[]]
+          },
+          {
+            "method": "columns",
+            "args": [["a", "a"]]
+          },
+          {
+            "method": "columns",
+            "args": [["a", "b", "A"]]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["t"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "=", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "<>", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "<", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "<=", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", ">", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", ">=", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "LIKE", "v"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["t"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "!=", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "like", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "==", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "IN", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", " =", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "OR", "v"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "=<", "v"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["t"]
+          },
+          {
+            "method": "where",
+            "args": ["a", "=", "1"]
+          },
+          {
+            "method": "where",
+            "args": ["a b", "=", "2"]
+          },
+          {
+            "method": "where",
+            "args": ["a", "=", ""]
+          },
+          {
+            "method": "where",
+            "args": ["", "=", "3"]
+          },
+          {
+            "method": "where",
+            "args": ["b", "<", "$1"]
+          },
+          {
+            "method": "where",
+            "args": ["c", "LIKE", "%' --"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          },
+          {
+            "method": "where",
+            "args": ["1=1 OR a", "=", "4"]
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["t"]
+          },
+          {
+            "method": "orderBy",
+            "args": ["b", false]
+          },
+          {
+            "method": "orderBy",
+            "args": ["a", true]
+          },
+          {
+            "method": "orderBy",
+            "args": ["b", true]
+          },
+          {
+            "method": "orderBy",
+            "args": ["", false]
+          },
+          {
+            "method": "orderBy",
+            "args": ["a;", false]
+          },
+          {
+            "method": "orderBy",
+            "args": ["c", false]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "orderBy",
+            "args": ["B", true]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["t"]
+          },
+          {
+            "method": "limit",
+            "args": [0]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "limit",
+            "args": [-1]
+          },
+          {
+            "method": "limit",
+            "args": [1000000001]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "limit",
+            "args": [1000000000]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "limit",
+            "args": [1]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "limit",
+            "args": [7]
+          },
+          {
+            "method": "limit",
+            "args": [3]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["events"]
+          },
+          {
+            "method": "columns",
+            "args": [["kind"]]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "orderBy",
+            "args": ["at", true]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "where",
+            "args": ["kind", "<>", "debug"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "columns",
+            "args": [["kind", "at"]]
+          },
+          {
+            "method": "limit",
+            "args": [100]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "where",
+            "args": ["at", ">", "2026-01-01"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["t"]
+          },
+          {
+            "method": "where",
+            "args": ["c0", "=", "v0"]
+          },
+          {
+            "method": "where",
+            "args": ["c1", "<", "v1"]
+          },
+          {
+            "method": "where",
+            "args": ["c2", "LIKE", "v2"]
+          },
+          {
+            "method": "where",
+            "args": ["c3", "=", "v3"]
+          },
+          {
+            "method": "where",
+            "args": ["c0", "<", "v4"]
+          },
+          {
+            "method": "where",
+            "args": ["c1", "LIKE", "v5"]
+          },
+          {
+            "method": "where",
+            "args": ["c2", "=", "v6"]
+          },
+          {
+            "method": "where",
+            "args": ["c3", "<", "v7"]
+          },
+          {
+            "method": "where",
+            "args": ["c0", "LIKE", "v8"]
+          },
+          {
+            "method": "where",
+            "args": ["c1", "=", "v9"]
+          },
+          {
+            "method": "where",
+            "args": ["c2", "<", "v10"]
+          },
+          {
+            "method": "where",
+            "args": ["c3", "LIKE", "v11"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "innerJoin",
+        "params": [
+          {
+            "name": "table",
+            "type": "string"
+          },
+          {
+            "name": "leftColumn",
+            "type": "string"
+          },
+          {
+            "name": "rightColumn",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["orders"]
+          },
+          {
+            "method": "columns",
+            "args": [["id", "total"]]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["users", "user_id", "id"]
+          },
+          {
+            "method": "where",
+            "args": ["country", "=", "NZ"]
+          },
+          {
+            "method": "orderBy",
+            "args": ["total", true]
+          },
+          {
+            "method": "limit",
+            "args": [20]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b", "b_id", "id"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["c", "c_id", "id"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b", "x", "y"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["a", "x", "y"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["", "x", "y"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b", "", "y"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b", "x", ""]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b c", "x", "y"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b", "x.y", "y"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b", "x", "y;"]
+          },
+          {
+            "method": "build",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a"]
+          },
+          {
+            "method": "where",
+            "args": ["v", "=", "1"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["B", "x", "y"]
+          },
+          {
+            "method": "innerJoin",
+            "args": ["b", "x", "y"]
+          },
+          {
+            "method": "build",
+            "args": []
+          },
+          {
+            "method": "params",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

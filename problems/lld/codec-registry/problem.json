@@ -1,0 +1,929 @@
+{
+  "slug": "codec-registry",
+  "title": "Codec registry",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "creational",
+  "concepts": [
+    "factory-method-pattern",
+    "open-closed-principle",
+    "serialization-formats"
+  ],
+  "interface": {
+    "class": "CodecRegistry",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "add",
+        "params": [
+          {
+            "name": "contentType",
+            "type": "string"
+          },
+          {
+            "name": "codec",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "negotiate",
+        "params": [
+          {
+            "name": "accept",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "encodeWith",
+        "params": [
+          {
+            "name": "contentType",
+            "type": "string"
+          },
+          {
+            "name": "fields",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0.5, application/json;q=0.9"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["image/png"]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/json",
+              {
+                "name": "Ada Lovelace",
+                "id": "7"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/x-www-form-urlencoded",
+              {
+                "name": "Ada Lovelace",
+                "id": "7"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "text/csv",
+              {
+                "name": "Ada Lovelace",
+                "id": "7"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/*, */*;q=0.1"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0, */*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0"]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "text/csv",
+              {
+                "note": "say \"hi\", twice",
+                "b": "x"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["Text/csv", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["text", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["text/", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["/csv", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["text/*", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["*/*", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv/x", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["a/b", "xml"]
+          },
+          {
+            "method": "add",
+            "args": ["a/b", "JSON"]
+          },
+          {
+            "method": "add",
+            "args": ["a/b", ""]
+          },
+          {
+            "method": "add",
+            "args": ["text/plain ", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["application/vnd.api+json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["x-1/y.2-z", "form"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["x-1/*"]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "a/b",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/vnd.api+json",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "x-1/y.2-z",
+              {
+                "k": "v"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv, application/json"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json, text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*;q=0.5, text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*, text/csv;q=0.999"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/*;q=0.2, text/*;q=0.3"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/*;q=0.3, text/*;q=0.3"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0.3, text/*;q=1"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=0, application/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=0, application/*;q=0, */*;q=0.001"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*;q=0"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/plain"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/xml, image/*"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=1, text/csv;q=0.999"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=1.0, application/json;q=1.000"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=0.5, text/csv;q=0.123"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=0.5, text/csv;q=0.51"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=0.05, text/csv;q=0.049"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=0.9, text/csv;q=1."]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0., application/json;q=0.001"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0.000"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=0.999, text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json;q=1, text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json, text/csv;q=1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["text/plain", "csv"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0.9, text/plain;q=0.9"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/*;q=0.4, text/plain;q=0.3"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/plain;q=0.3, */*;q=0.4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": [""]
+          },
+          {
+            "method": "negotiate",
+            "args": [","]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv,"]
+          },
+          {
+            "method": "negotiate",
+            "args": [" , text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=1.1"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=2"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=-0.5"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0.5000"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=.5"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=1.01"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q="]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;charset=utf-8"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0.5;q=0.4"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv, text/csv;q=0.5"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["TEXT/CSV"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;Q=0.5"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q = 0.5"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["  text/csv ;  q=0.4 ,application/json;q=0.3  "]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv ; q=0.2,  */*;q=0.3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/json",
+              {
+                "z": "1",
+                "a": "2",
+                "M": "3",
+                "_": "4"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/x-www-form-urlencoded",
+              {
+                "z": "1",
+                "a": "2",
+                "M": "3",
+                "_": "4"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "text/csv",
+              {
+                "z": "1",
+                "a": "2",
+                "M": "3",
+                "_": "4"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/json",
+              {
+                "q": "He said \"no\\yes\"",
+                "k\"\\": "~"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/x-www-form-urlencoded",
+              {
+                "a b": "c&d=e",
+                "x": "-._~!*'()%/?#[]@+$,;:"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "text/csv",
+              {
+                "a,b": "1",
+                "c": "x\"y",
+                "d": "plain text",
+                "e": "\"",
+                "f": "'"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "encodeWith",
+            "args": ["application/json", {}]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "text/csv",
+              {
+                "": "x"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "text/csv",
+              {
+                "x": ""
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "text/plain",
+              {
+                "a": "b"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "application/*",
+              {
+                "a": "b"
+              }
+            ]
+          },
+          {
+            "method": "encodeWith",
+            "args": [
+              "",
+              {
+                "a": "b"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "fallbackType",
+        "params": [
+          {
+            "name": "contentType",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "fallbackType",
+            "args": ["application/json"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["image/png"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["*/*;q=0"]
+          },
+          {
+            "method": "fallbackType",
+            "args": ["text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["image/*"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "fallbackType",
+            "args": ["text/plain"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "fallbackType",
+            "args": [""]
+          },
+          {
+            "method": "negotiate",
+            "args": ["image/png"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "add",
+            "args": ["application/x-www-form-urlencoded", "form"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "fallbackType",
+            "args": ["text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["bad"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "fallbackType",
+            "args": ["text/csv"]
+          },
+          {
+            "method": "add",
+            "args": ["text/csv", "csv"]
+          },
+          {
+            "method": "fallbackType",
+            "args": ["text/csv"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["text/csv;q=0.5"]
+          },
+          {
+            "method": "add",
+            "args": ["application/json", "json"]
+          },
+          {
+            "method": "negotiate",
+            "args": ["application/json"]
+          }
+        ]
+      }
+    ]
+  }
+}

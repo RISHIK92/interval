@@ -1,0 +1,1180 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": [
+          "bucket shop/assets",
+          "database shop/store-db",
+          "service shop/store-app",
+          "balancer shop/store-lb"
+        ]
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": [
+          "bucket shop/assets",
+          "database shop/store-db",
+          "service shop/store-app",
+          "balancer shop/store-lb"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 2
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": ["api: missing port"]
+      },
+      {
+        "call": 4,
+        "error": "ValueError: the stack isn't valid"
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": ["api: missing port"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": [
+          "b: missing region",
+          "d: missing engine",
+          "d: missing size",
+          "l: missing port",
+          "q: missing region",
+          "s: missing image",
+          "s: missing port",
+          "w: missing image"
+        ]
+      },
+      {
+        "call": 8,
+        "error": "ValueError: the stack isn't valid"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": [
+          "b: missing region",
+          "d2: missing size",
+          "d: missing engine",
+          "d: missing size",
+          "l: missing port",
+          "q: missing region",
+          "s2: missing image",
+          "s: missing image",
+          "s: missing port",
+          "w: missing image"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": [
+          "bucket s/b",
+          "database s/d",
+          "balancer s/l",
+          "queue s/q",
+          "service s/s",
+          "worker s/w"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": ["B: missing region"]
+      },
+      {
+        "call": 12,
+        "error": "ValueError: the stack isn't valid"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: empty"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": false
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": false
+      },
+      {
+        "call": 16,
+        "error": "ValueError: a resource can't depend on itself"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: unknown resource"
+      },
+      {
+        "call": 18,
+        "error": "ValueError: unknown resource"
+      },
+      {
+        "call": 19,
+        "error": "ValueError: unknown resource"
+      },
+      {
+        "call": 20,
+        "value": [
+          "bucket s/d",
+          "bucket s/c",
+          "bucket s/b",
+          "bucket s/a",
+          "bucket s/e"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": false
+      },
+      {
+        "call": 17,
+        "value": false
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": [
+          "queue s/n7",
+          "queue s/n6",
+          "queue s/n5",
+          "queue s/n4",
+          "queue s/n3",
+          "queue s/n2",
+          "queue s/n1",
+          "queue s/n0"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": [
+          "bucket prod/Mid",
+          "bucket prod/_x",
+          "bucket prod/a-1",
+          "bucket prod/alpha",
+          "bucket prod/beta",
+          "bucket prod/zeta"
+        ]
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": [
+          "bucket prod/Mid",
+          "bucket prod/_x",
+          "bucket prod/a-1",
+          "bucket prod/beta",
+          "bucket prod/zeta",
+          "bucket prod/alpha"
+        ]
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": [
+          "bucket prod/_x",
+          "bucket prod/a-1",
+          "bucket prod/zeta",
+          "bucket prod/alpha",
+          "bucket prod/beta",
+          "bucket prod/Mid"
+        ]
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": [
+          "bucket prod/zeta",
+          "bucket prod/alpha",
+          "bucket prod/beta",
+          "bucket prod/Mid",
+          "bucket prod/a-1",
+          "bucket prod/_x"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": [
+          "database s/a-db",
+          "service s/a-app",
+          "queue s/a-jobs",
+          "balancer s/a-lb",
+          "worker s/a-worker"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 3
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown recipe"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown recipe"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown recipe"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": [
+          "bucket s/x-db",
+          "queue s/x-jobs",
+          "worker s/x-worker",
+          "database s/y-db",
+          "service s/y-app",
+          "balancer s/y-lb",
+          "queue s/y-worker"
+        ]
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "value": [
+          "bucket s/x-db",
+          "database s/y-db",
+          "queue s/x-jobs",
+          "worker s/x-worker",
+          "service s/y-app",
+          "balancer s/y-lb",
+          "queue s/y-worker"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["cache: missing engine", "cron: missing image"]
+      },
+      {
+        "call": 5,
+        "error": "ValueError: the stack isn't valid"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "error": "ValueError: the stack isn't valid"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 2
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": 3
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": 3
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": 2
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": 3
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": 2
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": 3
+      },
+      {
+        "call": 23,
+        "value": true
+      },
+      {
+        "call": 24,
+        "value": 2
+      },
+      {
+        "call": 25,
+        "value": true
+      },
+      {
+        "call": 26,
+        "value": 3
+      },
+      {
+        "call": 27,
+        "value": true
+      },
+      {
+        "call": 28,
+        "value": 2
+      },
+      {
+        "call": 29,
+        "value": true
+      },
+      {
+        "call": 30,
+        "value": 3
+      },
+      {
+        "call": 31,
+        "value": true
+      },
+      {
+        "call": 32,
+        "value": 2
+      },
+      {
+        "call": 33,
+        "value": true
+      },
+      {
+        "call": 34,
+        "value": 3
+      },
+      {
+        "call": 35,
+        "value": true
+      },
+      {
+        "call": 36,
+        "value": 2
+      },
+      {
+        "call": 37,
+        "value": true
+      },
+      {
+        "call": 38,
+        "value": []
+      },
+      {
+        "call": 39,
+        "value": [
+          "database big/r0-db",
+          "service big/r0-app",
+          "balancer big/r0-lb",
+          "queue big/r1-jobs",
+          "worker big/r1-worker",
+          "database big/r10-db",
+          "service big/r10-app",
+          "queue big/r11-jobs",
+          "database big/r12-db",
+          "service big/r12-app",
+          "queue big/r13-jobs",
+          "worker big/r13-worker",
+          "database big/r14-db",
+          "service big/r14-app",
+          "balancer big/r14-lb",
+          "queue big/r15-jobs",
+          "worker big/r15-worker",
+          "database big/r16-db",
+          "service big/r16-app",
+          "balancer big/r16-lb",
+          "queue big/r17-jobs",
+          "worker big/r17-worker",
+          "database big/r18-db",
+          "service big/r18-app",
+          "balancer big/r18-lb",
+          "queue big/r19-jobs",
+          "worker big/r19-worker",
+          "database big/r2-db",
+          "service big/r2-app",
+          "balancer big/r2-lb",
+          "queue big/r3-jobs",
+          "worker big/r3-worker",
+          "database big/r4-db",
+          "service big/r4-app",
+          "balancer big/r4-lb",
+          "queue big/r5-jobs",
+          "worker big/r5-worker",
+          "database big/r6-db",
+          "service big/r6-app",
+          "balancer big/r6-lb",
+          "queue big/r7-jobs",
+          "balancer big/r10-lb",
+          "worker big/r7-worker",
+          "database big/r8-db",
+          "service big/r8-app",
+          "worker big/r11-worker",
+          "balancer big/r8-lb",
+          "queue big/r9-jobs",
+          "balancer big/r12-lb",
+          "worker big/r9-worker"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": [
+          "bucket shop/assets",
+          "database shop/store-db",
+          "service shop/store-app",
+          "balancer shop/store-lb"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "balancer shop/store-lb",
+          "service shop/store-app",
+          "bucket shop/assets",
+          "database shop/store-db"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": [
+          "bucket s/Mid",
+          "bucket s/_x",
+          "bucket s/a-1",
+          "bucket s/alpha",
+          "bucket s/beta",
+          "bucket s/zeta"
+        ]
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": [
+          "bucket s/_x",
+          "bucket s/a-1",
+          "bucket s/Mid",
+          "bucket s/beta",
+          "bucket s/alpha",
+          "bucket s/zeta"
+        ]
+      },
+      {
+        "call": 14,
+        "value": [
+          "bucket s/zeta",
+          "bucket s/alpha",
+          "bucket s/beta",
+          "bucket s/Mid",
+          "bucket s/a-1",
+          "bucket s/_x"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["worker s/w", "queue s/q"]
+      },
+      {
+        "call": 6,
+        "value": ["q: missing region", "w: missing image"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": [
+          "balancer s/a-lb",
+          "service s/a-app",
+          "worker s/b-worker",
+          "database s/a-db",
+          "queue s/b-jobs"
+        ]
+      }
+    ]
+  }
+]

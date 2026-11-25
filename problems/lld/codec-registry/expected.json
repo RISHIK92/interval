@@ -1,0 +1,770 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "application/json"
+      },
+      {
+        "call": 5,
+        "value": "text/csv"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "{\"id\":\"7\",\"name\":\"Ada Lovelace\"}"
+      },
+      {
+        "call": 8,
+        "value": "id=7&name=Ada%20Lovelace"
+      },
+      {
+        "call": 9,
+        "value": "id,name\n7,Ada Lovelace"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "text/csv"
+      },
+      {
+        "call": 4,
+        "value": "application/json"
+      },
+      {
+        "call": 5,
+        "value": "application/json"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "b,note\nx,\"say \"\"hi\"\", twice\""
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: already added"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown codec"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: unknown codec"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: unknown codec"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: bad content type"
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": "text/csv"
+      },
+      {
+        "call": 18,
+        "value": "application/vnd.api+json"
+      },
+      {
+        "call": 19,
+        "value": "x-1/y.2-z"
+      },
+      {
+        "call": 20,
+        "error": "ValueError: no codec for that type"
+      },
+      {
+        "call": 21,
+        "value": "{\"k\":\"v\"}"
+      },
+      {
+        "call": 22,
+        "value": "k=v"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "application/json"
+      },
+      {
+        "call": 5,
+        "value": "application/json"
+      },
+      {
+        "call": 6,
+        "value": "application/json"
+      },
+      {
+        "call": 7,
+        "value": "text/csv"
+      },
+      {
+        "call": 8,
+        "value": "application/json"
+      },
+      {
+        "call": 9,
+        "value": "text/csv"
+      },
+      {
+        "call": 10,
+        "value": "application/json"
+      },
+      {
+        "call": 11,
+        "value": "text/csv"
+      },
+      {
+        "call": 12,
+        "value": "application/x-www-form-urlencoded"
+      },
+      {
+        "call": 13,
+        "value": "text/csv"
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "application/json"
+      },
+      {
+        "call": 4,
+        "value": "text/csv"
+      },
+      {
+        "call": 5,
+        "value": "application/json"
+      },
+      {
+        "call": 6,
+        "value": "text/csv"
+      },
+      {
+        "call": 7,
+        "value": "application/json"
+      },
+      {
+        "call": 8,
+        "value": "text/csv"
+      },
+      {
+        "call": 9,
+        "value": "application/json"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "text/csv"
+      },
+      {
+        "call": 12,
+        "value": "text/csv"
+      },
+      {
+        "call": 13,
+        "value": "text/csv"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "text/plain"
+      },
+      {
+        "call": 4,
+        "value": "text/plain"
+      },
+      {
+        "call": 5,
+        "value": "text/csv"
+      },
+      {
+        "call": 6,
+        "value": "text/csv"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: bad q-value"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: bad q-value"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: bad q-value"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: bad q-value"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: bad q-value"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: bad q-value"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: bad q-value"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: only q is allowed"
+      },
+      {
+        "call": 18,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 19,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 20,
+        "error": "ValueError: bad media range"
+      },
+      {
+        "call": 21,
+        "error": "ValueError: only q is allowed"
+      },
+      {
+        "call": 22,
+        "error": "ValueError: only q is allowed"
+      },
+      {
+        "call": 23,
+        "value": "text/csv"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "text/csv"
+      },
+      {
+        "call": 5,
+        "value": "application/json"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "{\"M\":\"3\",\"_\":\"4\",\"a\":\"2\",\"z\":\"1\"}"
+      },
+      {
+        "call": 5,
+        "value": "M=3&_=4&a=2&z=1"
+      },
+      {
+        "call": 6,
+        "value": "M,_,a,z\n3,4,2,1"
+      },
+      {
+        "call": 7,
+        "value": "{\"k\\\"\\\\\":\"~\",\"q\":\"He said \\\"no\\\\yes\\\"\"}"
+      },
+      {
+        "call": 8,
+        "value": "a%20b=c%26d%3De&x=-._~%21%2A%27%28%29%25%2F%3F%23%5B%5D%40%2B%24%2C%3B%3A"
+      },
+      {
+        "call": 9,
+        "value": "\"a,b\",c,d,e,f\n1,\"x\"\"y\",plain text,\"\"\"\",'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: empty record, name or value"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: empty record, name or value"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty record, name or value"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no codec for that type"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: no codec for that type"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: no codec for that type"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "application/json"
+      },
+      {
+        "call": 6,
+        "value": "text/csv"
+      },
+      {
+        "call": 7,
+        "value": "application/json"
+      },
+      {
+        "call": 8,
+        "value": "application/json"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "text/csv"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no codec for that type"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no codec for that type"
+      },
+      {
+        "call": 5,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: bad media range"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: no codec for that type"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "text/csv"
+      },
+      {
+        "call": 5,
+        "value": "text/csv"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "application/json"
+      }
+    ]
+  }
+]
