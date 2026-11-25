@@ -1,0 +1,782 @@
+{
+  "slug": "deploy-facade",
+  "title": "Deploy facade",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["facade-pattern", "rolling-deployments"],
+  "interface": {
+    "class": "DeployFacade",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "deploy",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "breakStep",
+        "params": [
+          {
+            "name": "step",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "history",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "rollback",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["api", "1.0"]
+          },
+          {
+            "method": "deploy",
+            "args": ["api", "1.1"]
+          },
+          {
+            "method": "history",
+            "args": ["api"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["migrate"]
+          },
+          {
+            "method": "deploy",
+            "args": ["api", "1.2"]
+          },
+          {
+            "method": "history",
+            "args": ["api"]
+          },
+          {
+            "method": "deploy",
+            "args": ["api", "1.2"]
+          },
+          {
+            "method": "history",
+            "args": ["api"]
+          },
+          {
+            "method": "rollback",
+            "args": ["api"]
+          },
+          {
+            "method": "history",
+            "args": ["api"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "history",
+            "args": ["web"]
+          },
+          {
+            "method": "rollback",
+            "args": ["web"]
+          },
+          {
+            "method": "deploy",
+            "args": ["web", "v1"]
+          },
+          {
+            "method": "rollback",
+            "args": ["web"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["deploy"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["Build"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["build"]
+          },
+          {
+            "method": "deploy",
+            "args": ["web", "v2"]
+          },
+          {
+            "method": "history",
+            "args": ["web"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "1"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["build"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "2"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "3"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "1"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["push"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "2"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "3"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "1"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["migrate"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "2"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "3"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "1"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["rollout"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "2"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "3"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "1"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["announce"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "2"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          },
+          {
+            "method": "deploy",
+            "args": ["svc", "3"]
+          },
+          {
+            "method": "history",
+            "args": ["svc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "breakStep",
+            "args": ["push"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["push"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "history",
+            "args": ["a"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["rollout"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["build"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "3"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "4"]
+          },
+          {
+            "method": "history",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["b", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "deploy",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "3"]
+          },
+          {
+            "method": "rollback",
+            "args": ["b"]
+          },
+          {
+            "method": "history",
+            "args": ["a"]
+          },
+          {
+            "method": "history",
+            "args": ["b"]
+          },
+          {
+            "method": "rollback",
+            "args": ["a"]
+          },
+          {
+            "method": "rollback",
+            "args": ["a"]
+          },
+          {
+            "method": "rollback",
+            "args": ["a"]
+          },
+          {
+            "method": "history",
+            "args": ["a"]
+          },
+          {
+            "method": "rollback",
+            "args": ["c"]
+          },
+          {
+            "method": "history",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["x", "7"]
+          },
+          {
+            "method": "deploy",
+            "args": ["x", "7"]
+          },
+          {
+            "method": "history",
+            "args": ["x"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["rollout"]
+          },
+          {
+            "method": "rollback",
+            "args": ["x"]
+          },
+          {
+            "method": "history",
+            "args": ["x"]
+          },
+          {
+            "method": "deploy",
+            "args": ["x", "8"]
+          },
+          {
+            "method": "history",
+            "args": ["x"]
+          },
+          {
+            "method": "rollback",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", ""]
+          },
+          {
+            "method": "history",
+            "args": [""]
+          },
+          {
+            "method": "rollback",
+            "args": [""]
+          },
+          {
+            "method": "breakStep",
+            "args": [""]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "history",
+            "args": ["a"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "rollback",
+            "args": ["a"]
+          },
+          {
+            "method": "rollback",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "breakStep",
+            "args": ["Rollout"]
+          },
+          {
+            "method": "breakStep",
+            "args": ["rollout "]
+          },
+          {
+            "method": "breakStep",
+            "args": ["undo"]
+          },
+          {
+            "method": "deploy",
+            "args": ["A", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "history",
+            "args": ["A"]
+          },
+          {
+            "method": "history",
+            "args": ["a"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a b", "1 2"]
+          },
+          {
+            "method": "history",
+            "args": ["a b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "2"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "3"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "4"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "5"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "6"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "7"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "8"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "rollback",
+            "args": ["s"]
+          },
+          {
+            "method": "history",
+            "args": ["s"]
+          },
+          {
+            "method": "deploy",
+            "args": ["s", "9"]
+          },
+          {
+            "method": "history",
+            "args": ["s"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "dryRun",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "dryRun",
+            "args": ["api", "1"]
+          },
+          {
+            "method": "history",
+            "args": ["api"]
+          },
+          {
+            "method": "deploy",
+            "args": ["api", "1"]
+          },
+          {
+            "method": "dryRun",
+            "args": ["api", "2"]
+          },
+          {
+            "method": "history",
+            "args": ["api"]
+          },
+          {
+            "method": "rollback",
+            "args": ["api"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "breakStep",
+            "args": ["migrate"]
+          },
+          {
+            "method": "dryRun",
+            "args": ["api", "1"]
+          },
+          {
+            "method": "dryRun",
+            "args": ["api", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["api", "1"]
+          },
+          {
+            "method": "dryRun",
+            "args": ["api", "1"]
+          },
+          {
+            "method": "history",
+            "args": ["api"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "dryRun",
+            "args": ["", "1"]
+          },
+          {
+            "method": "dryRun",
+            "args": ["a", ""]
+          },
+          {
+            "method": "breakStep",
+            "args": ["announce"]
+          },
+          {
+            "method": "dryRun",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "deploy",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "history",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  }
+}

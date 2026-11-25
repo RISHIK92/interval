@@ -1,0 +1,898 @@
+{
+  "slug": "config-proxy",
+  "title": "Read-through config proxy",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["proxy-pattern", "cache-aside", "caching"],
+  "interface": {
+    "class": "ConfigProxy",
+    "constructor": {
+      "params": [
+        {
+          "name": "ttlMs",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "upstreamSet",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "read",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "upstreamDown",
+        "params": [
+          {
+            "name": "down",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "upstreamFetches",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["db.host", "10.0.0.1"]
+          },
+          {
+            "method": "read",
+            "args": ["db.host", 0]
+          },
+          {
+            "method": "read",
+            "args": ["db.host", 500]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["db.host", "10.0.0.2"]
+          },
+          {
+            "method": "read",
+            "args": ["db.host", 999]
+          },
+          {
+            "method": "read",
+            "args": ["db.host", 1000]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["db.host", 1500]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["mode", "fast"]
+          },
+          {
+            "method": "read",
+            "args": ["mode", 10]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["mode", 50]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["mode", 200]
+          },
+          {
+            "method": "read",
+            "args": ["mode", 300]
+          },
+          {
+            "method": "read",
+            "args": ["other", 300]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "upstreamDown",
+            "args": [false]
+          },
+          {
+            "method": "read",
+            "args": ["mode", 310]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 5]
+          },
+          {
+            "method": "read",
+            "args": ["k", 5]
+          },
+          {
+            "method": "read",
+            "args": ["k", 6]
+          },
+          {
+            "method": "read",
+            "args": ["k", 6]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [250]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "a"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 0]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "b"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 249]
+          },
+          {
+            "method": "read",
+            "args": ["k", 250]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "c"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 499]
+          },
+          {
+            "method": "read",
+            "args": ["k", 500]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "read",
+            "args": ["x", 0]
+          },
+          {
+            "method": "read",
+            "args": ["x", 1]
+          },
+          {
+            "method": "read",
+            "args": ["x", 2]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["x", "now"]
+          },
+          {
+            "method": "read",
+            "args": ["x", 3]
+          },
+          {
+            "method": "read",
+            "args": ["x", 4]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "read",
+            "args": ["a", 0]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["a", 5]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["a", 10]
+          },
+          {
+            "method": "read",
+            "args": ["a", 11]
+          },
+          {
+            "method": "read",
+            "args": ["b", 12]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["a", "9"]
+          },
+          {
+            "method": "read",
+            "args": ["a", 13]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["a", 14]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [false]
+          },
+          {
+            "method": "read",
+            "args": ["a", 15]
+          },
+          {
+            "method": "read",
+            "args": ["a", 16]
+          },
+          {
+            "method": "read",
+            "args": ["a", 25]
+          },
+          {
+            "method": "read",
+            "args": ["a", 26]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "old"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 0]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["k", 150]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [false]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "new"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 160]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["k", 200]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["k", 300]
+          },
+          {
+            "method": "read",
+            "args": ["k", 400]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [500]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["A", "2"]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["a ", "3"]
+          },
+          {
+            "method": "read",
+            "args": ["a", 0]
+          },
+          {
+            "method": "read",
+            "args": ["A", 0]
+          },
+          {
+            "method": "read",
+            "args": ["a ", 0]
+          },
+          {
+            "method": "read",
+            "args": ["a", 1]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["b", 1]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000000]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["", "v"]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", ""]
+          },
+          {
+            "method": "read",
+            "args": ["", 0]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 0]
+          },
+          {
+            "method": "read",
+            "args": ["k", 999999999]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": ["k", 1000000000]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v0"]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [false]
+          },
+          {
+            "method": "read",
+            "args": ["k", 0]
+          },
+          {
+            "method": "read",
+            "args": ["k", 1]
+          },
+          {
+            "method": "read",
+            "args": ["k", 2]
+          },
+          {
+            "method": "read",
+            "args": ["k", 3]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v4"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 4]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["k", 5]
+          },
+          {
+            "method": "read",
+            "args": ["k", 6]
+          },
+          {
+            "method": "read",
+            "args": ["k", 7]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v8"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 8]
+          },
+          {
+            "method": "read",
+            "args": ["k", 9]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [false]
+          },
+          {
+            "method": "read",
+            "args": ["k", 10]
+          },
+          {
+            "method": "read",
+            "args": ["k", 11]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v12"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 12]
+          },
+          {
+            "method": "read",
+            "args": ["k", 13]
+          },
+          {
+            "method": "read",
+            "args": ["k", 14]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["k", 15]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v16"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 16]
+          },
+          {
+            "method": "read",
+            "args": ["k", 17]
+          },
+          {
+            "method": "read",
+            "args": ["k", 18]
+          },
+          {
+            "method": "read",
+            "args": ["k", 19]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v20"]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [false]
+          },
+          {
+            "method": "read",
+            "args": ["k", 20]
+          },
+          {
+            "method": "read",
+            "args": ["k", 21]
+          },
+          {
+            "method": "read",
+            "args": ["k", 22]
+          },
+          {
+            "method": "read",
+            "args": ["k", 23]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v24"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 24]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "read",
+            "args": ["k", 25]
+          },
+          {
+            "method": "read",
+            "args": ["k", 26]
+          },
+          {
+            "method": "read",
+            "args": ["k", 27]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "v28"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 28]
+          },
+          {
+            "method": "read",
+            "args": ["k", 29]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "invalidate",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "a"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 0]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "b"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["k"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 1]
+          },
+          {
+            "method": "read",
+            "args": ["k", 2]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "invalidate",
+            "args": ["nope"]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "a"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 0]
+          },
+          {
+            "method": "upstreamDown",
+            "args": [true]
+          },
+          {
+            "method": "invalidate",
+            "args": ["k"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 1]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          },
+          {
+            "method": "upstreamDown",
+            "args": [false]
+          },
+          {
+            "method": "read",
+            "args": ["k", 2]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "invalidate",
+            "args": [""]
+          },
+          {
+            "method": "upstreamSet",
+            "args": ["k", "a"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 0]
+          },
+          {
+            "method": "invalidate",
+            "args": ["k"]
+          },
+          {
+            "method": "invalidate",
+            "args": ["k"]
+          },
+          {
+            "method": "read",
+            "args": ["k", 5]
+          },
+          {
+            "method": "read",
+            "args": ["k", 6]
+          },
+          {
+            "method": "upstreamFetches",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

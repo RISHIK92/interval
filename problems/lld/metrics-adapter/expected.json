@@ -1,0 +1,1062 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": 250
+      },
+      {
+        "call": 4,
+        "value": 3145728
+      },
+      {
+        "call": 5,
+        "value": ["heap", "req.latency"]
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": 2000
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": 1.5
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": ["db.wait", "heap", "req.latency"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": 2048
+      },
+      {
+        "call": 8,
+        "value": 12
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["disk", "gc"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": 7000
+      },
+      {
+        "call": 8,
+        "value": 7
+      },
+      {
+        "call": 9,
+        "value": 0.007
+      },
+      {
+        "call": 10,
+        "value": 7
+      },
+      {
+        "call": 11,
+        "value": 7168
+      },
+      {
+        "call": 12,
+        "value": 7340032
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": ["a", "b", "c", "d", "e", "f"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": 999999999000
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": 1048575998951424
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": false
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "value": false
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": 7168
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": 0.987
+      },
+      {
+        "call": 22,
+        "value": true
+      },
+      {
+        "call": 23,
+        "value": true
+      },
+      {
+        "call": 24,
+        "value": 1
+      },
+      {
+        "call": 25,
+        "value": ["v", "w", "x", "y", "z"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": ["a:b/c"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": 1024
+      },
+      {
+        "call": 13,
+        "value": ["a"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": 6291456
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": 6000
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": ["q", "t"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": 0.999
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": 1024
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": 3145728
+      },
+      {
+        "call": 13,
+        "value": ["lat", "mem"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty line"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["a"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["10", "9", "B", "Z9", "_x", "a", "a.b", "b"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": true
+      },
+      {
+        "call": 23,
+        "value": true
+      },
+      {
+        "call": 24,
+        "value": true
+      },
+      {
+        "call": 25,
+        "value": true
+      },
+      {
+        "call": 26,
+        "value": true
+      },
+      {
+        "call": 27,
+        "value": true
+      },
+      {
+        "call": 28,
+        "value": true
+      },
+      {
+        "call": 29,
+        "value": true
+      },
+      {
+        "call": 30,
+        "value": true
+      },
+      {
+        "call": 31,
+        "value": 36
+      },
+      {
+        "call": 32,
+        "value": 0.073
+      },
+      {
+        "call": 33,
+        "value": 0.851
+      },
+      {
+        "call": 34,
+        "value": 888000
+      },
+      {
+        "call": 35,
+        "value": 925
+      },
+      {
+        "call": 36,
+        "value": 0.962
+      },
+      {
+        "call": 37,
+        "value": 999000
+      },
+      {
+        "call": 38,
+        "value": ["m0", "m1", "m2", "m3", "m4", "m5", "m6"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": true
+      },
+      {
+        "call": 23,
+        "value": true
+      },
+      {
+        "call": 24,
+        "value": true
+      },
+      {
+        "call": 25,
+        "value": true
+      },
+      {
+        "call": 26,
+        "value": true
+      },
+      {
+        "call": 27,
+        "value": true
+      },
+      {
+        "call": 28,
+        "value": true
+      },
+      {
+        "call": 29,
+        "value": true
+      },
+      {
+        "call": 30,
+        "value": true
+      },
+      {
+        "call": 31,
+        "value": 1356800
+      },
+      {
+        "call": 32,
+        "value": 1444937728
+      },
+      {
+        "call": 33,
+        "value": 1431
+      },
+      {
+        "call": 34,
+        "value": 1519616
+      },
+      {
+        "call": 35,
+        "value": 1611661312
+      },
+      {
+        "call": 36,
+        "value": ["k0", "k1", "k2", "k3", "k4"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": 1000
+      },
+      {
+        "call": 3,
+        "value": 2048
+      },
+      {
+        "call": 4,
+        "value": 0.003
+      },
+      {
+        "call": 5,
+        "value": ["a", "b", "c"]
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": ["a", "b", "c"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 2
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["a"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3072
+      },
+      {
+        "call": 4,
+        "value": 0.004
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": ["x", "y"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 3
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": ["q"]
+      }
+    ]
+  }
+]

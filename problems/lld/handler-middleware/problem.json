@@ -1,0 +1,727 @@
+{
+  "slug": "handler-middleware",
+  "title": "Handler middleware",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["decorator-pattern"],
+  "interface": {
+    "class": "HandlerStack",
+    "constructor": {
+      "params": [
+        {
+          "name": "handler",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "wrap",
+        "params": [
+          {
+            "name": "layer",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "handle",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          },
+          {
+            "name": "token",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "layers",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "handle",
+            "args": ["/me", "Bearer abc"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/me", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/me", "guest"]
+          },
+          {
+            "method": "handle",
+            "args": ["/me", "Bearer t1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["files"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "nope"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "wrap",
+            "args": ["Auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["gzip"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "handle",
+            "args": ["/x", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/x", "Bearer "]
+          },
+          {
+            "method": "handle",
+            "args": ["/x", "Bearer x"]
+          },
+          {
+            "method": "handle",
+            "args": ["/x", "bearer x"]
+          },
+          {
+            "method": "handle",
+            "args": ["/x", " Bearer x"]
+          },
+          {
+            "method": "handle",
+            "args": ["/x", "Bearerx"]
+          },
+          {
+            "method": "handle",
+            "args": ["/x", "Bearer  "]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/b", "no"]
+          },
+          {
+            "method": "handle",
+            "args": ["/c", "Bearer abc"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "anything"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "handle",
+            "args": ["/p", "x"]
+          },
+          {
+            "method": "handle",
+            "args": ["/p", "Bearer abc"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "handle",
+            "args": ["/p", "x"]
+          },
+          {
+            "method": "handle",
+            "args": ["/p", "Bearer abc"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "handle",
+            "args": ["/1", "bad"]
+          },
+          {
+            "method": "handle",
+            "args": ["/2", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/3", "bad"]
+          },
+          {
+            "method": "handle",
+            "args": ["/4", "Bearer abc"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "handle",
+            "args": ["/z", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/z", "z"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "handle",
+            "args": ["/q", "z"]
+          },
+          {
+            "method": "handle",
+            "args": ["/q", "Bearer abc"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "wrap",
+            "args": [""]
+          },
+          {
+            "method": "wrap",
+            "args": ["logging"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress "]
+          },
+          {
+            "method": "wrap",
+            "args": ["Request-Id"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["", "Bearer a"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", ""]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Main Handler"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a b?c=1", "Bearer abc"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "handle",
+            "args": ["/", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/", "Bearer a b"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["deep"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/d", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/d", "no"]
+          },
+          {
+            "method": "handle",
+            "args": ["/d", "Bearer abc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/only", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/only", "x"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "unwrap",
+        "params": [],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "x"]
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "x"]
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "Bearer abc"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "wrap",
+            "args": ["compress"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "wrap",
+            "args": ["request-id"]
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/a", "x"]
+          },
+          {
+            "method": "wrap",
+            "args": ["auth"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "unwrap",
+            "args": []
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["/b", "Bearer abc"]
+          }
+        ]
+      }
+    ]
+  }
+}

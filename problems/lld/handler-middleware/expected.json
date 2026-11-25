@@ -1,0 +1,917 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["users /me", "200"]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["request-id", "auth", "compress"]
+      },
+      {
+        "call": 6,
+        "value": [
+          "enter request-id 1",
+          "enter auth",
+          "enter compress",
+          "users /me",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "200"
+        ]
+      },
+      {
+        "call": 7,
+        "value": [
+          "enter request-id 2",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave request-id",
+          "401"
+        ]
+      },
+      {
+        "call": 8,
+        "value": [
+          "enter request-id 3",
+          "enter auth",
+          "enter compress",
+          "users /me",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["compress", "auth"]
+      },
+      {
+        "call": 4,
+        "value": [
+          "enter compress",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave compress",
+          "401"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "enter compress",
+          "enter auth",
+          "files /a",
+          "leave auth",
+          "leave compress gzip",
+          "200"
+        ]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 8,
+        "value": ["compress", "auth"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["enter auth", "h /x", "leave auth", "200"]
+      },
+      {
+        "call": 3,
+        "value": ["enter auth", "deny", "leave auth", "401"]
+      },
+      {
+        "call": 4,
+        "value": ["enter auth", "h /x", "leave auth", "200"]
+      },
+      {
+        "call": 5,
+        "value": ["enter auth", "deny", "leave auth", "401"]
+      },
+      {
+        "call": 6,
+        "value": ["enter auth", "deny", "leave auth", "401"]
+      },
+      {
+        "call": 7,
+        "value": ["enter auth", "deny", "leave auth", "401"]
+      },
+      {
+        "call": 8,
+        "value": ["enter auth", "h /x", "leave auth", "200"]
+      },
+      {
+        "call": 9,
+        "value": ["auth"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["enter request-id 1", "h /a", "leave request-id", "200"]
+      },
+      {
+        "call": 3,
+        "value": ["enter request-id 2", "h /b", "leave request-id", "200"]
+      },
+      {
+        "call": 4,
+        "value": ["enter request-id 3", "h /c", "leave request-id", "200"]
+      },
+      {
+        "call": 5,
+        "value": ["request-id"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["enter compress", "h /a", "leave compress gzip", "200"]
+      },
+      {
+        "call": 3,
+        "value": ["enter compress", "h /a", "leave compress gzip", "200"]
+      },
+      {
+        "call": 4,
+        "value": ["compress"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": [
+          "enter compress",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave compress",
+          "401"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "enter compress",
+          "enter auth",
+          "api /p",
+          "leave auth",
+          "leave compress gzip",
+          "200"
+        ]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": [
+          "enter request-id 1",
+          "enter compress",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave compress",
+          "leave request-id",
+          "401"
+        ]
+      },
+      {
+        "call": 7,
+        "value": [
+          "enter request-id 2",
+          "enter compress",
+          "enter auth",
+          "api /p",
+          "leave auth",
+          "leave compress gzip",
+          "leave request-id",
+          "200"
+        ]
+      },
+      {
+        "call": 8,
+        "value": ["request-id", "compress", "auth"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "enter request-id 1",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave request-id",
+          "401"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "enter request-id 2",
+          "enter auth",
+          "enter request-id 1",
+          "api /2",
+          "leave request-id",
+          "leave auth",
+          "leave request-id",
+          "200"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "enter request-id 3",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave request-id",
+          "401"
+        ]
+      },
+      {
+        "call": 7,
+        "value": [
+          "enter request-id 4",
+          "enter auth",
+          "enter request-id 2",
+          "api /4",
+          "leave request-id",
+          "leave auth",
+          "leave request-id",
+          "200"
+        ]
+      },
+      {
+        "call": 8,
+        "value": ["request-id", "auth", "request-id"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "enter auth",
+          "enter auth",
+          "enter compress",
+          "enter compress",
+          "svc /z",
+          "leave compress gzip",
+          "leave compress gzip",
+          "leave auth",
+          "leave auth",
+          "200"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["enter auth", "deny", "leave auth", "401"]
+      },
+      {
+        "call": 7,
+        "value": ["auth", "auth", "compress", "compress"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "enter compress",
+          "enter request-id 1",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave request-id",
+          "leave compress",
+          "401"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "enter compress",
+          "enter request-id 2",
+          "enter auth",
+          "svc /q",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "200"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["compress", "request-id", "auth"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty path or token"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: empty path or token"
+      },
+      {
+        "call": 8,
+        "value": ["svc /a", "200"]
+      },
+      {
+        "call": 9,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: empty handler"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["Main Handler /a b?c=1", "200"]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": [
+          "enter request-id 1",
+          "Main Handler /",
+          "leave request-id",
+          "200"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "enter request-id 2",
+          "Main Handler /",
+          "leave request-id",
+          "200"
+        ]
+      },
+      {
+        "call": 5,
+        "value": ["request-id"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": [
+          "compress",
+          "request-id",
+          "auth",
+          "compress",
+          "request-id",
+          "auth",
+          "compress",
+          "request-id",
+          "auth",
+          "compress",
+          "request-id",
+          "auth"
+        ]
+      },
+      {
+        "call": 14,
+        "value": [
+          "enter compress",
+          "enter request-id 1",
+          "enter auth",
+          "enter compress",
+          "enter request-id 1",
+          "enter auth",
+          "enter compress",
+          "enter request-id 1",
+          "enter auth",
+          "enter compress",
+          "enter request-id 1",
+          "enter auth",
+          "deep /d",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "200"
+        ]
+      },
+      {
+        "call": 15,
+        "value": [
+          "enter compress",
+          "enter request-id 2",
+          "enter auth",
+          "deny",
+          "leave auth",
+          "leave request-id",
+          "leave compress",
+          "401"
+        ]
+      },
+      {
+        "call": 16,
+        "value": [
+          "enter compress",
+          "enter request-id 3",
+          "enter auth",
+          "enter compress",
+          "enter request-id 2",
+          "enter auth",
+          "enter compress",
+          "enter request-id 2",
+          "enter auth",
+          "enter compress",
+          "enter request-id 2",
+          "enter auth",
+          "deep /d",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "leave auth",
+          "leave request-id",
+          "leave compress gzip",
+          "200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["h /only", "200"]
+      },
+      {
+        "call": 3,
+        "value": ["h /only", "200"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["auth"]
+      },
+      {
+        "call": 6,
+        "value": ["enter auth", "deny", "leave auth", "401"]
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": ["h /a", "200"]
+      },
+      {
+        "call": 10,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["enter request-id 1", "h /a", "leave request-id", "200"]
+      },
+      {
+        "call": 3,
+        "value": ["enter request-id 2", "h /a", "leave request-id", "200"]
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["enter request-id 1", "h /a", "leave request-id", "200"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": [
+          "enter request-id 1",
+          "enter request-id 2",
+          "h /a",
+          "leave request-id",
+          "leave request-id",
+          "200"
+        ]
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": ["enter request-id 3", "h /a", "leave request-id", "200"]
+      },
+      {
+        "call": 11,
+        "value": ["request-id"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["enter compress", "h /a", "leave compress gzip", "200"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["auth", "compress"]
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": ["h /b", "200"]
+      }
+    ]
+  }
+]

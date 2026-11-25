@@ -1,0 +1,1568 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": 10
+      },
+      {
+        "call": 7,
+        "value": "count"
+      },
+      {
+        "call": 8,
+        "value": "total"
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": 15
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": "x"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: empty text"
+      },
+      {
+        "call": 9,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": 4
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": 5
+      },
+      {
+        "call": 8,
+        "value": 6
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 7
+      },
+      {
+        "call": 11,
+        "value": 2
+      },
+      {
+        "call": 12,
+        "value": 3
+      },
+      {
+        "call": 13,
+        "value": 4
+      },
+      {
+        "call": 14,
+        "value": 7
+      },
+      {
+        "call": 15,
+        "value": 8
+      },
+      {
+        "call": 16,
+        "value": 1
+      },
+      {
+        "call": 17,
+        "value": 5
+      },
+      {
+        "call": 18,
+        "value": 6
+      },
+      {
+        "call": 19,
+        "value": 9
+      },
+      {
+        "call": 20,
+        "value": 1
+      },
+      {
+        "call": 21,
+        "value": 10
+      },
+      {
+        "call": 22,
+        "value": 14
+      },
+      {
+        "call": 23,
+        "value": "let"
+      },
+      {
+        "call": 24,
+        "value": "x"
+      },
+      {
+        "call": 25,
+        "value": "="
+      },
+      {
+        "call": 26,
+        "value": "foo"
+      },
+      {
+        "call": 27,
+        "value": "("
+      },
+      {
+        "call": 28,
+        "value": ")"
+      },
+      {
+        "call": 29,
+        "value": ";"
+      },
+      {
+        "call": 30,
+        "value": "y"
+      },
+      {
+        "call": 31,
+        "value": ","
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": "b"
+      },
+      {
+        "call": 8,
+        "value": "a"
+      },
+      {
+        "call": 9,
+        "value": "d"
+      },
+      {
+        "call": 10,
+        "value": "d"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 12,
+        "value": 4
+      },
+      {
+        "call": 13,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": 4
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": 5
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": "foo "
+      },
+      {
+        "call": 10,
+        "value": " foo"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": 10
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 11
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": 11
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": 15
+      },
+      {
+        "call": 12,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 7,
+        "value": "two"
+      },
+      {
+        "call": 8,
+        "value": "one"
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty text"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty text"
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": 4
+      },
+      {
+        "call": 6,
+        "value": 5
+      },
+      {
+        "call": 7,
+        "value": 6
+      },
+      {
+        "call": 8,
+        "value": 7
+      },
+      {
+        "call": 9,
+        "value": 8
+      },
+      {
+        "call": 10,
+        "value": 9
+      },
+      {
+        "call": 11,
+        "value": 10
+      },
+      {
+        "call": 12,
+        "value": 11
+      },
+      {
+        "call": 13,
+        "value": 12
+      },
+      {
+        "call": 14,
+        "value": 0
+      },
+      {
+        "call": 15,
+        "value": 1
+      },
+      {
+        "call": 16,
+        "value": 2
+      },
+      {
+        "call": 17,
+        "value": 3
+      },
+      {
+        "call": 18,
+        "value": 4
+      },
+      {
+        "call": 19,
+        "value": 5
+      },
+      {
+        "call": 20,
+        "value": 6
+      },
+      {
+        "call": 21,
+        "value": 7
+      },
+      {
+        "call": 22,
+        "value": 8
+      },
+      {
+        "call": 23,
+        "value": 9
+      },
+      {
+        "call": 24,
+        "value": 10
+      },
+      {
+        "call": 25,
+        "value": 11
+      },
+      {
+        "call": 26,
+        "value": 12
+      },
+      {
+        "call": 27,
+        "value": 0
+      },
+      {
+        "call": 28,
+        "value": 1
+      },
+      {
+        "call": 29,
+        "value": 2
+      },
+      {
+        "call": 30,
+        "value": 3
+      },
+      {
+        "call": 31,
+        "value": 4
+      },
+      {
+        "call": 32,
+        "value": 5
+      },
+      {
+        "call": 33,
+        "value": 6
+      },
+      {
+        "call": 34,
+        "value": 7
+      },
+      {
+        "call": 35,
+        "value": 8
+      },
+      {
+        "call": 36,
+        "value": 9
+      },
+      {
+        "call": 37,
+        "value": 10
+      },
+      {
+        "call": 38,
+        "value": 11
+      },
+      {
+        "call": 39,
+        "value": 12
+      },
+      {
+        "call": 40,
+        "value": 0
+      },
+      {
+        "call": 41,
+        "value": 1
+      },
+      {
+        "call": 42,
+        "value": 2
+      },
+      {
+        "call": 43,
+        "value": 3
+      },
+      {
+        "call": 44,
+        "value": 4
+      },
+      {
+        "call": 45,
+        "value": 5
+      },
+      {
+        "call": 46,
+        "value": 6
+      },
+      {
+        "call": 47,
+        "value": 7
+      },
+      {
+        "call": 48,
+        "value": 8
+      },
+      {
+        "call": 49,
+        "value": 9
+      },
+      {
+        "call": 50,
+        "value": 10
+      },
+      {
+        "call": 51,
+        "value": 11
+      },
+      {
+        "call": 52,
+        "value": 12
+      },
+      {
+        "call": 53,
+        "value": 0
+      },
+      {
+        "call": 54,
+        "value": 1
+      },
+      {
+        "call": 55,
+        "value": 2
+      },
+      {
+        "call": 56,
+        "value": 3
+      },
+      {
+        "call": 57,
+        "value": 4
+      },
+      {
+        "call": 58,
+        "value": 5
+      },
+      {
+        "call": 59,
+        "value": 6
+      },
+      {
+        "call": 60,
+        "value": 7
+      },
+      {
+        "call": 61,
+        "value": 8
+      },
+      {
+        "call": 62,
+        "value": 9
+      },
+      {
+        "call": 63,
+        "value": 10
+      },
+      {
+        "call": 64,
+        "value": 11
+      },
+      {
+        "call": 65,
+        "value": 12
+      },
+      {
+        "call": 66,
+        "value": 0
+      },
+      {
+        "call": 67,
+        "value": 1
+      },
+      {
+        "call": 68,
+        "value": 2
+      },
+      {
+        "call": 69,
+        "value": 3
+      },
+      {
+        "call": 70,
+        "value": 4
+      },
+      {
+        "call": 71,
+        "value": 5
+      },
+      {
+        "call": 72,
+        "value": 6
+      },
+      {
+        "call": 73,
+        "value": 7
+      },
+      {
+        "call": 74,
+        "value": 8
+      },
+      {
+        "call": 75,
+        "value": 9
+      },
+      {
+        "call": 76,
+        "value": 10
+      },
+      {
+        "call": 77,
+        "value": 11
+      },
+      {
+        "call": 78,
+        "value": 12
+      },
+      {
+        "call": 79,
+        "value": 0
+      },
+      {
+        "call": 80,
+        "value": 1
+      },
+      {
+        "call": 81,
+        "value": 2
+      },
+      {
+        "call": 82,
+        "value": 3
+      },
+      {
+        "call": 83,
+        "value": 4
+      },
+      {
+        "call": 84,
+        "value": 5
+      },
+      {
+        "call": 85,
+        "value": 6
+      },
+      {
+        "call": 86,
+        "value": 7
+      },
+      {
+        "call": 87,
+        "value": 8
+      },
+      {
+        "call": 88,
+        "value": 9
+      },
+      {
+        "call": 89,
+        "value": 10
+      },
+      {
+        "call": 90,
+        "value": 11
+      },
+      {
+        "call": 91,
+        "value": 12
+      },
+      {
+        "call": 92,
+        "value": 0
+      },
+      {
+        "call": 93,
+        "value": 1
+      },
+      {
+        "call": 94,
+        "value": 2
+      },
+      {
+        "call": 95,
+        "value": 3
+      },
+      {
+        "call": 96,
+        "value": 4
+      },
+      {
+        "call": 97,
+        "value": 5
+      },
+      {
+        "call": 98,
+        "value": 6
+      },
+      {
+        "call": 99,
+        "value": 7
+      },
+      {
+        "call": 100,
+        "value": 8
+      },
+      {
+        "call": 101,
+        "value": 9
+      },
+      {
+        "call": 102,
+        "value": 10
+      },
+      {
+        "call": 103,
+        "value": 11
+      },
+      {
+        "call": 104,
+        "value": 12
+      },
+      {
+        "call": 105,
+        "value": 0
+      },
+      {
+        "call": 106,
+        "value": 1
+      },
+      {
+        "call": 107,
+        "value": 2
+      },
+      {
+        "call": 108,
+        "value": 3
+      },
+      {
+        "call": 109,
+        "value": 4
+      },
+      {
+        "call": 110,
+        "value": 5
+      },
+      {
+        "call": 111,
+        "value": 6
+      },
+      {
+        "call": 112,
+        "value": 7
+      },
+      {
+        "call": 113,
+        "value": 8
+      },
+      {
+        "call": 114,
+        "value": 9
+      },
+      {
+        "call": 115,
+        "value": 10
+      },
+      {
+        "call": 116,
+        "value": 11
+      },
+      {
+        "call": 117,
+        "value": 12
+      },
+      {
+        "call": 118,
+        "value": 0
+      },
+      {
+        "call": 119,
+        "value": 1
+      },
+      {
+        "call": 120,
+        "value": 2
+      },
+      {
+        "call": 121,
+        "value": 3
+      },
+      {
+        "call": 122,
+        "value": 4
+      },
+      {
+        "call": 123,
+        "value": 5
+      },
+      {
+        "call": 124,
+        "value": 6
+      },
+      {
+        "call": 125,
+        "value": 7
+      },
+      {
+        "call": 126,
+        "value": 8
+      },
+      {
+        "call": 127,
+        "value": 9
+      },
+      {
+        "call": 128,
+        "value": 10
+      },
+      {
+        "call": 129,
+        "value": 11
+      },
+      {
+        "call": 130,
+        "value": 12
+      },
+      {
+        "call": 131,
+        "value": 0
+      },
+      {
+        "call": 132,
+        "value": 1
+      },
+      {
+        "call": 133,
+        "value": 2
+      },
+      {
+        "call": 134,
+        "value": 3
+      },
+      {
+        "call": 135,
+        "value": 4
+      },
+      {
+        "call": 136,
+        "value": 5
+      },
+      {
+        "call": 137,
+        "value": 6
+      },
+      {
+        "call": 138,
+        "value": 7
+      },
+      {
+        "call": 139,
+        "value": 8
+      },
+      {
+        "call": 140,
+        "value": 9
+      },
+      {
+        "call": 141,
+        "value": 10
+      },
+      {
+        "call": 142,
+        "value": 11
+      },
+      {
+        "call": 143,
+        "value": 12
+      },
+      {
+        "call": 144,
+        "value": 0
+      },
+      {
+        "call": 145,
+        "value": 1
+      },
+      {
+        "call": 146,
+        "value": 2
+      },
+      {
+        "call": 147,
+        "value": 3
+      },
+      {
+        "call": 148,
+        "value": 4
+      },
+      {
+        "call": 149,
+        "value": 5
+      },
+      {
+        "call": 150,
+        "value": 6
+      },
+      {
+        "call": 151,
+        "value": 7
+      },
+      {
+        "call": 152,
+        "value": 8
+      },
+      {
+        "call": 153,
+        "value": 9
+      },
+      {
+        "call": 154,
+        "value": 10
+      },
+      {
+        "call": 155,
+        "value": 11
+      },
+      {
+        "call": 156,
+        "value": 12
+      },
+      {
+        "call": 157,
+        "value": 0
+      },
+      {
+        "call": 158,
+        "value": 1
+      },
+      {
+        "call": 159,
+        "value": 2
+      },
+      {
+        "call": 160,
+        "value": 3
+      },
+      {
+        "call": 161,
+        "value": 4
+      },
+      {
+        "call": 162,
+        "value": 5
+      },
+      {
+        "call": 163,
+        "value": 6
+      },
+      {
+        "call": 164,
+        "value": 7
+      },
+      {
+        "call": 165,
+        "value": 8
+      },
+      {
+        "call": 166,
+        "value": 9
+      },
+      {
+        "call": 167,
+        "value": 10
+      },
+      {
+        "call": 168,
+        "value": 11
+      },
+      {
+        "call": 169,
+        "value": 12
+      },
+      {
+        "call": 170,
+        "value": 0
+      },
+      {
+        "call": 171,
+        "value": 1
+      },
+      {
+        "call": 172,
+        "value": 2
+      },
+      {
+        "call": 173,
+        "value": 3
+      },
+      {
+        "call": 174,
+        "value": 4
+      },
+      {
+        "call": 175,
+        "value": 5
+      },
+      {
+        "call": 176,
+        "value": 6
+      },
+      {
+        "call": 177,
+        "value": 7
+      },
+      {
+        "call": 178,
+        "value": 8
+      },
+      {
+        "call": 179,
+        "value": 9
+      },
+      {
+        "call": 180,
+        "value": 10
+      },
+      {
+        "call": 181,
+        "value": 11
+      },
+      {
+        "call": 182,
+        "value": 12
+      },
+      {
+        "call": 183,
+        "value": 0
+      },
+      {
+        "call": 184,
+        "value": 1
+      },
+      {
+        "call": 185,
+        "value": 2
+      },
+      {
+        "call": 186,
+        "value": 3
+      },
+      {
+        "call": 187,
+        "value": 4
+      },
+      {
+        "call": 188,
+        "value": 5
+      },
+      {
+        "call": 189,
+        "value": 6
+      },
+      {
+        "call": 190,
+        "value": 7
+      },
+      {
+        "call": 191,
+        "value": 8
+      },
+      {
+        "call": 192,
+        "value": 9
+      },
+      {
+        "call": 193,
+        "value": 10
+      },
+      {
+        "call": 194,
+        "value": 11
+      },
+      {
+        "call": 195,
+        "value": 12
+      },
+      {
+        "call": 196,
+        "value": 0
+      },
+      {
+        "call": 197,
+        "value": 1
+      },
+      {
+        "call": 198,
+        "value": 2
+      },
+      {
+        "call": 199,
+        "value": 3
+      },
+      {
+        "call": 200,
+        "value": 4
+      },
+      {
+        "call": 201,
+        "value": 13
+      },
+      {
+        "call": 202,
+        "value": 603
+      },
+      {
+        "call": 203,
+        "value": "id12"
+      },
+      {
+        "call": 204,
+        "value": "id0"
+      },
+      {
+        "call": 205,
+        "error": "ValueError: unknown id"
+      },
+      {
+        "call": 206,
+        "value": 7
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": 4
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": 3
+      },
+      {
+        "call": 10,
+        "value": 4
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 1
+      },
+      {
+        "call": 13,
+        "value": 2
+      },
+      {
+        "call": 14,
+        "value": 3
+      },
+      {
+        "call": 15,
+        "value": 4
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": 1
+      },
+      {
+        "call": 18,
+        "value": 2
+      },
+      {
+        "call": 19,
+        "value": 3
+      },
+      {
+        "call": 20,
+        "value": 4
+      },
+      {
+        "call": 21,
+        "value": 0
+      },
+      {
+        "call": 22,
+        "value": 1
+      },
+      {
+        "call": 23,
+        "value": 2
+      },
+      {
+        "call": 24,
+        "value": 3
+      },
+      {
+        "call": 25,
+        "value": 4
+      },
+      {
+        "call": 26,
+        "value": 0
+      },
+      {
+        "call": 27,
+        "value": 1
+      },
+      {
+        "call": 28,
+        "value": 2
+      },
+      {
+        "call": 29,
+        "value": 3
+      },
+      {
+        "call": 30,
+        "value": 4
+      },
+      {
+        "call": 31,
+        "value": 0
+      },
+      {
+        "call": 32,
+        "value": 1
+      },
+      {
+        "call": 33,
+        "value": 2
+      },
+      {
+        "call": 34,
+        "value": 3
+      },
+      {
+        "call": 35,
+        "value": 4
+      },
+      {
+        "call": 36,
+        "value": 0
+      },
+      {
+        "call": 37,
+        "value": 1
+      },
+      {
+        "call": 38,
+        "value": 2
+      },
+      {
+        "call": 39,
+        "value": 3
+      },
+      {
+        "call": 40,
+        "value": 4
+      },
+      {
+        "call": 41,
+        "value": 5
+      },
+      {
+        "call": 42,
+        "value": 105
+      },
+      {
+        "call": 43,
+        "value": "xxxxx"
+      },
+      {
+        "call": 44,
+        "value": "x"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 4
+      },
+      {
+        "call": 7,
+        "value": 4
+      },
+      {
+        "call": 8,
+        "value": 5
+      },
+      {
+        "call": 9,
+        "value": 4
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown id"
+      }
+    ]
+  }
+]

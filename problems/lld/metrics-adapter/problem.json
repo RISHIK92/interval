@@ -1,0 +1,1112 @@
+{
+  "slug": "metrics-adapter",
+  "title": "Legacy metrics adapter",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["adapter-pattern", "metrics"],
+  "interface": {
+    "class": "MetricsAdapter",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "ingestLegacy",
+        "params": [
+          {
+            "name": "line",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "gaugeMs",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<float>"
+      },
+      {
+        "name": "gaugeBytes",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "names",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "method": "gaugeMs",
+      "compare": "approx",
+      "tolerance": 1e-9
+    }
+  ],
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["req.latency 250 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["heap 3 MB"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["req.latency"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["heap"]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["req.latency 2 s"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["req.latency"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["db.wait 1500 us"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["db.wait"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["req.latency"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["heap"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["gc 12 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["gc 12 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["disk 2 GB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["disk  2 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["disk 2.5 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["disk 2 KB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["disk"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["gc"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["nope"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 7 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["b 7 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["c 7 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["d 7 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["e 7 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["f 7 MB"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["a"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["b"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["c"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["d"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["e"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["f"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["d"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["a"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["v 0 ms"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["v"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["v 1 ms"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["v"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["v 999999999 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["v 999999999 s"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["v"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["w 999999999 MB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["w"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x 1234567890 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x -5 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x +5 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x 5e3 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x 0x10 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x  B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x 007 KB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["x"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["y 9 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["y 98 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["y 987 us"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["y"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["z 5 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["z 1 ms"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["z"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 ms extra"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": [" a 1 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 ms "]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": [" 1 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1  ms"]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a:b/c 1 ms"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["a:b/c"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 S"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 MS"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 kb"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 Kb"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 b"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 KiB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 sec"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 m"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 ns"]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 KB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["a"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["q 5 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["q 5 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["q 5 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["q 6 MB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["q"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["q"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["t 5 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["t 5 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["t 6 s"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["t"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["t"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["lat 1 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["lat 999 us"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["lat"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["lat 2 ms"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["lat"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["mem 1 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["mem 1 KB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["mem"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["mem 1 B"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["mem"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["mem 3 MB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["mem"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": [""]
+          },
+          {
+            "method": "gaugeMs",
+            "args": [""]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": [""]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["a"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["a"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 ms"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["a"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["A"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["b 1 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["B 1 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a 1 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["_x 1 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["Z9 1 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["a.b 1 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["10 1 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["9 1 us"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m0 0 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m1 37 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m2 74 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m3 111 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m4 148 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m5 185 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m6 222 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m0 259 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m1 296 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m2 333 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m3 370 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m4 407 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m5 444 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m6 481 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m0 518 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m1 555 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m2 592 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m3 629 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m4 666 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m5 703 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m6 740 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m0 777 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m1 814 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m2 851 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m3 888 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m4 925 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m5 962 us"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m6 999 s"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m0 36 ms"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["m1 73 us"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["m0"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["m1"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["m2"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["m3"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["m4"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["m5"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["m6"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k0 0 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k1 53 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k2 106 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k3 159 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k4 212 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k0 265 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k1 318 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k2 371 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k3 424 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k4 477 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k0 530 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k1 583 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k2 636 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k3 689 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k4 742 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k0 795 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k1 848 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k2 901 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k3 954 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k4 1007 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k0 1060 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k1 1113 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k2 1166 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k3 1219 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k4 1272 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k0 1325 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k1 1378 MB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k2 1431 B"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k3 1484 KB"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["k4 1537 MB"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["k0"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["k1"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["k2"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["k3"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["k4"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "ingestBatch",
+        "params": [
+          {
+            "name": "lines",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestBatch",
+            "args": [["a 1 s", "b 2 KB", "bad", "c 3 us"]]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["a"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["b"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["c"]
+          },
+          {
+            "method": "names",
+            "args": []
+          },
+          {
+            "method": "ingestBatch",
+            "args": [[]]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestBatch",
+            "args": [["a 1 s", "a 1 B", "", "a 2 ms", "b 1 xs", "b 1 ms "]]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["a"]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["a"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["x 1 MB"]
+          },
+          {
+            "method": "ingestBatch",
+            "args": [["x 2 s", "x 3 KB", "y 4 us"]]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["x"]
+          },
+          {
+            "method": "gaugeMs",
+            "args": ["y"]
+          },
+          {
+            "method": "ingestLegacy",
+            "args": ["y 5 B"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingestBatch",
+            "args": [["", ""]]
+          },
+          {
+            "method": "ingestBatch",
+            "args": [["q 1 B", "q 2 B", "q 3 B"]]
+          },
+          {
+            "method": "gaugeBytes",
+            "args": ["q"]
+          },
+          {
+            "method": "names",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

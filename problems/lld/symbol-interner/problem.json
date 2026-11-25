@@ -1,0 +1,1600 @@
+{
+  "slug": "symbol-interner",
+  "title": "Symbol interner",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["flyweight-pattern", "immutability"],
+  "interface": {
+    "class": "Interner",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "intern",
+        "params": [
+          {
+            "name": "text",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "lookup",
+        "params": [
+          {
+            "name": "id",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "size",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "bytesSaved",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["count"]
+          },
+          {
+            "method": "intern",
+            "args": ["total"]
+          },
+          {
+            "method": "intern",
+            "args": ["count"]
+          },
+          {
+            "method": "intern",
+            "args": ["count"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "lookup",
+            "args": [1]
+          },
+          {
+            "method": "intern",
+            "args": ["total"]
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "lookup",
+            "args": [1]
+          },
+          {
+            "method": "lookup",
+            "args": [-1]
+          },
+          {
+            "method": "intern",
+            "args": [""]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["let"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["="]
+          },
+          {
+            "method": "intern",
+            "args": ["foo"]
+          },
+          {
+            "method": "intern",
+            "args": ["("]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": [")"]
+          },
+          {
+            "method": "intern",
+            "args": [";"]
+          },
+          {
+            "method": "intern",
+            "args": ["let"]
+          },
+          {
+            "method": "intern",
+            "args": ["y"]
+          },
+          {
+            "method": "intern",
+            "args": ["="]
+          },
+          {
+            "method": "intern",
+            "args": ["foo"]
+          },
+          {
+            "method": "intern",
+            "args": ["("]
+          },
+          {
+            "method": "intern",
+            "args": ["y"]
+          },
+          {
+            "method": "intern",
+            "args": [","]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": [")"]
+          },
+          {
+            "method": "intern",
+            "args": [";"]
+          },
+          {
+            "method": "intern",
+            "args": ["return"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "lookup",
+            "args": [1]
+          },
+          {
+            "method": "lookup",
+            "args": [2]
+          },
+          {
+            "method": "lookup",
+            "args": [3]
+          },
+          {
+            "method": "lookup",
+            "args": [4]
+          },
+          {
+            "method": "lookup",
+            "args": [5]
+          },
+          {
+            "method": "lookup",
+            "args": [6]
+          },
+          {
+            "method": "lookup",
+            "args": [7]
+          },
+          {
+            "method": "lookup",
+            "args": [8]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["c"]
+          },
+          {
+            "method": "intern",
+            "args": ["b"]
+          },
+          {
+            "method": "intern",
+            "args": ["a"]
+          },
+          {
+            "method": "intern",
+            "args": ["b"]
+          },
+          {
+            "method": "intern",
+            "args": ["d"]
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "lookup",
+            "args": [1]
+          },
+          {
+            "method": "lookup",
+            "args": [2]
+          },
+          {
+            "method": "lookup",
+            "args": [3]
+          },
+          {
+            "method": "lookup",
+            "args": [3]
+          },
+          {
+            "method": "lookup",
+            "args": [4]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["Foo"]
+          },
+          {
+            "method": "intern",
+            "args": ["foo"]
+          },
+          {
+            "method": "intern",
+            "args": ["FOO"]
+          },
+          {
+            "method": "intern",
+            "args": ["foo "]
+          },
+          {
+            "method": "intern",
+            "args": [" foo"]
+          },
+          {
+            "method": "intern",
+            "args": ["foo"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [3]
+          },
+          {
+            "method": "lookup",
+            "args": [4]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["abcdefghij"]
+          },
+          {
+            "method": "intern",
+            "args": ["abcdefghij"]
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["q"]
+          },
+          {
+            "method": "intern",
+            "args": ["q"]
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["ab"]
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["ab"]
+          },
+          {
+            "method": "intern",
+            "args": ["ab"]
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["one"]
+          },
+          {
+            "method": "intern",
+            "args": ["two"]
+          },
+          {
+            "method": "lookup",
+            "args": [2]
+          },
+          {
+            "method": "lookup",
+            "args": [-1]
+          },
+          {
+            "method": "lookup",
+            "args": [-3]
+          },
+          {
+            "method": "lookup",
+            "args": [5]
+          },
+          {
+            "method": "lookup",
+            "args": [1]
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": [""]
+          },
+          {
+            "method": "intern",
+            "args": [""]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "intern",
+            "args": ["z"]
+          },
+          {
+            "method": "intern",
+            "args": ["z"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "intern",
+            "args": ["id5"]
+          },
+          {
+            "method": "intern",
+            "args": ["id6"]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          },
+          {
+            "method": "intern",
+            "args": ["id8"]
+          },
+          {
+            "method": "intern",
+            "args": ["id9"]
+          },
+          {
+            "method": "intern",
+            "args": ["id10"]
+          },
+          {
+            "method": "intern",
+            "args": ["id11"]
+          },
+          {
+            "method": "intern",
+            "args": ["id12"]
+          },
+          {
+            "method": "intern",
+            "args": ["id0"]
+          },
+          {
+            "method": "intern",
+            "args": ["id1"]
+          },
+          {
+            "method": "intern",
+            "args": ["id2"]
+          },
+          {
+            "method": "intern",
+            "args": ["id3"]
+          },
+          {
+            "method": "intern",
+            "args": ["id4"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [12]
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          },
+          {
+            "method": "lookup",
+            "args": [13]
+          },
+          {
+            "method": "intern",
+            "args": ["id7"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["x"]
+          },
+          {
+            "method": "intern",
+            "args": ["xx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxx"]
+          },
+          {
+            "method": "intern",
+            "args": ["xxxxx"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [4]
+          },
+          {
+            "method": "lookup",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "intern",
+            "args": ["a=b"]
+          },
+          {
+            "method": "intern",
+            "args": ["a"]
+          },
+          {
+            "method": "intern",
+            "args": ["="]
+          },
+          {
+            "method": "intern",
+            "args": ["b"]
+          },
+          {
+            "method": "intern",
+            "args": ["a=b"]
+          },
+          {
+            "method": "intern",
+            "args": ["+"]
+          },
+          {
+            "method": "intern",
+            "args": ["+"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "bytesSaved",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": [5]
+          }
+        ]
+      }
+    ]
+  }
+}

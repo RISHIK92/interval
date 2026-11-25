@@ -1,0 +1,706 @@
+{
+  "slug": "pager-adapter",
+  "title": "Pager adapter",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["adapter-pattern"],
+  "interface": {
+    "class": "PagerAdapter",
+    "constructor": {
+      "params": [
+        {
+          "name": "teamCodes",
+          "type": "map<string,int>"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "page",
+        "params": [
+          {
+            "name": "team",
+            "type": "string"
+          },
+          {
+            "name": "severity",
+            "type": "string"
+          },
+          {
+            "name": "summary",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "ack",
+        "params": [
+          {
+            "name": "legacyLine",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "pages",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "payments": 12,
+                "search": 7,
+                "infra": 4040
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["payments", "sev1", "checkout 500s"]
+          },
+          {
+            "method": "page",
+            "args": ["search", "sev3", "slow index"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 12 2"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 12 2"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 2 7 4"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 3 7 4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "payments": 12,
+                "search": 7,
+                "infra": 4040
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["infra", "sev2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["Infra", "sev2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["infra", "SEV2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["infra", "sev4", "disk full"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 4040 9"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 4041 3"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 4040 3"]
+          },
+          {
+            "method": "ack",
+            "args": ["ack 1 4040 3"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev1", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev3", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev1", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev2", "disk full"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 2 1 2"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 3 1 3"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 4 1 4"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 5 1 5"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 5 1 5"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev2", "disk full"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 0"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 6"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 10"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 03"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 "]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 sev2"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 3"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": 10000
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": -4
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "": 5
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": 5,
+                "b": 5
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": 1,
+                "b": 9999
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["b", "sev1", "edge"]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev3", "low"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 9999 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 2 1 5"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "page",
+            "args": ["a", "sev1", "disk full"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 1 1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "payments": 12,
+                "search": 7,
+                "infra": 4040
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["search", "sev1", "disk full"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 7"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 7 1 x"]
+          },
+          {
+            "method": "ack",
+            "args": [" ACK 1 7 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK  1 7 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 01 7 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 07 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 7 1 "]
+          },
+          {
+            "method": "ack",
+            "args": ["NACK 1 7 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 0 7 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK -1 7 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 12 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 7 1"]
+          },
+          {
+            "method": "ack",
+            "args": [""]
+          },
+          {
+            "method": "pages",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "payments": 12,
+                "search": 7,
+                "infra": 4040
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["search", "sev2", ""]
+          },
+          {
+            "method": "page",
+            "args": ["nobody", "sev2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["", "sev2", "disk full"]
+          },
+          {
+            "method": "page",
+            "args": ["search", "", "disk full"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": ["search", "sev2", "a b  c"]
+          },
+          {
+            "method": "page",
+            "args": ["payments", "sev3", "x"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 2 12 3"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 2 12 3"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 7 5"]
+          },
+          {
+            "method": "page",
+            "args": ["payments", "sev1", "again"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 3 12 1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "Team A": 300,
+                "team a": 301
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["Team A", "sev1", " lead"]
+          },
+          {
+            "method": "page",
+            "args": ["team a", "sev2", "trail "]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 2 301 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 300 5"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "t1": 11,
+                "t2": 22,
+                "t3": 33,
+                "t4": 44,
+                "t5": 55,
+                "t6": 66,
+                "t7": 77,
+                "t8": 88
+              }
+            ]
+          },
+          {
+            "method": "page",
+            "args": ["t1", "sev1", "s0"]
+          },
+          {
+            "method": "page",
+            "args": ["t2", "sev2", "s1"]
+          },
+          {
+            "method": "page",
+            "args": ["t3", "sev3", "s2"]
+          },
+          {
+            "method": "page",
+            "args": ["t4", "sev1", "s3"]
+          },
+          {
+            "method": "page",
+            "args": ["t5", "sev2", "s4"]
+          },
+          {
+            "method": "page",
+            "args": ["t6", "sev3", "s5"]
+          },
+          {
+            "method": "page",
+            "args": ["t7", "sev1", "s6"]
+          },
+          {
+            "method": "page",
+            "args": ["t8", "sev2", "s7"]
+          },
+          {
+            "method": "page",
+            "args": ["t1", "sev3", "s8"]
+          },
+          {
+            "method": "page",
+            "args": ["t2", "sev1", "s9"]
+          },
+          {
+            "method": "page",
+            "args": ["t3", "sev2", "s10"]
+          },
+          {
+            "method": "page",
+            "args": ["t4", "sev3", "s11"]
+          },
+          {
+            "method": "page",
+            "args": ["t5", "sev1", "s12"]
+          },
+          {
+            "method": "page",
+            "args": ["t6", "sev2", "s13"]
+          },
+          {
+            "method": "page",
+            "args": ["t7", "sev3", "s14"]
+          },
+          {
+            "method": "page",
+            "args": ["t8", "sev1", "s15"]
+          },
+          {
+            "method": "page",
+            "args": ["t1", "sev2", "s16"]
+          },
+          {
+            "method": "page",
+            "args": ["t2", "sev3", "s17"]
+          },
+          {
+            "method": "page",
+            "args": ["t3", "sev1", "s18"]
+          },
+          {
+            "method": "page",
+            "args": ["t4", "sev2", "s19"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 1 11 2"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 3 33 4"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 5 55 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 7 77 3"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 9 11 5"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 11 33 2"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 13 55 4"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 15 77 1"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 17 11 3"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 19 33 5"]
+          },
+          {
+            "method": "ack",
+            "args": ["ACK 21 55 2"]
+          },
+          {
+            "method": "pages",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

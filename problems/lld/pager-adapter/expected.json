@@ -1,0 +1,600 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 12 1 checkout 500s"
+      },
+      {
+        "call": 2,
+        "value": "PAGE 2 7 5 slow index"
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": "payments acked page 1 at sev1"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "search acked page 2 at sev3"
+      },
+      {
+        "call": 7,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 4040 3 disk full"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "infra acked page 1 at sev2"
+      },
+      {
+        "call": 9,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 1 1 disk full"
+      },
+      {
+        "call": 2,
+        "value": "PAGE 2 1 3 disk full"
+      },
+      {
+        "call": 3,
+        "value": "PAGE 3 1 5 disk full"
+      },
+      {
+        "call": 4,
+        "value": "PAGE 4 1 1 disk full"
+      },
+      {
+        "call": 5,
+        "value": "PAGE 5 1 3 disk full"
+      },
+      {
+        "call": 6,
+        "value": 5
+      },
+      {
+        "call": 7,
+        "value": "a acked page 1 at sev1"
+      },
+      {
+        "call": 8,
+        "value": "a acked page 2 at sev1"
+      },
+      {
+        "call": 9,
+        "value": "a acked page 3 at sev2"
+      },
+      {
+        "call": 10,
+        "value": "a acked page 4 at sev3"
+      },
+      {
+        "call": 11,
+        "value": "a acked page 5 at sev3"
+      },
+      {
+        "call": 12,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 1 3 disk full"
+      },
+      {
+        "call": 2,
+        "value": "PAGE 2 1 3 disk full"
+      },
+      {
+        "call": 3,
+        "value": "PAGE 3 1 3 disk full"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "a acked page 1 at sev2"
+      },
+      {
+        "call": 11,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad team or code"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad team or code"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad team or code"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad team or code"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: two teams share a code"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 9999 1 edge"
+      },
+      {
+        "call": 2,
+        "value": "PAGE 2 1 5 low"
+      },
+      {
+        "call": 3,
+        "value": "b acked page 1 at sev1"
+      },
+      {
+        "call": 4,
+        "value": "a acked page 2 at sev3"
+      },
+      {
+        "call": 5,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 7 1 disk full"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "search acked page 1 at sev1"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: empty line"
+      },
+      {
+        "call": 15,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown team or severity, or no summary"
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": "PAGE 1 7 3 a b  c"
+      },
+      {
+        "call": 7,
+        "value": "PAGE 2 12 5 x"
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": "payments acked page 2 at sev2"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "search acked page 1 at sev3"
+      },
+      {
+        "call": 12,
+        "value": "PAGE 3 12 1 again"
+      },
+      {
+        "call": 13,
+        "value": "payments acked page 3 at sev1"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 300 1  lead"
+      },
+      {
+        "call": 2,
+        "value": "PAGE 2 301 3 trail "
+      },
+      {
+        "call": 3,
+        "value": "team a acked page 2 at sev1"
+      },
+      {
+        "call": 4,
+        "value": "Team A acked page 1 at sev3"
+      },
+      {
+        "call": 5,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "PAGE 1 11 1 s0"
+      },
+      {
+        "call": 2,
+        "value": "PAGE 2 22 3 s1"
+      },
+      {
+        "call": 3,
+        "value": "PAGE 3 33 5 s2"
+      },
+      {
+        "call": 4,
+        "value": "PAGE 4 44 1 s3"
+      },
+      {
+        "call": 5,
+        "value": "PAGE 5 55 3 s4"
+      },
+      {
+        "call": 6,
+        "value": "PAGE 6 66 5 s5"
+      },
+      {
+        "call": 7,
+        "value": "PAGE 7 77 1 s6"
+      },
+      {
+        "call": 8,
+        "value": "PAGE 8 88 3 s7"
+      },
+      {
+        "call": 9,
+        "value": "PAGE 9 11 5 s8"
+      },
+      {
+        "call": 10,
+        "value": "PAGE 10 22 1 s9"
+      },
+      {
+        "call": 11,
+        "value": "PAGE 11 33 3 s10"
+      },
+      {
+        "call": 12,
+        "value": "PAGE 12 44 5 s11"
+      },
+      {
+        "call": 13,
+        "value": "PAGE 13 55 1 s12"
+      },
+      {
+        "call": 14,
+        "value": "PAGE 14 66 3 s13"
+      },
+      {
+        "call": 15,
+        "value": "PAGE 15 77 5 s14"
+      },
+      {
+        "call": 16,
+        "value": "PAGE 16 88 1 s15"
+      },
+      {
+        "call": 17,
+        "value": "PAGE 17 11 3 s16"
+      },
+      {
+        "call": 18,
+        "value": "PAGE 18 22 5 s17"
+      },
+      {
+        "call": 19,
+        "value": "PAGE 19 33 1 s18"
+      },
+      {
+        "call": 20,
+        "value": "PAGE 20 44 3 s19"
+      },
+      {
+        "call": 21,
+        "value": "t1 acked page 1 at sev1"
+      },
+      {
+        "call": 22,
+        "value": "t3 acked page 3 at sev3"
+      },
+      {
+        "call": 23,
+        "value": "t5 acked page 5 at sev1"
+      },
+      {
+        "call": 24,
+        "value": "t7 acked page 7 at sev2"
+      },
+      {
+        "call": 25,
+        "value": "t1 acked page 9 at sev3"
+      },
+      {
+        "call": 26,
+        "value": "t3 acked page 11 at sev1"
+      },
+      {
+        "call": 27,
+        "value": "t5 acked page 13 at sev3"
+      },
+      {
+        "call": 28,
+        "value": "t7 acked page 15 at sev1"
+      },
+      {
+        "call": 29,
+        "value": "t1 acked page 17 at sev2"
+      },
+      {
+        "call": 30,
+        "value": "t3 acked page 19 at sev3"
+      },
+      {
+        "call": 31,
+        "value": null
+      },
+      {
+        "call": 32,
+        "value": 20
+      }
+    ]
+  }
+]

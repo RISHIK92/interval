@@ -1,0 +1,1062 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build api@1.0",
+          "push api@1.0",
+          "migrate api@1.0",
+          "rollout api@1.0",
+          "announce api@1.0"
+        ]
+      },
+      {
+        "call": 2,
+        "value": [
+          "build api@1.1",
+          "push api@1.1",
+          "migrate api@1.1",
+          "rollout api@1.1",
+          "announce api@1.1"
+        ]
+      },
+      {
+        "call": 3,
+        "value": ["1.0", "1.1"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "build api@1.2",
+          "push api@1.2",
+          "migrate api@1.2 failed",
+          "undo push api@1.2",
+          "undo build api@1.2"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["1.0", "1.1"]
+      },
+      {
+        "call": 7,
+        "value": [
+          "build api@1.2",
+          "push api@1.2",
+          "migrate api@1.2",
+          "rollout api@1.2",
+          "announce api@1.2"
+        ]
+      },
+      {
+        "call": 8,
+        "value": ["1.0", "1.1", "1.2"]
+      },
+      {
+        "call": 9,
+        "value": "1.1"
+      },
+      {
+        "call": 10,
+        "value": ["1.0", "1.1"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": [
+          "build web@v1",
+          "push web@v1",
+          "migrate web@v1",
+          "rollout web@v1",
+          "announce web@v1"
+        ]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["build web@v2 failed"]
+      },
+      {
+        "call": 9,
+        "value": ["v1"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build svc@1",
+          "push svc@1",
+          "migrate svc@1",
+          "rollout svc@1",
+          "announce svc@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["build svc@2 failed"]
+      },
+      {
+        "call": 4,
+        "value": ["1"]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build svc@3",
+          "push svc@3",
+          "migrate svc@3",
+          "rollout svc@3",
+          "announce svc@3"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["1", "3"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build svc@1",
+          "push svc@1",
+          "migrate svc@1",
+          "rollout svc@1",
+          "announce svc@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["build svc@2", "push svc@2 failed", "undo build svc@2"]
+      },
+      {
+        "call": 4,
+        "value": ["1"]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build svc@3",
+          "push svc@3",
+          "migrate svc@3",
+          "rollout svc@3",
+          "announce svc@3"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["1", "3"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build svc@1",
+          "push svc@1",
+          "migrate svc@1",
+          "rollout svc@1",
+          "announce svc@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": [
+          "build svc@2",
+          "push svc@2",
+          "migrate svc@2 failed",
+          "undo push svc@2",
+          "undo build svc@2"
+        ]
+      },
+      {
+        "call": 4,
+        "value": ["1"]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build svc@3",
+          "push svc@3",
+          "migrate svc@3",
+          "rollout svc@3",
+          "announce svc@3"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["1", "3"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build svc@1",
+          "push svc@1",
+          "migrate svc@1",
+          "rollout svc@1",
+          "announce svc@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": [
+          "build svc@2",
+          "push svc@2",
+          "migrate svc@2",
+          "rollout svc@2 failed",
+          "undo migrate svc@2",
+          "undo push svc@2",
+          "undo build svc@2"
+        ]
+      },
+      {
+        "call": 4,
+        "value": ["1"]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build svc@3",
+          "push svc@3",
+          "migrate svc@3",
+          "rollout svc@3",
+          "announce svc@3"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["1", "3"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build svc@1",
+          "push svc@1",
+          "migrate svc@1",
+          "rollout svc@1",
+          "announce svc@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": [
+          "build svc@2",
+          "push svc@2",
+          "migrate svc@2",
+          "rollout svc@2",
+          "announce svc@2 failed",
+          "undo rollout svc@2",
+          "undo migrate svc@2",
+          "undo push svc@2",
+          "undo build svc@2"
+        ]
+      },
+      {
+        "call": 4,
+        "value": ["1"]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build svc@3",
+          "push svc@3",
+          "migrate svc@3",
+          "rollout svc@3",
+          "announce svc@3"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["1", "3"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["build a@1", "push a@1 failed", "undo build a@1"]
+      },
+      {
+        "call": 4,
+        "value": [
+          "build a@1",
+          "push a@1",
+          "migrate a@1",
+          "rollout a@1",
+          "announce a@1"
+        ]
+      },
+      {
+        "call": 5,
+        "value": ["1"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["build a@2 failed"]
+      },
+      {
+        "call": 9,
+        "value": [
+          "build a@3",
+          "push a@3",
+          "migrate a@3",
+          "rollout a@3 failed",
+          "undo migrate a@3",
+          "undo push a@3",
+          "undo build a@3"
+        ]
+      },
+      {
+        "call": 10,
+        "value": [
+          "build a@4",
+          "push a@4",
+          "migrate a@4",
+          "rollout a@4",
+          "announce a@4"
+        ]
+      },
+      {
+        "call": 11,
+        "value": ["1", "4"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build a@1",
+          "push a@1",
+          "migrate a@1",
+          "rollout a@1",
+          "announce a@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": [
+          "build b@1",
+          "push b@1",
+          "migrate b@1",
+          "rollout b@1",
+          "announce b@1"
+        ]
+      },
+      {
+        "call": 3,
+        "value": [
+          "build a@2",
+          "push a@2",
+          "migrate a@2",
+          "rollout a@2",
+          "announce a@2"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "build b@2",
+          "push b@2",
+          "migrate b@2",
+          "rollout b@2",
+          "announce b@2"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build a@3",
+          "push a@3",
+          "migrate a@3",
+          "rollout a@3",
+          "announce a@3"
+        ]
+      },
+      {
+        "call": 6,
+        "value": "1"
+      },
+      {
+        "call": 7,
+        "value": ["1", "2", "3"]
+      },
+      {
+        "call": 8,
+        "value": ["1"]
+      },
+      {
+        "call": 9,
+        "value": "2"
+      },
+      {
+        "call": 10,
+        "value": "1"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": ["1"]
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build x@7",
+          "push x@7",
+          "migrate x@7",
+          "rollout x@7",
+          "announce x@7"
+        ]
+      },
+      {
+        "call": 2,
+        "value": [
+          "build x@7",
+          "push x@7",
+          "migrate x@7",
+          "rollout x@7",
+          "announce x@7"
+        ]
+      },
+      {
+        "call": 3,
+        "value": ["7", "7"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "7"
+      },
+      {
+        "call": 6,
+        "value": ["7"]
+      },
+      {
+        "call": 7,
+        "value": [
+          "build x@8",
+          "push x@8",
+          "migrate x@8",
+          "rollout x@8 failed",
+          "undo migrate x@8",
+          "undo push x@8",
+          "undo build x@8"
+        ]
+      },
+      {
+        "call": 8,
+        "value": ["7"]
+      },
+      {
+        "call": 9,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 6,
+        "value": [
+          "build a@1",
+          "push a@1",
+          "migrate a@1",
+          "rollout a@1",
+          "announce a@1"
+        ]
+      },
+      {
+        "call": 7,
+        "value": ["1"]
+      },
+      {
+        "call": 8,
+        "value": [
+          "build a@2",
+          "push a@2",
+          "migrate a@2",
+          "rollout a@2",
+          "announce a@2"
+        ]
+      },
+      {
+        "call": 9,
+        "value": "1"
+      },
+      {
+        "call": 10,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 4,
+        "value": [
+          "build A@1",
+          "push A@1",
+          "migrate A@1",
+          "rollout A@1",
+          "announce A@1"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build a@1",
+          "push a@1",
+          "migrate a@1",
+          "rollout a@1",
+          "announce a@1"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["1"]
+      },
+      {
+        "call": 7,
+        "value": ["1"]
+      },
+      {
+        "call": 8,
+        "value": [
+          "build a b@1 2",
+          "push a b@1 2",
+          "migrate a b@1 2",
+          "rollout a b@1 2",
+          "announce a b@1 2"
+        ]
+      },
+      {
+        "call": 9,
+        "value": ["1 2"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build s@1",
+          "push s@1",
+          "migrate s@1",
+          "rollout s@1",
+          "announce s@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": [
+          "build s@2",
+          "push s@2",
+          "migrate s@2",
+          "rollout s@2",
+          "announce s@2"
+        ]
+      },
+      {
+        "call": 3,
+        "value": [
+          "build s@3",
+          "push s@3",
+          "migrate s@3",
+          "rollout s@3",
+          "announce s@3"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "build s@4",
+          "push s@4",
+          "migrate s@4",
+          "rollout s@4",
+          "announce s@4"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build s@5",
+          "push s@5",
+          "migrate s@5",
+          "rollout s@5",
+          "announce s@5"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "build s@6",
+          "push s@6",
+          "migrate s@6",
+          "rollout s@6",
+          "announce s@6"
+        ]
+      },
+      {
+        "call": 7,
+        "value": [
+          "build s@7",
+          "push s@7",
+          "migrate s@7",
+          "rollout s@7",
+          "announce s@7"
+        ]
+      },
+      {
+        "call": 8,
+        "value": [
+          "build s@8",
+          "push s@8",
+          "migrate s@8",
+          "rollout s@8",
+          "announce s@8"
+        ]
+      },
+      {
+        "call": 9,
+        "value": "7"
+      },
+      {
+        "call": 10,
+        "value": "6"
+      },
+      {
+        "call": 11,
+        "value": "5"
+      },
+      {
+        "call": 12,
+        "value": "4"
+      },
+      {
+        "call": 13,
+        "value": "3"
+      },
+      {
+        "call": 14,
+        "value": "2"
+      },
+      {
+        "call": 15,
+        "value": "1"
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": ["1"]
+      },
+      {
+        "call": 19,
+        "value": [
+          "build s@9",
+          "push s@9",
+          "migrate s@9",
+          "rollout s@9",
+          "announce s@9"
+        ]
+      },
+      {
+        "call": 20,
+        "value": ["1", "9"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "build api@1",
+          "push api@1",
+          "migrate api@1",
+          "rollout api@1",
+          "announce api@1"
+        ]
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": [
+          "build api@1",
+          "push api@1",
+          "migrate api@1",
+          "rollout api@1",
+          "announce api@1"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "build api@2",
+          "push api@2",
+          "migrate api@2",
+          "rollout api@2",
+          "announce api@2"
+        ]
+      },
+      {
+        "call": 5,
+        "value": ["1"]
+      },
+      {
+        "call": 6,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": [
+          "build api@1",
+          "push api@1",
+          "migrate api@1 failed",
+          "undo push api@1",
+          "undo build api@1"
+        ]
+      },
+      {
+        "call": 3,
+        "value": [
+          "build api@1",
+          "push api@1",
+          "migrate api@1 failed",
+          "undo push api@1",
+          "undo build api@1"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "build api@1",
+          "push api@1",
+          "migrate api@1 failed",
+          "undo push api@1",
+          "undo build api@1"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build api@1",
+          "push api@1",
+          "migrate api@1",
+          "rollout api@1",
+          "announce api@1"
+        ]
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "build a@1",
+          "push a@1",
+          "migrate a@1",
+          "rollout a@1",
+          "announce a@1 failed",
+          "undo rollout a@1",
+          "undo migrate a@1",
+          "undo push a@1",
+          "undo build a@1"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "build a@1",
+          "push a@1",
+          "migrate a@1",
+          "rollout a@1",
+          "announce a@1 failed",
+          "undo rollout a@1",
+          "undo migrate a@1",
+          "undo push a@1",
+          "undo build a@1"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "build a@2",
+          "push a@2",
+          "migrate a@2",
+          "rollout a@2",
+          "announce a@2"
+        ]
+      },
+      {
+        "call": 7,
+        "value": ["2"]
+      }
+    ]
+  }
+]

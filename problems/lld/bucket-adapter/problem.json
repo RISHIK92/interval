@@ -1,0 +1,889 @@
+{
+  "slug": "bucket-adapter",
+  "title": "Bucket-style adapter",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["adapter-pattern", "object-storage"],
+  "interface": {
+    "class": "BucketAdapter",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "putObject",
+        "params": [
+          {
+            "name": "bucket",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "objectBody",
+        "params": [
+          {
+            "name": "bucket",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "listObjects",
+        "params": [
+          {
+            "name": "bucket",
+            "type": "string"
+          },
+          {
+            "name": "prefix",
+            "type": "string"
+          },
+          {
+            "name": "delimiter",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "legacyKeys",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/01/a.log", "A"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/01/b.log", "B"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/02/c.log", "C"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2025/x.log", "X"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "readme", "R"]
+          },
+          {
+            "method": "putObject",
+            "args": ["img", "cat.png", "meow"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "2024/", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "2024/0", ""]
+          },
+          {
+            "method": "objectBody",
+            "args": ["logs", "readme"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["img", "readme"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "k", "2"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "putObject",
+            "args": ["a:b", "k", "3"]
+          },
+          {
+            "method": "putObject",
+            "args": ["", "k", "3"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "", "3"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "k", ""]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "x:y", "4"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["b", "x:y"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/01/a.log", "A"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/01/b.log", "B"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/02/c.log", "C"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2025/x.log", "X"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "readme", "R"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "2024", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "readme", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "readme2", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "z", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["nope", "", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["Logs", "", ""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/01/a.log", "A"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/01/b.log", "B"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2024/02/c.log", "C"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "2025/x.log", "X"]
+          },
+          {
+            "method": "putObject",
+            "args": ["logs", "readme", "R"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "2", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "2024/01/", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "2024/01", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "", "0"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "20", "0"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "", "log"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "", "/01/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["logs", "", "zz"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "/root", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "/x/y", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "a//b", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "a/", "x"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "a", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "a/", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "a/", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "/", "/"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "a--b--c", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "a--d", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "a-e", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "ab", "x"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "", "--"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "a--", "--"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "a-", "--"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "a", "-"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "k1", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["ab", "k2", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "b:k3", "x"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["a", "", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["ab", "", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["a", "b", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["a", "", ":"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          },
+          {
+            "method": "objectBody",
+            "args": ["ab", "k2"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["a", "b:k2"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["a", "b:k3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["ok", "k", "v"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["", "k"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["ok", ""]
+          },
+          {
+            "method": "objectBody",
+            "args": ["o:k", "k"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["", "", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": [":", "", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["x:y", "a", "/"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": [":", "k", "v"]
+          },
+          {
+            "method": "putObject",
+            "args": ["ok:", "k", "v"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          },
+          {
+            "method": "objectBody",
+            "args": ["ok", "k"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["ok", "K"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["OK", "k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "k", "hello world"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "k2", " "]
+          },
+          {
+            "method": "objectBody",
+            "args": ["b", "k"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["b", "k2"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "k", "bye"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["b", "k"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b", "", ""]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["z", "1", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "Z", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["A", "a", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "_", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["a-b", "c", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["a.b", "c", "x"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          },
+          {
+            "method": "listObjects",
+            "args": ["a", "", ""]
+          },
+          {
+            "method": "listObjects",
+            "args": ["A", "", ""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d0/f0", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d1/f1", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d2/f2", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d3/f3", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d0/f4", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d1/f5", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d2/f6", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d3/f7", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d0/f8", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d1/f9", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d2/f10", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d3/f11", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d0/f12", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d1/f13", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d2/f14", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d3/f15", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d0/f16", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d1/f17", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d2/f18", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d3/f19", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d0/f20", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b0", "d1/f21", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b1", "d2/f22", "x"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b2", "d3/f23", "x"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b0", "", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b1", "", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b2", "", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b1", "d1/", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["b2", "d", ""]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "copyObject",
+        "params": [
+          {
+            "name": "bucket",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "toBucket",
+            "type": "string"
+          },
+          {
+            "name": "toKey",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "k", "body"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "k", "b", "k2"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["b", "k2"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "nope", "b", "x"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["b", "x"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "k", "v1"]
+          },
+          {
+            "method": "putObject",
+            "args": ["b", "k", "v2"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "k", "b", "k"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["b", "k"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "k", "a", "k"]
+          },
+          {
+            "method": "objectBody",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "k", "v"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["", "k", "b", "k"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "", "b", "k"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "k", "", "k"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "k", "b", ""]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "k", "b:c", "k"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a:b", "k", "b", "k"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["x", "", "b", "k"]
+          },
+          {
+            "method": "legacyKeys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "putObject",
+            "args": ["a", "d/1", "x"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "d/1", "a", "e/1"]
+          },
+          {
+            "method": "copyObject",
+            "args": ["a", "e/1", "a", "e/2"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["a", "", "/"]
+          },
+          {
+            "method": "listObjects",
+            "args": ["a", "e/", "/"]
+          }
+        ]
+      }
+    ]
+  }
+}
