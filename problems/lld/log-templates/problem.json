@@ -1,0 +1,885 @@
+{
+  "slug": "log-templates",
+  "title": "Log template interning",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["flyweight-pattern"],
+  "interface": {
+    "class": "LogStore",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "log",
+        "params": [
+          {
+            "name": "pattern",
+            "type": "string"
+          },
+          {
+            "name": "params",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "render",
+        "params": [
+          {
+            "name": "eventId",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "templates",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "byPattern",
+        "params": [
+          {
+            "name": "pattern",
+            "type": "string"
+          }
+        ],
+        "returns": "list<int>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", ["ana"]]
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", ["bo"]]
+          },
+          {
+            "method": "log",
+            "args": ["disk {} at {}%", ["/var", "91"]]
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", ["cy"]]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          },
+          {
+            "method": "render",
+            "args": [3]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["user {} logged in"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["disk {} at {}%"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["user {}"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["started", []]
+          },
+          {
+            "method": "log",
+            "args": ["started", ["x"]]
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", []]
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", ["a", "b"]]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["{}{}", ["a", "b"]]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          },
+          {
+            "method": "render",
+            "args": [3]
+          },
+          {
+            "method": "templates",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["a{}", ["v"]]
+          },
+          {
+            "method": "log",
+            "args": ["b{}", ["v"]]
+          },
+          {
+            "method": "log",
+            "args": ["a{}", ["v"]]
+          },
+          {
+            "method": "log",
+            "args": ["c{}", ["v"]]
+          },
+          {
+            "method": "log",
+            "args": ["a{}", ["v"]]
+          },
+          {
+            "method": "log",
+            "args": ["b{}", ["v"]]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["a{}"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["b{}"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["c{}"]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [6]
+          },
+          {
+            "method": "render",
+            "args": [4]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "log",
+            "args": ["x", []]
+          },
+          {
+            "method": "render",
+            "args": [0]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          },
+          {
+            "method": "render",
+            "args": [-1]
+          },
+          {
+            "method": "templates",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["{{}}", ["x"]]
+          },
+          {
+            "method": "log",
+            "args": ["{}}{", ["a"]]
+          },
+          {
+            "method": "log",
+            "args": ["{}{}{}", ["1", "{}", "3"]]
+          },
+          {
+            "method": "log",
+            "args": ["{ }", []]
+          },
+          {
+            "method": "log",
+            "args": ["}{", []]
+          },
+          {
+            "method": "log",
+            "args": ["{}", ["{}{}"]]
+          },
+          {
+            "method": "log",
+            "args": ["{x}{}", ["y"]]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          },
+          {
+            "method": "render",
+            "args": [3]
+          },
+          {
+            "method": "render",
+            "args": [4]
+          },
+          {
+            "method": "render",
+            "args": [5]
+          },
+          {
+            "method": "render",
+            "args": [6]
+          },
+          {
+            "method": "render",
+            "args": [7]
+          },
+          {
+            "method": "templates",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["{} and {}", ["a"]]
+          },
+          {
+            "method": "log",
+            "args": ["{} and {}", ["a", "b", "c"]]
+          },
+          {
+            "method": "log",
+            "args": ["{} and {}", []]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["{} and {}"]
+          },
+          {
+            "method": "log",
+            "args": ["{} and {}", ["a", "b"]]
+          },
+          {
+            "method": "log",
+            "args": ["plain", ["x"]]
+          },
+          {
+            "method": "log",
+            "args": ["plain", []]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["plain"]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["", []]
+          },
+          {
+            "method": "log",
+            "args": ["{}", [""]]
+          },
+          {
+            "method": "log",
+            "args": ["{}{}", ["a", ""]]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["{}", [" "]]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "byPattern",
+            "args": [""]
+          },
+          {
+            "method": "byPattern",
+            "args": ["{}"]
+          },
+          {
+            "method": "templates",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["User {}", ["a"]]
+          },
+          {
+            "method": "log",
+            "args": ["user {}", ["a"]]
+          },
+          {
+            "method": "log",
+            "args": ["user {} ", ["a"]]
+          },
+          {
+            "method": "log",
+            "args": ["user {}", ["b"]]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["User {}"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["user {}"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["user {} "]
+          },
+          {
+            "method": "byPattern",
+            "args": ["user  {}"]
+          },
+          {
+            "method": "render",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["n={}", ["1", "2"]]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["n={}"]
+          },
+          {
+            "method": "log",
+            "args": ["n={}", ["1"]]
+          },
+          {
+            "method": "log",
+            "args": ["m={}", []]
+          },
+          {
+            "method": "log",
+            "args": ["m={}", ["9"]]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["n={}"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["m={}"]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          },
+          {
+            "method": "render",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["req {} took {}ms", ["/p0", "0"]]
+          },
+          {
+            "method": "log",
+            "args": ["cache {}", ["k1"]]
+          },
+          {
+            "method": "log",
+            "args": ["boot", []]
+          },
+          {
+            "method": "log",
+            "args": ["req {} took {}ms", ["/p3", "21"]]
+          },
+          {
+            "method": "log",
+            "args": ["cache {}", ["k4"]]
+          },
+          {
+            "method": "log",
+            "args": ["boot", []]
+          },
+          {
+            "method": "log",
+            "args": ["req {} took {}ms", ["/p6", "42"]]
+          },
+          {
+            "method": "log",
+            "args": ["cache {}", ["k7"]]
+          },
+          {
+            "method": "log",
+            "args": ["boot", []]
+          },
+          {
+            "method": "log",
+            "args": ["req {} took {}ms", ["/p9", "63"]]
+          },
+          {
+            "method": "log",
+            "args": ["cache {}", ["k10"]]
+          },
+          {
+            "method": "log",
+            "args": ["boot", []]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["cache {}"]
+          },
+          {
+            "method": "byPattern",
+            "args": ["boot"]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [5]
+          },
+          {
+            "method": "render",
+            "args": [12]
+          },
+          {
+            "method": "render",
+            "args": [13]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["x"]
+          },
+          {
+            "method": "log",
+            "args": ["x {} y {} z", ["1", "2"]]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["x {} y {} z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["[{}] {}: {}", ["WARN", "db", "slow query, 2s"]]
+          },
+          {
+            "method": "log",
+            "args": ["{}", ["~!@#$%^&*()"]]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          },
+          {
+            "method": "templates",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "purge",
+        "params": [
+          {
+            "name": "pattern",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", ["a"]]
+          },
+          {
+            "method": "log",
+            "args": ["disk {} at {}%", ["/", "5"]]
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", ["b"]]
+          },
+          {
+            "method": "purge",
+            "args": ["user {} logged in"]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["user {} logged in"]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          },
+          {
+            "method": "render",
+            "args": [3]
+          },
+          {
+            "method": "log",
+            "args": ["user {} logged in", ["c"]]
+          },
+          {
+            "method": "render",
+            "args": [4]
+          },
+          {
+            "method": "byPattern",
+            "args": ["user {} logged in"]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "purge",
+            "args": ["user {} logged in"]
+          },
+          {
+            "method": "purge",
+            "args": ["user {} logged in"]
+          },
+          {
+            "method": "templates",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "purge",
+            "args": ["never"]
+          },
+          {
+            "method": "purge",
+            "args": [""]
+          },
+          {
+            "method": "log",
+            "args": ["x{}", ["1"]]
+          },
+          {
+            "method": "purge",
+            "args": ["x{} "]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "purge",
+            "args": ["x{}"]
+          },
+          {
+            "method": "render",
+            "args": [1]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "byPattern",
+            "args": ["x{}"]
+          },
+          {
+            "method": "log",
+            "args": ["x{}", ["2"]]
+          },
+          {
+            "method": "byPattern",
+            "args": ["x{}"]
+          },
+          {
+            "method": "render",
+            "args": [2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": ["e{}", ["0"]]
+          },
+          {
+            "method": "log",
+            "args": ["e{}", ["1"]]
+          },
+          {
+            "method": "log",
+            "args": ["e{}", ["2"]]
+          },
+          {
+            "method": "log",
+            "args": ["e{}", ["3"]]
+          },
+          {
+            "method": "log",
+            "args": ["e{}", ["4"]]
+          },
+          {
+            "method": "log",
+            "args": ["f", []]
+          },
+          {
+            "method": "purge",
+            "args": ["e{}"]
+          },
+          {
+            "method": "log",
+            "args": ["f", []]
+          },
+          {
+            "method": "byPattern",
+            "args": ["f"]
+          },
+          {
+            "method": "render",
+            "args": [6]
+          },
+          {
+            "method": "render",
+            "args": [5]
+          },
+          {
+            "method": "templates",
+            "args": []
+          },
+          {
+            "method": "purge",
+            "args": ["f"]
+          },
+          {
+            "method": "templates",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

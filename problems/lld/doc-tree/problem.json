@@ -1,0 +1,1400 @@
+{
+  "slug": "doc-tree",
+  "title": "Document tree",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["composite-pattern"],
+  "interface": {
+    "class": "DocTree",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "put",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "read",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "remove",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "paths",
+        "params": [
+          {
+            "name": "prefix",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "count",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["svc.name", "api"]
+          },
+          {
+            "method": "put",
+            "args": ["svc.ports[0]", "80"]
+          },
+          {
+            "method": "put",
+            "args": ["svc.ports[1]", "443"]
+          },
+          {
+            "method": "put",
+            "args": ["svc.env.MODE", "prod"]
+          },
+          {
+            "method": "read",
+            "args": ["svc"]
+          },
+          {
+            "method": "read",
+            "args": ["svc.ports"]
+          },
+          {
+            "method": "read",
+            "args": ["svc.ports[1]"]
+          },
+          {
+            "method": "read",
+            "args": ["svc.ports[2]"]
+          },
+          {
+            "method": "paths",
+            "args": [""]
+          },
+          {
+            "method": "paths",
+            "args": ["svc.ports"]
+          },
+          {
+            "method": "count",
+            "args": ["svc"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["a[0].b", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["a[2]", "y"]
+          },
+          {
+            "method": "put",
+            "args": ["a[1]", "y"]
+          },
+          {
+            "method": "put",
+            "args": ["a.b", "z"]
+          },
+          {
+            "method": "put",
+            "args": ["a[0]", "w"]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "read",
+            "args": ["a[0]"]
+          },
+          {
+            "method": "remove",
+            "args": ["a[0]"]
+          },
+          {
+            "method": "read",
+            "args": ["a[0]"]
+          },
+          {
+            "method": "paths",
+            "args": ["a"]
+          },
+          {
+            "method": "remove",
+            "args": ["a[5]"]
+          },
+          {
+            "method": "count",
+            "args": ["a[0]"]
+          },
+          {
+            "method": "count",
+            "args": ["nope"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["", "v"]
+          },
+          {
+            "method": "put",
+            "args": [".a", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a.", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a..b", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[x]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[01]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[-1]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["[0]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a b", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a.[0]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[0]x", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[0]]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a/b", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a.b.", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a[0][", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["a~", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["A-z_9", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["k[0][0]", "v"]
+          },
+          {
+            "method": "put",
+            "args": ["k[0][1]", "v"]
+          },
+          {
+            "method": "paths",
+            "args": [""]
+          },
+          {
+            "method": "read",
+            "args": ["a[00]"]
+          },
+          {
+            "method": "read",
+            "args": ["a."]
+          },
+          {
+            "method": "remove",
+            "args": [""]
+          },
+          {
+            "method": "remove",
+            "args": ["a["]
+          },
+          {
+            "method": "count",
+            "args": ["["]
+          },
+          {
+            "method": "paths",
+            "args": ["a..b"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["a", ""]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["a", " "]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "paths",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["x.y[0].z[0][0]", "deep"]
+          },
+          {
+            "method": "read",
+            "args": ["x"]
+          },
+          {
+            "method": "read",
+            "args": ["x.y"]
+          },
+          {
+            "method": "read",
+            "args": ["x.y[0]"]
+          },
+          {
+            "method": "read",
+            "args": ["x.y[0].z"]
+          },
+          {
+            "method": "read",
+            "args": ["x.y[0].z[0]"]
+          },
+          {
+            "method": "read",
+            "args": ["x.y[0].z[0][0]"]
+          },
+          {
+            "method": "count",
+            "args": ["x"]
+          },
+          {
+            "method": "count",
+            "args": ["x.y[0].z"]
+          },
+          {
+            "method": "count",
+            "args": ["x.y[0].z[0][0]"]
+          },
+          {
+            "method": "paths",
+            "args": ["x.y"]
+          },
+          {
+            "method": "paths",
+            "args": ["x.y[0].z[0][0]"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["l[1]", "a"]
+          },
+          {
+            "method": "read",
+            "args": ["l"]
+          },
+          {
+            "method": "put",
+            "args": ["l[0]", "a"]
+          },
+          {
+            "method": "put",
+            "args": ["l[2]", "c"]
+          },
+          {
+            "method": "put",
+            "args": ["l[1]", "b"]
+          },
+          {
+            "method": "put",
+            "args": ["l[2]", "c"]
+          },
+          {
+            "method": "put",
+            "args": ["l[4]", "e"]
+          },
+          {
+            "method": "put",
+            "args": ["l[3].k", "d"]
+          },
+          {
+            "method": "put",
+            "args": ["l[5][0]", "f"]
+          },
+          {
+            "method": "put",
+            "args": ["l[4][1]", "f"]
+          },
+          {
+            "method": "put",
+            "args": ["l[4][0]", "f"]
+          },
+          {
+            "method": "read",
+            "args": ["l"]
+          },
+          {
+            "method": "paths",
+            "args": ["l"]
+          },
+          {
+            "method": "count",
+            "args": ["l"]
+          },
+          {
+            "method": "put",
+            "args": ["l[0]", "A"]
+          },
+          {
+            "method": "paths",
+            "args": ["l"]
+          },
+          {
+            "method": "read",
+            "args": ["l[0]"]
+          },
+          {
+            "method": "put",
+            "args": ["q[0][1]", "x"]
+          },
+          {
+            "method": "read",
+            "args": ["q"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["o.k", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["arr[0]", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["s", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["o[0]", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["arr.k", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["s.k", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["s[0]", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["o", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["arr", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["o.k.deeper", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["arr[0][0]", "x"]
+          },
+          {
+            "method": "put",
+            "args": ["s", "2"]
+          },
+          {
+            "method": "put",
+            "args": ["o.k", "2"]
+          },
+          {
+            "method": "read",
+            "args": ["o.k"]
+          },
+          {
+            "method": "read",
+            "args": ["s"]
+          },
+          {
+            "method": "read",
+            "args": ["o[0]"]
+          },
+          {
+            "method": "read",
+            "args": ["arr.k"]
+          },
+          {
+            "method": "read",
+            "args": ["s.k"]
+          },
+          {
+            "method": "read",
+            "args": ["s[0]"]
+          },
+          {
+            "method": "paths",
+            "args": [""]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["r[0]", "v0"]
+          },
+          {
+            "method": "put",
+            "args": ["r[1]", "v1"]
+          },
+          {
+            "method": "put",
+            "args": ["r[2]", "v2"]
+          },
+          {
+            "method": "put",
+            "args": ["r[3]", "v3"]
+          },
+          {
+            "method": "put",
+            "args": ["r[4].x", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["r[4].y", "2"]
+          },
+          {
+            "method": "remove",
+            "args": ["r[1]"]
+          },
+          {
+            "method": "paths",
+            "args": ["r"]
+          },
+          {
+            "method": "read",
+            "args": ["r[1]"]
+          },
+          {
+            "method": "remove",
+            "args": ["r[3]"]
+          },
+          {
+            "method": "read",
+            "args": ["r"]
+          },
+          {
+            "method": "paths",
+            "args": ["r"]
+          },
+          {
+            "method": "count",
+            "args": ["r"]
+          },
+          {
+            "method": "remove",
+            "args": ["r[3]"]
+          },
+          {
+            "method": "remove",
+            "args": ["r[3]"]
+          },
+          {
+            "method": "remove",
+            "args": ["r.k"]
+          },
+          {
+            "method": "remove",
+            "args": ["r[0].k"]
+          },
+          {
+            "method": "remove",
+            "args": ["r[0][0]"]
+          },
+          {
+            "method": "put",
+            "args": ["m.only", "1"]
+          },
+          {
+            "method": "remove",
+            "args": ["m.only"]
+          },
+          {
+            "method": "read",
+            "args": ["m"]
+          },
+          {
+            "method": "paths",
+            "args": ["m"]
+          },
+          {
+            "method": "count",
+            "args": ["m"]
+          },
+          {
+            "method": "remove",
+            "args": ["m"]
+          },
+          {
+            "method": "read",
+            "args": ["m"]
+          },
+          {
+            "method": "remove",
+            "args": ["m"]
+          },
+          {
+            "method": "remove",
+            "args": ["nope.deeper"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "read",
+            "args": [""]
+          },
+          {
+            "method": "put",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "put",
+            "args": ["a.c", "3"]
+          },
+          {
+            "method": "put",
+            "args": ["a.b", "4"]
+          },
+          {
+            "method": "read",
+            "args": [""]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "read",
+            "args": ["a.b"]
+          },
+          {
+            "method": "read",
+            "args": ["a.z"]
+          },
+          {
+            "method": "read",
+            "args": ["z"]
+          },
+          {
+            "method": "read",
+            "args": ["b.c"]
+          },
+          {
+            "method": "read",
+            "args": ["b[0]"]
+          },
+          {
+            "method": "read",
+            "args": ["a[0]"]
+          },
+          {
+            "method": "put",
+            "args": ["arr[0]", "x"]
+          },
+          {
+            "method": "read",
+            "args": ["arr"]
+          },
+          {
+            "method": "read",
+            "args": ["arr[0]"]
+          },
+          {
+            "method": "read",
+            "args": ["arr[1]"]
+          },
+          {
+            "method": "read",
+            "args": ["arr.x"]
+          },
+          {
+            "method": "put",
+            "args": ["t", "object(9)"]
+          },
+          {
+            "method": "read",
+            "args": ["t"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["n[0]", "0"]
+          },
+          {
+            "method": "put",
+            "args": ["n[1]", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["n[2]", "2"]
+          },
+          {
+            "method": "put",
+            "args": ["n[3]", "3"]
+          },
+          {
+            "method": "put",
+            "args": ["n[4]", "4"]
+          },
+          {
+            "method": "put",
+            "args": ["n[5]", "5"]
+          },
+          {
+            "method": "put",
+            "args": ["n[6]", "6"]
+          },
+          {
+            "method": "put",
+            "args": ["n[7]", "7"]
+          },
+          {
+            "method": "put",
+            "args": ["n[8]", "8"]
+          },
+          {
+            "method": "put",
+            "args": ["n[9]", "9"]
+          },
+          {
+            "method": "put",
+            "args": ["n[10]", "10"]
+          },
+          {
+            "method": "put",
+            "args": ["n[11]", "11"]
+          },
+          {
+            "method": "put",
+            "args": ["Z", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["_", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["a-b", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["ab.c", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["B.x[0]", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["B.x[1].y", "1"]
+          },
+          {
+            "method": "paths",
+            "args": [""]
+          },
+          {
+            "method": "paths",
+            "args": ["n"]
+          },
+          {
+            "method": "paths",
+            "args": ["n[10]"]
+          },
+          {
+            "method": "paths",
+            "args": ["B.x[1]"]
+          },
+          {
+            "method": "paths",
+            "args": ["nope"]
+          },
+          {
+            "method": "paths",
+            "args": ["n[12]"]
+          },
+          {
+            "method": "paths",
+            "args": ["a.b"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "count",
+            "args": ["n[3]"]
+          },
+          {
+            "method": "count",
+            "args": ["B"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "put",
+            "args": ["a.b.c", "1"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "count",
+            "args": ["a"]
+          },
+          {
+            "method": "count",
+            "args": ["a.b"]
+          },
+          {
+            "method": "count",
+            "args": ["a.b.c"]
+          },
+          {
+            "method": "put",
+            "args": ["a.b.d[0]", "2"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "count",
+            "args": ["a.b"]
+          },
+          {
+            "method": "count",
+            "args": ["a.b.d"]
+          },
+          {
+            "method": "count",
+            "args": ["a.b.d[0]"]
+          },
+          {
+            "method": "count",
+            "args": ["a.b.c.x"]
+          },
+          {
+            "method": "count",
+            "args": ["a[0]"]
+          },
+          {
+            "method": "remove",
+            "args": ["a.b"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "count",
+            "args": ["a"]
+          },
+          {
+            "method": "count",
+            "args": ["a.b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["s0.items[0]", "x0"]
+          },
+          {
+            "method": "put",
+            "args": ["s1.items[0]", "x1"]
+          },
+          {
+            "method": "put",
+            "args": ["s2.items[0]", "x2"]
+          },
+          {
+            "method": "put",
+            "args": ["s0.items[1]", "x3"]
+          },
+          {
+            "method": "put",
+            "args": ["s1.items[1]", "x4"]
+          },
+          {
+            "method": "put",
+            "args": ["s2.items[1]", "x5"]
+          },
+          {
+            "method": "put",
+            "args": ["s0.items[2]", "x6"]
+          },
+          {
+            "method": "put",
+            "args": ["s1.items[2]", "x7"]
+          },
+          {
+            "method": "put",
+            "args": ["s2.items[2]", "x8"]
+          },
+          {
+            "method": "put",
+            "args": ["s0.items[3]", "x9"]
+          },
+          {
+            "method": "put",
+            "args": ["s1.items[3]", "x10"]
+          },
+          {
+            "method": "put",
+            "args": ["s2.items[3]", "x11"]
+          },
+          {
+            "method": "put",
+            "args": ["s0.items[4]", "x12"]
+          },
+          {
+            "method": "put",
+            "args": ["s1.items[4]", "x13"]
+          },
+          {
+            "method": "put",
+            "args": ["s2.items[4]", "x14"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "count",
+            "args": ["s1"]
+          },
+          {
+            "method": "read",
+            "args": ["s2.items"]
+          },
+          {
+            "method": "paths",
+            "args": ["s0"]
+          },
+          {
+            "method": "remove",
+            "args": ["s0.items[0]"]
+          },
+          {
+            "method": "paths",
+            "args": ["s0"]
+          },
+          {
+            "method": "read",
+            "args": ["s0.items[0]"]
+          },
+          {
+            "method": "count",
+            "args": ["s0.items"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "merge",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          },
+          {
+            "name": "entries",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["cfg.host", "a"]
+          },
+          {
+            "method": "put",
+            "args": ["cfg.port", "80"]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "cfg",
+              {
+                "port": "80",
+                "tls": "on",
+                "host": "b"
+              }
+            ]
+          },
+          {
+            "method": "read",
+            "args": ["cfg.host"]
+          },
+          {
+            "method": "read",
+            "args": ["cfg.tls"]
+          },
+          {
+            "method": "paths",
+            "args": ["cfg"]
+          },
+          {
+            "method": "merge",
+            "args": ["cfg", {}]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "cfg",
+              {
+                "port": "80"
+              }
+            ]
+          },
+          {
+            "method": "read",
+            "args": ["cfg"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "merge",
+            "args": [
+              "new.obj",
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "read",
+            "args": ["new"]
+          },
+          {
+            "method": "paths",
+            "args": [""]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "",
+              {
+                "top": "t"
+              }
+            ]
+          },
+          {
+            "method": "read",
+            "args": ["top"]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "l[0]",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "read",
+            "args": ["l[0].k"]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "l[2]",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "l",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "top",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "new.obj",
+              {
+                "": "v"
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "new.obj",
+              {
+                "a": ""
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "new.obj",
+              {
+                "a.b": "v"
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "new.obj",
+              {
+                "x": "1",
+                "y y": "2"
+              }
+            ]
+          },
+          {
+            "method": "read",
+            "args": ["new.obj.x"]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "bad[",
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "paths",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["o.sub.deep", "1"]
+          },
+          {
+            "method": "put",
+            "args": ["o.arr[0]", "1"]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "o",
+              {
+                "sub": "flat",
+                "arr": "flat",
+                "n": "1"
+              }
+            ]
+          },
+          {
+            "method": "paths",
+            "args": ["o"]
+          },
+          {
+            "method": "count",
+            "args": ["o"]
+          },
+          {
+            "method": "read",
+            "args": ["o.sub"]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "o",
+              {
+                "sub": "flat"
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "o.sub",
+              {
+                "k": "v"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "merge",
+            "args": ["a", {}]
+          },
+          {
+            "method": "read",
+            "args": ["a"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "a",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "merge",
+            "args": [
+              "a",
+              {
+                "k": "w",
+                "j": "v"
+              }
+            ]
+          },
+          {
+            "method": "paths",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  }
+}

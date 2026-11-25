@@ -1,0 +1,1130 @@
+{
+  "slug": "metrics-exporter",
+  "title": "Metrics exporters",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["bridge-pattern", "metrics"],
+  "interface": {
+    "class": "MetricsExporter",
+    "constructor": {
+      "params": [
+        {
+          "name": "format",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "counter",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "by",
+            "type": "int"
+          },
+          {
+            "name": "tags",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "observe",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "int"
+          },
+          {
+            "name": "tags",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "scrape",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "switchFormat",
+        "params": [
+          {
+            "name": "format",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "http_requests",
+              1,
+              {
+                "method": "GET",
+                "code": "200"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "http_requests",
+              2,
+              {
+                "code": "200",
+                "method": "GET"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "http_requests",
+              1,
+              {
+                "method": "POST",
+                "code": "500"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "latency_ms",
+              7,
+              {
+                "route": "home"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "latency_ms",
+              250,
+              {
+                "route": "home"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["statsd"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "counter",
+            "args": ["jobs_done", 0, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["queue_wait", 1000, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["queue_wait", 1001, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "counter",
+            "args": ["jobs_done", -1, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["jobs_done", 5, {}]
+          },
+          {
+            "method": "switchFormat",
+            "args": ["Prometheus"]
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "counter",
+            "args": ["a", 1, {}]
+          },
+          {
+            "method": "switchFormat",
+            "args": ["STATSD"]
+          },
+          {
+            "method": "switchFormat",
+            "args": [""]
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prom"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["statsd"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Prometheus"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["graphite"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 10, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 11, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 100, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 101, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 1000, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 1001, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", -5, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 0, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 9, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 99, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 999, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              10,
+              {
+                "x": "1"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              100,
+              {
+                "x": "1"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              1000,
+              {
+                "x": "1"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              101,
+              {
+                "x": "1"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              11,
+              {
+                "x": "2"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              1001,
+              {
+                "x": "2"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "observe",
+            "args": ["big", 1000000000, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["big", -1000000000, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["big", 999999999, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "counter",
+            "args": ["", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["a-b", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["a.b", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["a b", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["A_z09", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              1,
+              {
+                "": "v"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              1,
+              {
+                "k": ""
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              1,
+              {
+                "k-1": "v"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              1,
+              {
+                "k": "a b"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              1,
+              {
+                "k": "x=y"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              1,
+              {
+                "k_1": "v-1.2_X"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              2,
+              {
+                "k": "v",
+                "bad key": "v"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": ["", 1, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h h", 1, {}]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              1,
+              {
+                "k": "a,b"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              2,
+              {
+                "le": "5"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "h",
+              3,
+              {
+                "Le": "5"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "ok",
+              4,
+              {
+                "le": "x"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "counter",
+            "args": ["x", 1, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["x", 1, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["y", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["y", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "y",
+              0,
+              {
+                "a": "b"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "x",
+              1,
+              {
+                "a": "b"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": ["z", -1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["z", -1000000000, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["x_count", 4, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "counter",
+            "args": ["c", 0, {}]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "c",
+              5,
+              {
+                "b": "2",
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "c",
+              7,
+              {
+                "a": "1",
+                "b": "2"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "c",
+              1000000000,
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "c",
+              3,
+              {
+                "a": "10"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "c",
+              4,
+              {
+                "a": "1",
+                "b": "1"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "counter",
+            "args": [
+              "c",
+              0,
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "q",
+              1,
+              {
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "q",
+              2,
+              {
+                "a": "9"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": ["q", 3, {}]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "q",
+              4,
+              {
+                "a": "9",
+                "b": "0"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "q",
+              5,
+              {
+                "B": "1"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "q",
+              6,
+              {
+                "a": "10"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "counter",
+            "args": ["b", 1, {}]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "a_h",
+              5,
+              {
+                "r": "y"
+              }
+            ]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "a_h",
+              50,
+              {
+                "r": "x"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": ["B", 2, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["a", 3, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["_", 4, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["statsd"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["statsd"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "lat",
+              3,
+              {
+                "svc": "api"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "hits",
+              2,
+              {
+                "svc": "api"
+              }
+            ]
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "observe",
+            "args": [
+              "lat",
+              30,
+              {
+                "svc": "api"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["statsd"]
+          },
+          {
+            "method": "counter",
+            "args": [
+              "hits",
+              1,
+              {
+                "svc": "api"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "gauge",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "int"
+          },
+          {
+            "name": "tags",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "gauge",
+            "args": [
+              "temp",
+              5,
+              {
+                "room": "a"
+              }
+            ]
+          },
+          {
+            "method": "gauge",
+            "args": [
+              "temp",
+              -3,
+              {
+                "room": "a"
+              }
+            ]
+          },
+          {
+            "method": "gauge",
+            "args": [
+              "temp",
+              0,
+              {
+                "room": "b"
+              }
+            ]
+          },
+          {
+            "method": "counter",
+            "args": ["req", 1, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["statsd"]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "gauge",
+            "args": ["g", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["g", 1, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["g", 1, {}]
+          },
+          {
+            "method": "counter",
+            "args": ["c", 1, {}]
+          },
+          {
+            "method": "gauge",
+            "args": ["c", 1, {}]
+          },
+          {
+            "method": "observe",
+            "args": ["h", 1, {}]
+          },
+          {
+            "method": "gauge",
+            "args": ["h", 1, {}]
+          },
+          {
+            "method": "gauge",
+            "args": ["", 1, {}]
+          },
+          {
+            "method": "gauge",
+            "args": [
+              "q",
+              1,
+              {
+                "k": "a b"
+              }
+            ]
+          },
+          {
+            "method": "gauge",
+            "args": [
+              "q",
+              7,
+              {
+                "le": "x"
+              }
+            ]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["statsd"]
+          },
+          {
+            "method": "gauge",
+            "args": [
+              "mem",
+              1000000000,
+              {
+                "host": "h1"
+              }
+            ]
+          },
+          {
+            "method": "gauge",
+            "args": [
+              "mem",
+              12,
+              {
+                "host": "h0"
+              }
+            ]
+          },
+          {
+            "method": "gauge",
+            "args": ["mem", 13, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          },
+          {
+            "method": "switchFormat",
+            "args": ["prometheus"]
+          },
+          {
+            "method": "gauge",
+            "args": ["mem", 14, {}]
+          },
+          {
+            "method": "scrape",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

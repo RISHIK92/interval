@@ -1,0 +1,979 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": [
+          "# TYPE http_requests counter",
+          "http_requests{code=\"200\",method=\"GET\"} 3",
+          "http_requests{code=\"500\",method=\"POST\"} 1",
+          "# TYPE latency_ms histogram",
+          "latency_ms_bucket{route=\"home\",le=\"10\"} 1",
+          "latency_ms_bucket{route=\"home\",le=\"100\"} 1",
+          "latency_ms_bucket{route=\"home\",le=\"1000\"} 2",
+          "latency_ms_bucket{route=\"home\",le=\"+Inf\"} 2",
+          "latency_ms_sum{route=\"home\"} 257",
+          "latency_ms_count{route=\"home\"} 2"
+        ]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": [
+          "http_requests:3|c|#code:200,method:GET",
+          "http_requests:1|c|#code:500,method:POST",
+          "latency_ms_bucket:1|c|#route:home,le:10",
+          "latency_ms_bucket:1|c|#route:home,le:100",
+          "latency_ms_bucket:2|c|#route:home,le:1000",
+          "latency_ms_bucket:2|c|#route:home,le:+Inf",
+          "latency_ms_sum:257|c|#route:home",
+          "latency_ms_count:2|c|#route:home"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "jobs_done:0|c",
+          "queue_wait_bucket:0|c|#le:10",
+          "queue_wait_bucket:0|c|#le:100",
+          "queue_wait_bucket:1|c|#le:1000",
+          "queue_wait_bucket:2|c|#le:+Inf",
+          "queue_wait_sum:2001|c",
+          "queue_wait_count:2|c"
+        ]
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a counter only goes up"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown format"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [
+          "# TYPE jobs_done counter",
+          "jobs_done 0",
+          "# TYPE queue_wait histogram",
+          "queue_wait_bucket{le=\"10\"} 0",
+          "queue_wait_bucket{le=\"100\"} 0",
+          "queue_wait_bucket{le=\"1000\"} 1",
+          "queue_wait_bucket{le=\"+Inf\"} 2",
+          "queue_wait_sum 2001",
+          "queue_wait_count 2"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown format"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown format"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown format"
+      },
+      {
+        "call": 5,
+        "value": ["a:1|c"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["a:1|c"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["# TYPE a counter", "a 1"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown format"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown format"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown format"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": [
+          "# TYPE h histogram",
+          "h_bucket{le=\"10\"} 4",
+          "h_bucket{le=\"100\"} 7",
+          "h_bucket{le=\"1000\"} 10",
+          "h_bucket{le=\"+Inf\"} 11",
+          "h_sum 3325",
+          "h_count 11"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "h_bucket:1|c|#x:1,le:10",
+          "h_bucket:2|c|#x:1,le:100",
+          "h_bucket:4|c|#x:1,le:1000",
+          "h_bucket:4|c|#x:1,le:+Inf",
+          "h_sum:1211|c|#x:1",
+          "h_count:4|c|#x:1",
+          "h_bucket:0|c|#x:2,le:10",
+          "h_bucket:1|c|#x:2,le:100",
+          "h_bucket:1|c|#x:2,le:1000",
+          "h_bucket:2|c|#x:2,le:+Inf",
+          "h_sum:1012|c|#x:2",
+          "h_count:2|c|#x:2"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "# TYPE big histogram",
+          "big_bucket{le=\"10\"} 1",
+          "big_bucket{le=\"100\"} 1",
+          "big_bucket{le=\"1000\"} 1",
+          "big_bucket{le=\"+Inf\"} 3",
+          "big_sum 999999999",
+          "big_count 3"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: le is the histogram's own tag"
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": [
+          "# TYPE A_z09 counter",
+          "A_z09 1",
+          "# TYPE h histogram",
+          "h_bucket{Le=\"5\",le=\"10\"} 1",
+          "h_bucket{Le=\"5\",le=\"100\"} 1",
+          "h_bucket{Le=\"5\",le=\"1000\"} 1",
+          "h_bucket{Le=\"5\",le=\"+Inf\"} 1",
+          "h_sum{Le=\"5\"} 3",
+          "h_count{Le=\"5\"} 1",
+          "# TYPE ok counter",
+          "ok{k_1=\"v-1.2_X\"} 1",
+          "ok{le=\"x\"} 4"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a counter only goes up"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a counter only goes up"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": [
+          "x:1|c",
+          "x_count_bucket:1|c|#le:10",
+          "x_count_bucket:1|c|#le:100",
+          "x_count_bucket:1|c|#le:1000",
+          "x_count_bucket:1|c|#le:+Inf",
+          "x_count_sum:4|c",
+          "x_count_count:1|c",
+          "y_bucket:1|c|#le:10",
+          "y_bucket:1|c|#le:100",
+          "y_bucket:1|c|#le:1000",
+          "y_bucket:1|c|#le:+Inf",
+          "y_sum:1|c",
+          "y_count:1|c"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "# TYPE c counter",
+          "c 0",
+          "c{a=\"1\"} 1000000000",
+          "c{a=\"1\",b=\"1\"} 4",
+          "c{a=\"1\",b=\"2\"} 12",
+          "c{a=\"10\"} 3"
+        ]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [
+          "# TYPE c counter",
+          "c 0",
+          "c{a=\"1\"} 1000000000",
+          "c{a=\"1\",b=\"1\"} 4",
+          "c{a=\"1\",b=\"2\"} 12",
+          "c{a=\"10\"} 3"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "q:3|c",
+          "q:5|c|#B:1",
+          "q:6|c|#a:10",
+          "q:2|c|#a:9",
+          "q:4|c|#a:9,b:0",
+          "q:1|c|#z:1"
+        ]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [
+          "# TYPE q counter",
+          "q 3",
+          "q{B=\"1\"} 5",
+          "q{a=\"10\"} 6",
+          "q{a=\"9\"} 2",
+          "q{a=\"9\",b=\"0\"} 4",
+          "q{z=\"1\"} 1"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "# TYPE B counter",
+          "B 2",
+          "# TYPE _ counter",
+          "_ 4",
+          "# TYPE a counter",
+          "a 3",
+          "# TYPE a_h histogram",
+          "a_h_bucket{r=\"x\",le=\"10\"} 0",
+          "a_h_bucket{r=\"x\",le=\"100\"} 1",
+          "a_h_bucket{r=\"x\",le=\"1000\"} 1",
+          "a_h_bucket{r=\"x\",le=\"+Inf\"} 1",
+          "a_h_sum{r=\"x\"} 50",
+          "a_h_count{r=\"x\"} 1",
+          "a_h_bucket{r=\"y\",le=\"10\"} 1",
+          "a_h_bucket{r=\"y\",le=\"100\"} 1",
+          "a_h_bucket{r=\"y\",le=\"1000\"} 1",
+          "a_h_bucket{r=\"y\",le=\"+Inf\"} 1",
+          "a_h_sum{r=\"y\"} 5",
+          "a_h_count{r=\"y\"} 1",
+          "# TYPE b counter",
+          "b 1"
+        ]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [
+          "B:2|c",
+          "_:4|c",
+          "a:3|c",
+          "a_h_bucket:0|c|#r:x,le:10",
+          "a_h_bucket:1|c|#r:x,le:100",
+          "a_h_bucket:1|c|#r:x,le:1000",
+          "a_h_bucket:1|c|#r:x,le:+Inf",
+          "a_h_sum:50|c|#r:x",
+          "a_h_count:1|c|#r:x",
+          "a_h_bucket:1|c|#r:y,le:10",
+          "a_h_bucket:1|c|#r:y,le:100",
+          "a_h_bucket:1|c|#r:y,le:1000",
+          "a_h_bucket:1|c|#r:y,le:+Inf",
+          "a_h_sum:5|c|#r:y",
+          "a_h_count:1|c|#r:y",
+          "b:1|c"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "# TYPE hits counter",
+          "hits{svc=\"api\"} 2",
+          "# TYPE lat histogram",
+          "lat_bucket{svc=\"api\",le=\"10\"} 1",
+          "lat_bucket{svc=\"api\",le=\"100\"} 2",
+          "lat_bucket{svc=\"api\",le=\"1000\"} 2",
+          "lat_bucket{svc=\"api\",le=\"+Inf\"} 2",
+          "lat_sum{svc=\"api\"} 33",
+          "lat_count{svc=\"api\"} 2"
+        ]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": [
+          "hits:3|c|#svc:api",
+          "lat_bucket:1|c|#svc:api,le:10",
+          "lat_bucket:2|c|#svc:api,le:100",
+          "lat_bucket:2|c|#svc:api,le:1000",
+          "lat_bucket:2|c|#svc:api,le:+Inf",
+          "lat_sum:33|c|#svc:api",
+          "lat_count:2|c|#svc:api"
+        ]
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": [
+          "# TYPE hits counter",
+          "hits{svc=\"api\"} 3",
+          "# TYPE lat histogram",
+          "lat_bucket{svc=\"api\",le=\"10\"} 1",
+          "lat_bucket{svc=\"api\",le=\"100\"} 2",
+          "lat_bucket{svc=\"api\",le=\"1000\"} 2",
+          "lat_bucket{svc=\"api\",le=\"+Inf\"} 2",
+          "lat_sum{svc=\"api\"} 33",
+          "lat_count{svc=\"api\"} 2"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "# TYPE req counter",
+          "req 1",
+          "# TYPE temp gauge",
+          "temp{room=\"a\"} -3",
+          "temp{room=\"b\"} 0"
+        ]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["req:1|c", "temp:-3|g|#room:a", "temp:0|g|#room:b"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: the name belongs to another kind"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a name, tag key or tag value with a character it can't have"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": [
+          "c:1|c",
+          "g:1|g",
+          "h_bucket:1|c|#le:10",
+          "h_bucket:1|c|#le:100",
+          "h_bucket:1|c|#le:1000",
+          "h_bucket:1|c|#le:+Inf",
+          "h_sum:1|c",
+          "h_count:1|c",
+          "q:7|g|#le:x"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["mem:13|g", "mem:12|g|#host:h0", "mem:1000000000|g|#host:h1"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "# TYPE mem gauge",
+          "mem 14",
+          "mem{host=\"h0\"} 12",
+          "mem{host=\"h1\"} 1000000000"
+        ]
+      }
+    ]
+  }
+]

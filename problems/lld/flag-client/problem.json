@@ -1,0 +1,1529 @@
+{
+  "slug": "flag-client",
+  "title": "Feature flag SDK",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": [
+    "facade-pattern",
+    "adapter-pattern",
+    "proxy-pattern",
+    "feature-flags",
+    "graceful-degradation"
+  ],
+  "interface": {
+    "class": "FlagClient",
+    "constructor": {
+      "params": [
+        {
+          "name": "defaults",
+          "type": "map<string,bool>"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "serverRules",
+        "params": [
+          {
+            "name": "flag",
+            "type": "string"
+          },
+          {
+            "name": "rules",
+            "type": "list<string>"
+          },
+          {
+            "name": "version",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "sync",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          },
+          {
+            "name": "reachable",
+            "type": "bool"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "evaluate",
+        "params": [
+          {
+            "name": "flag",
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "attrs",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "staleMs",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "beta": false,
+                "dark-mode": true
+              }
+            ]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", ["user:ana", "attr:plan=pro"], 1]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "bo", {}]
+          },
+          {
+            "method": "sync",
+            "args": [1000, false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [1000]
+          },
+          {
+            "method": "sync",
+            "args": [2000, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "beta",
+              "bo",
+              {
+                "plan": "pro"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "beta",
+              "bo",
+              {
+                "plan": "free"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "bo", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", [], 2]
+          },
+          {
+            "method": "sync",
+            "args": [5000, false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [7000]
+          },
+          {
+            "method": "evaluate",
+            "args": ["nope", "ana", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "beta": false
+              }
+            ]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", ["percent:50"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "fin", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [0]
+          },
+          {
+            "method": "staleMs",
+            "args": [250]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", ["percent:11"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "hal", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", ["percent:12"], 2]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "bo", {}]
+          },
+          {
+            "method": "sync",
+            "args": [1, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "hal", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", ["percent:81"], 3]
+          },
+          {
+            "method": "sync",
+            "args": [2, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "fin", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "gus", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "hal", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ivy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "jo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "kim", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "lu", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "max", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ned", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", ["percent:0"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["new-ui", ["percent:100"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["dark-mode", ["percent:30"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "fin", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "fin", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "fin", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "gus", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "gus", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "gus", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "hal", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "hal", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "hal", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ivy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "ivy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "ivy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "jo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "jo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "jo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "kim", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "kim", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "kim", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "lu", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "lu", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "lu", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "max", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "max", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "max", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ned", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["new-ui", "ned", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["dark-mode", "ned", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["x", ["percent:50"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["y", ["percent:50"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["rollout-2026", ["percent:25"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "bo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "cy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "dee", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "eve", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "fin", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "fin", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "fin", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "gus", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "gus", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "gus", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "hal", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "hal", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "hal", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "ivy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "ivy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "ivy", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "jo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "jo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "jo", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "kim", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "kim", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "kim", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "lu", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "lu", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "lu", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "max", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "max", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "max", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "ned", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "ned", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "ned", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "a-much-longer-user-name", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "a-much-longer-user-name", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "a-much-longer-user-name", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "U", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "U", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "U", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "ana2", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["y", "ana2", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["rollout-2026", "ana2", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "f": true
+              }
+            ]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", [""], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["attr:k"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["attr:=v"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["attr:k="], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:101"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:-1"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:05"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:5x"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:1000"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["group:x"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["User:ana"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", [" user:ana"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["attr"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:ana", "nope"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "bo", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:100", "attr:k=a=b", "user:a:b"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [1, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "zz", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["g", ["attr:k=a=b"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["h", ["user:a:b"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["i", ["percent:0", "user: ana"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [2, true]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "g",
+              "u",
+              {
+                "k": "a=b"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "g",
+              "u",
+              {
+                "k": "a"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": ["h", "a:b", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["h", "a", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["i", " ana", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["i", "ana", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "f": false
+              }
+            ]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:a"], 3]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:b"], 3]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:c"], 2]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "a", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "b", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "c", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:b"], 4]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "b", {}]
+          },
+          {
+            "method": "sync",
+            "args": [1, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "b", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "a", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:z"], 0]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:z"], -1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["", ["user:z"], 9]
+          },
+          {
+            "method": "sync",
+            "args": [2, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "z", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["g", ["user:z"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [3, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["g", "z", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["nope"], 1]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["percent:101"], 4]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:y"], 4]
+          },
+          {
+            "method": "sync",
+            "args": [4, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "y", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "b", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "on": true,
+                "off": false
+              }
+            ]
+          },
+          {
+            "method": "serverRules",
+            "args": ["on", [], 1]
+          },
+          {
+            "method": "evaluate",
+            "args": ["on", "u", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["off", "u", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [0]
+          },
+          {
+            "method": "sync",
+            "args": [10, false]
+          },
+          {
+            "method": "staleMs",
+            "args": [10]
+          },
+          {
+            "method": "evaluate",
+            "args": ["on", "u", {}]
+          },
+          {
+            "method": "sync",
+            "args": [20, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["on", "u", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["off", "u", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["off", ["user:u"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [30, false]
+          },
+          {
+            "method": "sync",
+            "args": [40, false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["off", "u", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [40]
+          },
+          {
+            "method": "sync",
+            "args": [50, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["off", "u", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [50]
+          },
+          {
+            "method": "staleMs",
+            "args": [1000000000000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": true,
+                "b": false
+              }
+            ]
+          },
+          {
+            "method": "serverRules",
+            "args": ["c", ["user:x"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["a", "x", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["b", "x", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["c", "x", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["c", "y", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["d", "x", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["", "x", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["a", "", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "u", {}]
+          },
+          {
+            "method": "sync",
+            "args": [5, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "u", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["user:u"], 1]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "u", {}]
+          },
+          {
+            "method": "sync",
+            "args": [6, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "u", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [6]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["f", ["attr:region=eu", "attr:tier=gold", "user:root"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "f",
+              "u",
+              {
+                "region": "eu"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "f",
+              "u",
+              {
+                "region": "EU"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "f",
+              "u",
+              {
+                "Region": "eu"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "f",
+              "u",
+              {
+                "tier": "gold",
+                "region": "us"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "u", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "f",
+              "root",
+              {
+                "region": "us"
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": ["f", "Root", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              "f",
+              "u",
+              {
+                "region": "eu "
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "staleMs",
+            "args": [0]
+          },
+          {
+            "method": "sync",
+            "args": [100, true]
+          },
+          {
+            "method": "staleMs",
+            "args": [100]
+          },
+          {
+            "method": "staleMs",
+            "args": [160]
+          },
+          {
+            "method": "sync",
+            "args": [200, false]
+          },
+          {
+            "method": "staleMs",
+            "args": [260]
+          },
+          {
+            "method": "sync",
+            "args": [300, true]
+          },
+          {
+            "method": "staleMs",
+            "args": [301]
+          },
+          {
+            "method": "sync",
+            "args": [301, true]
+          },
+          {
+            "method": "staleMs",
+            "args": [301]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "localOverride",
+        "params": [
+          {
+            "name": "flag",
+            "type": "string"
+          },
+          {
+            "name": "on",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "beta": false
+              }
+            ]
+          },
+          {
+            "method": "serverRules",
+            "args": ["beta", ["user:ana"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "localOverride",
+            "args": ["beta", false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "localOverride",
+            "args": ["beta", true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "bo", {}]
+          },
+          {
+            "method": "sync",
+            "args": [1, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["beta", "ana", {}]
+          },
+          {
+            "method": "localOverride",
+            "args": ["unknown", true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["unknown", "x", {}]
+          },
+          {
+            "method": "localOverride",
+            "args": ["", true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["nope", "x", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              {
+                "a": true
+              }
+            ]
+          },
+          {
+            "method": "localOverride",
+            "args": ["a", false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["a", "u", {}]
+          },
+          {
+            "method": "sync",
+            "args": [0, false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["a", "u", {}]
+          },
+          {
+            "method": "serverRules",
+            "args": ["a", ["percent:100"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [1, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["a", "u", {}]
+          },
+          {
+            "method": "evaluate",
+            "args": ["a", "", {}]
+          },
+          {
+            "method": "localOverride",
+            "args": ["b", false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["b", "u", {}]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [{}]
+          },
+          {
+            "method": "localOverride",
+            "args": ["x", true]
+          },
+          {
+            "method": "serverRules",
+            "args": ["x", ["percent:0"], 1]
+          },
+          {
+            "method": "sync",
+            "args": [0, true]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "u", {}]
+          },
+          {
+            "method": "localOverride",
+            "args": ["x", false]
+          },
+          {
+            "method": "evaluate",
+            "args": ["x", "u", {}]
+          },
+          {
+            "method": "staleMs",
+            "args": [5]
+          }
+        ]
+      }
+    ]
+  }
+}

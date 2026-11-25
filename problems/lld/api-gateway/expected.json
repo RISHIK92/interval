@@ -1,0 +1,1084 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["200", "users", "-"]
+      },
+      {
+        "call": 6,
+        "value": ["200", "core", "-"]
+      },
+      {
+        "call": 7,
+        "value": ["404", "-", "-"]
+      },
+      {
+        "call": 8,
+        "value": ["503", "users", "-"]
+      },
+      {
+        "call": 9,
+        "value": ["503", "users", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 6,
+        "value": ["200", "shop", "miss"]
+      },
+      {
+        "call": 7,
+        "value": ["200", "shop", "hit"]
+      },
+      {
+        "call": 8,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 9,
+        "value": ["200", "shop", "miss"]
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'no such route'"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a ttl is at least 1 ms"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": ["200", "root", "-"]
+      },
+      {
+        "call": 12,
+        "value": ["200", "a", "-"]
+      },
+      {
+        "call": 13,
+        "value": ["200", "a", "-"]
+      },
+      {
+        "call": 14,
+        "value": ["200", "ab", "-"]
+      },
+      {
+        "call": 15,
+        "value": ["200", "a", "-"]
+      },
+      {
+        "call": 16,
+        "value": ["200", "abc", "-"]
+      },
+      {
+        "call": 17,
+        "value": ["200", "ab2", "-"]
+      },
+      {
+        "call": 18,
+        "value": ["200", "root", "-"]
+      },
+      {
+        "call": 19,
+        "value": ["200", "root", "-"]
+      },
+      {
+        "call": 20,
+        "value": ["200", "abc", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["404", "-", "-"]
+      },
+      {
+        "call": 4,
+        "value": ["404", "-", "-"]
+      },
+      {
+        "call": 5,
+        "value": ["404", "-", "-"]
+      },
+      {
+        "call": 6,
+        "value": ["200", "a", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a path starts with /"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a path starts with /"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: only / itself ends with /"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: an empty service"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: only / itself ends with /"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a path starts with /"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a path starts with /"
+      },
+      {
+        "call": 11,
+        "value": ["200", "s", "-"]
+      },
+      {
+        "call": 12,
+        "value": ["404", "-", "-"]
+      },
+      {
+        "call": 13,
+        "value": ["200", "s", "-"]
+      },
+      {
+        "call": 14,
+        "error": "KeyError: 'no such route'"
+      },
+      {
+        "call": 15,
+        "error": "KeyError: 'no such route'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["502", "-", "-"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["500", "svc", "-"]
+      },
+      {
+        "call": 5,
+        "value": ["503", "svc", "-"]
+      },
+      {
+        "call": 6,
+        "value": ["200", "svc", "-"]
+      },
+      {
+        "call": 7,
+        "value": ["200", "svc", "-"]
+      },
+      {
+        "call": 8,
+        "value": ["200", "svc", "-"]
+      },
+      {
+        "call": 9,
+        "error": "ValueError: an empty service or script"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not an HTTP status"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not an HTTP status"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: an empty service or script"
+      },
+      {
+        "call": 13,
+        "value": ["200", "svc", "-"]
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": ["100", "svc", "-"]
+      },
+      {
+        "call": 16,
+        "value": ["599", "svc", "-"]
+      },
+      {
+        "call": 17,
+        "value": ["599", "svc", "-"]
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": ["204", "other", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 7,
+        "value": ["502", "-", "-"]
+      },
+      {
+        "call": 8,
+        "value": ["200", "p", "-"]
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["200", "p", "-"]
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 13,
+        "value": ["200", "p", "-"]
+      },
+      {
+        "call": 14,
+        "error": "KeyError: 'no such route'"
+      },
+      {
+        "call": 15,
+        "error": "KeyError: 'no such route'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["500", "c", "miss"]
+      },
+      {
+        "call": 5,
+        "value": ["200", "c", "miss"]
+      },
+      {
+        "call": 6,
+        "value": ["200", "c", "hit"]
+      },
+      {
+        "call": 7,
+        "value": ["404", "c", "miss"]
+      },
+      {
+        "call": 8,
+        "value": ["200", "c", "miss"]
+      },
+      {
+        "call": 9,
+        "value": ["200", "c", "hit"]
+      },
+      {
+        "call": 10,
+        "value": ["201", "c", "miss"]
+      },
+      {
+        "call": 11,
+        "value": ["200", "c", "miss"]
+      },
+      {
+        "call": 12,
+        "value": ["200", "c", "hit"]
+      },
+      {
+        "call": 13,
+        "value": ["200", "c", "hit"]
+      },
+      {
+        "call": 14,
+        "value": ["200", "c", "miss"]
+      },
+      {
+        "call": 15,
+        "value": ["200", "c", "hit"]
+      },
+      {
+        "call": 16,
+        "value": ["200", "c", "miss"]
+      },
+      {
+        "call": 17,
+        "value": ["200", "c", "hit"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["200", "k", "-"]
+      },
+      {
+        "call": 4,
+        "value": ["200", "k", "-"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a ttl is at least 1 ms"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a ttl is at least 1 ms"
+      },
+      {
+        "call": 8,
+        "value": ["200", "k", "miss"]
+      },
+      {
+        "call": 9,
+        "value": ["200", "k", "hit"]
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": ["200", "k", "hit"]
+      },
+      {
+        "call": 12,
+        "value": ["200", "k", "miss"]
+      },
+      {
+        "call": 13,
+        "value": ["200", "k", "hit"]
+      },
+      {
+        "call": 14,
+        "value": ["200", "k", "miss"]
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": ["200", "k", "hit"]
+      },
+      {
+        "call": 17,
+        "value": ["200", "k", "hit"]
+      },
+      {
+        "call": 18,
+        "value": ["200", "k", "miss"]
+      },
+      {
+        "call": 19,
+        "value": ["200", "k", "hit"]
+      },
+      {
+        "call": 20,
+        "value": ["200", "k", "miss"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["200", "m", "miss"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 7,
+        "value": ["200", "m", "hit"]
+      },
+      {
+        "call": 8,
+        "value": ["500", "m", "miss"]
+      },
+      {
+        "call": 9,
+        "value": ["401", "-", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["200", "one", "miss"]
+      },
+      {
+        "call": 7,
+        "value": ["200", "one", "hit"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 10,
+        "value": ["201", "two", "miss"]
+      },
+      {
+        "call": 11,
+        "value": ["200", "two", "miss"]
+      },
+      {
+        "call": 12,
+        "value": ["200", "two", "hit"]
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": ["200", "two", "miss"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["200", "x", "miss"]
+      },
+      {
+        "call": 6,
+        "value": ["200", "x", "hit"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["200", "y", "-"]
+      },
+      {
+        "call": 9,
+        "value": ["503", "y", "-"]
+      },
+      {
+        "call": 10,
+        "value": ["200", "x", "miss"]
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": ["503", "y", "miss"]
+      },
+      {
+        "call": 13,
+        "value": ["503", "y", "miss"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["502", "-", "-"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["200", "ghost", "miss"]
+      },
+      {
+        "call": 6,
+        "value": ["200", "ghost", "hit"]
+      },
+      {
+        "call": 7,
+        "value": ["200", "ghost", "hit"]
+      },
+      {
+        "call": 8,
+        "value": ["200", "ghost", "miss"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["200", "users1", "-"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["200", "users2", "-"]
+      },
+      {
+        "call": 8,
+        "value": ["200", "users2", "-"]
+      },
+      {
+        "call": 9,
+        "value": ["404", "-", "-"]
+      },
+      {
+        "call": 10,
+        "value": ["200", "users2", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["201", "d", "-"]
+      },
+      {
+        "call": 9,
+        "value": ["200", "n", "-"]
+      },
+      {
+        "call": 10,
+        "value": ["200", "n", "-"]
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": ["404", "-", "-"]
+      },
+      {
+        "call": 13,
+        "value": ["201", "d", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: / can't be rewritten or be a rewrite"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: / can't be rewritten or be a rewrite"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: only / itself ends with /"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a path starts with /"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a path starts with /"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": ["200", "b", "-"]
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": ["200", "b", "-"]
+      },
+      {
+        "call": 16,
+        "value": ["200", "c", "-"]
+      },
+      {
+        "call": 17,
+        "value": ["200", "c", "-"]
+      },
+      {
+        "call": 18,
+        "value": ["200", "all", "-"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 7,
+        "value": ["200", "api", "miss"]
+      },
+      {
+        "call": 8,
+        "value": ["200", "api", "hit"]
+      },
+      {
+        "call": 9,
+        "value": ["401", "-", "-"]
+      },
+      {
+        "call": 10,
+        "value": ["500", "api", "miss"]
+      }
+    ]
+  }
+]

@@ -1,0 +1,1164 @@
+{
+  "slug": "api-gateway",
+  "title": "API gateway",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["facade-pattern", "proxy-pattern", "api-gateway", "caching"],
+  "interface": {
+    "class": "Gateway",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "route",
+        "params": [
+          {
+            "name": "prefix",
+            "type": "string"
+          },
+          {
+            "name": "service",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "requireAuth",
+        "params": [
+          {
+            "name": "prefix",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "cache",
+        "params": [
+          {
+            "name": "prefix",
+            "type": "string"
+          },
+          {
+            "name": "ttlMs",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "upstream",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "statuses",
+            "type": "list<int>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "request",
+        "params": [
+          {
+            "name": "path",
+            "type": "string"
+          },
+          {
+            "name": "token",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/api", "core"]
+          },
+          {
+            "method": "route",
+            "args": ["/api/users", "users"]
+          },
+          {
+            "method": "upstream",
+            "args": ["core", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["users", [200, 503]]
+          },
+          {
+            "method": "request",
+            "args": ["/api/users/7", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/api/orders", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/apiary", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/api/users", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/api/users", "", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/shop", "shop"]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/shop"]
+          },
+          {
+            "method": "cache",
+            "args": ["/shop", 1000]
+          },
+          {
+            "method": "upstream",
+            "args": ["shop", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/shop/cart", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/shop/cart", "t1", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/shop/cart", "t2", 999]
+          },
+          {
+            "method": "request",
+            "args": ["/shop/cart", "", 999]
+          },
+          {
+            "method": "request",
+            "args": ["/shop/cart", "t1", 1000]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/nope"]
+          },
+          {
+            "method": "cache",
+            "args": ["/shop", 0]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/", "root"]
+          },
+          {
+            "method": "route",
+            "args": ["/a", "a"]
+          },
+          {
+            "method": "route",
+            "args": ["/a/b", "ab"]
+          },
+          {
+            "method": "route",
+            "args": ["/a/b/c", "abc"]
+          },
+          {
+            "method": "route",
+            "args": ["/ab", "ab2"]
+          },
+          {
+            "method": "upstream",
+            "args": ["root", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["a", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["ab", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["abc", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["ab2", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a/", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a/b", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a/bc", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a/b/c/d", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/ab", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/abc", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/b", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a/b/c", "", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/a", "a"]
+          },
+          {
+            "method": "upstream",
+            "args": ["a", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/b", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/A", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a/x", "", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["", "s"]
+          },
+          {
+            "method": "route",
+            "args": ["a", "s"]
+          },
+          {
+            "method": "route",
+            "args": ["/a/", "s"]
+          },
+          {
+            "method": "route",
+            "args": ["/a", ""]
+          },
+          {
+            "method": "route",
+            "args": ["//", "s"]
+          },
+          {
+            "method": "route",
+            "args": ["/a//b", "s"]
+          },
+          {
+            "method": "upstream",
+            "args": ["s", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["a", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["x", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a//b/c", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a/", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/a//b", "", 0]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/a/"]
+          },
+          {
+            "method": "cache",
+            "args": ["", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/s", "svc"]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 0]
+          },
+          {
+            "method": "upstream",
+            "args": ["svc", [500, 503, 200]]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 0]
+          },
+          {
+            "method": "upstream",
+            "args": ["svc", []]
+          },
+          {
+            "method": "upstream",
+            "args": ["svc", [99]]
+          },
+          {
+            "method": "upstream",
+            "args": ["svc", [200, 600]]
+          },
+          {
+            "method": "upstream",
+            "args": ["", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 0]
+          },
+          {
+            "method": "upstream",
+            "args": ["svc", [100, 599]]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 1]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 2]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 3]
+          },
+          {
+            "method": "upstream",
+            "args": ["other", [204]]
+          },
+          {
+            "method": "route",
+            "args": ["/s", "other"]
+          },
+          {
+            "method": "request",
+            "args": ["/s", "", 4]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/pub", "p"]
+          },
+          {
+            "method": "route",
+            "args": ["/priv", "q"]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/priv"]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/priv"]
+          },
+          {
+            "method": "upstream",
+            "args": ["p", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/priv/x", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/priv/x", "anything", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/pub", "", 0]
+          },
+          {
+            "method": "route",
+            "args": ["/priv/open", "p"]
+          },
+          {
+            "method": "request",
+            "args": ["/priv/open/1", "", 0]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/pub"]
+          },
+          {
+            "method": "request",
+            "args": ["/pub/a", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/pub/a", " ", 0]
+          },
+          {
+            "method": "requireAuth",
+            "args": [""]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/missing"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/c", "c"]
+          },
+          {
+            "method": "cache",
+            "args": ["/c", 100]
+          },
+          {
+            "method": "upstream",
+            "args": ["c", [500, 200, 404, 200, 201, 200]]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 1]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 50]
+          },
+          {
+            "method": "request",
+            "args": ["/c/y", "", 50]
+          },
+          {
+            "method": "request",
+            "args": ["/c/y", "", 60]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 100]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 101]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 150]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 200]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 200]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 299]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 300]
+          },
+          {
+            "method": "request",
+            "args": ["/c", "", 300]
+          },
+          {
+            "method": "request",
+            "args": ["/c", "", 300]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/k", "k"]
+          },
+          {
+            "method": "upstream",
+            "args": ["k", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 0]
+          },
+          {
+            "method": "cache",
+            "args": ["/k", 10]
+          },
+          {
+            "method": "cache",
+            "args": ["/k", -5]
+          },
+          {
+            "method": "cache",
+            "args": ["/k", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 9]
+          },
+          {
+            "method": "cache",
+            "args": ["/k", 1000]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 9]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 10]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 1009]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 1010]
+          },
+          {
+            "method": "cache",
+            "args": ["/k", 1]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 1010]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 2009]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 2010]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 2010]
+          },
+          {
+            "method": "request",
+            "args": ["/k", "", 2011]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/m", "m"]
+          },
+          {
+            "method": "cache",
+            "args": ["/m", 50]
+          },
+          {
+            "method": "upstream",
+            "args": ["m", [200, 500]]
+          },
+          {
+            "method": "request",
+            "args": ["/m", "tok", 0]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/m"]
+          },
+          {
+            "method": "request",
+            "args": ["/m", "", 10]
+          },
+          {
+            "method": "request",
+            "args": ["/m", "tok", 10]
+          },
+          {
+            "method": "request",
+            "args": ["/m", "tok", 60]
+          },
+          {
+            "method": "request",
+            "args": ["/m", "", 60]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/r", "one"]
+          },
+          {
+            "method": "cache",
+            "args": ["/r", 100]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/r"]
+          },
+          {
+            "method": "upstream",
+            "args": ["one", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["two", [201, 200]]
+          },
+          {
+            "method": "request",
+            "args": ["/r", "t", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/r", "t", 1]
+          },
+          {
+            "method": "route",
+            "args": ["/r", "two"]
+          },
+          {
+            "method": "request",
+            "args": ["/r", "", 2]
+          },
+          {
+            "method": "request",
+            "args": ["/r", "t", 2]
+          },
+          {
+            "method": "request",
+            "args": ["/r", "t", 3]
+          },
+          {
+            "method": "request",
+            "args": ["/r", "t", 4]
+          },
+          {
+            "method": "route",
+            "args": ["/r", "two"]
+          },
+          {
+            "method": "request",
+            "args": ["/r", "t", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/x", "x"]
+          },
+          {
+            "method": "cache",
+            "args": ["/x", 100]
+          },
+          {
+            "method": "upstream",
+            "args": ["x", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["y", [200, 503]]
+          },
+          {
+            "method": "request",
+            "args": ["/x/y/1", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/x/y/1", "", 1]
+          },
+          {
+            "method": "route",
+            "args": ["/x/y", "y"]
+          },
+          {
+            "method": "request",
+            "args": ["/x/y/1", "", 2]
+          },
+          {
+            "method": "request",
+            "args": ["/x/y/1", "", 3]
+          },
+          {
+            "method": "request",
+            "args": ["/x/z", "", 3]
+          },
+          {
+            "method": "cache",
+            "args": ["/x/y", 5]
+          },
+          {
+            "method": "request",
+            "args": ["/x/y/1", "", 4]
+          },
+          {
+            "method": "request",
+            "args": ["/x/y/1", "", 4]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/g", "ghost"]
+          },
+          {
+            "method": "cache",
+            "args": ["/g", 1000000000]
+          },
+          {
+            "method": "request",
+            "args": ["/g", "", 0]
+          },
+          {
+            "method": "upstream",
+            "args": ["ghost", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/g", "", 5]
+          },
+          {
+            "method": "request",
+            "args": ["/g", "", 999999999]
+          },
+          {
+            "method": "request",
+            "args": ["/g", "", 1000000004]
+          },
+          {
+            "method": "request",
+            "args": ["/g", "", 1000000005]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "rewrite",
+        "params": [
+          {
+            "name": "prefix",
+            "type": "string"
+          },
+          {
+            "name": "replacement",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/v2/users", "users2"]
+          },
+          {
+            "method": "route",
+            "args": ["/users", "users1"]
+          },
+          {
+            "method": "upstream",
+            "args": ["users2", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["users1", [200]]
+          },
+          {
+            "method": "request",
+            "args": ["/users/7", "", 0]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/users", "/v2/users"]
+          },
+          {
+            "method": "request",
+            "args": ["/users/7", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/users", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/usersx", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/v2/users/8", "", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/new", "n"]
+          },
+          {
+            "method": "route",
+            "args": ["/new/deep", "d"]
+          },
+          {
+            "method": "upstream",
+            "args": ["n", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["d", [201]]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/old", "/new"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/old/deep", "/new/deep"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/old/shallow", "/new"]
+          },
+          {
+            "method": "request",
+            "args": ["/old/deep/1", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/old/shallow/2", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/old/3", "", 0]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/old", "/gone"]
+          },
+          {
+            "method": "request",
+            "args": ["/old/3", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/new/deep/1", "", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/", "all"]
+          },
+          {
+            "method": "route",
+            "args": ["/b", "b"]
+          },
+          {
+            "method": "route",
+            "args": ["/c", "c"]
+          },
+          {
+            "method": "upstream",
+            "args": ["all", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["b", [200]]
+          },
+          {
+            "method": "upstream",
+            "args": ["c", [200]]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/", "/a"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/a", "/"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/a/", "/b"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/a", "b"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["", "/b"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/a", "/b"]
+          },
+          {
+            "method": "request",
+            "args": ["/a", "", 0]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/b", "/c"]
+          },
+          {
+            "method": "request",
+            "args": ["/a/x", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/b/x", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/c/x", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/ab", "", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["/api", "api"]
+          },
+          {
+            "method": "requireAuth",
+            "args": ["/api"]
+          },
+          {
+            "method": "cache",
+            "args": ["/api", 100]
+          },
+          {
+            "method": "upstream",
+            "args": ["api", [200, 500]]
+          },
+          {
+            "method": "rewrite",
+            "args": ["/legacy", "/api"]
+          },
+          {
+            "method": "request",
+            "args": ["/legacy/q", "", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/legacy/q", "t", 0]
+          },
+          {
+            "method": "request",
+            "args": ["/api/q", "t", 1]
+          },
+          {
+            "method": "request",
+            "args": ["/api/q", "", 1]
+          },
+          {
+            "method": "request",
+            "args": ["/legacy/q", "t", 100]
+          }
+        ]
+      }
+    ]
+  }
+}

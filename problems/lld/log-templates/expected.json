@@ -1,0 +1,836 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": "user bo logged in"
+      },
+      {
+        "call": 6,
+        "value": "disk /var at 91%"
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": [1, 2, 4]
+      },
+      {
+        "call": 9,
+        "value": [3]
+      },
+      {
+        "call": 10,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": "started"
+      },
+      {
+        "call": 8,
+        "value": "ab"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 10,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": 5
+      },
+      {
+        "call": 6,
+        "value": 6
+      },
+      {
+        "call": 7,
+        "value": 3
+      },
+      {
+        "call": 8,
+        "value": [1, 3, 5]
+      },
+      {
+        "call": 9,
+        "value": [2, 6]
+      },
+      {
+        "call": 10,
+        "value": [4]
+      },
+      {
+        "call": 11,
+        "value": "av"
+      },
+      {
+        "call": 12,
+        "value": "bv"
+      },
+      {
+        "call": 13,
+        "value": "cv"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 4,
+        "value": "x"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 7,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": 5
+      },
+      {
+        "call": 6,
+        "value": 6
+      },
+      {
+        "call": 7,
+        "value": 7
+      },
+      {
+        "call": 8,
+        "value": "{x}"
+      },
+      {
+        "call": 9,
+        "value": "a}{"
+      },
+      {
+        "call": 10,
+        "value": "1{}3"
+      },
+      {
+        "call": 11,
+        "value": "{ }"
+      },
+      {
+        "call": 12,
+        "value": "}{"
+      },
+      {
+        "call": 13,
+        "value": "{}{}"
+      },
+      {
+        "call": 14,
+        "value": "{x}y"
+      },
+      {
+        "call": 15,
+        "value": 7
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": [2]
+      },
+      {
+        "call": 11,
+        "value": "a and b"
+      },
+      {
+        "call": 12,
+        "value": "plain"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an empty pattern or parameter"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an empty pattern or parameter"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an empty pattern or parameter"
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": " "
+      },
+      {
+        "call": 7,
+        "error": "ValueError: an empty pattern"
+      },
+      {
+        "call": 8,
+        "value": [1]
+      },
+      {
+        "call": 9,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": [1]
+      },
+      {
+        "call": 7,
+        "value": [2, 4]
+      },
+      {
+        "call": 8,
+        "value": [3]
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": "user a "
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "error": "ValueError: one parameter per {}"
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": [1]
+      },
+      {
+        "call": 9,
+        "value": [2]
+      },
+      {
+        "call": 10,
+        "value": "n=1"
+      },
+      {
+        "call": 11,
+        "value": "m=9"
+      },
+      {
+        "call": 12,
+        "error": "KeyError: 'unknown event'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": 5
+      },
+      {
+        "call": 6,
+        "value": 6
+      },
+      {
+        "call": 7,
+        "value": 7
+      },
+      {
+        "call": 8,
+        "value": 8
+      },
+      {
+        "call": 9,
+        "value": 9
+      },
+      {
+        "call": 10,
+        "value": 10
+      },
+      {
+        "call": 11,
+        "value": 11
+      },
+      {
+        "call": 12,
+        "value": 12
+      },
+      {
+        "call": 13,
+        "value": 3
+      },
+      {
+        "call": 14,
+        "value": [2, 5, 8, 11]
+      },
+      {
+        "call": 15,
+        "value": [3, 6, 9, 12]
+      },
+      {
+        "call": 16,
+        "value": "req /p0 took 0ms"
+      },
+      {
+        "call": 17,
+        "value": "cache k4"
+      },
+      {
+        "call": 18,
+        "value": "boot"
+      },
+      {
+        "call": 19,
+        "error": "KeyError: 'unknown event'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": "x 1 y 2 z"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": [1]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": "[WARN] db: slow query, 2s"
+      },
+      {
+        "call": 4,
+        "value": "~!@#$%^&*()"
+      },
+      {
+        "call": 5,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 2
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 8,
+        "value": "disk / at 5%"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 10,
+        "value": 4
+      },
+      {
+        "call": 11,
+        "value": "user c logged in"
+      },
+      {
+        "call": 12,
+        "value": [4]
+      },
+      {
+        "call": 13,
+        "value": 2
+      },
+      {
+        "call": 14,
+        "value": 1
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an empty pattern"
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": "x1"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": 2
+      },
+      {
+        "call": 12,
+        "value": [2]
+      },
+      {
+        "call": 13,
+        "value": "x2"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": 5
+      },
+      {
+        "call": 6,
+        "value": 6
+      },
+      {
+        "call": 7,
+        "value": 5
+      },
+      {
+        "call": 8,
+        "value": 7
+      },
+      {
+        "call": 9,
+        "value": [6, 7]
+      },
+      {
+        "call": 10,
+        "value": "f"
+      },
+      {
+        "call": 11,
+        "error": "KeyError: 'unknown event'"
+      },
+      {
+        "call": 12,
+        "value": 1
+      },
+      {
+        "call": 13,
+        "value": 2
+      },
+      {
+        "call": 14,
+        "value": 0
+      }
+    ]
+  }
+]
