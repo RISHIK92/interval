@@ -1,0 +1,1045 @@
+{
+  "slug": "cursor-pager",
+  "title": "Cursor pagination",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["iterator-pattern", "pagination"],
+  "interface": {
+    "class": "ResultPager",
+    "constructor": {
+      "params": [
+        {
+          "name": "items",
+          "type": "list<string>"
+        },
+        {
+          "name": "pageSize",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "hasNext",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "next",
+        "params": [],
+        "returns": "string"
+      },
+      {
+        "name": "page",
+        "params": [
+          {
+            "name": "cursor",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "nextCursor",
+        "params": [
+          {
+            "name": "cursor",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              [
+                "fig",
+                "apple",
+                "kiwi",
+                "date",
+                "banana",
+                "cherry",
+                "grape",
+                "elder"
+              ],
+              3
+            ]
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["cherry"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["cherry"]
+          },
+          {
+            "method": "page",
+            "args": ["fig"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["fig"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": ["apple"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": ["zebra"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["Apple"]
+          },
+          {
+            "method": "page",
+            "args": ["kiwi"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["kiwi"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["b", "a"], 5]
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": ["a"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["b"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["a", "a"], 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["a", ""], 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["a"], 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["a"], 1001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [[], 1000]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["a"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["b", "B", "a", "_", "1", "A", "aa", "a b", "~"], 4]
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["A"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["A"]
+          },
+          {
+            "method": "page",
+            "args": ["aa"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["aa"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["x", "y", "z"], 1]
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["x"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["x"]
+          },
+          {
+            "method": "page",
+            "args": ["y"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["y"]
+          },
+          {
+            "method": "page",
+            "args": ["z"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["p", "q", "r", "s"], 2]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["q"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["q"]
+          },
+          {
+            "method": "page",
+            "args": ["r"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["r"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["p", "q", "r", "s"], 4]
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["p"]
+          },
+          {
+            "method": "page",
+            "args": ["p"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["r"]
+          },
+          {
+            "method": "page",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["p", "q", "r", "s", "t"], 4]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["p"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["p"]
+          },
+          {
+            "method": "page",
+            "args": ["q"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["q"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["d", "c", "b", "a"], 2]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["b"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": ["a"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ab", "abc", "b"], 2]
+          },
+          {
+            "method": "page",
+            "args": ["a"]
+          },
+          {
+            "method": "page",
+            "args": ["AB"]
+          },
+          {
+            "method": "page",
+            "args": ["ab "]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["abcd"]
+          },
+          {
+            "method": "nextCursor",
+            "args": [" "]
+          },
+          {
+            "method": "page",
+            "args": ["ab"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["ab"]
+          },
+          {
+            "method": "page",
+            "args": ["abc"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["abc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              [
+                "i00",
+                "i01",
+                "i02",
+                "i03",
+                "i04",
+                "i05",
+                "i06",
+                "i07",
+                "i08",
+                "i09",
+                "i10",
+                "i11"
+              ],
+              5
+            ]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["i04"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["i04"]
+          },
+          {
+            "method": "page",
+            "args": ["i09"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["i09"]
+          },
+          {
+            "method": "page",
+            "args": ["i11"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["i11"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["m", "c", "x", "a"], 3]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": ["a"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["a"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["c"]
+          },
+          {
+            "method": "page",
+            "args": ["m"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "insertItem",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["b", "d", "f"], 2]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "insertItem",
+            "args": ["a"]
+          },
+          {
+            "method": "insertItem",
+            "args": ["c"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "insertItem",
+            "args": ["e"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "insertItem",
+            "args": ["g"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["b", "d", "f", "h"], 2]
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "insertItem",
+            "args": ["c"]
+          },
+          {
+            "method": "page",
+            "args": ["c"]
+          },
+          {
+            "method": "page",
+            "args": ["d"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["d"]
+          },
+          {
+            "method": "insertItem",
+            "args": ["a"]
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "insertItem",
+            "args": ["i"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["d"]
+          },
+          {
+            "method": "page",
+            "args": ["f"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["h"]
+          },
+          {
+            "method": "page",
+            "args": ["h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["x"], 3]
+          },
+          {
+            "method": "insertItem",
+            "args": ["x"]
+          },
+          {
+            "method": "insertItem",
+            "args": [""]
+          },
+          {
+            "method": "insertItem",
+            "args": ["X"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "insertItem",
+            "args": ["y"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "insertItem",
+            "args": ["w"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": ["x"]
+          },
+          {
+            "method": "page",
+            "args": ["w"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [[], 2]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "insertItem",
+            "args": ["m"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "insertItem",
+            "args": ["a"]
+          },
+          {
+            "method": "insertItem",
+            "args": ["z"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "page",
+            "args": [""]
+          },
+          {
+            "method": "nextCursor",
+            "args": [""]
+          },
+          {
+            "method": "page",
+            "args": ["a"]
+          },
+          {
+            "method": "nextCursor",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  }
+}

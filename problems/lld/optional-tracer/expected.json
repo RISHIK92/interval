@@ -1,0 +1,1000 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "checkout#1"
+      },
+      {
+        "call": 2,
+        "value": "checkout#2"
+      },
+      {
+        "call": 3,
+        "value": "search#3"
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["2 charge card", "1 load cart"]
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": []
+      },
+      {
+        "call": 14,
+        "value": 1
+      },
+      {
+        "call": 15,
+        "value": []
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": ["1 query"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 2,
+        "value": "a#1"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 11,
+        "value": "b#2"
+      },
+      {
+        "call": 12,
+        "value": "c#3"
+      },
+      {
+        "call": 13,
+        "value": "d#4"
+      },
+      {
+        "call": 14,
+        "value": 0
+      },
+      {
+        "call": 15,
+        "value": 1
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": ["1 y"]
+      },
+      {
+        "call": 18,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad sampling rate"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad sampling rate"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad sampling rate"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "t#1"
+      },
+      {
+        "call": 2,
+        "value": "t#2"
+      },
+      {
+        "call": 3,
+        "value": "t#3"
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["1 a"]
+      },
+      {
+        "call": 9,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a#1"
+      },
+      {
+        "call": 2,
+        "value": "b#2"
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["2 s", "1 s"]
+      },
+      {
+        "call": 10,
+        "value": ["1 s"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "t#1"
+      },
+      {
+        "call": 2,
+        "value": "t#2"
+      },
+      {
+        "call": 3,
+        "value": "t#3"
+      },
+      {
+        "call": 4,
+        "value": "t#4"
+      },
+      {
+        "call": 5,
+        "value": "t#5"
+      },
+      {
+        "call": 6,
+        "value": "t#6"
+      },
+      {
+        "call": 7,
+        "value": "t#7"
+      },
+      {
+        "call": 8,
+        "value": "t#8"
+      },
+      {
+        "call": 9,
+        "value": "t#9"
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": 1
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": 0
+      },
+      {
+        "call": 18,
+        "value": 1
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": true
+      },
+      {
+        "call": 23,
+        "value": true
+      },
+      {
+        "call": 24,
+        "value": true
+      },
+      {
+        "call": 25,
+        "value": true
+      },
+      {
+        "call": 26,
+        "value": true
+      },
+      {
+        "call": 27,
+        "value": true
+      },
+      {
+        "call": 28,
+        "value": ["1 s"]
+      },
+      {
+        "call": 29,
+        "value": []
+      },
+      {
+        "call": 30,
+        "value": []
+      },
+      {
+        "call": 31,
+        "value": []
+      },
+      {
+        "call": 32,
+        "value": ["1 s"]
+      },
+      {
+        "call": 33,
+        "value": []
+      },
+      {
+        "call": 34,
+        "value": []
+      },
+      {
+        "call": 35,
+        "value": []
+      },
+      {
+        "call": 36,
+        "value": ["1 s"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "req#1"
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": 4
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["3 c", "1 a"]
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": 5
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": ["3 c", "1 a", "4 d", "5 e"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "x#1"
+      },
+      {
+        "call": 2,
+        "value": "x#2"
+      },
+      {
+        "call": 3,
+        "value": "x#1#3"
+      },
+      {
+        "call": 4,
+        "value": "x#4"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["1 s"]
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": ["2 s"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a#1"
+      },
+      {
+        "call": 2,
+        "value": "b#2"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a#1"
+      },
+      {
+        "call": 2,
+        "value": "b#2"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 12,
+        "value": 1
+      },
+      {
+        "call": 13,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "p#1"
+      },
+      {
+        "call": 2,
+        "value": "q#2"
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": ["2 b"]
+      },
+      {
+        "call": 12,
+        "value": ["2 b", "1 a"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "GET /a b#1"
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["1  db: select * "]
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown trace"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a#1"
+      },
+      {
+        "call": 2,
+        "value": "b#2"
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": ["1 late"]
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": ["1 late"]
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": ["1 late", "2 more"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a#1"
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["1 s"]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown trace"
+      },
+      {
+        "call": 8,
+        "value": "b#2"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": ["1 s"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a#1"
+      },
+      {
+        "call": 2,
+        "value": "b#2"
+      },
+      {
+        "call": 3,
+        "value": "c#3"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 2
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": ["2 y", "1 x"]
+      },
+      {
+        "call": 13,
+        "value": "d#4"
+      },
+      {
+        "call": 14,
+        "value": "e#5"
+      },
+      {
+        "call": 15,
+        "value": []
+      },
+      {
+        "call": 16,
+        "value": 1
+      },
+      {
+        "call": 17,
+        "value": []
+      }
+    ]
+  }
+]

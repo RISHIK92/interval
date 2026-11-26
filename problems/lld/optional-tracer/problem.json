@@ -1,0 +1,1059 @@
+{
+  "slug": "optional-tracer",
+  "title": "Optional tracing",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["null-object-pattern", "distributed-tracing"],
+  "interface": {
+    "class": "Tracer",
+    "constructor": {
+      "params": [
+        {
+          "name": "sampleEvery",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "startTrace",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "span",
+        "params": [
+          {
+            "name": "trace",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "endSpan",
+        "params": [
+          {
+            "name": "trace",
+            "type": "string"
+          },
+          {
+            "name": "spanId",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "recorded",
+        "params": [
+          {
+            "name": "trace",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "startTrace",
+            "args": ["checkout"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["checkout"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["search"]
+          },
+          {
+            "method": "span",
+            "args": ["checkout#1", "load cart"]
+          },
+          {
+            "method": "span",
+            "args": ["checkout#1", "charge card"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["checkout#1", 2]
+          },
+          {
+            "method": "endSpan",
+            "args": ["checkout#1", 2]
+          },
+          {
+            "method": "endSpan",
+            "args": ["checkout#1", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["checkout#1"]
+          },
+          {
+            "method": "span",
+            "args": ["checkout#2", "load cart"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["checkout#2", 0]
+          },
+          {
+            "method": "endSpan",
+            "args": ["checkout#2", 7]
+          },
+          {
+            "method": "recorded",
+            "args": ["checkout#2"]
+          },
+          {
+            "method": "span",
+            "args": ["search#3", "query"]
+          },
+          {
+            "method": "recorded",
+            "args": ["search#3"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["search#3", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["search#3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "startTrace",
+            "args": [""]
+          },
+          {
+            "method": "startTrace",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["a#2", "x"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["a#2", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["a#2"]
+          },
+          {
+            "method": "span",
+            "args": ["a#1", ""]
+          },
+          {
+            "method": "span",
+            "args": ["a#1", "x"]
+          },
+          {
+            "method": "span",
+            "args": ["A#1", "x"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#1", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["a"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["b"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["c"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["d"]
+          },
+          {
+            "method": "span",
+            "args": ["c#3", "x"]
+          },
+          {
+            "method": "span",
+            "args": ["d#4", "y"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["d#4", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["d#4"]
+          },
+          {
+            "method": "span",
+            "args": ["c#3", ""]
+          },
+          {
+            "method": "endSpan",
+            "args": ["c#3", -5]
+          },
+          {
+            "method": "recorded",
+            "args": ["c#3"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "span",
+            "args": ["t#1", "a"]
+          },
+          {
+            "method": "span",
+            "args": ["t#2", "a"]
+          },
+          {
+            "method": "span",
+            "args": ["t#3", "a"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#1", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#1"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "startTrace",
+            "args": ["a"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["a#1", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["a#1", "s"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["a#1", 2]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["a#1", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["a#1"]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["t"]
+          },
+          {
+            "method": "span",
+            "args": ["t#1", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#2", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#3", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#4", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#5", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#6", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#7", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#8", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["t#9", "s"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#1", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#2", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#3", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#4", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#5", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#6", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#7", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#8", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["t#9", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#1"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#2"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#3"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#4"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#5"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#6"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#7"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#8"]
+          },
+          {
+            "method": "recorded",
+            "args": ["t#9"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "startTrace",
+            "args": ["req"]
+          },
+          {
+            "method": "span",
+            "args": ["req#1", "a"]
+          },
+          {
+            "method": "span",
+            "args": ["req#1", "b"]
+          },
+          {
+            "method": "span",
+            "args": ["req#1", "c"]
+          },
+          {
+            "method": "span",
+            "args": ["req#1", "d"]
+          },
+          {
+            "method": "recorded",
+            "args": ["req#1"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["req#1", 3]
+          },
+          {
+            "method": "endSpan",
+            "args": ["req#1", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["req#1"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["req#1", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["req#1", 0]
+          },
+          {
+            "method": "endSpan",
+            "args": ["req#1", 5]
+          },
+          {
+            "method": "endSpan",
+            "args": ["req#1", 4]
+          },
+          {
+            "method": "span",
+            "args": ["req#1", "e"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["req#1", 5]
+          },
+          {
+            "method": "recorded",
+            "args": ["req#1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "startTrace",
+            "args": ["x"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["x"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["x#1"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["x"]
+          },
+          {
+            "method": "span",
+            "args": ["x#1", "s"]
+          },
+          {
+            "method": "span",
+            "args": ["x#1#3", "s"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["x#1#3", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["x#1#3"]
+          },
+          {
+            "method": "recorded",
+            "args": ["x#4"]
+          },
+          {
+            "method": "span",
+            "args": ["x#4", "s"]
+          },
+          {
+            "method": "recorded",
+            "args": ["x#1"]
+          },
+          {
+            "method": "span",
+            "args": ["x#1", "s"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["x#1", 2]
+          },
+          {
+            "method": "recorded",
+            "args": ["x#1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "startTrace",
+            "args": ["a"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["b"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 0]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", -1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 1000000]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "q"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "q"]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["a#1", 0]
+          },
+          {
+            "method": "endSpan",
+            "args": ["a#1", -1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "startTrace",
+            "args": ["a"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", ""]
+          },
+          {
+            "method": "span",
+            "args": ["b#3", "x"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#3", 0]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#3"]
+          },
+          {
+            "method": "recorded",
+            "args": [""]
+          },
+          {
+            "method": "span",
+            "args": ["", "x"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["", 0]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          },
+          {
+            "method": "span",
+            "args": ["a#1", ""]
+          },
+          {
+            "method": "span",
+            "args": ["a#1", "ok"]
+          },
+          {
+            "method": "recorded",
+            "args": ["a#1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "startTrace",
+            "args": ["p"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["q"]
+          },
+          {
+            "method": "span",
+            "args": ["p#1", "a"]
+          },
+          {
+            "method": "span",
+            "args": ["q#2", "a"]
+          },
+          {
+            "method": "span",
+            "args": ["p#1", "b"]
+          },
+          {
+            "method": "span",
+            "args": ["q#2", "b"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["q#2", 2]
+          },
+          {
+            "method": "endSpan",
+            "args": ["p#1", 2]
+          },
+          {
+            "method": "endSpan",
+            "args": ["p#1", 2]
+          },
+          {
+            "method": "endSpan",
+            "args": ["q#2", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["p#1"]
+          },
+          {
+            "method": "recorded",
+            "args": ["q#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "startTrace",
+            "args": ["GET /a b"]
+          },
+          {
+            "method": "span",
+            "args": ["GET /a b#1", " db: select * "]
+          },
+          {
+            "method": "endSpan",
+            "args": ["GET /a b#1", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["GET /a b#1"]
+          },
+          {
+            "method": "recorded",
+            "args": ["GET /a b#2"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "forceSample",
+        "params": [
+          {
+            "name": "trace",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "startTrace",
+            "args": ["a"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["b"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "early"]
+          },
+          {
+            "method": "forceSample",
+            "args": ["b#2"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "late"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 0]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 1]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          },
+          {
+            "method": "forceSample",
+            "args": ["b#2"]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "more"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 2]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "startTrace",
+            "args": ["a"]
+          },
+          {
+            "method": "span",
+            "args": ["a#1", "s"]
+          },
+          {
+            "method": "forceSample",
+            "args": ["a#1"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["a#1", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["a#1"]
+          },
+          {
+            "method": "forceSample",
+            "args": ["zz"]
+          },
+          {
+            "method": "forceSample",
+            "args": [""]
+          },
+          {
+            "method": "startTrace",
+            "args": ["b"]
+          },
+          {
+            "method": "forceSample",
+            "args": ["b#2"]
+          },
+          {
+            "method": "forceSample",
+            "args": ["b#2"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "s"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "startTrace",
+            "args": ["a"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["b"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["c"]
+          },
+          {
+            "method": "forceSample",
+            "args": ["c#3"]
+          },
+          {
+            "method": "span",
+            "args": ["c#3", "x"]
+          },
+          {
+            "method": "span",
+            "args": ["b#2", "x"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["b#2", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["b#2"]
+          },
+          {
+            "method": "span",
+            "args": ["c#3", "y"]
+          },
+          {
+            "method": "endSpan",
+            "args": ["c#3", 2]
+          },
+          {
+            "method": "endSpan",
+            "args": ["c#3", 1]
+          },
+          {
+            "method": "recorded",
+            "args": ["c#3"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["d"]
+          },
+          {
+            "method": "startTrace",
+            "args": ["e"]
+          },
+          {
+            "method": "recorded",
+            "args": ["e#5"]
+          },
+          {
+            "method": "span",
+            "args": ["d#4", "z"]
+          },
+          {
+            "method": "recorded",
+            "args": ["d#4"]
+          }
+        ]
+      }
+    ]
+  }
+}

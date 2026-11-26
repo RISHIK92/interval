@@ -1,0 +1,584 @@
+{
+  "slug": "ci-job-template",
+  "title": "CI job template",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["template-method-pattern"],
+  "interface": {
+    "class": "JobRunner",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "steps",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "skip",
+        "params": [
+          {
+            "name": "step",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "runJob",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "name": "failAt",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "steps",
+            "args": ["node"]
+          },
+          {
+            "method": "steps",
+            "args": ["python"]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", ""]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "install"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "setup"]
+          },
+          {
+            "method": "skip",
+            "args": ["setup"]
+          },
+          {
+            "method": "steps",
+            "args": ["node"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "checkout"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "steps",
+            "args": ["rust"]
+          },
+          {
+            "method": "steps",
+            "args": [""]
+          },
+          {
+            "method": "steps",
+            "args": ["Node"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "deploy"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "Test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["java", ""]
+          },
+          {
+            "method": "skip",
+            "args": ["test"]
+          },
+          {
+            "method": "skip",
+            "args": ["checkout"]
+          },
+          {
+            "method": "skip",
+            "args": ["report"]
+          },
+          {
+            "method": "skip",
+            "args": ["lint"]
+          },
+          {
+            "method": "skip",
+            "args": [""]
+          },
+          {
+            "method": "skip",
+            "args": ["install"]
+          },
+          {
+            "method": "skip",
+            "args": ["install"]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "install"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "report"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "runJob",
+            "args": ["node", ""]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "checkout"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "setup"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "install"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "report"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "runJob",
+            "args": ["python", ""]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "checkout"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "setup"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "install"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "report"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "runJob",
+            "args": ["go", ""]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "checkout"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "setup"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "install"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "report"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "skip",
+            "args": ["install"]
+          },
+          {
+            "method": "steps",
+            "args": ["node"]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          },
+          {
+            "method": "skip",
+            "args": ["setup"]
+          },
+          {
+            "method": "steps",
+            "args": ["node"]
+          },
+          {
+            "method": "steps",
+            "args": ["python"]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "setup"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "install"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "checkout"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "skip",
+            "args": ["Setup"]
+          },
+          {
+            "method": "skip",
+            "args": ["setup "]
+          },
+          {
+            "method": "skip",
+            "args": ["SETUP"]
+          },
+          {
+            "method": "steps",
+            "args": ["python"]
+          },
+          {
+            "method": "skip",
+            "args": ["checkout"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "setup"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "Report"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", " test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "lint"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "setup"]
+          },
+          {
+            "method": "runJob",
+            "args": ["Go", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", ""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "skip",
+            "args": ["setup"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "checkout"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "install"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "setup"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "report"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "report"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "steps",
+            "args": ["golang"]
+          },
+          {
+            "method": "steps",
+            "args": ["py"]
+          },
+          {
+            "method": "steps",
+            "args": ["node "]
+          },
+          {
+            "method": "runJob",
+            "args": ["python3", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": [" go", ""]
+          },
+          {
+            "method": "steps",
+            "args": ["python"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "beforeEach",
+        "params": [
+          {
+            "name": "command",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "beforeEach",
+            "args": ["echo start"]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          },
+          {
+            "method": "runJob",
+            "args": ["node", "install"]
+          },
+          {
+            "method": "beforeEach",
+            "args": ["date"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "checkout"]
+          },
+          {
+            "method": "beforeEach",
+            "args": [""]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "skip",
+            "args": ["setup"]
+          },
+          {
+            "method": "skip",
+            "args": ["install"]
+          },
+          {
+            "method": "beforeEach",
+            "args": ["df -h"]
+          },
+          {
+            "method": "steps",
+            "args": ["python"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["python", "report"]
+          },
+          {
+            "method": "beforeEach",
+            "args": ["df -h"]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "steps",
+            "args": ["node"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "test"]
+          },
+          {
+            "method": "beforeEach",
+            "args": ["x"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "test"]
+          },
+          {
+            "method": "runJob",
+            "args": ["go", "setup"]
+          },
+          {
+            "method": "beforeEach",
+            "args": [" y "]
+          },
+          {
+            "method": "steps",
+            "args": ["go"]
+          }
+        ]
+      }
+    ]
+  }
+}

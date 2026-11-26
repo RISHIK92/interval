@@ -1,0 +1,5167 @@
+{
+  "slug": "circuit-breaker",
+  "title": "Circuit breaker",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["state-pattern", "circuit-breakers", "finite-state-machines"],
+  "interface": {
+    "class": "CircuitBreaker",
+    "constructor": {
+      "params": [
+        {
+          "name": "threshold",
+          "type": "int"
+        },
+        {
+          "name": "coolDownMs",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "allow",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "success",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "failure",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "state",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, 1000]
+          },
+          {
+            "method": "state",
+            "args": [0]
+          },
+          {
+            "method": "allow",
+            "args": [10]
+          },
+          {
+            "method": "failure",
+            "args": [10]
+          },
+          {
+            "method": "allow",
+            "args": [20]
+          },
+          {
+            "method": "failure",
+            "args": [20]
+          },
+          {
+            "method": "allow",
+            "args": [30]
+          },
+          {
+            "method": "success",
+            "args": [30]
+          },
+          {
+            "method": "allow",
+            "args": [40]
+          },
+          {
+            "method": "failure",
+            "args": [40]
+          },
+          {
+            "method": "failure",
+            "args": [50]
+          },
+          {
+            "method": "state",
+            "args": [60]
+          },
+          {
+            "method": "failure",
+            "args": [70]
+          },
+          {
+            "method": "state",
+            "args": [70]
+          },
+          {
+            "method": "allow",
+            "args": [80]
+          },
+          {
+            "method": "allow",
+            "args": [1069]
+          },
+          {
+            "method": "state",
+            "args": [1069]
+          },
+          {
+            "method": "state",
+            "args": [1070]
+          },
+          {
+            "method": "allow",
+            "args": [1070]
+          },
+          {
+            "method": "allow",
+            "args": [1071]
+          },
+          {
+            "method": "state",
+            "args": [1072]
+          },
+          {
+            "method": "failure",
+            "args": [1100]
+          },
+          {
+            "method": "state",
+            "args": [1100]
+          },
+          {
+            "method": "allow",
+            "args": [2099]
+          },
+          {
+            "method": "allow",
+            "args": [2100]
+          },
+          {
+            "method": "success",
+            "args": [2150]
+          },
+          {
+            "method": "state",
+            "args": [2150]
+          },
+          {
+            "method": "allow",
+            "args": [2160]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 50]
+          },
+          {
+            "method": "failure",
+            "args": [5]
+          },
+          {
+            "method": "state",
+            "args": [5]
+          },
+          {
+            "method": "failure",
+            "args": [10]
+          },
+          {
+            "method": "success",
+            "args": [20]
+          },
+          {
+            "method": "allow",
+            "args": [54]
+          },
+          {
+            "method": "allow",
+            "args": [55]
+          },
+          {
+            "method": "success",
+            "args": [55]
+          },
+          {
+            "method": "failure",
+            "args": [55]
+          },
+          {
+            "method": "state",
+            "args": [55]
+          },
+          {
+            "method": "allow",
+            "args": [60]
+          },
+          {
+            "method": "failure",
+            "args": [60]
+          },
+          {
+            "method": "state",
+            "args": [60]
+          },
+          {
+            "method": "allow",
+            "args": [3]
+          },
+          {
+            "method": "state",
+            "args": [59]
+          },
+          {
+            "method": "failure",
+            "args": [2]
+          },
+          {
+            "method": "state",
+            "args": [80]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0, 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1001, 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, 1000000001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 1]
+          },
+          {
+            "method": "failure",
+            "args": [0]
+          },
+          {
+            "method": "state",
+            "args": [0]
+          },
+          {
+            "method": "allow",
+            "args": [0]
+          },
+          {
+            "method": "state",
+            "args": [1]
+          },
+          {
+            "method": "allow",
+            "args": [1]
+          },
+          {
+            "method": "failure",
+            "args": [1]
+          },
+          {
+            "method": "state",
+            "args": [1]
+          },
+          {
+            "method": "state",
+            "args": [2]
+          },
+          {
+            "method": "allow",
+            "args": [2]
+          },
+          {
+            "method": "success",
+            "args": [2]
+          },
+          {
+            "method": "state",
+            "args": [2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000, 1000000000]
+          },
+          {
+            "method": "failure",
+            "args": [0]
+          },
+          {
+            "method": "failure",
+            "args": [1]
+          },
+          {
+            "method": "failure",
+            "args": [2]
+          },
+          {
+            "method": "failure",
+            "args": [3]
+          },
+          {
+            "method": "failure",
+            "args": [4]
+          },
+          {
+            "method": "failure",
+            "args": [5]
+          },
+          {
+            "method": "failure",
+            "args": [6]
+          },
+          {
+            "method": "failure",
+            "args": [7]
+          },
+          {
+            "method": "failure",
+            "args": [8]
+          },
+          {
+            "method": "failure",
+            "args": [9]
+          },
+          {
+            "method": "failure",
+            "args": [10]
+          },
+          {
+            "method": "failure",
+            "args": [11]
+          },
+          {
+            "method": "failure",
+            "args": [12]
+          },
+          {
+            "method": "failure",
+            "args": [13]
+          },
+          {
+            "method": "failure",
+            "args": [14]
+          },
+          {
+            "method": "failure",
+            "args": [15]
+          },
+          {
+            "method": "failure",
+            "args": [16]
+          },
+          {
+            "method": "failure",
+            "args": [17]
+          },
+          {
+            "method": "failure",
+            "args": [18]
+          },
+          {
+            "method": "failure",
+            "args": [19]
+          },
+          {
+            "method": "failure",
+            "args": [20]
+          },
+          {
+            "method": "failure",
+            "args": [21]
+          },
+          {
+            "method": "failure",
+            "args": [22]
+          },
+          {
+            "method": "failure",
+            "args": [23]
+          },
+          {
+            "method": "failure",
+            "args": [24]
+          },
+          {
+            "method": "failure",
+            "args": [25]
+          },
+          {
+            "method": "failure",
+            "args": [26]
+          },
+          {
+            "method": "failure",
+            "args": [27]
+          },
+          {
+            "method": "failure",
+            "args": [28]
+          },
+          {
+            "method": "failure",
+            "args": [29]
+          },
+          {
+            "method": "failure",
+            "args": [30]
+          },
+          {
+            "method": "failure",
+            "args": [31]
+          },
+          {
+            "method": "failure",
+            "args": [32]
+          },
+          {
+            "method": "failure",
+            "args": [33]
+          },
+          {
+            "method": "failure",
+            "args": [34]
+          },
+          {
+            "method": "failure",
+            "args": [35]
+          },
+          {
+            "method": "failure",
+            "args": [36]
+          },
+          {
+            "method": "failure",
+            "args": [37]
+          },
+          {
+            "method": "failure",
+            "args": [38]
+          },
+          {
+            "method": "failure",
+            "args": [39]
+          },
+          {
+            "method": "failure",
+            "args": [40]
+          },
+          {
+            "method": "failure",
+            "args": [41]
+          },
+          {
+            "method": "failure",
+            "args": [42]
+          },
+          {
+            "method": "failure",
+            "args": [43]
+          },
+          {
+            "method": "failure",
+            "args": [44]
+          },
+          {
+            "method": "failure",
+            "args": [45]
+          },
+          {
+            "method": "failure",
+            "args": [46]
+          },
+          {
+            "method": "failure",
+            "args": [47]
+          },
+          {
+            "method": "failure",
+            "args": [48]
+          },
+          {
+            "method": "failure",
+            "args": [49]
+          },
+          {
+            "method": "failure",
+            "args": [50]
+          },
+          {
+            "method": "failure",
+            "args": [51]
+          },
+          {
+            "method": "failure",
+            "args": [52]
+          },
+          {
+            "method": "failure",
+            "args": [53]
+          },
+          {
+            "method": "failure",
+            "args": [54]
+          },
+          {
+            "method": "failure",
+            "args": [55]
+          },
+          {
+            "method": "failure",
+            "args": [56]
+          },
+          {
+            "method": "failure",
+            "args": [57]
+          },
+          {
+            "method": "failure",
+            "args": [58]
+          },
+          {
+            "method": "failure",
+            "args": [59]
+          },
+          {
+            "method": "failure",
+            "args": [60]
+          },
+          {
+            "method": "failure",
+            "args": [61]
+          },
+          {
+            "method": "failure",
+            "args": [62]
+          },
+          {
+            "method": "failure",
+            "args": [63]
+          },
+          {
+            "method": "failure",
+            "args": [64]
+          },
+          {
+            "method": "failure",
+            "args": [65]
+          },
+          {
+            "method": "failure",
+            "args": [66]
+          },
+          {
+            "method": "failure",
+            "args": [67]
+          },
+          {
+            "method": "failure",
+            "args": [68]
+          },
+          {
+            "method": "failure",
+            "args": [69]
+          },
+          {
+            "method": "failure",
+            "args": [70]
+          },
+          {
+            "method": "failure",
+            "args": [71]
+          },
+          {
+            "method": "failure",
+            "args": [72]
+          },
+          {
+            "method": "failure",
+            "args": [73]
+          },
+          {
+            "method": "failure",
+            "args": [74]
+          },
+          {
+            "method": "failure",
+            "args": [75]
+          },
+          {
+            "method": "failure",
+            "args": [76]
+          },
+          {
+            "method": "failure",
+            "args": [77]
+          },
+          {
+            "method": "failure",
+            "args": [78]
+          },
+          {
+            "method": "failure",
+            "args": [79]
+          },
+          {
+            "method": "failure",
+            "args": [80]
+          },
+          {
+            "method": "failure",
+            "args": [81]
+          },
+          {
+            "method": "failure",
+            "args": [82]
+          },
+          {
+            "method": "failure",
+            "args": [83]
+          },
+          {
+            "method": "failure",
+            "args": [84]
+          },
+          {
+            "method": "failure",
+            "args": [85]
+          },
+          {
+            "method": "failure",
+            "args": [86]
+          },
+          {
+            "method": "failure",
+            "args": [87]
+          },
+          {
+            "method": "failure",
+            "args": [88]
+          },
+          {
+            "method": "failure",
+            "args": [89]
+          },
+          {
+            "method": "failure",
+            "args": [90]
+          },
+          {
+            "method": "failure",
+            "args": [91]
+          },
+          {
+            "method": "failure",
+            "args": [92]
+          },
+          {
+            "method": "failure",
+            "args": [93]
+          },
+          {
+            "method": "failure",
+            "args": [94]
+          },
+          {
+            "method": "failure",
+            "args": [95]
+          },
+          {
+            "method": "failure",
+            "args": [96]
+          },
+          {
+            "method": "failure",
+            "args": [97]
+          },
+          {
+            "method": "failure",
+            "args": [98]
+          },
+          {
+            "method": "failure",
+            "args": [99]
+          },
+          {
+            "method": "failure",
+            "args": [100]
+          },
+          {
+            "method": "failure",
+            "args": [101]
+          },
+          {
+            "method": "failure",
+            "args": [102]
+          },
+          {
+            "method": "failure",
+            "args": [103]
+          },
+          {
+            "method": "failure",
+            "args": [104]
+          },
+          {
+            "method": "failure",
+            "args": [105]
+          },
+          {
+            "method": "failure",
+            "args": [106]
+          },
+          {
+            "method": "failure",
+            "args": [107]
+          },
+          {
+            "method": "failure",
+            "args": [108]
+          },
+          {
+            "method": "failure",
+            "args": [109]
+          },
+          {
+            "method": "failure",
+            "args": [110]
+          },
+          {
+            "method": "failure",
+            "args": [111]
+          },
+          {
+            "method": "failure",
+            "args": [112]
+          },
+          {
+            "method": "failure",
+            "args": [113]
+          },
+          {
+            "method": "failure",
+            "args": [114]
+          },
+          {
+            "method": "failure",
+            "args": [115]
+          },
+          {
+            "method": "failure",
+            "args": [116]
+          },
+          {
+            "method": "failure",
+            "args": [117]
+          },
+          {
+            "method": "failure",
+            "args": [118]
+          },
+          {
+            "method": "failure",
+            "args": [119]
+          },
+          {
+            "method": "failure",
+            "args": [120]
+          },
+          {
+            "method": "failure",
+            "args": [121]
+          },
+          {
+            "method": "failure",
+            "args": [122]
+          },
+          {
+            "method": "failure",
+            "args": [123]
+          },
+          {
+            "method": "failure",
+            "args": [124]
+          },
+          {
+            "method": "failure",
+            "args": [125]
+          },
+          {
+            "method": "failure",
+            "args": [126]
+          },
+          {
+            "method": "failure",
+            "args": [127]
+          },
+          {
+            "method": "failure",
+            "args": [128]
+          },
+          {
+            "method": "failure",
+            "args": [129]
+          },
+          {
+            "method": "failure",
+            "args": [130]
+          },
+          {
+            "method": "failure",
+            "args": [131]
+          },
+          {
+            "method": "failure",
+            "args": [132]
+          },
+          {
+            "method": "failure",
+            "args": [133]
+          },
+          {
+            "method": "failure",
+            "args": [134]
+          },
+          {
+            "method": "failure",
+            "args": [135]
+          },
+          {
+            "method": "failure",
+            "args": [136]
+          },
+          {
+            "method": "failure",
+            "args": [137]
+          },
+          {
+            "method": "failure",
+            "args": [138]
+          },
+          {
+            "method": "failure",
+            "args": [139]
+          },
+          {
+            "method": "failure",
+            "args": [140]
+          },
+          {
+            "method": "failure",
+            "args": [141]
+          },
+          {
+            "method": "failure",
+            "args": [142]
+          },
+          {
+            "method": "failure",
+            "args": [143]
+          },
+          {
+            "method": "failure",
+            "args": [144]
+          },
+          {
+            "method": "failure",
+            "args": [145]
+          },
+          {
+            "method": "failure",
+            "args": [146]
+          },
+          {
+            "method": "failure",
+            "args": [147]
+          },
+          {
+            "method": "failure",
+            "args": [148]
+          },
+          {
+            "method": "failure",
+            "args": [149]
+          },
+          {
+            "method": "failure",
+            "args": [150]
+          },
+          {
+            "method": "failure",
+            "args": [151]
+          },
+          {
+            "method": "failure",
+            "args": [152]
+          },
+          {
+            "method": "failure",
+            "args": [153]
+          },
+          {
+            "method": "failure",
+            "args": [154]
+          },
+          {
+            "method": "failure",
+            "args": [155]
+          },
+          {
+            "method": "failure",
+            "args": [156]
+          },
+          {
+            "method": "failure",
+            "args": [157]
+          },
+          {
+            "method": "failure",
+            "args": [158]
+          },
+          {
+            "method": "failure",
+            "args": [159]
+          },
+          {
+            "method": "failure",
+            "args": [160]
+          },
+          {
+            "method": "failure",
+            "args": [161]
+          },
+          {
+            "method": "failure",
+            "args": [162]
+          },
+          {
+            "method": "failure",
+            "args": [163]
+          },
+          {
+            "method": "failure",
+            "args": [164]
+          },
+          {
+            "method": "failure",
+            "args": [165]
+          },
+          {
+            "method": "failure",
+            "args": [166]
+          },
+          {
+            "method": "failure",
+            "args": [167]
+          },
+          {
+            "method": "failure",
+            "args": [168]
+          },
+          {
+            "method": "failure",
+            "args": [169]
+          },
+          {
+            "method": "failure",
+            "args": [170]
+          },
+          {
+            "method": "failure",
+            "args": [171]
+          },
+          {
+            "method": "failure",
+            "args": [172]
+          },
+          {
+            "method": "failure",
+            "args": [173]
+          },
+          {
+            "method": "failure",
+            "args": [174]
+          },
+          {
+            "method": "failure",
+            "args": [175]
+          },
+          {
+            "method": "failure",
+            "args": [176]
+          },
+          {
+            "method": "failure",
+            "args": [177]
+          },
+          {
+            "method": "failure",
+            "args": [178]
+          },
+          {
+            "method": "failure",
+            "args": [179]
+          },
+          {
+            "method": "failure",
+            "args": [180]
+          },
+          {
+            "method": "failure",
+            "args": [181]
+          },
+          {
+            "method": "failure",
+            "args": [182]
+          },
+          {
+            "method": "failure",
+            "args": [183]
+          },
+          {
+            "method": "failure",
+            "args": [184]
+          },
+          {
+            "method": "failure",
+            "args": [185]
+          },
+          {
+            "method": "failure",
+            "args": [186]
+          },
+          {
+            "method": "failure",
+            "args": [187]
+          },
+          {
+            "method": "failure",
+            "args": [188]
+          },
+          {
+            "method": "failure",
+            "args": [189]
+          },
+          {
+            "method": "failure",
+            "args": [190]
+          },
+          {
+            "method": "failure",
+            "args": [191]
+          },
+          {
+            "method": "failure",
+            "args": [192]
+          },
+          {
+            "method": "failure",
+            "args": [193]
+          },
+          {
+            "method": "failure",
+            "args": [194]
+          },
+          {
+            "method": "failure",
+            "args": [195]
+          },
+          {
+            "method": "failure",
+            "args": [196]
+          },
+          {
+            "method": "failure",
+            "args": [197]
+          },
+          {
+            "method": "failure",
+            "args": [198]
+          },
+          {
+            "method": "failure",
+            "args": [199]
+          },
+          {
+            "method": "failure",
+            "args": [200]
+          },
+          {
+            "method": "failure",
+            "args": [201]
+          },
+          {
+            "method": "failure",
+            "args": [202]
+          },
+          {
+            "method": "failure",
+            "args": [203]
+          },
+          {
+            "method": "failure",
+            "args": [204]
+          },
+          {
+            "method": "failure",
+            "args": [205]
+          },
+          {
+            "method": "failure",
+            "args": [206]
+          },
+          {
+            "method": "failure",
+            "args": [207]
+          },
+          {
+            "method": "failure",
+            "args": [208]
+          },
+          {
+            "method": "failure",
+            "args": [209]
+          },
+          {
+            "method": "failure",
+            "args": [210]
+          },
+          {
+            "method": "failure",
+            "args": [211]
+          },
+          {
+            "method": "failure",
+            "args": [212]
+          },
+          {
+            "method": "failure",
+            "args": [213]
+          },
+          {
+            "method": "failure",
+            "args": [214]
+          },
+          {
+            "method": "failure",
+            "args": [215]
+          },
+          {
+            "method": "failure",
+            "args": [216]
+          },
+          {
+            "method": "failure",
+            "args": [217]
+          },
+          {
+            "method": "failure",
+            "args": [218]
+          },
+          {
+            "method": "failure",
+            "args": [219]
+          },
+          {
+            "method": "failure",
+            "args": [220]
+          },
+          {
+            "method": "failure",
+            "args": [221]
+          },
+          {
+            "method": "failure",
+            "args": [222]
+          },
+          {
+            "method": "failure",
+            "args": [223]
+          },
+          {
+            "method": "failure",
+            "args": [224]
+          },
+          {
+            "method": "failure",
+            "args": [225]
+          },
+          {
+            "method": "failure",
+            "args": [226]
+          },
+          {
+            "method": "failure",
+            "args": [227]
+          },
+          {
+            "method": "failure",
+            "args": [228]
+          },
+          {
+            "method": "failure",
+            "args": [229]
+          },
+          {
+            "method": "failure",
+            "args": [230]
+          },
+          {
+            "method": "failure",
+            "args": [231]
+          },
+          {
+            "method": "failure",
+            "args": [232]
+          },
+          {
+            "method": "failure",
+            "args": [233]
+          },
+          {
+            "method": "failure",
+            "args": [234]
+          },
+          {
+            "method": "failure",
+            "args": [235]
+          },
+          {
+            "method": "failure",
+            "args": [236]
+          },
+          {
+            "method": "failure",
+            "args": [237]
+          },
+          {
+            "method": "failure",
+            "args": [238]
+          },
+          {
+            "method": "failure",
+            "args": [239]
+          },
+          {
+            "method": "failure",
+            "args": [240]
+          },
+          {
+            "method": "failure",
+            "args": [241]
+          },
+          {
+            "method": "failure",
+            "args": [242]
+          },
+          {
+            "method": "failure",
+            "args": [243]
+          },
+          {
+            "method": "failure",
+            "args": [244]
+          },
+          {
+            "method": "failure",
+            "args": [245]
+          },
+          {
+            "method": "failure",
+            "args": [246]
+          },
+          {
+            "method": "failure",
+            "args": [247]
+          },
+          {
+            "method": "failure",
+            "args": [248]
+          },
+          {
+            "method": "failure",
+            "args": [249]
+          },
+          {
+            "method": "failure",
+            "args": [250]
+          },
+          {
+            "method": "failure",
+            "args": [251]
+          },
+          {
+            "method": "failure",
+            "args": [252]
+          },
+          {
+            "method": "failure",
+            "args": [253]
+          },
+          {
+            "method": "failure",
+            "args": [254]
+          },
+          {
+            "method": "failure",
+            "args": [255]
+          },
+          {
+            "method": "failure",
+            "args": [256]
+          },
+          {
+            "method": "failure",
+            "args": [257]
+          },
+          {
+            "method": "failure",
+            "args": [258]
+          },
+          {
+            "method": "failure",
+            "args": [259]
+          },
+          {
+            "method": "failure",
+            "args": [260]
+          },
+          {
+            "method": "failure",
+            "args": [261]
+          },
+          {
+            "method": "failure",
+            "args": [262]
+          },
+          {
+            "method": "failure",
+            "args": [263]
+          },
+          {
+            "method": "failure",
+            "args": [264]
+          },
+          {
+            "method": "failure",
+            "args": [265]
+          },
+          {
+            "method": "failure",
+            "args": [266]
+          },
+          {
+            "method": "failure",
+            "args": [267]
+          },
+          {
+            "method": "failure",
+            "args": [268]
+          },
+          {
+            "method": "failure",
+            "args": [269]
+          },
+          {
+            "method": "failure",
+            "args": [270]
+          },
+          {
+            "method": "failure",
+            "args": [271]
+          },
+          {
+            "method": "failure",
+            "args": [272]
+          },
+          {
+            "method": "failure",
+            "args": [273]
+          },
+          {
+            "method": "failure",
+            "args": [274]
+          },
+          {
+            "method": "failure",
+            "args": [275]
+          },
+          {
+            "method": "failure",
+            "args": [276]
+          },
+          {
+            "method": "failure",
+            "args": [277]
+          },
+          {
+            "method": "failure",
+            "args": [278]
+          },
+          {
+            "method": "failure",
+            "args": [279]
+          },
+          {
+            "method": "failure",
+            "args": [280]
+          },
+          {
+            "method": "failure",
+            "args": [281]
+          },
+          {
+            "method": "failure",
+            "args": [282]
+          },
+          {
+            "method": "failure",
+            "args": [283]
+          },
+          {
+            "method": "failure",
+            "args": [284]
+          },
+          {
+            "method": "failure",
+            "args": [285]
+          },
+          {
+            "method": "failure",
+            "args": [286]
+          },
+          {
+            "method": "failure",
+            "args": [287]
+          },
+          {
+            "method": "failure",
+            "args": [288]
+          },
+          {
+            "method": "failure",
+            "args": [289]
+          },
+          {
+            "method": "failure",
+            "args": [290]
+          },
+          {
+            "method": "failure",
+            "args": [291]
+          },
+          {
+            "method": "failure",
+            "args": [292]
+          },
+          {
+            "method": "failure",
+            "args": [293]
+          },
+          {
+            "method": "failure",
+            "args": [294]
+          },
+          {
+            "method": "failure",
+            "args": [295]
+          },
+          {
+            "method": "failure",
+            "args": [296]
+          },
+          {
+            "method": "failure",
+            "args": [297]
+          },
+          {
+            "method": "failure",
+            "args": [298]
+          },
+          {
+            "method": "failure",
+            "args": [299]
+          },
+          {
+            "method": "failure",
+            "args": [300]
+          },
+          {
+            "method": "failure",
+            "args": [301]
+          },
+          {
+            "method": "failure",
+            "args": [302]
+          },
+          {
+            "method": "failure",
+            "args": [303]
+          },
+          {
+            "method": "failure",
+            "args": [304]
+          },
+          {
+            "method": "failure",
+            "args": [305]
+          },
+          {
+            "method": "failure",
+            "args": [306]
+          },
+          {
+            "method": "failure",
+            "args": [307]
+          },
+          {
+            "method": "failure",
+            "args": [308]
+          },
+          {
+            "method": "failure",
+            "args": [309]
+          },
+          {
+            "method": "failure",
+            "args": [310]
+          },
+          {
+            "method": "failure",
+            "args": [311]
+          },
+          {
+            "method": "failure",
+            "args": [312]
+          },
+          {
+            "method": "failure",
+            "args": [313]
+          },
+          {
+            "method": "failure",
+            "args": [314]
+          },
+          {
+            "method": "failure",
+            "args": [315]
+          },
+          {
+            "method": "failure",
+            "args": [316]
+          },
+          {
+            "method": "failure",
+            "args": [317]
+          },
+          {
+            "method": "failure",
+            "args": [318]
+          },
+          {
+            "method": "failure",
+            "args": [319]
+          },
+          {
+            "method": "failure",
+            "args": [320]
+          },
+          {
+            "method": "failure",
+            "args": [321]
+          },
+          {
+            "method": "failure",
+            "args": [322]
+          },
+          {
+            "method": "failure",
+            "args": [323]
+          },
+          {
+            "method": "failure",
+            "args": [324]
+          },
+          {
+            "method": "failure",
+            "args": [325]
+          },
+          {
+            "method": "failure",
+            "args": [326]
+          },
+          {
+            "method": "failure",
+            "args": [327]
+          },
+          {
+            "method": "failure",
+            "args": [328]
+          },
+          {
+            "method": "failure",
+            "args": [329]
+          },
+          {
+            "method": "failure",
+            "args": [330]
+          },
+          {
+            "method": "failure",
+            "args": [331]
+          },
+          {
+            "method": "failure",
+            "args": [332]
+          },
+          {
+            "method": "failure",
+            "args": [333]
+          },
+          {
+            "method": "failure",
+            "args": [334]
+          },
+          {
+            "method": "failure",
+            "args": [335]
+          },
+          {
+            "method": "failure",
+            "args": [336]
+          },
+          {
+            "method": "failure",
+            "args": [337]
+          },
+          {
+            "method": "failure",
+            "args": [338]
+          },
+          {
+            "method": "failure",
+            "args": [339]
+          },
+          {
+            "method": "failure",
+            "args": [340]
+          },
+          {
+            "method": "failure",
+            "args": [341]
+          },
+          {
+            "method": "failure",
+            "args": [342]
+          },
+          {
+            "method": "failure",
+            "args": [343]
+          },
+          {
+            "method": "failure",
+            "args": [344]
+          },
+          {
+            "method": "failure",
+            "args": [345]
+          },
+          {
+            "method": "failure",
+            "args": [346]
+          },
+          {
+            "method": "failure",
+            "args": [347]
+          },
+          {
+            "method": "failure",
+            "args": [348]
+          },
+          {
+            "method": "failure",
+            "args": [349]
+          },
+          {
+            "method": "failure",
+            "args": [350]
+          },
+          {
+            "method": "failure",
+            "args": [351]
+          },
+          {
+            "method": "failure",
+            "args": [352]
+          },
+          {
+            "method": "failure",
+            "args": [353]
+          },
+          {
+            "method": "failure",
+            "args": [354]
+          },
+          {
+            "method": "failure",
+            "args": [355]
+          },
+          {
+            "method": "failure",
+            "args": [356]
+          },
+          {
+            "method": "failure",
+            "args": [357]
+          },
+          {
+            "method": "failure",
+            "args": [358]
+          },
+          {
+            "method": "failure",
+            "args": [359]
+          },
+          {
+            "method": "failure",
+            "args": [360]
+          },
+          {
+            "method": "failure",
+            "args": [361]
+          },
+          {
+            "method": "failure",
+            "args": [362]
+          },
+          {
+            "method": "failure",
+            "args": [363]
+          },
+          {
+            "method": "failure",
+            "args": [364]
+          },
+          {
+            "method": "failure",
+            "args": [365]
+          },
+          {
+            "method": "failure",
+            "args": [366]
+          },
+          {
+            "method": "failure",
+            "args": [367]
+          },
+          {
+            "method": "failure",
+            "args": [368]
+          },
+          {
+            "method": "failure",
+            "args": [369]
+          },
+          {
+            "method": "failure",
+            "args": [370]
+          },
+          {
+            "method": "failure",
+            "args": [371]
+          },
+          {
+            "method": "failure",
+            "args": [372]
+          },
+          {
+            "method": "failure",
+            "args": [373]
+          },
+          {
+            "method": "failure",
+            "args": [374]
+          },
+          {
+            "method": "failure",
+            "args": [375]
+          },
+          {
+            "method": "failure",
+            "args": [376]
+          },
+          {
+            "method": "failure",
+            "args": [377]
+          },
+          {
+            "method": "failure",
+            "args": [378]
+          },
+          {
+            "method": "failure",
+            "args": [379]
+          },
+          {
+            "method": "failure",
+            "args": [380]
+          },
+          {
+            "method": "failure",
+            "args": [381]
+          },
+          {
+            "method": "failure",
+            "args": [382]
+          },
+          {
+            "method": "failure",
+            "args": [383]
+          },
+          {
+            "method": "failure",
+            "args": [384]
+          },
+          {
+            "method": "failure",
+            "args": [385]
+          },
+          {
+            "method": "failure",
+            "args": [386]
+          },
+          {
+            "method": "failure",
+            "args": [387]
+          },
+          {
+            "method": "failure",
+            "args": [388]
+          },
+          {
+            "method": "failure",
+            "args": [389]
+          },
+          {
+            "method": "failure",
+            "args": [390]
+          },
+          {
+            "method": "failure",
+            "args": [391]
+          },
+          {
+            "method": "failure",
+            "args": [392]
+          },
+          {
+            "method": "failure",
+            "args": [393]
+          },
+          {
+            "method": "failure",
+            "args": [394]
+          },
+          {
+            "method": "failure",
+            "args": [395]
+          },
+          {
+            "method": "failure",
+            "args": [396]
+          },
+          {
+            "method": "failure",
+            "args": [397]
+          },
+          {
+            "method": "failure",
+            "args": [398]
+          },
+          {
+            "method": "failure",
+            "args": [399]
+          },
+          {
+            "method": "failure",
+            "args": [400]
+          },
+          {
+            "method": "failure",
+            "args": [401]
+          },
+          {
+            "method": "failure",
+            "args": [402]
+          },
+          {
+            "method": "failure",
+            "args": [403]
+          },
+          {
+            "method": "failure",
+            "args": [404]
+          },
+          {
+            "method": "failure",
+            "args": [405]
+          },
+          {
+            "method": "failure",
+            "args": [406]
+          },
+          {
+            "method": "failure",
+            "args": [407]
+          },
+          {
+            "method": "failure",
+            "args": [408]
+          },
+          {
+            "method": "failure",
+            "args": [409]
+          },
+          {
+            "method": "failure",
+            "args": [410]
+          },
+          {
+            "method": "failure",
+            "args": [411]
+          },
+          {
+            "method": "failure",
+            "args": [412]
+          },
+          {
+            "method": "failure",
+            "args": [413]
+          },
+          {
+            "method": "failure",
+            "args": [414]
+          },
+          {
+            "method": "failure",
+            "args": [415]
+          },
+          {
+            "method": "failure",
+            "args": [416]
+          },
+          {
+            "method": "failure",
+            "args": [417]
+          },
+          {
+            "method": "failure",
+            "args": [418]
+          },
+          {
+            "method": "failure",
+            "args": [419]
+          },
+          {
+            "method": "failure",
+            "args": [420]
+          },
+          {
+            "method": "failure",
+            "args": [421]
+          },
+          {
+            "method": "failure",
+            "args": [422]
+          },
+          {
+            "method": "failure",
+            "args": [423]
+          },
+          {
+            "method": "failure",
+            "args": [424]
+          },
+          {
+            "method": "failure",
+            "args": [425]
+          },
+          {
+            "method": "failure",
+            "args": [426]
+          },
+          {
+            "method": "failure",
+            "args": [427]
+          },
+          {
+            "method": "failure",
+            "args": [428]
+          },
+          {
+            "method": "failure",
+            "args": [429]
+          },
+          {
+            "method": "failure",
+            "args": [430]
+          },
+          {
+            "method": "failure",
+            "args": [431]
+          },
+          {
+            "method": "failure",
+            "args": [432]
+          },
+          {
+            "method": "failure",
+            "args": [433]
+          },
+          {
+            "method": "failure",
+            "args": [434]
+          },
+          {
+            "method": "failure",
+            "args": [435]
+          },
+          {
+            "method": "failure",
+            "args": [436]
+          },
+          {
+            "method": "failure",
+            "args": [437]
+          },
+          {
+            "method": "failure",
+            "args": [438]
+          },
+          {
+            "method": "failure",
+            "args": [439]
+          },
+          {
+            "method": "failure",
+            "args": [440]
+          },
+          {
+            "method": "failure",
+            "args": [441]
+          },
+          {
+            "method": "failure",
+            "args": [442]
+          },
+          {
+            "method": "failure",
+            "args": [443]
+          },
+          {
+            "method": "failure",
+            "args": [444]
+          },
+          {
+            "method": "failure",
+            "args": [445]
+          },
+          {
+            "method": "failure",
+            "args": [446]
+          },
+          {
+            "method": "failure",
+            "args": [447]
+          },
+          {
+            "method": "failure",
+            "args": [448]
+          },
+          {
+            "method": "failure",
+            "args": [449]
+          },
+          {
+            "method": "failure",
+            "args": [450]
+          },
+          {
+            "method": "failure",
+            "args": [451]
+          },
+          {
+            "method": "failure",
+            "args": [452]
+          },
+          {
+            "method": "failure",
+            "args": [453]
+          },
+          {
+            "method": "failure",
+            "args": [454]
+          },
+          {
+            "method": "failure",
+            "args": [455]
+          },
+          {
+            "method": "failure",
+            "args": [456]
+          },
+          {
+            "method": "failure",
+            "args": [457]
+          },
+          {
+            "method": "failure",
+            "args": [458]
+          },
+          {
+            "method": "failure",
+            "args": [459]
+          },
+          {
+            "method": "failure",
+            "args": [460]
+          },
+          {
+            "method": "failure",
+            "args": [461]
+          },
+          {
+            "method": "failure",
+            "args": [462]
+          },
+          {
+            "method": "failure",
+            "args": [463]
+          },
+          {
+            "method": "failure",
+            "args": [464]
+          },
+          {
+            "method": "failure",
+            "args": [465]
+          },
+          {
+            "method": "failure",
+            "args": [466]
+          },
+          {
+            "method": "failure",
+            "args": [467]
+          },
+          {
+            "method": "failure",
+            "args": [468]
+          },
+          {
+            "method": "failure",
+            "args": [469]
+          },
+          {
+            "method": "failure",
+            "args": [470]
+          },
+          {
+            "method": "failure",
+            "args": [471]
+          },
+          {
+            "method": "failure",
+            "args": [472]
+          },
+          {
+            "method": "failure",
+            "args": [473]
+          },
+          {
+            "method": "failure",
+            "args": [474]
+          },
+          {
+            "method": "failure",
+            "args": [475]
+          },
+          {
+            "method": "failure",
+            "args": [476]
+          },
+          {
+            "method": "failure",
+            "args": [477]
+          },
+          {
+            "method": "failure",
+            "args": [478]
+          },
+          {
+            "method": "failure",
+            "args": [479]
+          },
+          {
+            "method": "failure",
+            "args": [480]
+          },
+          {
+            "method": "failure",
+            "args": [481]
+          },
+          {
+            "method": "failure",
+            "args": [482]
+          },
+          {
+            "method": "failure",
+            "args": [483]
+          },
+          {
+            "method": "failure",
+            "args": [484]
+          },
+          {
+            "method": "failure",
+            "args": [485]
+          },
+          {
+            "method": "failure",
+            "args": [486]
+          },
+          {
+            "method": "failure",
+            "args": [487]
+          },
+          {
+            "method": "failure",
+            "args": [488]
+          },
+          {
+            "method": "failure",
+            "args": [489]
+          },
+          {
+            "method": "failure",
+            "args": [490]
+          },
+          {
+            "method": "failure",
+            "args": [491]
+          },
+          {
+            "method": "failure",
+            "args": [492]
+          },
+          {
+            "method": "failure",
+            "args": [493]
+          },
+          {
+            "method": "failure",
+            "args": [494]
+          },
+          {
+            "method": "failure",
+            "args": [495]
+          },
+          {
+            "method": "failure",
+            "args": [496]
+          },
+          {
+            "method": "failure",
+            "args": [497]
+          },
+          {
+            "method": "failure",
+            "args": [498]
+          },
+          {
+            "method": "failure",
+            "args": [499]
+          },
+          {
+            "method": "failure",
+            "args": [500]
+          },
+          {
+            "method": "failure",
+            "args": [501]
+          },
+          {
+            "method": "failure",
+            "args": [502]
+          },
+          {
+            "method": "failure",
+            "args": [503]
+          },
+          {
+            "method": "failure",
+            "args": [504]
+          },
+          {
+            "method": "failure",
+            "args": [505]
+          },
+          {
+            "method": "failure",
+            "args": [506]
+          },
+          {
+            "method": "failure",
+            "args": [507]
+          },
+          {
+            "method": "failure",
+            "args": [508]
+          },
+          {
+            "method": "failure",
+            "args": [509]
+          },
+          {
+            "method": "failure",
+            "args": [510]
+          },
+          {
+            "method": "failure",
+            "args": [511]
+          },
+          {
+            "method": "failure",
+            "args": [512]
+          },
+          {
+            "method": "failure",
+            "args": [513]
+          },
+          {
+            "method": "failure",
+            "args": [514]
+          },
+          {
+            "method": "failure",
+            "args": [515]
+          },
+          {
+            "method": "failure",
+            "args": [516]
+          },
+          {
+            "method": "failure",
+            "args": [517]
+          },
+          {
+            "method": "failure",
+            "args": [518]
+          },
+          {
+            "method": "failure",
+            "args": [519]
+          },
+          {
+            "method": "failure",
+            "args": [520]
+          },
+          {
+            "method": "failure",
+            "args": [521]
+          },
+          {
+            "method": "failure",
+            "args": [522]
+          },
+          {
+            "method": "failure",
+            "args": [523]
+          },
+          {
+            "method": "failure",
+            "args": [524]
+          },
+          {
+            "method": "failure",
+            "args": [525]
+          },
+          {
+            "method": "failure",
+            "args": [526]
+          },
+          {
+            "method": "failure",
+            "args": [527]
+          },
+          {
+            "method": "failure",
+            "args": [528]
+          },
+          {
+            "method": "failure",
+            "args": [529]
+          },
+          {
+            "method": "failure",
+            "args": [530]
+          },
+          {
+            "method": "failure",
+            "args": [531]
+          },
+          {
+            "method": "failure",
+            "args": [532]
+          },
+          {
+            "method": "failure",
+            "args": [533]
+          },
+          {
+            "method": "failure",
+            "args": [534]
+          },
+          {
+            "method": "failure",
+            "args": [535]
+          },
+          {
+            "method": "failure",
+            "args": [536]
+          },
+          {
+            "method": "failure",
+            "args": [537]
+          },
+          {
+            "method": "failure",
+            "args": [538]
+          },
+          {
+            "method": "failure",
+            "args": [539]
+          },
+          {
+            "method": "failure",
+            "args": [540]
+          },
+          {
+            "method": "failure",
+            "args": [541]
+          },
+          {
+            "method": "failure",
+            "args": [542]
+          },
+          {
+            "method": "failure",
+            "args": [543]
+          },
+          {
+            "method": "failure",
+            "args": [544]
+          },
+          {
+            "method": "failure",
+            "args": [545]
+          },
+          {
+            "method": "failure",
+            "args": [546]
+          },
+          {
+            "method": "failure",
+            "args": [547]
+          },
+          {
+            "method": "failure",
+            "args": [548]
+          },
+          {
+            "method": "failure",
+            "args": [549]
+          },
+          {
+            "method": "failure",
+            "args": [550]
+          },
+          {
+            "method": "failure",
+            "args": [551]
+          },
+          {
+            "method": "failure",
+            "args": [552]
+          },
+          {
+            "method": "failure",
+            "args": [553]
+          },
+          {
+            "method": "failure",
+            "args": [554]
+          },
+          {
+            "method": "failure",
+            "args": [555]
+          },
+          {
+            "method": "failure",
+            "args": [556]
+          },
+          {
+            "method": "failure",
+            "args": [557]
+          },
+          {
+            "method": "failure",
+            "args": [558]
+          },
+          {
+            "method": "failure",
+            "args": [559]
+          },
+          {
+            "method": "failure",
+            "args": [560]
+          },
+          {
+            "method": "failure",
+            "args": [561]
+          },
+          {
+            "method": "failure",
+            "args": [562]
+          },
+          {
+            "method": "failure",
+            "args": [563]
+          },
+          {
+            "method": "failure",
+            "args": [564]
+          },
+          {
+            "method": "failure",
+            "args": [565]
+          },
+          {
+            "method": "failure",
+            "args": [566]
+          },
+          {
+            "method": "failure",
+            "args": [567]
+          },
+          {
+            "method": "failure",
+            "args": [568]
+          },
+          {
+            "method": "failure",
+            "args": [569]
+          },
+          {
+            "method": "failure",
+            "args": [570]
+          },
+          {
+            "method": "failure",
+            "args": [571]
+          },
+          {
+            "method": "failure",
+            "args": [572]
+          },
+          {
+            "method": "failure",
+            "args": [573]
+          },
+          {
+            "method": "failure",
+            "args": [574]
+          },
+          {
+            "method": "failure",
+            "args": [575]
+          },
+          {
+            "method": "failure",
+            "args": [576]
+          },
+          {
+            "method": "failure",
+            "args": [577]
+          },
+          {
+            "method": "failure",
+            "args": [578]
+          },
+          {
+            "method": "failure",
+            "args": [579]
+          },
+          {
+            "method": "failure",
+            "args": [580]
+          },
+          {
+            "method": "failure",
+            "args": [581]
+          },
+          {
+            "method": "failure",
+            "args": [582]
+          },
+          {
+            "method": "failure",
+            "args": [583]
+          },
+          {
+            "method": "failure",
+            "args": [584]
+          },
+          {
+            "method": "failure",
+            "args": [585]
+          },
+          {
+            "method": "failure",
+            "args": [586]
+          },
+          {
+            "method": "failure",
+            "args": [587]
+          },
+          {
+            "method": "failure",
+            "args": [588]
+          },
+          {
+            "method": "failure",
+            "args": [589]
+          },
+          {
+            "method": "failure",
+            "args": [590]
+          },
+          {
+            "method": "failure",
+            "args": [591]
+          },
+          {
+            "method": "failure",
+            "args": [592]
+          },
+          {
+            "method": "failure",
+            "args": [593]
+          },
+          {
+            "method": "failure",
+            "args": [594]
+          },
+          {
+            "method": "failure",
+            "args": [595]
+          },
+          {
+            "method": "failure",
+            "args": [596]
+          },
+          {
+            "method": "failure",
+            "args": [597]
+          },
+          {
+            "method": "failure",
+            "args": [598]
+          },
+          {
+            "method": "failure",
+            "args": [599]
+          },
+          {
+            "method": "failure",
+            "args": [600]
+          },
+          {
+            "method": "failure",
+            "args": [601]
+          },
+          {
+            "method": "failure",
+            "args": [602]
+          },
+          {
+            "method": "failure",
+            "args": [603]
+          },
+          {
+            "method": "failure",
+            "args": [604]
+          },
+          {
+            "method": "failure",
+            "args": [605]
+          },
+          {
+            "method": "failure",
+            "args": [606]
+          },
+          {
+            "method": "failure",
+            "args": [607]
+          },
+          {
+            "method": "failure",
+            "args": [608]
+          },
+          {
+            "method": "failure",
+            "args": [609]
+          },
+          {
+            "method": "failure",
+            "args": [610]
+          },
+          {
+            "method": "failure",
+            "args": [611]
+          },
+          {
+            "method": "failure",
+            "args": [612]
+          },
+          {
+            "method": "failure",
+            "args": [613]
+          },
+          {
+            "method": "failure",
+            "args": [614]
+          },
+          {
+            "method": "failure",
+            "args": [615]
+          },
+          {
+            "method": "failure",
+            "args": [616]
+          },
+          {
+            "method": "failure",
+            "args": [617]
+          },
+          {
+            "method": "failure",
+            "args": [618]
+          },
+          {
+            "method": "failure",
+            "args": [619]
+          },
+          {
+            "method": "failure",
+            "args": [620]
+          },
+          {
+            "method": "failure",
+            "args": [621]
+          },
+          {
+            "method": "failure",
+            "args": [622]
+          },
+          {
+            "method": "failure",
+            "args": [623]
+          },
+          {
+            "method": "failure",
+            "args": [624]
+          },
+          {
+            "method": "failure",
+            "args": [625]
+          },
+          {
+            "method": "failure",
+            "args": [626]
+          },
+          {
+            "method": "failure",
+            "args": [627]
+          },
+          {
+            "method": "failure",
+            "args": [628]
+          },
+          {
+            "method": "failure",
+            "args": [629]
+          },
+          {
+            "method": "failure",
+            "args": [630]
+          },
+          {
+            "method": "failure",
+            "args": [631]
+          },
+          {
+            "method": "failure",
+            "args": [632]
+          },
+          {
+            "method": "failure",
+            "args": [633]
+          },
+          {
+            "method": "failure",
+            "args": [634]
+          },
+          {
+            "method": "failure",
+            "args": [635]
+          },
+          {
+            "method": "failure",
+            "args": [636]
+          },
+          {
+            "method": "failure",
+            "args": [637]
+          },
+          {
+            "method": "failure",
+            "args": [638]
+          },
+          {
+            "method": "failure",
+            "args": [639]
+          },
+          {
+            "method": "failure",
+            "args": [640]
+          },
+          {
+            "method": "failure",
+            "args": [641]
+          },
+          {
+            "method": "failure",
+            "args": [642]
+          },
+          {
+            "method": "failure",
+            "args": [643]
+          },
+          {
+            "method": "failure",
+            "args": [644]
+          },
+          {
+            "method": "failure",
+            "args": [645]
+          },
+          {
+            "method": "failure",
+            "args": [646]
+          },
+          {
+            "method": "failure",
+            "args": [647]
+          },
+          {
+            "method": "failure",
+            "args": [648]
+          },
+          {
+            "method": "failure",
+            "args": [649]
+          },
+          {
+            "method": "failure",
+            "args": [650]
+          },
+          {
+            "method": "failure",
+            "args": [651]
+          },
+          {
+            "method": "failure",
+            "args": [652]
+          },
+          {
+            "method": "failure",
+            "args": [653]
+          },
+          {
+            "method": "failure",
+            "args": [654]
+          },
+          {
+            "method": "failure",
+            "args": [655]
+          },
+          {
+            "method": "failure",
+            "args": [656]
+          },
+          {
+            "method": "failure",
+            "args": [657]
+          },
+          {
+            "method": "failure",
+            "args": [658]
+          },
+          {
+            "method": "failure",
+            "args": [659]
+          },
+          {
+            "method": "failure",
+            "args": [660]
+          },
+          {
+            "method": "failure",
+            "args": [661]
+          },
+          {
+            "method": "failure",
+            "args": [662]
+          },
+          {
+            "method": "failure",
+            "args": [663]
+          },
+          {
+            "method": "failure",
+            "args": [664]
+          },
+          {
+            "method": "failure",
+            "args": [665]
+          },
+          {
+            "method": "failure",
+            "args": [666]
+          },
+          {
+            "method": "failure",
+            "args": [667]
+          },
+          {
+            "method": "failure",
+            "args": [668]
+          },
+          {
+            "method": "failure",
+            "args": [669]
+          },
+          {
+            "method": "failure",
+            "args": [670]
+          },
+          {
+            "method": "failure",
+            "args": [671]
+          },
+          {
+            "method": "failure",
+            "args": [672]
+          },
+          {
+            "method": "failure",
+            "args": [673]
+          },
+          {
+            "method": "failure",
+            "args": [674]
+          },
+          {
+            "method": "failure",
+            "args": [675]
+          },
+          {
+            "method": "failure",
+            "args": [676]
+          },
+          {
+            "method": "failure",
+            "args": [677]
+          },
+          {
+            "method": "failure",
+            "args": [678]
+          },
+          {
+            "method": "failure",
+            "args": [679]
+          },
+          {
+            "method": "failure",
+            "args": [680]
+          },
+          {
+            "method": "failure",
+            "args": [681]
+          },
+          {
+            "method": "failure",
+            "args": [682]
+          },
+          {
+            "method": "failure",
+            "args": [683]
+          },
+          {
+            "method": "failure",
+            "args": [684]
+          },
+          {
+            "method": "failure",
+            "args": [685]
+          },
+          {
+            "method": "failure",
+            "args": [686]
+          },
+          {
+            "method": "failure",
+            "args": [687]
+          },
+          {
+            "method": "failure",
+            "args": [688]
+          },
+          {
+            "method": "failure",
+            "args": [689]
+          },
+          {
+            "method": "failure",
+            "args": [690]
+          },
+          {
+            "method": "failure",
+            "args": [691]
+          },
+          {
+            "method": "failure",
+            "args": [692]
+          },
+          {
+            "method": "failure",
+            "args": [693]
+          },
+          {
+            "method": "failure",
+            "args": [694]
+          },
+          {
+            "method": "failure",
+            "args": [695]
+          },
+          {
+            "method": "failure",
+            "args": [696]
+          },
+          {
+            "method": "failure",
+            "args": [697]
+          },
+          {
+            "method": "failure",
+            "args": [698]
+          },
+          {
+            "method": "failure",
+            "args": [699]
+          },
+          {
+            "method": "failure",
+            "args": [700]
+          },
+          {
+            "method": "failure",
+            "args": [701]
+          },
+          {
+            "method": "failure",
+            "args": [702]
+          },
+          {
+            "method": "failure",
+            "args": [703]
+          },
+          {
+            "method": "failure",
+            "args": [704]
+          },
+          {
+            "method": "failure",
+            "args": [705]
+          },
+          {
+            "method": "failure",
+            "args": [706]
+          },
+          {
+            "method": "failure",
+            "args": [707]
+          },
+          {
+            "method": "failure",
+            "args": [708]
+          },
+          {
+            "method": "failure",
+            "args": [709]
+          },
+          {
+            "method": "failure",
+            "args": [710]
+          },
+          {
+            "method": "failure",
+            "args": [711]
+          },
+          {
+            "method": "failure",
+            "args": [712]
+          },
+          {
+            "method": "failure",
+            "args": [713]
+          },
+          {
+            "method": "failure",
+            "args": [714]
+          },
+          {
+            "method": "failure",
+            "args": [715]
+          },
+          {
+            "method": "failure",
+            "args": [716]
+          },
+          {
+            "method": "failure",
+            "args": [717]
+          },
+          {
+            "method": "failure",
+            "args": [718]
+          },
+          {
+            "method": "failure",
+            "args": [719]
+          },
+          {
+            "method": "failure",
+            "args": [720]
+          },
+          {
+            "method": "failure",
+            "args": [721]
+          },
+          {
+            "method": "failure",
+            "args": [722]
+          },
+          {
+            "method": "failure",
+            "args": [723]
+          },
+          {
+            "method": "failure",
+            "args": [724]
+          },
+          {
+            "method": "failure",
+            "args": [725]
+          },
+          {
+            "method": "failure",
+            "args": [726]
+          },
+          {
+            "method": "failure",
+            "args": [727]
+          },
+          {
+            "method": "failure",
+            "args": [728]
+          },
+          {
+            "method": "failure",
+            "args": [729]
+          },
+          {
+            "method": "failure",
+            "args": [730]
+          },
+          {
+            "method": "failure",
+            "args": [731]
+          },
+          {
+            "method": "failure",
+            "args": [732]
+          },
+          {
+            "method": "failure",
+            "args": [733]
+          },
+          {
+            "method": "failure",
+            "args": [734]
+          },
+          {
+            "method": "failure",
+            "args": [735]
+          },
+          {
+            "method": "failure",
+            "args": [736]
+          },
+          {
+            "method": "failure",
+            "args": [737]
+          },
+          {
+            "method": "failure",
+            "args": [738]
+          },
+          {
+            "method": "failure",
+            "args": [739]
+          },
+          {
+            "method": "failure",
+            "args": [740]
+          },
+          {
+            "method": "failure",
+            "args": [741]
+          },
+          {
+            "method": "failure",
+            "args": [742]
+          },
+          {
+            "method": "failure",
+            "args": [743]
+          },
+          {
+            "method": "failure",
+            "args": [744]
+          },
+          {
+            "method": "failure",
+            "args": [745]
+          },
+          {
+            "method": "failure",
+            "args": [746]
+          },
+          {
+            "method": "failure",
+            "args": [747]
+          },
+          {
+            "method": "failure",
+            "args": [748]
+          },
+          {
+            "method": "failure",
+            "args": [749]
+          },
+          {
+            "method": "failure",
+            "args": [750]
+          },
+          {
+            "method": "failure",
+            "args": [751]
+          },
+          {
+            "method": "failure",
+            "args": [752]
+          },
+          {
+            "method": "failure",
+            "args": [753]
+          },
+          {
+            "method": "failure",
+            "args": [754]
+          },
+          {
+            "method": "failure",
+            "args": [755]
+          },
+          {
+            "method": "failure",
+            "args": [756]
+          },
+          {
+            "method": "failure",
+            "args": [757]
+          },
+          {
+            "method": "failure",
+            "args": [758]
+          },
+          {
+            "method": "failure",
+            "args": [759]
+          },
+          {
+            "method": "failure",
+            "args": [760]
+          },
+          {
+            "method": "failure",
+            "args": [761]
+          },
+          {
+            "method": "failure",
+            "args": [762]
+          },
+          {
+            "method": "failure",
+            "args": [763]
+          },
+          {
+            "method": "failure",
+            "args": [764]
+          },
+          {
+            "method": "failure",
+            "args": [765]
+          },
+          {
+            "method": "failure",
+            "args": [766]
+          },
+          {
+            "method": "failure",
+            "args": [767]
+          },
+          {
+            "method": "failure",
+            "args": [768]
+          },
+          {
+            "method": "failure",
+            "args": [769]
+          },
+          {
+            "method": "failure",
+            "args": [770]
+          },
+          {
+            "method": "failure",
+            "args": [771]
+          },
+          {
+            "method": "failure",
+            "args": [772]
+          },
+          {
+            "method": "failure",
+            "args": [773]
+          },
+          {
+            "method": "failure",
+            "args": [774]
+          },
+          {
+            "method": "failure",
+            "args": [775]
+          },
+          {
+            "method": "failure",
+            "args": [776]
+          },
+          {
+            "method": "failure",
+            "args": [777]
+          },
+          {
+            "method": "failure",
+            "args": [778]
+          },
+          {
+            "method": "failure",
+            "args": [779]
+          },
+          {
+            "method": "failure",
+            "args": [780]
+          },
+          {
+            "method": "failure",
+            "args": [781]
+          },
+          {
+            "method": "failure",
+            "args": [782]
+          },
+          {
+            "method": "failure",
+            "args": [783]
+          },
+          {
+            "method": "failure",
+            "args": [784]
+          },
+          {
+            "method": "failure",
+            "args": [785]
+          },
+          {
+            "method": "failure",
+            "args": [786]
+          },
+          {
+            "method": "failure",
+            "args": [787]
+          },
+          {
+            "method": "failure",
+            "args": [788]
+          },
+          {
+            "method": "failure",
+            "args": [789]
+          },
+          {
+            "method": "failure",
+            "args": [790]
+          },
+          {
+            "method": "failure",
+            "args": [791]
+          },
+          {
+            "method": "failure",
+            "args": [792]
+          },
+          {
+            "method": "failure",
+            "args": [793]
+          },
+          {
+            "method": "failure",
+            "args": [794]
+          },
+          {
+            "method": "failure",
+            "args": [795]
+          },
+          {
+            "method": "failure",
+            "args": [796]
+          },
+          {
+            "method": "failure",
+            "args": [797]
+          },
+          {
+            "method": "failure",
+            "args": [798]
+          },
+          {
+            "method": "failure",
+            "args": [799]
+          },
+          {
+            "method": "failure",
+            "args": [800]
+          },
+          {
+            "method": "failure",
+            "args": [801]
+          },
+          {
+            "method": "failure",
+            "args": [802]
+          },
+          {
+            "method": "failure",
+            "args": [803]
+          },
+          {
+            "method": "failure",
+            "args": [804]
+          },
+          {
+            "method": "failure",
+            "args": [805]
+          },
+          {
+            "method": "failure",
+            "args": [806]
+          },
+          {
+            "method": "failure",
+            "args": [807]
+          },
+          {
+            "method": "failure",
+            "args": [808]
+          },
+          {
+            "method": "failure",
+            "args": [809]
+          },
+          {
+            "method": "failure",
+            "args": [810]
+          },
+          {
+            "method": "failure",
+            "args": [811]
+          },
+          {
+            "method": "failure",
+            "args": [812]
+          },
+          {
+            "method": "failure",
+            "args": [813]
+          },
+          {
+            "method": "failure",
+            "args": [814]
+          },
+          {
+            "method": "failure",
+            "args": [815]
+          },
+          {
+            "method": "failure",
+            "args": [816]
+          },
+          {
+            "method": "failure",
+            "args": [817]
+          },
+          {
+            "method": "failure",
+            "args": [818]
+          },
+          {
+            "method": "failure",
+            "args": [819]
+          },
+          {
+            "method": "failure",
+            "args": [820]
+          },
+          {
+            "method": "failure",
+            "args": [821]
+          },
+          {
+            "method": "failure",
+            "args": [822]
+          },
+          {
+            "method": "failure",
+            "args": [823]
+          },
+          {
+            "method": "failure",
+            "args": [824]
+          },
+          {
+            "method": "failure",
+            "args": [825]
+          },
+          {
+            "method": "failure",
+            "args": [826]
+          },
+          {
+            "method": "failure",
+            "args": [827]
+          },
+          {
+            "method": "failure",
+            "args": [828]
+          },
+          {
+            "method": "failure",
+            "args": [829]
+          },
+          {
+            "method": "failure",
+            "args": [830]
+          },
+          {
+            "method": "failure",
+            "args": [831]
+          },
+          {
+            "method": "failure",
+            "args": [832]
+          },
+          {
+            "method": "failure",
+            "args": [833]
+          },
+          {
+            "method": "failure",
+            "args": [834]
+          },
+          {
+            "method": "failure",
+            "args": [835]
+          },
+          {
+            "method": "failure",
+            "args": [836]
+          },
+          {
+            "method": "failure",
+            "args": [837]
+          },
+          {
+            "method": "failure",
+            "args": [838]
+          },
+          {
+            "method": "failure",
+            "args": [839]
+          },
+          {
+            "method": "failure",
+            "args": [840]
+          },
+          {
+            "method": "failure",
+            "args": [841]
+          },
+          {
+            "method": "failure",
+            "args": [842]
+          },
+          {
+            "method": "failure",
+            "args": [843]
+          },
+          {
+            "method": "failure",
+            "args": [844]
+          },
+          {
+            "method": "failure",
+            "args": [845]
+          },
+          {
+            "method": "failure",
+            "args": [846]
+          },
+          {
+            "method": "failure",
+            "args": [847]
+          },
+          {
+            "method": "failure",
+            "args": [848]
+          },
+          {
+            "method": "failure",
+            "args": [849]
+          },
+          {
+            "method": "failure",
+            "args": [850]
+          },
+          {
+            "method": "failure",
+            "args": [851]
+          },
+          {
+            "method": "failure",
+            "args": [852]
+          },
+          {
+            "method": "failure",
+            "args": [853]
+          },
+          {
+            "method": "failure",
+            "args": [854]
+          },
+          {
+            "method": "failure",
+            "args": [855]
+          },
+          {
+            "method": "failure",
+            "args": [856]
+          },
+          {
+            "method": "failure",
+            "args": [857]
+          },
+          {
+            "method": "failure",
+            "args": [858]
+          },
+          {
+            "method": "failure",
+            "args": [859]
+          },
+          {
+            "method": "failure",
+            "args": [860]
+          },
+          {
+            "method": "failure",
+            "args": [861]
+          },
+          {
+            "method": "failure",
+            "args": [862]
+          },
+          {
+            "method": "failure",
+            "args": [863]
+          },
+          {
+            "method": "failure",
+            "args": [864]
+          },
+          {
+            "method": "failure",
+            "args": [865]
+          },
+          {
+            "method": "failure",
+            "args": [866]
+          },
+          {
+            "method": "failure",
+            "args": [867]
+          },
+          {
+            "method": "failure",
+            "args": [868]
+          },
+          {
+            "method": "failure",
+            "args": [869]
+          },
+          {
+            "method": "failure",
+            "args": [870]
+          },
+          {
+            "method": "failure",
+            "args": [871]
+          },
+          {
+            "method": "failure",
+            "args": [872]
+          },
+          {
+            "method": "failure",
+            "args": [873]
+          },
+          {
+            "method": "failure",
+            "args": [874]
+          },
+          {
+            "method": "failure",
+            "args": [875]
+          },
+          {
+            "method": "failure",
+            "args": [876]
+          },
+          {
+            "method": "failure",
+            "args": [877]
+          },
+          {
+            "method": "failure",
+            "args": [878]
+          },
+          {
+            "method": "failure",
+            "args": [879]
+          },
+          {
+            "method": "failure",
+            "args": [880]
+          },
+          {
+            "method": "failure",
+            "args": [881]
+          },
+          {
+            "method": "failure",
+            "args": [882]
+          },
+          {
+            "method": "failure",
+            "args": [883]
+          },
+          {
+            "method": "failure",
+            "args": [884]
+          },
+          {
+            "method": "failure",
+            "args": [885]
+          },
+          {
+            "method": "failure",
+            "args": [886]
+          },
+          {
+            "method": "failure",
+            "args": [887]
+          },
+          {
+            "method": "failure",
+            "args": [888]
+          },
+          {
+            "method": "failure",
+            "args": [889]
+          },
+          {
+            "method": "failure",
+            "args": [890]
+          },
+          {
+            "method": "failure",
+            "args": [891]
+          },
+          {
+            "method": "failure",
+            "args": [892]
+          },
+          {
+            "method": "failure",
+            "args": [893]
+          },
+          {
+            "method": "failure",
+            "args": [894]
+          },
+          {
+            "method": "failure",
+            "args": [895]
+          },
+          {
+            "method": "failure",
+            "args": [896]
+          },
+          {
+            "method": "failure",
+            "args": [897]
+          },
+          {
+            "method": "failure",
+            "args": [898]
+          },
+          {
+            "method": "failure",
+            "args": [899]
+          },
+          {
+            "method": "failure",
+            "args": [900]
+          },
+          {
+            "method": "failure",
+            "args": [901]
+          },
+          {
+            "method": "failure",
+            "args": [902]
+          },
+          {
+            "method": "failure",
+            "args": [903]
+          },
+          {
+            "method": "failure",
+            "args": [904]
+          },
+          {
+            "method": "failure",
+            "args": [905]
+          },
+          {
+            "method": "failure",
+            "args": [906]
+          },
+          {
+            "method": "failure",
+            "args": [907]
+          },
+          {
+            "method": "failure",
+            "args": [908]
+          },
+          {
+            "method": "failure",
+            "args": [909]
+          },
+          {
+            "method": "failure",
+            "args": [910]
+          },
+          {
+            "method": "failure",
+            "args": [911]
+          },
+          {
+            "method": "failure",
+            "args": [912]
+          },
+          {
+            "method": "failure",
+            "args": [913]
+          },
+          {
+            "method": "failure",
+            "args": [914]
+          },
+          {
+            "method": "failure",
+            "args": [915]
+          },
+          {
+            "method": "failure",
+            "args": [916]
+          },
+          {
+            "method": "failure",
+            "args": [917]
+          },
+          {
+            "method": "failure",
+            "args": [918]
+          },
+          {
+            "method": "failure",
+            "args": [919]
+          },
+          {
+            "method": "failure",
+            "args": [920]
+          },
+          {
+            "method": "failure",
+            "args": [921]
+          },
+          {
+            "method": "failure",
+            "args": [922]
+          },
+          {
+            "method": "failure",
+            "args": [923]
+          },
+          {
+            "method": "failure",
+            "args": [924]
+          },
+          {
+            "method": "failure",
+            "args": [925]
+          },
+          {
+            "method": "failure",
+            "args": [926]
+          },
+          {
+            "method": "failure",
+            "args": [927]
+          },
+          {
+            "method": "failure",
+            "args": [928]
+          },
+          {
+            "method": "failure",
+            "args": [929]
+          },
+          {
+            "method": "failure",
+            "args": [930]
+          },
+          {
+            "method": "failure",
+            "args": [931]
+          },
+          {
+            "method": "failure",
+            "args": [932]
+          },
+          {
+            "method": "failure",
+            "args": [933]
+          },
+          {
+            "method": "failure",
+            "args": [934]
+          },
+          {
+            "method": "failure",
+            "args": [935]
+          },
+          {
+            "method": "failure",
+            "args": [936]
+          },
+          {
+            "method": "failure",
+            "args": [937]
+          },
+          {
+            "method": "failure",
+            "args": [938]
+          },
+          {
+            "method": "failure",
+            "args": [939]
+          },
+          {
+            "method": "failure",
+            "args": [940]
+          },
+          {
+            "method": "failure",
+            "args": [941]
+          },
+          {
+            "method": "failure",
+            "args": [942]
+          },
+          {
+            "method": "failure",
+            "args": [943]
+          },
+          {
+            "method": "failure",
+            "args": [944]
+          },
+          {
+            "method": "failure",
+            "args": [945]
+          },
+          {
+            "method": "failure",
+            "args": [946]
+          },
+          {
+            "method": "failure",
+            "args": [947]
+          },
+          {
+            "method": "failure",
+            "args": [948]
+          },
+          {
+            "method": "failure",
+            "args": [949]
+          },
+          {
+            "method": "failure",
+            "args": [950]
+          },
+          {
+            "method": "failure",
+            "args": [951]
+          },
+          {
+            "method": "failure",
+            "args": [952]
+          },
+          {
+            "method": "failure",
+            "args": [953]
+          },
+          {
+            "method": "failure",
+            "args": [954]
+          },
+          {
+            "method": "failure",
+            "args": [955]
+          },
+          {
+            "method": "failure",
+            "args": [956]
+          },
+          {
+            "method": "failure",
+            "args": [957]
+          },
+          {
+            "method": "failure",
+            "args": [958]
+          },
+          {
+            "method": "failure",
+            "args": [959]
+          },
+          {
+            "method": "failure",
+            "args": [960]
+          },
+          {
+            "method": "failure",
+            "args": [961]
+          },
+          {
+            "method": "failure",
+            "args": [962]
+          },
+          {
+            "method": "failure",
+            "args": [963]
+          },
+          {
+            "method": "failure",
+            "args": [964]
+          },
+          {
+            "method": "failure",
+            "args": [965]
+          },
+          {
+            "method": "failure",
+            "args": [966]
+          },
+          {
+            "method": "failure",
+            "args": [967]
+          },
+          {
+            "method": "failure",
+            "args": [968]
+          },
+          {
+            "method": "failure",
+            "args": [969]
+          },
+          {
+            "method": "failure",
+            "args": [970]
+          },
+          {
+            "method": "failure",
+            "args": [971]
+          },
+          {
+            "method": "failure",
+            "args": [972]
+          },
+          {
+            "method": "failure",
+            "args": [973]
+          },
+          {
+            "method": "failure",
+            "args": [974]
+          },
+          {
+            "method": "failure",
+            "args": [975]
+          },
+          {
+            "method": "failure",
+            "args": [976]
+          },
+          {
+            "method": "failure",
+            "args": [977]
+          },
+          {
+            "method": "failure",
+            "args": [978]
+          },
+          {
+            "method": "failure",
+            "args": [979]
+          },
+          {
+            "method": "failure",
+            "args": [980]
+          },
+          {
+            "method": "failure",
+            "args": [981]
+          },
+          {
+            "method": "failure",
+            "args": [982]
+          },
+          {
+            "method": "failure",
+            "args": [983]
+          },
+          {
+            "method": "failure",
+            "args": [984]
+          },
+          {
+            "method": "failure",
+            "args": [985]
+          },
+          {
+            "method": "failure",
+            "args": [986]
+          },
+          {
+            "method": "failure",
+            "args": [987]
+          },
+          {
+            "method": "failure",
+            "args": [988]
+          },
+          {
+            "method": "failure",
+            "args": [989]
+          },
+          {
+            "method": "failure",
+            "args": [990]
+          },
+          {
+            "method": "failure",
+            "args": [991]
+          },
+          {
+            "method": "failure",
+            "args": [992]
+          },
+          {
+            "method": "failure",
+            "args": [993]
+          },
+          {
+            "method": "failure",
+            "args": [994]
+          },
+          {
+            "method": "failure",
+            "args": [995]
+          },
+          {
+            "method": "failure",
+            "args": [996]
+          },
+          {
+            "method": "failure",
+            "args": [997]
+          },
+          {
+            "method": "failure",
+            "args": [998]
+          },
+          {
+            "method": "state",
+            "args": [999]
+          },
+          {
+            "method": "failure",
+            "args": [999]
+          },
+          {
+            "method": "state",
+            "args": [999]
+          },
+          {
+            "method": "allow",
+            "args": [999]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 10]
+          },
+          {
+            "method": "allow",
+            "args": [-1]
+          },
+          {
+            "method": "success",
+            "args": [-5]
+          },
+          {
+            "method": "failure",
+            "args": [-1]
+          },
+          {
+            "method": "state",
+            "args": [-1]
+          },
+          {
+            "method": "state",
+            "args": [0]
+          },
+          {
+            "method": "failure",
+            "args": [5]
+          },
+          {
+            "method": "failure",
+            "args": [4]
+          },
+          {
+            "method": "state",
+            "args": [4]
+          },
+          {
+            "method": "success",
+            "args": [3]
+          },
+          {
+            "method": "allow",
+            "args": [5]
+          },
+          {
+            "method": "failure",
+            "args": [5]
+          },
+          {
+            "method": "state",
+            "args": [5]
+          },
+          {
+            "method": "state",
+            "args": [14]
+          },
+          {
+            "method": "state",
+            "args": [15]
+          },
+          {
+            "method": "allow",
+            "args": [16]
+          },
+          {
+            "method": "state",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, 100]
+          },
+          {
+            "method": "failure",
+            "args": [1]
+          },
+          {
+            "method": "failure",
+            "args": [2]
+          },
+          {
+            "method": "success",
+            "args": [3]
+          },
+          {
+            "method": "failure",
+            "args": [4]
+          },
+          {
+            "method": "failure",
+            "args": [5]
+          },
+          {
+            "method": "state",
+            "args": [5]
+          },
+          {
+            "method": "success",
+            "args": [6]
+          },
+          {
+            "method": "failure",
+            "args": [7]
+          },
+          {
+            "method": "failure",
+            "args": [8]
+          },
+          {
+            "method": "success",
+            "args": [9]
+          },
+          {
+            "method": "failure",
+            "args": [10]
+          },
+          {
+            "method": "failure",
+            "args": [11]
+          },
+          {
+            "method": "failure",
+            "args": [12]
+          },
+          {
+            "method": "state",
+            "args": [12]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 100]
+          },
+          {
+            "method": "failure",
+            "args": [0]
+          },
+          {
+            "method": "success",
+            "args": [10]
+          },
+          {
+            "method": "failure",
+            "args": [50]
+          },
+          {
+            "method": "success",
+            "args": [60]
+          },
+          {
+            "method": "state",
+            "args": [99]
+          },
+          {
+            "method": "allow",
+            "args": [99]
+          },
+          {
+            "method": "failure",
+            "args": [99]
+          },
+          {
+            "method": "state",
+            "args": [100]
+          },
+          {
+            "method": "allow",
+            "args": [100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 10]
+          },
+          {
+            "method": "failure",
+            "args": [0]
+          },
+          {
+            "method": "state",
+            "args": [10]
+          },
+          {
+            "method": "success",
+            "args": [10]
+          },
+          {
+            "method": "failure",
+            "args": [11]
+          },
+          {
+            "method": "state",
+            "args": [11]
+          },
+          {
+            "method": "allow",
+            "args": [12]
+          },
+          {
+            "method": "state",
+            "args": [12]
+          },
+          {
+            "method": "allow",
+            "args": [12]
+          },
+          {
+            "method": "allow",
+            "args": [13]
+          },
+          {
+            "method": "failure",
+            "args": [14]
+          },
+          {
+            "method": "state",
+            "args": [14]
+          },
+          {
+            "method": "state",
+            "args": [23]
+          },
+          {
+            "method": "state",
+            "args": [24]
+          },
+          {
+            "method": "allow",
+            "args": [24]
+          },
+          {
+            "method": "success",
+            "args": [25]
+          },
+          {
+            "method": "state",
+            "args": [25]
+          },
+          {
+            "method": "allow",
+            "args": [25]
+          },
+          {
+            "method": "allow",
+            "args": [25]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 5]
+          },
+          {
+            "method": "failure",
+            "args": [1]
+          },
+          {
+            "method": "failure",
+            "args": [2]
+          },
+          {
+            "method": "allow",
+            "args": [100000]
+          },
+          {
+            "method": "allow",
+            "args": [200000]
+          },
+          {
+            "method": "state",
+            "args": [1000000000000]
+          },
+          {
+            "method": "allow",
+            "args": [1000000000000]
+          },
+          {
+            "method": "success",
+            "args": [1000000000000]
+          },
+          {
+            "method": "state",
+            "args": [1000000000000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 1000]
+          },
+          {
+            "method": "failure",
+            "args": [0]
+          },
+          {
+            "method": "allow",
+            "args": [1000]
+          },
+          {
+            "method": "failure",
+            "args": [1500]
+          },
+          {
+            "method": "state",
+            "args": [1500]
+          },
+          {
+            "method": "state",
+            "args": [2499]
+          },
+          {
+            "method": "allow",
+            "args": [2499]
+          },
+          {
+            "method": "state",
+            "args": [2500]
+          },
+          {
+            "method": "allow",
+            "args": [2500]
+          },
+          {
+            "method": "failure",
+            "args": [2500]
+          },
+          {
+            "method": "state",
+            "args": [3499]
+          },
+          {
+            "method": "state",
+            "args": [3500]
+          },
+          {
+            "method": "allow",
+            "args": [3500]
+          },
+          {
+            "method": "success",
+            "args": [3600]
+          },
+          {
+            "method": "failure",
+            "args": [3700]
+          },
+          {
+            "method": "state",
+            "args": [3700]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 10]
+          },
+          {
+            "method": "allow",
+            "args": [0]
+          },
+          {
+            "method": "allow",
+            "args": [1]
+          },
+          {
+            "method": "allow",
+            "args": [2]
+          },
+          {
+            "method": "allow",
+            "args": [3]
+          },
+          {
+            "method": "allow",
+            "args": [4]
+          },
+          {
+            "method": "allow",
+            "args": [5]
+          },
+          {
+            "method": "success",
+            "args": [6]
+          },
+          {
+            "method": "failure",
+            "args": [7]
+          },
+          {
+            "method": "success",
+            "args": [8]
+          },
+          {
+            "method": "failure",
+            "args": [9]
+          },
+          {
+            "method": "state",
+            "args": [9]
+          },
+          {
+            "method": "failure",
+            "args": [9]
+          },
+          {
+            "method": "state",
+            "args": [9]
+          },
+          {
+            "method": "allow",
+            "args": [9]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 10]
+          },
+          {
+            "method": "state",
+            "args": [0]
+          },
+          {
+            "method": "state",
+            "args": [0]
+          },
+          {
+            "method": "failure",
+            "args": [0]
+          },
+          {
+            "method": "state",
+            "args": [9]
+          },
+          {
+            "method": "state",
+            "args": [10]
+          },
+          {
+            "method": "state",
+            "args": [10]
+          },
+          {
+            "method": "state",
+            "args": [11]
+          },
+          {
+            "method": "allow",
+            "args": [11]
+          },
+          {
+            "method": "state",
+            "args": [11]
+          },
+          {
+            "method": "state",
+            "args": [30]
+          },
+          {
+            "method": "success",
+            "args": [30]
+          },
+          {
+            "method": "state",
+            "args": [30]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "forceOpen",
+        "params": [
+          {
+            "name": "on",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 100]
+          },
+          {
+            "method": "forceOpen",
+            "args": [true]
+          },
+          {
+            "method": "state",
+            "args": [0]
+          },
+          {
+            "method": "allow",
+            "args": [0]
+          },
+          {
+            "method": "success",
+            "args": [1]
+          },
+          {
+            "method": "state",
+            "args": [1000]
+          },
+          {
+            "method": "allow",
+            "args": [1000]
+          },
+          {
+            "method": "forceOpen",
+            "args": [true]
+          },
+          {
+            "method": "state",
+            "args": [1000]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [1000]
+          },
+          {
+            "method": "allow",
+            "args": [1000]
+          },
+          {
+            "method": "failure",
+            "args": [1001]
+          },
+          {
+            "method": "state",
+            "args": [1001]
+          },
+          {
+            "method": "failure",
+            "args": [1002]
+          },
+          {
+            "method": "state",
+            "args": [1002]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [1003]
+          },
+          {
+            "method": "forceOpen",
+            "args": [true]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [1050]
+          },
+          {
+            "method": "allow",
+            "args": [1050]
+          },
+          {
+            "method": "failure",
+            "args": [1060]
+          },
+          {
+            "method": "state",
+            "args": [1060]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 10]
+          },
+          {
+            "method": "failure",
+            "args": [0]
+          },
+          {
+            "method": "forceOpen",
+            "args": [true]
+          },
+          {
+            "method": "state",
+            "args": [20]
+          },
+          {
+            "method": "allow",
+            "args": [20]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [20]
+          },
+          {
+            "method": "allow",
+            "args": [20]
+          },
+          {
+            "method": "failure",
+            "args": [21]
+          },
+          {
+            "method": "state",
+            "args": [21]
+          },
+          {
+            "method": "state",
+            "args": [31]
+          },
+          {
+            "method": "allow",
+            "args": [31]
+          },
+          {
+            "method": "forceOpen",
+            "args": [true]
+          },
+          {
+            "method": "success",
+            "args": [32]
+          },
+          {
+            "method": "state",
+            "args": [32]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [33]
+          },
+          {
+            "method": "allow",
+            "args": [33]
+          },
+          {
+            "method": "allow",
+            "args": [34]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, 10]
+          },
+          {
+            "method": "failure",
+            "args": [1]
+          },
+          {
+            "method": "failure",
+            "args": [2]
+          },
+          {
+            "method": "forceOpen",
+            "args": [true]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "failure",
+            "args": [3]
+          },
+          {
+            "method": "state",
+            "args": [3]
+          },
+          {
+            "method": "failure",
+            "args": [4]
+          },
+          {
+            "method": "failure",
+            "args": [5]
+          },
+          {
+            "method": "state",
+            "args": [5]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [15]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 10]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [0]
+          },
+          {
+            "method": "failure",
+            "args": [5]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "state",
+            "args": [5]
+          },
+          {
+            "method": "state",
+            "args": [15]
+          },
+          {
+            "method": "allow",
+            "args": [15]
+          },
+          {
+            "method": "forceOpen",
+            "args": [true]
+          },
+          {
+            "method": "failure",
+            "args": [16]
+          },
+          {
+            "method": "state",
+            "args": [100]
+          },
+          {
+            "method": "allow",
+            "args": [100]
+          },
+          {
+            "method": "forceOpen",
+            "args": [false]
+          },
+          {
+            "method": "allow",
+            "args": [1]
+          },
+          {
+            "method": "state",
+            "args": [100]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,978 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["apple", "banana", "cherry"]
+      },
+      {
+        "call": 2,
+        "value": "cherry"
+      },
+      {
+        "call": 3,
+        "value": ["date", "elder", "fig"]
+      },
+      {
+        "call": 4,
+        "value": "fig"
+      },
+      {
+        "call": 5,
+        "value": ["grape", "kiwi"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "apple"
+      },
+      {
+        "call": 9,
+        "value": "banana"
+      },
+      {
+        "call": 10,
+        "value": ["banana", "cherry", "date"]
+      },
+      {
+        "call": 11,
+        "value": "cherry"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 15,
+        "value": []
+      },
+      {
+        "call": 16,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["a", "b"]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no more items"
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": ["b"]
+      },
+      {
+        "call": 10,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: an item listed twice"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: empty item"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad page size"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad page size"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "error": "ValueError: no more items"
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 6,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["1", "A", "B", "_"]
+      },
+      {
+        "call": 2,
+        "value": "_"
+      },
+      {
+        "call": 3,
+        "value": ["B", "_", "a", "a b"]
+      },
+      {
+        "call": 4,
+        "value": "a b"
+      },
+      {
+        "call": 5,
+        "value": ["b", "~"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "1"
+      },
+      {
+        "call": 8,
+        "value": "A"
+      },
+      {
+        "call": 9,
+        "value": "B"
+      },
+      {
+        "call": 10,
+        "value": "_"
+      },
+      {
+        "call": 11,
+        "value": "a"
+      },
+      {
+        "call": 12,
+        "value": "a b"
+      },
+      {
+        "call": 13,
+        "value": "aa"
+      },
+      {
+        "call": 14,
+        "value": "b"
+      },
+      {
+        "call": 15,
+        "value": "~"
+      },
+      {
+        "call": 16,
+        "value": false
+      },
+      {
+        "call": 17,
+        "error": "ValueError: no more items"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["x"]
+      },
+      {
+        "call": 2,
+        "value": "x"
+      },
+      {
+        "call": 3,
+        "value": ["y"]
+      },
+      {
+        "call": 4,
+        "value": "y"
+      },
+      {
+        "call": 5,
+        "value": ["z"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "q"
+      },
+      {
+        "call": 2,
+        "value": ["r", "s"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["s"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["p", "q", "r", "s"]
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["q", "r", "s"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "s"
+      },
+      {
+        "call": 2,
+        "value": ["q", "r", "s", "t"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["r", "s", "t"]
+      },
+      {
+        "call": 5,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a"
+      },
+      {
+        "call": 2,
+        "value": ["a", "b"]
+      },
+      {
+        "call": 3,
+        "value": ["c", "d"]
+      },
+      {
+        "call": 4,
+        "value": "b"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "d"
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "error": "ValueError: no more items"
+      },
+      {
+        "call": 11,
+        "value": ["b", "c"]
+      },
+      {
+        "call": 12,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown cursor"
+      },
+      {
+        "call": 6,
+        "value": ["abc", "b"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["b"]
+      },
+      {
+        "call": 9,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "i00"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "i01"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "i02"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "i03"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "i04"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": "i05"
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": "i06"
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": "i07"
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": "i08"
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": "i09"
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": "i10"
+      },
+      {
+        "call": 23,
+        "value": true
+      },
+      {
+        "call": 24,
+        "value": "i11"
+      },
+      {
+        "call": 25,
+        "value": false
+      },
+      {
+        "call": 26,
+        "error": "ValueError: no more items"
+      },
+      {
+        "call": 27,
+        "value": false
+      },
+      {
+        "call": 28,
+        "value": ["i00", "i01", "i02", "i03", "i04"]
+      },
+      {
+        "call": 29,
+        "value": "i04"
+      },
+      {
+        "call": 30,
+        "value": ["i05", "i06", "i07", "i08", "i09"]
+      },
+      {
+        "call": 31,
+        "value": "i09"
+      },
+      {
+        "call": 32,
+        "value": ["i10", "i11"]
+      },
+      {
+        "call": 33,
+        "value": null
+      },
+      {
+        "call": 34,
+        "value": []
+      },
+      {
+        "call": 35,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "a"
+      },
+      {
+        "call": 2,
+        "value": "c"
+      },
+      {
+        "call": 3,
+        "value": ["c", "m", "x"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["x"]
+      },
+      {
+        "call": 7,
+        "value": "m"
+      },
+      {
+        "call": 8,
+        "value": "x"
+      },
+      {
+        "call": 9,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "b"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "c"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "d"
+      },
+      {
+        "call": 8,
+        "value": "e"
+      },
+      {
+        "call": 9,
+        "value": "f"
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "g"
+      },
+      {
+        "call": 14,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["b", "d"]
+      },
+      {
+        "call": 2,
+        "value": "d"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["d", "f"]
+      },
+      {
+        "call": 5,
+        "value": ["f", "h"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["a", "b"]
+      },
+      {
+        "call": 9,
+        "value": "b"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "h"
+      },
+      {
+        "call": 12,
+        "value": ["h", "i"]
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": ["i"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: already there"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty item"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "X"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "x"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "y"
+      },
+      {
+        "call": 12,
+        "value": ["y"]
+      },
+      {
+        "call": 13,
+        "value": ["x", "y"]
+      },
+      {
+        "call": 14,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "m"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "z"
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": ["a", "m"]
+      },
+      {
+        "call": 11,
+        "value": "m"
+      },
+      {
+        "call": 12,
+        "value": ["m", "z"]
+      },
+      {
+        "call": 13,
+        "value": null
+      }
+    ]
+  }
+]

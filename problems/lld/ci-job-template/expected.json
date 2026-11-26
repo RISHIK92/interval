@@ -1,0 +1,858 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "install: npm ci",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 2,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt",
+          "test: pytest",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 3,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "install: npm ci",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./... [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 7,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [
+          "checkout: git checkout",
+          "install: npm ci",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 10,
+        "value": ["checkout: git checkout [failed]", "report: publish results"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": [
+          "checkout: git checkout",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 15,
+        "value": [
+          "checkout: git checkout",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 16,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "test: npm test",
+          "report: publish results [failed]"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "install: npm ci",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 2,
+        "value": ["checkout: git checkout [failed]", "report: publish results"]
+      },
+      {
+        "call": 3,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "install: npm ci [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "install: npm ci",
+          "test: npm test [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "install: npm ci",
+          "test: npm test",
+          "report: publish results [failed]"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt",
+          "test: pytest",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 2,
+        "value": ["checkout: git checkout [failed]", "report: publish results"]
+      },
+      {
+        "call": 3,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt",
+          "test: pytest [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt",
+          "test: pytest",
+          "report: publish results [failed]"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 2,
+        "value": ["checkout: git checkout [failed]", "report: publish results"]
+      },
+      {
+        "call": 3,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./... [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./...",
+          "report: publish results [failed]"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 3,
+        "value": [
+          "checkout: git checkout",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "checkout: git checkout",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "test: pytest",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 7,
+        "value": [
+          "checkout: git checkout",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 8,
+        "value": [
+          "checkout: git checkout",
+          "test: pytest",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 9,
+        "value": [
+          "checkout: git checkout",
+          "test: pytest",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 10,
+        "value": [
+          "checkout: git checkout",
+          "test: npm test [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 11,
+        "value": ["checkout: git checkout [failed]", "report: publish results"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 4,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt",
+          "test: pytest",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "error": "ValueError: only a hook can be skipped"
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv [failed]",
+          "report: publish results"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown step"
+      },
+      {
+        "call": 4,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./...",
+          "report: publish results"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["checkout: git checkout [failed]", "report: publish results"]
+      },
+      {
+        "call": 3,
+        "value": [
+          "checkout: git checkout",
+          "install: npm ci [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "checkout: git checkout",
+          "install: npm ci",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "checkout: git checkout",
+          "install: pip install -r requirements.txt",
+          "test: pytest",
+          "report: publish results [failed]"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./...",
+          "report: publish results [failed]"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 6,
+        "value": [
+          "checkout: git checkout",
+          "setup: python -m venv .venv",
+          "install: pip install -r requirements.txt",
+          "test: pytest",
+          "report: publish results"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": [
+          "before checkout: echo start",
+          "checkout: git checkout",
+          "before install: echo start",
+          "install: go mod download",
+          "before test: echo start",
+          "test: go test ./...",
+          "before report: echo start",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 3,
+        "value": [
+          "before checkout: echo start",
+          "checkout: git checkout",
+          "before setup: echo start",
+          "setup: nvm use",
+          "before install: echo start",
+          "install: npm ci [failed]",
+          "before report: echo start",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "before checkout: echo start",
+          "before checkout: date",
+          "checkout: git checkout [failed]",
+          "before report: echo start",
+          "before report: date",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty command"
+      },
+      {
+        "call": 7,
+        "value": [
+          "before checkout: echo start",
+          "before checkout: date",
+          "checkout: git checkout",
+          "before install: echo start",
+          "before install: date",
+          "install: go mod download",
+          "before test: echo start",
+          "before test: date",
+          "test: go test ./...",
+          "before report: echo start",
+          "before report: date",
+          "report: publish results"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "before checkout: df -h",
+          "checkout: git checkout",
+          "before test: df -h",
+          "test: pytest",
+          "before report: df -h",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "before checkout: df -h",
+          "checkout: git checkout",
+          "before test: df -h",
+          "test: pytest [failed]",
+          "before report: df -h",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "value": [
+          "before checkout: df -h",
+          "checkout: git checkout",
+          "before test: df -h",
+          "test: pytest",
+          "before report: df -h",
+          "report: publish results [failed]"
+        ]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": [
+          "before checkout: df -h",
+          "before checkout: df -h",
+          "checkout: git checkout",
+          "before test: df -h",
+          "before test: df -h",
+          "test: go test ./...",
+          "before report: df -h",
+          "before report: df -h",
+          "report: publish results"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [
+          "checkout: git checkout",
+          "setup: nvm use",
+          "install: npm ci",
+          "test: npm test",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 2,
+        "value": [
+          "checkout: git checkout",
+          "install: go mod download",
+          "test: go test ./... [failed]",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [
+          "before checkout: x",
+          "checkout: git checkout",
+          "before install: x",
+          "install: go mod download",
+          "before test: x",
+          "test: go test ./... [failed]",
+          "before report: x",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 5,
+        "value": [
+          "before checkout: x",
+          "checkout: git checkout",
+          "before install: x",
+          "install: go mod download",
+          "before test: x",
+          "test: go test ./...",
+          "before report: x",
+          "report: publish results"
+        ]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "before checkout: x",
+          "before checkout:  y ",
+          "checkout: git checkout",
+          "before install: x",
+          "before install:  y ",
+          "install: go mod download",
+          "before test: x",
+          "before test:  y ",
+          "test: go test ./...",
+          "before report: x",
+          "before report:  y ",
+          "report: publish results"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,964 @@
+{
+  "slug": "build-events",
+  "title": "Build status subscribers",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["observer-pattern", "publish-subscribe"],
+  "interface": {
+    "class": "BuildEvents",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "subscribe",
+        "params": [
+          {
+            "name": "subscriber",
+            "type": "string"
+          },
+          {
+            "name": "events",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "unsubscribe",
+        "params": [
+          {
+            "name": "subscriber",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "publish",
+        "params": [
+          {
+            "name": "event",
+            "type": "string"
+          },
+          {
+            "name": "build",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "inbox",
+        "params": [
+          {
+            "name": "subscriber",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["chat", ["failed", "passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["dashboard", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["pager", ["failed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "b1"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "b1"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "b1"]
+          },
+          {
+            "method": "inbox",
+            "args": ["chat"]
+          },
+          {
+            "method": "inbox",
+            "args": ["pager"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["pager"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["pager"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "b2"]
+          },
+          {
+            "method": "inbox",
+            "args": ["dashboard"]
+          },
+          {
+            "method": "inbox",
+            "args": ["pager"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["pager", ["failed", "passed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "b3"]
+          },
+          {
+            "method": "inbox",
+            "args": ["pager"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "x"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["", ["queued"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", []]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued", "queued"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["Queued"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued", "done"]]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["started"]]
+          },
+          {
+            "method": "publish",
+            "args": ["cancelled", "x"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", ""]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "release 1.2"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["b"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": [""]
+          },
+          {
+            "method": "inbox",
+            "args": [""]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["q", ["queued"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["s", ["started"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["p", ["passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["f", ["failed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "2"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "3"]
+          },
+          {
+            "method": "inbox",
+            "args": ["q"]
+          },
+          {
+            "method": "inbox",
+            "args": ["s"]
+          },
+          {
+            "method": "inbox",
+            "args": ["p"]
+          },
+          {
+            "method": "inbox",
+            "args": ["f"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["c", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["b", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "x"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "x"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["started"]]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "y"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "y"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["c"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["c", ["passed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "z"]
+          },
+          {
+            "method": "inbox",
+            "args": ["c"]
+          },
+          {
+            "method": "inbox",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "b"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["x", ["failed"]]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["x"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "b"]
+          },
+          {
+            "method": "inbox",
+            "args": ["x"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["Ops", ["failed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["ops", ["passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["ops ", ["failed", "passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["Ops", ["passed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", " main #42 "]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "x:y/z"]
+          },
+          {
+            "method": "inbox",
+            "args": ["Ops"]
+          },
+          {
+            "method": "inbox",
+            "args": ["ops"]
+          },
+          {
+            "method": "inbox",
+            "args": ["ops "]
+          },
+          {
+            "method": "inbox",
+            "args": ["OPS"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["OPS"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["Ops"]
+          },
+          {
+            "method": "inbox",
+            "args": ["Ops"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued", "nope"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["passed", "passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", []]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["failed", "started", "passed", "queued"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued", "", "x"]]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "2"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["log", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "b0"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "b1"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "b2"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "b3"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "b4"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "b5"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "b6"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "b7"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "b8"]
+          },
+          {
+            "method": "inbox",
+            "args": ["log"]
+          },
+          {
+            "method": "inbox",
+            "args": ["log"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["", "b"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", ""]
+          },
+          {
+            "method": "publish",
+            "args": ["PASSED", "b"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed ", "b"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "b"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["s0", ["queued", "started"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["s1", ["started", "passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["s2", ["passed", "failed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["s3", ["failed", "queued"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["s4", ["queued", "started"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["s5", ["started", "passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["s6", ["passed", "failed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "r"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "r"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "r"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "r"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["s2"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["s5"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "r2"]
+          },
+          {
+            "method": "inbox",
+            "args": ["s1"]
+          },
+          {
+            "method": "inbox",
+            "args": ["s3"]
+          },
+          {
+            "method": "inbox",
+            "args": ["s6"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["a"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued"]]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["A"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["a"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["a"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["failed"]]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "1"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "pause",
+        "params": [
+          {
+            "name": "subscriber",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "resume",
+        "params": [
+          {
+            "name": "subscriber",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["failed", "passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["b", ["failed"]]
+          },
+          {
+            "method": "pause",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "2"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "resume",
+            "args": ["a"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "resume",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["failed", "3"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "inbox",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": ["x"]
+          },
+          {
+            "method": "resume",
+            "args": ["x"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["x", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "resume",
+            "args": ["x"]
+          },
+          {
+            "method": "pause",
+            "args": ["x"]
+          },
+          {
+            "method": "pause",
+            "args": ["x"]
+          },
+          {
+            "method": "resume",
+            "args": ["x"]
+          },
+          {
+            "method": "resume",
+            "args": ["x"]
+          },
+          {
+            "method": "pause",
+            "args": [""]
+          },
+          {
+            "method": "resume",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued", "started", "passed", "failed"]]
+          },
+          {
+            "method": "pause",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "1"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "1"]
+          },
+          {
+            "method": "unsubscribe",
+            "args": ["a"]
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["queued"]]
+          },
+          {
+            "method": "resume",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "2"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "pause",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "3"]
+          },
+          {
+            "method": "publish",
+            "args": ["started", "3"]
+          },
+          {
+            "method": "publish",
+            "args": ["queued", "4"]
+          },
+          {
+            "method": "resume",
+            "args": ["a"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribe",
+            "args": ["a", ["passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["b", ["passed"]]
+          },
+          {
+            "method": "subscribe",
+            "args": ["c", ["passed"]]
+          },
+          {
+            "method": "pause",
+            "args": ["b"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "1"]
+          },
+          {
+            "method": "pause",
+            "args": ["a"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "2"]
+          },
+          {
+            "method": "resume",
+            "args": ["b"]
+          },
+          {
+            "method": "publish",
+            "args": ["passed", "3"]
+          },
+          {
+            "method": "resume",
+            "args": ["a"]
+          },
+          {
+            "method": "inbox",
+            "args": ["a"]
+          },
+          {
+            "method": "inbox",
+            "args": ["b"]
+          },
+          {
+            "method": "inbox",
+            "args": ["c"]
+          }
+        ]
+      }
+    ]
+  }
+}

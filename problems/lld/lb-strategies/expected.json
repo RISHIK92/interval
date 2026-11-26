@@ -1,0 +1,1786 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "a"
+      },
+      {
+        "call": 6,
+        "value": "b"
+      },
+      {
+        "call": 7,
+        "value": "a"
+      },
+      {
+        "call": 8,
+        "value": "c"
+      },
+      {
+        "call": 9,
+        "value": "a"
+      },
+      {
+        "call": 10,
+        "value": "a"
+      },
+      {
+        "call": 11,
+        "value": "a"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": "b"
+      },
+      {
+        "call": 17,
+        "value": "b"
+      },
+      {
+        "call": 18,
+        "value": "c"
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": null
+      },
+      {
+        "call": 21,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 22,
+        "value": "c"
+      },
+      {
+        "call": 23,
+        "value": null
+      },
+      {
+        "call": 24,
+        "value": "a"
+      },
+      {
+        "call": 25,
+        "value": "b"
+      },
+      {
+        "call": 26,
+        "value": "c"
+      },
+      {
+        "call": 27,
+        "value": "a"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: no backend to pick"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 8,
+        "value": "api-1"
+      },
+      {
+        "call": 9,
+        "value": "api-2"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "api-3"
+      },
+      {
+        "call": 12,
+        "value": "api-1"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: unknown backend"
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: unknown strategy"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: unknown strategy"
+      },
+      {
+        "call": 18,
+        "value": "api-2"
+      },
+      {
+        "call": 19,
+        "value": "api-3"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown strategy"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown strategy"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: no backend to pick"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "x"
+      },
+      {
+        "call": 4,
+        "value": "x"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 9,
+        "value": "x"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "a"
+      },
+      {
+        "call": 3,
+        "value": "a"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": "a"
+      },
+      {
+        "call": 7,
+        "value": "b"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "c"
+      },
+      {
+        "call": 10,
+        "value": "a"
+      },
+      {
+        "call": 11,
+        "value": "b"
+      },
+      {
+        "call": 12,
+        "value": "c"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": "a"
+      },
+      {
+        "call": 15,
+        "value": "b"
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": "a"
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": "b"
+      },
+      {
+        "call": 21,
+        "value": "c"
+      },
+      {
+        "call": 22,
+        "value": "d"
+      },
+      {
+        "call": 23,
+        "value": "a"
+      },
+      {
+        "call": 24,
+        "value": "b"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": "a"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "b"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": "c"
+      },
+      {
+        "call": 13,
+        "value": "a"
+      },
+      {
+        "call": 14,
+        "value": "b"
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": "c"
+      },
+      {
+        "call": 19,
+        "value": "b"
+      },
+      {
+        "call": 20,
+        "value": null
+      },
+      {
+        "call": 21,
+        "value": "d"
+      },
+      {
+        "call": 22,
+        "value": "c"
+      },
+      {
+        "call": 23,
+        "value": "d"
+      },
+      {
+        "call": 24,
+        "value": null
+      },
+      {
+        "call": 25,
+        "value": null
+      },
+      {
+        "call": 26,
+        "value": "a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": "a"
+      },
+      {
+        "call": 7,
+        "value": "c"
+      },
+      {
+        "call": 8,
+        "value": "a"
+      },
+      {
+        "call": 9,
+        "value": "b"
+      },
+      {
+        "call": 10,
+        "value": "a"
+      },
+      {
+        "call": 11,
+        "value": "a"
+      },
+      {
+        "call": 12,
+        "value": "b"
+      },
+      {
+        "call": 13,
+        "value": "a"
+      },
+      {
+        "call": 14,
+        "value": "c"
+      },
+      {
+        "call": 15,
+        "value": "a"
+      },
+      {
+        "call": 16,
+        "value": "b"
+      },
+      {
+        "call": 17,
+        "value": "a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "x"
+      },
+      {
+        "call": 4,
+        "value": "y"
+      },
+      {
+        "call": 5,
+        "value": "x"
+      },
+      {
+        "call": 6,
+        "value": "y"
+      },
+      {
+        "call": 7,
+        "value": "x"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "y"
+      },
+      {
+        "call": 10,
+        "value": "z"
+      },
+      {
+        "call": 11,
+        "value": "x"
+      },
+      {
+        "call": 12,
+        "value": "z"
+      },
+      {
+        "call": 13,
+        "value": "y"
+      },
+      {
+        "call": 14,
+        "value": "z"
+      },
+      {
+        "call": 15,
+        "value": "x"
+      },
+      {
+        "call": 16,
+        "value": "z"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "only"
+      },
+      {
+        "call": 3,
+        "value": "only"
+      },
+      {
+        "call": 4,
+        "value": "only"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "only"
+      },
+      {
+        "call": 7,
+        "value": "only"
+      },
+      {
+        "call": 8,
+        "value": "only"
+      },
+      {
+        "call": 9,
+        "value": "only"
+      },
+      {
+        "call": 10,
+        "value": "only"
+      },
+      {
+        "call": 11,
+        "value": "only"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "a"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "c"
+      },
+      {
+        "call": 8,
+        "value": "a"
+      },
+      {
+        "call": 9,
+        "value": "b"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "c"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "a"
+      },
+      {
+        "call": 4,
+        "value": "b"
+      },
+      {
+        "call": 5,
+        "value": "a"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "a"
+      },
+      {
+        "call": 8,
+        "value": "b"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "b"
+      },
+      {
+        "call": 11,
+        "value": "a"
+      },
+      {
+        "call": 12,
+        "value": "b"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": "a"
+      },
+      {
+        "call": 17,
+        "value": "a"
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": "a"
+      },
+      {
+        "call": 20,
+        "value": "b"
+      },
+      {
+        "call": 21,
+        "value": "a"
+      },
+      {
+        "call": 22,
+        "value": "b"
+      },
+      {
+        "call": 23,
+        "value": "a"
+      },
+      {
+        "call": 24,
+        "error": "ValueError: unknown strategy"
+      },
+      {
+        "call": 25,
+        "value": "a"
+      },
+      {
+        "call": 26,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "c"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "a"
+      },
+      {
+        "call": 10,
+        "value": "b"
+      },
+      {
+        "call": 11,
+        "value": "c"
+      },
+      {
+        "call": 12,
+        "value": "a"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": "a"
+      },
+      {
+        "call": 19,
+        "value": "a"
+      },
+      {
+        "call": 20,
+        "value": "a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: bad backend"
+      },
+      {
+        "call": 9,
+        "value": "Web"
+      },
+      {
+        "call": 10,
+        "value": "web"
+      },
+      {
+        "call": 11,
+        "value": "web "
+      },
+      {
+        "call": 12,
+        "value": "w-1.x"
+      },
+      {
+        "call": 13,
+        "value": "Web"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: unknown backend"
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: unknown backend"
+      },
+      {
+        "call": 18,
+        "value": "web"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 8,
+        "value": "a"
+      },
+      {
+        "call": 9,
+        "value": "b"
+      },
+      {
+        "call": 10,
+        "value": "a"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": "b"
+      },
+      {
+        "call": 13,
+        "value": "b"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "n0"
+      },
+      {
+        "call": 8,
+        "value": "n1"
+      },
+      {
+        "call": 9,
+        "value": "n2"
+      },
+      {
+        "call": 10,
+        "value": "n3"
+      },
+      {
+        "call": 11,
+        "value": "n4"
+      },
+      {
+        "call": 12,
+        "value": "n5"
+      },
+      {
+        "call": 13,
+        "value": "n0"
+      },
+      {
+        "call": 14,
+        "value": "n1"
+      },
+      {
+        "call": 15,
+        "value": "n2"
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": "n3"
+      },
+      {
+        "call": 20,
+        "value": "n5"
+      },
+      {
+        "call": 21,
+        "value": "n0"
+      },
+      {
+        "call": 22,
+        "value": null
+      },
+      {
+        "call": 23,
+        "value": "n5"
+      },
+      {
+        "call": 24,
+        "value": "n4"
+      },
+      {
+        "call": 25,
+        "value": "n3"
+      },
+      {
+        "call": 26,
+        "value": "n2"
+      },
+      {
+        "call": 27,
+        "value": "n1"
+      },
+      {
+        "call": 28,
+        "value": "n5"
+      },
+      {
+        "call": 29,
+        "value": "n4"
+      },
+      {
+        "call": 30,
+        "value": "n3"
+      },
+      {
+        "call": 31,
+        "value": "n5"
+      },
+      {
+        "call": 32,
+        "value": "n0"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 14,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "d"
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": "b"
+      },
+      {
+        "call": 8,
+        "value": "d"
+      },
+      {
+        "call": 9,
+        "value": "a"
+      },
+      {
+        "call": 10,
+        "value": "c"
+      },
+      {
+        "call": 11,
+        "value": "d"
+      },
+      {
+        "call": 12,
+        "value": "b"
+      },
+      {
+        "call": 13,
+        "value": "c"
+      },
+      {
+        "call": 14,
+        "value": "d"
+      },
+      {
+        "call": 15,
+        "value": "d"
+      },
+      {
+        "call": 16,
+        "value": "c"
+      },
+      {
+        "call": 17,
+        "value": "b"
+      },
+      {
+        "call": 18,
+        "value": "d"
+      },
+      {
+        "call": 19,
+        "value": "a"
+      },
+      {
+        "call": 20,
+        "value": "c"
+      },
+      {
+        "call": 21,
+        "value": "d"
+      },
+      {
+        "call": 22,
+        "value": "b"
+      },
+      {
+        "call": 23,
+        "value": "c"
+      },
+      {
+        "call": 24,
+        "value": "d"
+      },
+      {
+        "call": 25,
+        "value": null
+      },
+      {
+        "call": 26,
+        "value": "a"
+      },
+      {
+        "call": 27,
+        "value": "b"
+      },
+      {
+        "call": 28,
+        "value": "c"
+      },
+      {
+        "call": 29,
+        "value": "d"
+      },
+      {
+        "call": 30,
+        "value": "a"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": "a"
+      },
+      {
+        "call": 8,
+        "value": "c"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: already drained"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown backend"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown backend"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "error": "ValueError: no backend to pick"
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": "d"
+      },
+      {
+        "call": 20,
+        "value": "d"
+      },
+      {
+        "call": 21,
+        "error": "ValueError: bad backend"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "a"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "b"
+      },
+      {
+        "call": 8,
+        "value": "c"
+      },
+      {
+        "call": 9,
+        "value": "b"
+      },
+      {
+        "call": 10,
+        "value": "c"
+      },
+      {
+        "call": 11,
+        "value": "b"
+      },
+      {
+        "call": 12,
+        "value": "c"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": "b"
+      },
+      {
+        "call": 15,
+        "value": "c"
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": "b"
+      },
+      {
+        "call": 18,
+        "value": "c"
+      },
+      {
+        "call": 19,
+        "value": "b"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "a"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "b"
+      },
+      {
+        "call": 9,
+        "value": "c"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 12,
+        "value": "b"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": "c"
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": "b"
+      },
+      {
+        "call": 18,
+        "value": "b"
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": "b"
+      },
+      {
+        "call": 21,
+        "value": "b"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "c"
+      },
+      {
+        "call": 5,
+        "value": "b"
+      },
+      {
+        "call": 6,
+        "value": "a"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "b"
+      },
+      {
+        "call": 9,
+        "value": "a"
+      },
+      {
+        "call": 10,
+        "value": "b"
+      },
+      {
+        "call": 11,
+        "value": "b"
+      },
+      {
+        "call": 12,
+        "value": "a"
+      },
+      {
+        "call": 13,
+        "value": "b"
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": "d"
+      },
+      {
+        "call": 16,
+        "value": "b"
+      },
+      {
+        "call": 17,
+        "value": "a"
+      },
+      {
+        "call": 18,
+        "value": "d"
+      },
+      {
+        "call": 19,
+        "value": "d"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "a"
+      },
+      {
+        "call": 3,
+        "value": "a"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "error": "ValueError: no open connection"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "b"
+      },
+      {
+        "call": 12,
+        "value": "b"
+      }
+    ]
+  }
+]

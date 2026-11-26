@@ -1,0 +1,1283 @@
+{
+  "slug": "config-editor",
+  "title": "Config edits with undo",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["command-pattern"],
+  "interface": {
+    "class": "ConfigEditor",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "apply",
+        "params": [
+          {
+            "name": "op",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "undo",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "redo",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "view",
+        "params": [],
+        "returns": "map<string,string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "host", "db1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "port", "5432"]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "host", ".internal"]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "host", ""]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "port", "6432"]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "", "x"]
+          },
+          {
+            "method": "apply",
+            "args": ["set", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["PUT", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "b", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "b", "x"]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "a", ""]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", ""]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k", "v"]
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "k", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "k", "x"]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k", "w"]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "b", "2"]
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["drop", "a", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "", "2"]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "", ""]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["", "a", "1"]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "x", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "x", "2"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "x", "3"]
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "e", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "e", "ignored"]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["append", "e", "z"]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "path", "/a"]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "path", "/b"]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "path", "/c"]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "path", " d"]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["append", "path", "!"]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "Key", "a b"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "key", " x "]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "key ", "="]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "KEY", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "Key", " c"]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "key", ""]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "b", "2"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "c", "3"]
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "z", "0"]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k0", "0"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k1", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k2", "2"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k3", "3"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k0", "4"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k1", "5"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k2", "6"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k3", "7"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k0", "8"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "k1", "9"]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "k2", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "k1", "+"]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "t", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "t", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "t", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "t", ""]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["Put", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["put ", "a", "1"]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "a", "x"]
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", " "]
+          },
+          {
+            "method": "apply",
+            "args": ["append", "a", " "]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["remove", " ", ""]
+          },
+          {
+            "method": "apply",
+            "args": ["remove", "a", "anything"]
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "batch",
+        "params": [
+          {
+            "name": "ops",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["put host db1", "put port 5432", "append host .internal"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "port", "1"]
+          },
+          {
+            "method": "batch",
+            "args": [["remove port ", "put mode a b c"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", "1"]
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [[]]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["remove a ", "append a x"]]
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["put a 1", "put a 1"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["put a 1"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "a", "1"]
+          },
+          {
+            "method": "batch",
+            "args": [["put b 2", "drop a "]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["put b 2", "put a"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["put b 2", "put  2"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["put b 2", ""]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["put b ", "append b x", "append b y"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "x", "1"]
+          },
+          {
+            "method": "batch",
+            "args": [["put x 2", "remove x ", "put x 3", "append x 4"]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["put", "y", "1"]
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "batch",
+            "args": [["PUT a 1"]]
+          },
+          {
+            "method": "batch",
+            "args": [["put A 1", "put a 1", "put a  2 "]]
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          },
+          {
+            "method": "redo",
+            "args": []
+          },
+          {
+            "method": "view",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

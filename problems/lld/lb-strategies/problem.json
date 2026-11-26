@@ -1,0 +1,1826 @@
+{
+  "slug": "lb-strategies",
+  "title": "Load balancing strategies",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["strategy-pattern", "load-balancing"],
+  "interface": {
+    "class": "Balancer",
+    "constructor": {
+      "params": [
+        {
+          "name": "strategy",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "addBackend",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "weight",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "pick",
+        "params": [],
+        "returns": "string"
+      },
+      {
+        "name": "done",
+        "params": [
+          {
+            "name": "backend",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "useStrategy",
+        "params": [
+          {
+            "name": "strategy",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 5]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["api-1", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["api-2", 3]
+          },
+          {
+            "method": "addBackend",
+            "args": ["api-1", 2]
+          },
+          {
+            "method": "addBackend",
+            "args": ["", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["api-3", 0]
+          },
+          {
+            "method": "addBackend",
+            "args": ["api-3", 101]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["api-3", 100]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["api-9"]
+          },
+          {
+            "method": "done",
+            "args": ["api-3"]
+          },
+          {
+            "method": "done",
+            "args": ["api-3"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["random"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["Round-Robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["x", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["x"]
+          },
+          {
+            "method": "done",
+            "args": ["x"]
+          },
+          {
+            "method": "done",
+            "args": ["x"]
+          },
+          {
+            "method": "done",
+            "args": ["x"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["d", 9]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 100]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 50]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["d", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 4]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 2]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["x", 3]
+          },
+          {
+            "method": "addBackend",
+            "args": ["y", 3]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["z", 6]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["only", 100]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["two", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 2]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["d", 3]
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 3]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 2]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["Web", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["web", 100]
+          },
+          {
+            "method": "addBackend",
+            "args": ["web ", 50]
+          },
+          {
+            "method": "addBackend",
+            "args": ["Web", 2]
+          },
+          {
+            "method": "addBackend",
+            "args": ["w-1.x", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["web", -1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["q", 101]
+          },
+          {
+            "method": "addBackend",
+            "args": ["q", 1000]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["WEB"]
+          },
+          {
+            "method": "done",
+            "args": ["web "]
+          },
+          {
+            "method": "done",
+            "args": ["web "]
+          },
+          {
+            "method": "done",
+            "args": [""]
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 2]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 2]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["n0", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["n1", 2]
+          },
+          {
+            "method": "addBackend",
+            "args": ["n2", 3]
+          },
+          {
+            "method": "addBackend",
+            "args": ["n3", 4]
+          },
+          {
+            "method": "addBackend",
+            "args": ["n4", 5]
+          },
+          {
+            "method": "addBackend",
+            "args": ["n5", 6]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["n3"]
+          },
+          {
+            "method": "done",
+            "args": ["n5"]
+          },
+          {
+            "method": "done",
+            "args": ["n0"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 2]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 3]
+          },
+          {
+            "method": "addBackend",
+            "args": ["d", 4]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "drain",
+        "params": [
+          {
+            "name": "backend",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["b"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["b"]
+          },
+          {
+            "method": "drain",
+            "args": ["zz"]
+          },
+          {
+            "method": "drain",
+            "args": [""]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          },
+          {
+            "method": "done",
+            "args": ["b"]
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "drain",
+            "args": ["c"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["d", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 5]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 1]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "done",
+            "args": ["c"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["c"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "useStrategy",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["weighted-round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 2]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 3]
+          },
+          {
+            "method": "addBackend",
+            "args": ["c", 4]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["c"]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "addBackend",
+            "args": ["d", 5]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["a", 1]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "drain",
+            "args": ["a"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["least-connections"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["round-robin"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "done",
+            "args": ["a"]
+          },
+          {
+            "method": "addBackend",
+            "args": ["b", 7]
+          },
+          {
+            "method": "pick",
+            "args": []
+          },
+          {
+            "method": "pick",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

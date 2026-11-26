@@ -1,0 +1,916 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["dashboard"]
+      },
+      {
+        "call": 5,
+        "value": ["dashboard"]
+      },
+      {
+        "call": 6,
+        "value": ["chat", "dashboard", "pager"]
+      },
+      {
+        "call": 7,
+        "value": ["b1 failed"]
+      },
+      {
+        "call": 8,
+        "value": ["b1 failed"]
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": ["chat", "dashboard"]
+      },
+      {
+        "call": 12,
+        "value": ["b1 queued", "b1 started", "b1 failed", "b2 failed"]
+      },
+      {
+        "call": 13,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": ["chat", "dashboard", "pager"]
+      },
+      {
+        "call": 16,
+        "value": ["b3 passed"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: no events, or one listed twice"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no events, or one listed twice"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "error": "ValueError: already subscribed"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 12,
+        "value": ["a"]
+      },
+      {
+        "call": 13,
+        "value": ["release 1.2 queued"]
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: not subscribed"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["q"]
+      },
+      {
+        "call": 6,
+        "value": ["s"]
+      },
+      {
+        "call": 7,
+        "value": ["p"]
+      },
+      {
+        "call": 8,
+        "value": ["f"]
+      },
+      {
+        "call": 9,
+        "value": ["p"]
+      },
+      {
+        "call": 10,
+        "value": ["1 queued"]
+      },
+      {
+        "call": 11,
+        "value": ["1 started"]
+      },
+      {
+        "call": 12,
+        "value": ["1 passed", "3 passed"]
+      },
+      {
+        "call": 13,
+        "value": ["2 failed"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["c", "a", "b"]
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["c", "b"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["c", "b", "a"]
+      },
+      {
+        "call": 9,
+        "value": ["c", "b"]
+      },
+      {
+        "call": 10,
+        "value": ["y started"]
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": ["b", "c"]
+      },
+      {
+        "call": 14,
+        "value": ["z passed"]
+      },
+      {
+        "call": 15,
+        "value": ["x queued", "x started", "y started", "y passed", "z passed"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 6,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: already subscribed"
+      },
+      {
+        "call": 5,
+        "value": ["Ops", "ops "]
+      },
+      {
+        "call": 6,
+        "value": ["ops", "ops "]
+      },
+      {
+        "call": 7,
+        "value": [" main #42  failed"]
+      },
+      {
+        "call": 8,
+        "value": ["x:y/z passed"]
+      },
+      {
+        "call": 9,
+        "value": [" main #42  failed", "x:y/z passed"]
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "error": "ValueError: not subscribed"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: no events, or one listed twice"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: no events, or one listed twice"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 7,
+        "value": ["a"]
+      },
+      {
+        "call": 8,
+        "value": ["a"]
+      },
+      {
+        "call": 9,
+        "value": ["1 started", "2 queued"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": ["log"]
+      },
+      {
+        "call": 3,
+        "value": ["log"]
+      },
+      {
+        "call": 4,
+        "value": ["log"]
+      },
+      {
+        "call": 5,
+        "value": ["log"]
+      },
+      {
+        "call": 6,
+        "value": ["log"]
+      },
+      {
+        "call": 7,
+        "value": ["log"]
+      },
+      {
+        "call": 8,
+        "value": ["log"]
+      },
+      {
+        "call": 9,
+        "value": ["log"]
+      },
+      {
+        "call": 10,
+        "value": ["log"]
+      },
+      {
+        "call": 11,
+        "value": [
+          "b0 queued",
+          "b1 started",
+          "b2 passed",
+          "b3 failed",
+          "b4 queued",
+          "b5 started",
+          "b6 passed",
+          "b7 failed",
+          "b8 queued"
+        ]
+      },
+      {
+        "call": 12,
+        "value": [
+          "b0 queued",
+          "b1 started",
+          "b2 passed",
+          "b3 failed",
+          "b4 queued",
+          "b5 started",
+          "b6 passed",
+          "b7 failed",
+          "b8 queued"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown event"
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["a"]
+      },
+      {
+        "call": 8,
+        "value": ["b passed"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["s0", "s3", "s4"]
+      },
+      {
+        "call": 9,
+        "value": ["s0", "s1", "s4", "s5"]
+      },
+      {
+        "call": 10,
+        "value": ["s1", "s2", "s5", "s6"]
+      },
+      {
+        "call": 11,
+        "value": ["s2", "s3", "s6"]
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": ["s1", "s6"]
+      },
+      {
+        "call": 15,
+        "value": ["r started", "r passed", "r2 passed"]
+      },
+      {
+        "call": 16,
+        "value": ["r queued", "r failed"]
+      },
+      {
+        "call": 17,
+        "value": ["r passed", "r failed", "r2 passed"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": ["a"]
+      },
+      {
+        "call": 10,
+        "value": ["1 failed"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["b"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": ["1 failed", "2 passed"]
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not paused"
+      },
+      {
+        "call": 11,
+        "value": ["a", "b"]
+      },
+      {
+        "call": 12,
+        "value": ["1 failed", "2 passed", "3 failed"]
+      },
+      {
+        "call": 13,
+        "value": ["1 failed", "3 failed"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not paused"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: already paused"
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not paused"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not subscribed"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not subscribed"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not paused"
+      },
+      {
+        "call": 8,
+        "value": ["a"]
+      },
+      {
+        "call": 9,
+        "value": ["2 queued"]
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": []
+      },
+      {
+        "call": 14,
+        "value": 2
+      },
+      {
+        "call": 15,
+        "value": ["2 queued", "3 queued", "4 queued"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["a", "c"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["c"]
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": ["b", "c"]
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": ["1 passed", "2 passed", "3 passed"]
+      },
+      {
+        "call": 12,
+        "value": ["1 passed", "2 passed", "3 passed"]
+      },
+      {
+        "call": 13,
+        "value": ["1 passed", "2 passed", "3 passed"]
+      }
+    ]
+  }
+]
