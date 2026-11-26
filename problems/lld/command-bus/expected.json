@@ -1,0 +1,1075 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": ["c1: scale api=3", "c2: pause api"]
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["c3: resume api"]
+      },
+      {
+        "call": 9,
+        "value": 3
+      },
+      {
+        "call": 10,
+        "value": "c3"
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": "c2"
+      },
+      {
+        "call": 13,
+        "value": 3
+      },
+      {
+        "call": 14,
+        "value": "c1"
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": [
+          "c1: scale api=3",
+          "c2: pause api",
+          "c3: resume api",
+          "c3: undone",
+          "c2: undone",
+          "c1: undone"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["a: scale web=2", "b: skipped", "c: skipped"]
+      },
+      {
+        "call": 5,
+        "value": "a"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": ["a: scale web=2", "b: skipped", "c: skipped", "a: undone"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a service name"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown command"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a service name"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: a service name"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: a service name"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: an empty id"
+      },
+      {
+        "call": 15,
+        "value": true
+      },
+      {
+        "call": 16,
+        "value": false
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": ["x: scale a=1000", "y: scale a=0"]
+      },
+      {
+        "call": 19,
+        "value": 0
+      },
+      {
+        "call": 20,
+        "value": ["x: scale a=1000", "y: scale a=0"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": ["x: scale a=10"]
+      },
+      {
+        "call": 4,
+        "error": "ValueError: scale takes <service>=<0 to 1000>"
+      },
+      {
+        "call": 5,
+        "value": 10
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": ["k: scale s=4"]
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": "k"
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["K: scale s=6"]
+      },
+      {
+        "call": 10,
+        "value": 6
+      },
+      {
+        "call": 11,
+        "value": ["k: scale s=4", "k: undone", "K: scale s=6"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["1: scale a=1", "2: scale a=2", "3: scale b=9"]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": 9
+      },
+      {
+        "call": 9,
+        "value": ["1: scale a=1", "2: scale a=2", "3: scale b=9"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["p: pause s", "x: scale s=5", "r: resume s"]
+      },
+      {
+        "call": 5,
+        "value": 5
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["q: pause s"]
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": ["y: scale s=3"]
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": ["z: resume s"]
+      },
+      {
+        "call": 14,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": [
+          "a: scale s=2",
+          "b: scale s=5",
+          "c: pause s",
+          "d: skipped",
+          "e: skipped",
+          "f: resume s"
+        ]
+      },
+      {
+        "call": 8,
+        "value": 5
+      },
+      {
+        "call": 9,
+        "value": "f"
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": "c"
+      },
+      {
+        "call": 12,
+        "value": 5
+      },
+      {
+        "call": 13,
+        "value": "b"
+      },
+      {
+        "call": 14,
+        "value": 2
+      },
+      {
+        "call": 15,
+        "value": "a"
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": 0
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": [
+          "a: scale s=2",
+          "b: scale s=5",
+          "c: pause s",
+          "d: skipped",
+          "e: skipped",
+          "f: resume s",
+          "f: undone",
+          "c: undone",
+          "b: undone",
+          "a: undone"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": ["a: scale s=8"]
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["b: scale s=3"]
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["c: scale s=1"]
+      },
+      {
+        "call": 7,
+        "value": "c"
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": "b"
+      },
+      {
+        "call": 10,
+        "value": 8
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": ["d: scale s=6"]
+      },
+      {
+        "call": 13,
+        "value": "d"
+      },
+      {
+        "call": 14,
+        "value": 8
+      },
+      {
+        "call": 15,
+        "value": "a"
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["a: pause s"]
+      },
+      {
+        "call": 6,
+        "value": "a"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": ["a: pause s", "a: undone"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["a: scale s=2", "b: pause s", "c: resume s"]
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": "c"
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["d: resume s"]
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": "d"
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": [
+          "a: scale s=2",
+          "b: pause s",
+          "c: resume s",
+          "c: undone",
+          "d: resume s",
+          "d: undone"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["1: scale a=1", "2: scale A=2", "3: pause A"]
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an empty service"
+      },
+      {
+        "call": 9,
+        "value": "3"
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": "2"
+      },
+      {
+        "call": 12,
+        "value": "1"
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": [
+          "id1: scale svc=1",
+          "id2: scale svc=2",
+          "id3: scale svc=3",
+          "id4: scale svc=4",
+          "id5: scale svc=5",
+          "id6: scale svc=6",
+          "id7: scale svc=7",
+          "id8: scale svc=8"
+        ]
+      },
+      {
+        "call": 10,
+        "value": 8
+      },
+      {
+        "call": 11,
+        "value": "id8"
+      },
+      {
+        "call": 12,
+        "value": "id7"
+      },
+      {
+        "call": 13,
+        "value": "id6"
+      },
+      {
+        "call": 14,
+        "value": 5
+      },
+      {
+        "call": 15,
+        "value": [
+          "id1: scale svc=1",
+          "id2: scale svc=2",
+          "id3: scale svc=3",
+          "id4: scale svc=4",
+          "id5: scale svc=5",
+          "id6: scale svc=6",
+          "id7: scale svc=7",
+          "id8: scale svc=8",
+          "id8: undone",
+          "id7: undone",
+          "id6: undone"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["now: scale api=2"]
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": ["s2: pause api"]
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": ["s1: scale api=4"]
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": "s1"
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": [
+          "now: scale api=2",
+          "s2: pause api",
+          "s1: scale api=4",
+          "s1: undone"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["b: scale s=2", "a: scale s=1", "c: scale s=3", "d: skipped"]
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": "c"
+      },
+      {
+        "call": 11,
+        "value": "a"
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "value": [
+          "b: scale s=2",
+          "a: scale s=1",
+          "c: scale s=3",
+          "d: skipped",
+          "c: undone",
+          "a: undone"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a negative time"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown command"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an empty id"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a negative time"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["b: pause s"]
+      },
+      {
+        "call": 9,
+        "value": ["a: skipped"]
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": ["b: pause s", "a: skipped"]
+      }
+    ]
+  }
+]

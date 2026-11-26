@@ -1,0 +1,1083 @@
+{
+  "slug": "command-bus",
+  "title": "Ops command bus",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["command-pattern", "idempotency-keys"],
+  "interface": {
+    "class": "CommandBus",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "submit",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "command",
+            "type": "string"
+          },
+          {
+            "name": "arg",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "execute",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "undoLast",
+        "params": [],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "replicas",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "log",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["c1", "scale", "api=3"]
+          },
+          {
+            "method": "submit",
+            "args": ["c2", "pause", "api"]
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "submit",
+            "args": ["c2", "resume", "api"]
+          },
+          {
+            "method": "submit",
+            "args": ["c3", "resume", "api"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["a", "scale", "web=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["b", "scale", "web=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["c", "resume", "web"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["web"]
+          },
+          {
+            "method": "submit",
+            "args": ["a", "scale", "web=5"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["x", "Scale", "a=1"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "restart", "a"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "=1"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a="]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=01"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=1001"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=-1"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=1=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=1 "]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "pause", ""]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "pause", "a=1"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "resume", "b=c"]
+          },
+          {
+            "method": "submit",
+            "args": ["", "pause", "a"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=1000"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=7"]
+          },
+          {
+            "method": "submit",
+            "args": ["y", "scale", "a=0"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["a"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=00"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=10"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "a=1x"]
+          },
+          {
+            "method": "replicas",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["k", "scale", "s=4"]
+          },
+          {
+            "method": "submit",
+            "args": ["k", "scale", "s=5"]
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["k", "scale", "s=6"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["k", "pause", "s"]
+          },
+          {
+            "method": "submit",
+            "args": ["K", "scale", "s=6"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["1", "scale", "a=1"]
+          },
+          {
+            "method": "submit",
+            "args": ["2", "scale", "a=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["3", "scale", "b=9"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["a"]
+          },
+          {
+            "method": "replicas",
+            "args": ["b"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["p", "pause", "s"]
+          },
+          {
+            "method": "submit",
+            "args": ["x", "scale", "s=5"]
+          },
+          {
+            "method": "submit",
+            "args": ["r", "resume", "s"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "submit",
+            "args": ["q", "pause", "s"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "submit",
+            "args": ["y", "scale", "s=3"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "submit",
+            "args": ["z", "resume", "s"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["a", "scale", "s=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["b", "scale", "s=5"]
+          },
+          {
+            "method": "submit",
+            "args": ["c", "pause", "s"]
+          },
+          {
+            "method": "submit",
+            "args": ["d", "pause", "s"]
+          },
+          {
+            "method": "submit",
+            "args": ["e", "scale", "s=5"]
+          },
+          {
+            "method": "submit",
+            "args": ["f", "resume", "s"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["a", "scale", "s=8"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["b", "scale", "s=3"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["c", "scale", "s=1"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "submit",
+            "args": ["d", "scale", "s=6"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["a", "pause", "s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "log",
+            "args": []
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["a", "scale", "s=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["b", "pause", "s"]
+          },
+          {
+            "method": "submit",
+            "args": ["c", "resume", "s"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "submit",
+            "args": ["d", "resume", "s"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["1", "scale", "a=1"]
+          },
+          {
+            "method": "submit",
+            "args": ["2", "scale", "A=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["3", "pause", "A"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["a"]
+          },
+          {
+            "method": "replicas",
+            "args": ["A"]
+          },
+          {
+            "method": "replicas",
+            "args": ["b"]
+          },
+          {
+            "method": "replicas",
+            "args": [""]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["A"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["a"]
+          },
+          {
+            "method": "replicas",
+            "args": ["A"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "submit",
+            "args": ["id1", "scale", "svc=1"]
+          },
+          {
+            "method": "submit",
+            "args": ["id2", "scale", "svc=2"]
+          },
+          {
+            "method": "submit",
+            "args": ["id3", "scale", "svc=3"]
+          },
+          {
+            "method": "submit",
+            "args": ["id4", "scale", "svc=4"]
+          },
+          {
+            "method": "submit",
+            "args": ["id5", "scale", "svc=5"]
+          },
+          {
+            "method": "submit",
+            "args": ["id6", "scale", "svc=6"]
+          },
+          {
+            "method": "submit",
+            "args": ["id7", "scale", "svc=7"]
+          },
+          {
+            "method": "submit",
+            "args": ["id8", "scale", "svc=8"]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["svc"]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["svc"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "schedule",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "command",
+            "type": "string"
+          },
+          {
+            "name": "arg",
+            "type": "string"
+          },
+          {
+            "name": "atMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "executeDue",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "schedule",
+            "args": ["s1", "scale", "api=4", 100]
+          },
+          {
+            "method": "schedule",
+            "args": ["s2", "pause", "api", 50]
+          },
+          {
+            "method": "submit",
+            "args": ["now", "scale", "api=2"]
+          },
+          {
+            "method": "executeDue",
+            "args": [49]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "executeDue",
+            "args": [50]
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "executeDue",
+            "args": [100]
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "executeDue",
+            "args": [1000]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["api"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "schedule",
+            "args": ["a", "scale", "s=1", 10]
+          },
+          {
+            "method": "schedule",
+            "args": ["b", "scale", "s=2", 5]
+          },
+          {
+            "method": "schedule",
+            "args": ["c", "scale", "s=3", 10]
+          },
+          {
+            "method": "schedule",
+            "args": ["a", "pause", "s", 1]
+          },
+          {
+            "method": "submit",
+            "args": ["b", "pause", "s"]
+          },
+          {
+            "method": "schedule",
+            "args": ["d", "resume", "s", 10]
+          },
+          {
+            "method": "executeDue",
+            "args": [10]
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "executeDue",
+            "args": [10]
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "undoLast",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "schedule",
+            "args": ["a", "scale", "s=1", -1]
+          },
+          {
+            "method": "schedule",
+            "args": ["a", "nope", "s", 5]
+          },
+          {
+            "method": "schedule",
+            "args": ["", "pause", "s", 5]
+          },
+          {
+            "method": "executeDue",
+            "args": [-1]
+          },
+          {
+            "method": "submit",
+            "args": ["a", "pause", "s"]
+          },
+          {
+            "method": "schedule",
+            "args": ["a", "pause", "s", 0]
+          },
+          {
+            "method": "schedule",
+            "args": ["b", "pause", "s", 0]
+          },
+          {
+            "method": "executeDue",
+            "args": [0]
+          },
+          {
+            "method": "execute",
+            "args": []
+          },
+          {
+            "method": "replicas",
+            "args": ["s"]
+          },
+          {
+            "method": "log",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

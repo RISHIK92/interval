@@ -1,0 +1,1138 @@
+{
+  "slug": "eviction-policies",
+  "title": "Pluggable eviction",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["strategy-pattern", "cache-eviction-policies"],
+  "interface": {
+    "class": "EvictingCache",
+    "constructor": {
+      "params": [
+        {
+          "name": "capacity",
+          "type": "int"
+        },
+        {
+          "name": "policy",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "put",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "lookup",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "keys",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "switchPolicy",
+        "params": [
+          {
+            "name": "policy",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "lru"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "put",
+            "args": ["e", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lru"]
+          },
+          {
+            "method": "put",
+            "args": ["f", 6]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0, "lru"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "LRU"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "random"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "lru"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["b", 20]
+          },
+          {
+            "method": "lookup",
+            "args": ["zz"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "put",
+            "args": ["e", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["d"]
+          },
+          {
+            "method": "lookup",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 10]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["b", 9]
+          },
+          {
+            "method": "put",
+            "args": ["e", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["d"]
+          },
+          {
+            "method": "put",
+            "args": ["e", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "lookup",
+            "args": ["e"]
+          },
+          {
+            "method": "lookup",
+            "args": ["e"]
+          },
+          {
+            "method": "put",
+            "args": ["f", 6]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["a", 2]
+          },
+          {
+            "method": "put",
+            "args": ["a", 3]
+          },
+          {
+            "method": "put",
+            "args": ["b", 1]
+          },
+          {
+            "method": "put",
+            "args": ["c", 1]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["d", 1]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "lru"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["e", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lru"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "put",
+            "args": ["f", 6]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 7]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["e", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, "fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lfu"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lru"]
+          },
+          {
+            "method": "put",
+            "args": ["c", 30]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "lru"]
+          },
+          {
+            "method": "put",
+            "args": ["", 1]
+          },
+          {
+            "method": "lookup",
+            "args": [""]
+          },
+          {
+            "method": "switchPolicy",
+            "args": [""]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["Lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["mru"]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "lru"]
+          },
+          {
+            "method": "put",
+            "args": ["x", -5]
+          },
+          {
+            "method": "put",
+            "args": ["y", 9007199254740991]
+          },
+          {
+            "method": "lookup",
+            "args": ["x"]
+          },
+          {
+            "method": "lookup",
+            "args": ["y"]
+          },
+          {
+            "method": "put",
+            "args": ["x", 0]
+          },
+          {
+            "method": "lookup",
+            "args": ["x"]
+          },
+          {
+            "method": "put",
+            "args": ["Y", 1]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["k1", 1]
+          },
+          {
+            "method": "put",
+            "args": ["k2", 2]
+          },
+          {
+            "method": "put",
+            "args": ["k3", 3]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["fifo"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k1"]
+          },
+          {
+            "method": "put",
+            "args": ["k4", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lru"]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lru"]
+          },
+          {
+            "method": "put",
+            "args": ["k5", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["k1"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4, "lfu"]
+          },
+          {
+            "method": "put",
+            "args": ["k0", 0]
+          },
+          {
+            "method": "put",
+            "args": ["k1", 1]
+          },
+          {
+            "method": "put",
+            "args": ["k2", 2]
+          },
+          {
+            "method": "put",
+            "args": ["k3", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["k0"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k1"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k2"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k0"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k1"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k2"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k0"]
+          },
+          {
+            "method": "put",
+            "args": ["n1", 1]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["n2", 2]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lru"]
+          },
+          {
+            "method": "lookup",
+            "args": ["k0"]
+          },
+          {
+            "method": "put",
+            "args": ["n3", 3]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["k3"]
+          },
+          {
+            "method": "lookup",
+            "args": ["n1"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "pinKey",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "lru"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "pinKey",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "fifo"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "pinKey",
+            "args": ["a"]
+          },
+          {
+            "method": "pinKey",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lfu"]
+          },
+          {
+            "method": "lookup",
+            "args": ["d"]
+          },
+          {
+            "method": "lookup",
+            "args": ["d"]
+          },
+          {
+            "method": "pinKey",
+            "args": ["c"]
+          },
+          {
+            "method": "put",
+            "args": ["e", 5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "pinKey",
+            "args": ["d"]
+          },
+          {
+            "method": "put",
+            "args": ["f", 6]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["a", 10]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "switchPolicy",
+            "args": ["lru"]
+          },
+          {
+            "method": "put",
+            "args": ["g", 7]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "lru"]
+          },
+          {
+            "method": "pinKey",
+            "args": ["a"]
+          },
+          {
+            "method": "pinKey",
+            "args": [""]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "pinKey",
+            "args": ["a"]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "pinKey",
+            "args": ["b"]
+          },
+          {
+            "method": "pinKey",
+            "args": ["c"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          }
+        ]
+      }
+    ]
+  }
+}

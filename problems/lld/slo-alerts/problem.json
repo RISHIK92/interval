@@ -1,0 +1,785 @@
+{
+  "slug": "slo-alerts",
+  "title": "SLO burn alerts",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["observer-pattern", "slos-and-error-budgets"],
+  "interface": {
+    "class": "SloMonitor",
+    "constructor": {
+      "params": [
+        {
+          "name": "objectivePermille",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "watch",
+        "params": [
+          {
+            "name": "subscriber",
+            "type": "string"
+          },
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "burnPercent",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "observe",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "good",
+            "type": "int"
+          },
+          {
+            "name": "bad",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "budgetLeft",
+        "params": [
+          {
+            "name": "service",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["pager", "api", 50]
+          },
+          {
+            "method": "watch",
+            "args": ["slack", "api", 25]
+          },
+          {
+            "method": "observe",
+            "args": ["api", 995, 5]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["api"]
+          },
+          {
+            "method": "observe",
+            "args": ["api", 990, 10]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["api"]
+          },
+          {
+            "method": "observe",
+            "args": ["api", 3000, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["api"]
+          },
+          {
+            "method": "observe",
+            "args": ["api", 1000, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["api"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [999]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["db"]
+          },
+          {
+            "method": "watch",
+            "args": ["ops", "db", 100]
+          },
+          {
+            "method": "observe",
+            "args": ["db", 0, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["db", 999, 1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["db"]
+          },
+          {
+            "method": "observe",
+            "args": ["db", 1000, 3]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["db"]
+          },
+          {
+            "method": "observe",
+            "args": ["web", 10, 10]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["web"]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["db"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["a"]
+          },
+          {
+            "method": "observe",
+            "args": ["a", 1, 1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["a"]
+          },
+          {
+            "method": "observe",
+            "args": ["a", 0, 998]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [900]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 0]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 101]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 1]
+          },
+          {
+            "method": "watch",
+            "args": ["b", "s", 100]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 999, 1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 89]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 10]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["w", "s", 50]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 100, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 100, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 1, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 200, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 1, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 3]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 500, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["z", "s", 10]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 20]
+          },
+          {
+            "method": "watch",
+            "args": ["m", "t", 10]
+          },
+          {
+            "method": "watch",
+            "args": ["A", "s", 10]
+          },
+          {
+            "method": "observe",
+            "args": ["t", 50, 50]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 980, 2]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 10000, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["t"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 50]
+          },
+          {
+            "method": "watch",
+            "args": ["b", "s", 50]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 994, 6]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 70]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 60]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 50]
+          },
+          {
+            "method": "watch",
+            "args": ["b", "s", 10]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 1000, 0]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 30]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 90, 10]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "watch",
+            "args": ["late", "s", 90]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 900, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [997]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 2997, 3]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 3, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "observe",
+            "args": ["x", 1, 2]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["x"]
+          },
+          {
+            "method": "observe",
+            "args": ["y", 0, 1000000]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["", "s", 10]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "", 10]
+          },
+          {
+            "method": "observe",
+            "args": ["", 1, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["s", -1, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, -1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": [""]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 10]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 99, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["s", -5, 5]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "S", 1]
+          },
+          {
+            "method": "watch",
+            "args": ["A", "s", 1]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["S", 0, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["S", 0, 1]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["s"]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["S"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [999]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "big", 99]
+          },
+          {
+            "method": "observe",
+            "args": ["big", 1000000, 999]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["big"]
+          },
+          {
+            "method": "observe",
+            "args": ["big", 0, 1]
+          },
+          {
+            "method": "observe",
+            "args": ["big", 1000000, 1000]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["big"]
+          },
+          {
+            "method": "observe",
+            "args": ["big", 1, 0]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["big"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "unwatch",
+        "params": [
+          {
+            "name": "subscriber",
+            "type": "string"
+          },
+          {
+            "name": "service",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 10]
+          },
+          {
+            "method": "watch",
+            "args": ["b", "s", 10]
+          },
+          {
+            "method": "unwatch",
+            "args": ["a", "s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 1]
+          },
+          {
+            "method": "unwatch",
+            "args": ["a", "s"]
+          },
+          {
+            "method": "unwatch",
+            "args": ["b", "t"]
+          },
+          {
+            "method": "unwatch",
+            "args": ["c", "s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 1000, 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [990]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 10]
+          },
+          {
+            "method": "watch",
+            "args": ["b", "s", 10]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 1]
+          },
+          {
+            "method": "unwatch",
+            "args": ["a", "s"]
+          },
+          {
+            "method": "watch",
+            "args": ["a", "s", 10]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 0]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 100000, 0]
+          },
+          {
+            "method": "unwatch",
+            "args": ["", "s"]
+          },
+          {
+            "method": "unwatch",
+            "args": ["a", ""]
+          },
+          {
+            "method": "unwatch",
+            "args": ["zz", "nowhere"]
+          },
+          {
+            "method": "budgetLeft",
+            "args": ["nowhere"]
+          },
+          {
+            "method": "unwatch",
+            "args": ["b", "s"]
+          },
+          {
+            "method": "unwatch",
+            "args": ["b", "s"]
+          },
+          {
+            "method": "observe",
+            "args": ["s", 0, 100000]
+          }
+        ]
+      }
+    ]
+  }
+}

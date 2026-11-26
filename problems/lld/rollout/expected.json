@@ -1,0 +1,798 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "api pending"
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "api canary v2 10%"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "api rolling v2 50%"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "api paused v2 50%"
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "api rolling v2 50%"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "api done v2 100%"
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "value": false
+      },
+      {
+        "call": 16,
+        "value": "api done v2 100%"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "web rolled-back v9 0%"
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": "web rolled-back v9 0%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: an empty service"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": "svc pending"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: an empty version"
+      },
+      {
+        "call": 7,
+        "value": "svc pending"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "error": "ValueError: an empty version"
+      },
+      {
+        "call": 11,
+        "value": "svc canary 1.0 10%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "svc canary v1 10%"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "svc rolling v1 50%"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "svc done v1 100%"
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": "svc done v1 100%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "svc paused v1 10%"
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "svc paused v1 10%"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "svc canary v1 10%"
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "svc rolling v1 50%"
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": "svc paused v1 50%"
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": "svc rolling v1 50%"
+      },
+      {
+        "call": 18,
+        "value": true
+      },
+      {
+        "call": 19,
+        "value": "svc done v1 100%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "svc rolled-back v1 0%"
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": "svc rolled-back v1 0%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "svc rolled-back v1 0%"
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": "svc rolled-back v1 0%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "svc paused v1 50%"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "svc done v1 100%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "Payments API canary 2025.11.25-rc 1 10%"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "Payments API done 2025.11.25-rc 1 100%"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "x pending"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "x paused v 50%"
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "x rolled-back v 0%"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "api rolling v2 50%"
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": "api rolling v2 50%"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "api rolled-back v2 0%"
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": "api rolled-back v2 0%"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": "api canary v2 10%"
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": "api canary v2 10%"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "api rolling v2 50%"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "api done v2 100%"
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": "api done v2 100%"
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": "api done v2 100%"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "api rolled-back v2 0%"
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": "api rolled-back v2 0%"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an error rate from 0 to 100"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an error rate from 0 to 100"
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": "api pending"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": "api paused v2 10%"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": false
+      },
+      {
+        "call": 15,
+        "value": "api done v2 100%"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "api rolled-back v2 0%"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an error rate from 0 to 100"
+      },
+      {
+        "call": 6,
+        "value": "api rolled-back v2 0%"
+      }
+    ]
+  }
+]

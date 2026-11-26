@@ -1,0 +1,1088 @@
+{
+  "slug": "log-merger",
+  "title": "Merged log tail",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["iterator-pattern"],
+  "interface": {
+    "class": "LogMerger",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addLine",
+        "params": [
+          {
+            "name": "stream",
+            "type": "string"
+          },
+          {
+            "name": "ts",
+            "type": "int"
+          },
+          {
+            "name": "line",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "hasNext",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "next",
+        "params": [],
+        "returns": "string"
+      },
+      {
+        "name": "skipUntil",
+        "params": [
+          {
+            "name": "ts",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["web", 10, "GET /"]
+          },
+          {
+            "method": "addLine",
+            "args": ["db", 12, "slow query"]
+          },
+          {
+            "method": "addLine",
+            "args": ["web", 12, "GET /a"]
+          },
+          {
+            "method": "addLine",
+            "args": ["db", 5, "boot"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["db", 11, "late"]
+          },
+          {
+            "method": "addLine",
+            "args": ["api", 12, "ok"]
+          },
+          {
+            "method": "addLine",
+            "args": ["db", 20, "vacuum"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 1, "x"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 2, "y"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 3, "z"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 9, "w"]
+          },
+          {
+            "method": "skipUntil",
+            "args": [5]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 4, "old"]
+          },
+          {
+            "method": "addLine",
+            "args": ["c", 9, "same time"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 0, "first"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 0, "again"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 5, "b1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 5, "a1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["B", 5, "B1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 5, "a2"]
+          },
+          {
+            "method": "addLine",
+            "args": ["ab", 5, "ab1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 5, "b2"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 10, "x"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 9, "y"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 10, "z"]
+          },
+          {
+            "method": "addLine",
+            "args": ["t", 0, "w"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 11, "v"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 10, "u"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["m", 5, "m5"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 9, "a9"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["z", 4, "z4"]
+          },
+          {
+            "method": "addLine",
+            "args": ["z", 5, "z5"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 5, "a5"]
+          },
+          {
+            "method": "addLine",
+            "args": ["m", 5, "m5b"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["m", 6, "m6"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 9, "b9"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 9, "a9b"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 1, "1"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 3, "3"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 2, "2"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["c", 2, "2c"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 7, "7"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 8, "8"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 1, "a1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 2, "b2"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 3, "a3"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 3, "b3"]
+          },
+          {
+            "method": "addLine",
+            "args": ["c", 4, "c4"]
+          },
+          {
+            "method": "skipUntil",
+            "args": [3]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 2, "no"]
+          },
+          {
+            "method": "addLine",
+            "args": ["c", 3, "c3"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 3, "a3b"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "skipUntil",
+            "args": [100]
+          },
+          {
+            "method": "addLine",
+            "args": ["z", 99, "no"]
+          },
+          {
+            "method": "addLine",
+            "args": ["z", 100, "yes"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 5, "a5"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 6, "a6"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "skipUntil",
+            "args": [0]
+          },
+          {
+            "method": "skipUntil",
+            "args": [5]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "skipUntil",
+            "args": [6]
+          },
+          {
+            "method": "skipUntil",
+            "args": [7]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 6, "six"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 7, "seven"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 1, "b1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 5, "a5"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "skipUntil",
+            "args": [1]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 1, "a1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["c", 1, "c1"]
+          },
+          {
+            "method": "skipUntil",
+            "args": [5]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["", 1, "x"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 1, ""]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", -1, "x"]
+          },
+          {
+            "method": "skipUntil",
+            "args": [-1]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 0, "zero"]
+          },
+          {
+            "method": "skipUntil",
+            "args": [0]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["S", 2, "upper"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 1, "lower"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s", 2, "two words  here"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["s0", 0, "l0"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s1", 1, "l1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s2", 2, "l2"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s3", 0, "l3"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s0", 4, "l4"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s1", 5, "l5"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s2", 3, "l6"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s3", 4, "l7"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s0", 8, "l8"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s1", 6, "l9"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s2", 7, "l10"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s3", 8, "l11"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s0", 9, "l12"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s1", 10, "l13"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s2", 11, "l14"]
+          },
+          {
+            "method": "addLine",
+            "args": ["s3", 9, "l15"]
+          },
+          {
+            "method": "skipUntil",
+            "args": [4]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "filterStream",
+        "params": [
+          {
+            "name": "stream",
+            "type": "string"
+          },
+          {
+            "name": "on",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 1, "a1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 2, "b2"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 3, "a3"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 4, "b4"]
+          },
+          {
+            "method": "filterStream",
+            "args": ["a", true]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "filterStream",
+            "args": ["a", false]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 5, "a5"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 1, "a1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 2, "a2"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 8, "a8"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 5, "b5"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "filterStream",
+            "args": ["a", true]
+          },
+          {
+            "method": "filterStream",
+            "args": ["a", true]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "filterStream",
+            "args": ["a", false]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "filterStream",
+            "args": ["zz", true]
+          },
+          {
+            "method": "addLine",
+            "args": ["zz", 9, "hidden"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 9, "a9"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "filterStream",
+            "args": ["zz", false]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 1, "a1"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 2, "b2"]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 3, "a3"]
+          },
+          {
+            "method": "filterStream",
+            "args": ["b", true]
+          },
+          {
+            "method": "skipUntil",
+            "args": [3]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 1, "no"]
+          },
+          {
+            "method": "addLine",
+            "args": ["b", 3, "b3"]
+          },
+          {
+            "method": "filterStream",
+            "args": ["", true]
+          },
+          {
+            "method": "filterStream",
+            "args": ["b", false]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "filterStream",
+            "args": ["a", true]
+          },
+          {
+            "method": "addLine",
+            "args": ["a", 4, "a4"]
+          },
+          {
+            "method": "hasNext",
+            "args": []
+          },
+          {
+            "method": "filterStream",
+            "args": ["a", false]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

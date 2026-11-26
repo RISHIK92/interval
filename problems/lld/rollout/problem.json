@@ -1,0 +1,846 @@
+{
+  "slug": "rollout",
+  "title": "Deployment rollout",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["state-pattern", "finite-state-machines", "canary-releases"],
+  "interface": {
+    "class": "Rollout",
+    "constructor": {
+      "params": [
+        {
+          "name": "service",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "begin",
+        "params": [
+          {
+            "name": "version",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "advance",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "pause",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "resume",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "abort",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "status",
+        "params": [],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["web"]
+          },
+          {
+            "method": "begin",
+            "args": ["v9"]
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["v10"]
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": [""]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["1.0"]
+          },
+          {
+            "method": "begin",
+            "args": ["1.1"]
+          },
+          {
+            "method": "begin",
+            "args": [""]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "begin",
+            "args": ["v1"]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "begin",
+            "args": ["v1"]
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "begin",
+            "args": ["v1"]
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "begin",
+            "args": ["v1"]
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["svc"]
+          },
+          {
+            "method": "begin",
+            "args": ["v1"]
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Payments API"]
+          },
+          {
+            "method": "begin",
+            "args": ["2025.11.25-rc 1"]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["x"]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["v"]
+          },
+          {
+            "method": "advance",
+            "args": []
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "abort",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "autoAdvance",
+        "params": [
+          {
+            "name": "errorRate",
+            "type": "float"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.4]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [3.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [7.5]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [1.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [5.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.99]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.5]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [100.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [5.01]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [-0.01]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [100.01]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.5]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [9.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "pause",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.5]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [9.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "resume",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.0]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.0]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [99.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["api"]
+          },
+          {
+            "method": "begin",
+            "args": ["v2"]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [0.0]
+          },
+          {
+            "method": "autoAdvance",
+            "args": [100.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "autoAdvance",
+            "args": [-1.0]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

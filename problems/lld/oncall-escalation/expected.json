@@ -1,0 +1,792 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["db-down -> bo"]
+      },
+      {
+        "call": 4,
+        "value": "bo"
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": "bo"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": "ana"
+      },
+      {
+        "call": 3,
+        "value": ["b -> bo"]
+      },
+      {
+        "call": 4,
+        "value": ["a -> bo"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": "bo"
+      },
+      {
+        "call": 7,
+        "value": "bo"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an empty or known incident"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad levels or timeout"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad levels or timeout"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad levels or timeout"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: bad levels or timeout"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "solo"
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": "solo"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": "ana"
+      },
+      {
+        "call": 4,
+        "value": ["i -> bo"]
+      },
+      {
+        "call": 5,
+        "value": "bo"
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["i -> cy"]
+      },
+      {
+        "call": 8,
+        "value": ["i -> dee"]
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": "dee"
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": "dee"
+      },
+      {
+        "call": 13,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": ["i -> bo"]
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": "bo"
+      },
+      {
+        "call": 11,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": "ana"
+      },
+      {
+        "call": 5,
+        "value": "ana"
+      },
+      {
+        "call": 6,
+        "value": ["j -> bo"]
+      },
+      {
+        "call": 7,
+        "value": "bo"
+      },
+      {
+        "call": 8,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": "ana"
+      },
+      {
+        "call": 3,
+        "value": "ana"
+      },
+      {
+        "call": 4,
+        "value": "ana"
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": ["B -> bo", "b -> bo"]
+      },
+      {
+        "call": 7,
+        "value": ["a -> bo"]
+      },
+      {
+        "call": 8,
+        "value": ["ab -> bo"]
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": ["b -> cy"]
+      },
+      {
+        "call": 11,
+        "value": ["a -> cy", "ab -> cy"]
+      },
+      {
+        "call": 12,
+        "value": "cy"
+      },
+      {
+        "call": 13,
+        "value": "cy"
+      },
+      {
+        "call": 14,
+        "value": "cy"
+      },
+      {
+        "call": 15,
+        "value": "bo"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 6,
+        "value": "ana"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: an empty or known incident"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: an empty incident"
+      },
+      {
+        "call": 11,
+        "value": ["i -> bo"]
+      },
+      {
+        "call": 12,
+        "error": "ValueError: an empty or known incident"
+      },
+      {
+        "call": 13,
+        "value": ["i -> cy"]
+      },
+      {
+        "call": 14,
+        "value": "cy"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: time went backwards"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "ana"
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": "ana"
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["x -> bo"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an empty or known incident"
+      },
+      {
+        "call": 4,
+        "value": "ana"
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": "ana"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: an empty or known incident"
+      },
+      {
+        "call": 8,
+        "value": "ana"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "p"
+      },
+      {
+        "call": 2,
+        "value": "p"
+      },
+      {
+        "call": 3,
+        "value": "p"
+      },
+      {
+        "call": 4,
+        "value": "p"
+      },
+      {
+        "call": 5,
+        "value": "p"
+      },
+      {
+        "call": 6,
+        "value": "p"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": [
+          "inc0 -> s",
+          "inc1 -> s",
+          "inc3 -> s",
+          "inc4 -> s",
+          "inc5 -> s"
+        ]
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": "s"
+      },
+      {
+        "call": 11,
+        "value": "p"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "ana"
+      },
+      {
+        "call": 3,
+        "value": ["i -> dan"]
+      },
+      {
+        "call": 4,
+        "value": "dan"
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "dan"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "ana"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "ana"
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": "eve"
+      },
+      {
+        "call": 6,
+        "value": "eve"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not on call, or an empty substitute"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": ["i -> ana"]
+      },
+      {
+        "call": 10,
+        "value": ["j -> ana"]
+      },
+      {
+        "call": 11,
+        "value": "ana"
+      },
+      {
+        "call": 12,
+        "value": "ana"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": "ana"
+      },
+      {
+        "call": 15,
+        "value": "ana"
+      },
+      {
+        "call": 16,
+        "value": ["i -> cy", "j -> cy", "k -> ana"]
+      },
+      {
+        "call": 17,
+        "value": "ana"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: not on call, or an empty substitute"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not on call, or an empty substitute"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not on call, or an empty substitute"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not on call, or an empty substitute"
+      },
+      {
+        "call": 5,
+        "value": "ana"
+      },
+      {
+        "call": 6,
+        "value": "ana"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["i -> bo"]
+      },
+      {
+        "call": 9,
+        "value": ["i -> bo"]
+      },
+      {
+        "call": 10,
+        "value": "bo"
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": true
+      }
+    ]
+  }
+]

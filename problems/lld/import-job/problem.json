@@ -1,0 +1,484 @@
+{
+  "slug": "import-job",
+  "title": "Import jobs",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["template-method-pattern"],
+  "interface": {
+    "class": "ImportJob",
+    "constructor": {
+      "params": [
+        {
+          "name": "kind",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "runImport",
+        "params": [
+          {
+            "name": "lines",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "map<string,int>"
+      },
+      {
+        "name": "loaded",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "rejects",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "runImport",
+            "args": [
+              [
+                "Ana@Example.com,Ana,34",
+                "bo@example.com,,20",
+                "cy@example,Cy,200",
+                "not-an-email,Dee,40"
+              ]
+            ]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          },
+          {
+            "method": "runImport",
+            "args": [["ed@x.io,Ed,0"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["events"]
+          },
+          {
+            "method": "runImport",
+            "args": [
+              [
+                "1700000000,click,ana",
+                "1700000001,scroll,bo",
+                "17e8,view,cy",
+                "5,buy,",
+                "5,buy,dee,extra"
+              ]
+            ]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["orders"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Users"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "runImport",
+            "args": [
+              [
+                "a@b,n,1",
+                "a@b,n",
+                "a@b,n,1,",
+                "@b,n,1",
+                "a@,n,1",
+                "a@b@c,n,1",
+                "ab,n,1",
+                "a@b,,1",
+                "a@b,n,",
+                "a@b,n,x",
+                "a@b,n,-1",
+                "a@b,n,01",
+                "a@b,n,151",
+                "a@b,n,150",
+                "a@b,n,0",
+                "@,,",
+                ",,",
+                "a@b,n,1.5"
+              ]
+            ]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "runImport",
+            "args": [["MiXeD@Case.IO,Jo Ann O'Neil,7", "x@y, padded ,10"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["events"]
+          },
+          {
+            "method": "runImport",
+            "args": [
+              [
+                "0,view,u",
+                "1000000000,buy,u",
+                "1000000001,buy,u",
+                "00,view,u",
+                "07,view,u",
+                "-1,view,u",
+                "1.5,view,u",
+                ",view,u",
+                "9,Click,u",
+                "9,,u",
+                "9,click,",
+                "9,click,u,",
+                "9,click",
+                "x,y,"
+              ]
+            ]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["events"]
+          },
+          {
+            "method": "runImport",
+            "args": [["1,view,a", "x"]]
+          },
+          {
+            "method": "runImport",
+            "args": [[]]
+          },
+          {
+            "method": "runImport",
+            "args": [["2,view,b", "3,nope,c", "y,view,d"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "runImport",
+            "args": [["a@b,n,1", ""]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          },
+          {
+            "method": "runImport",
+            "args": [["x"]]
+          },
+          {
+            "method": "runImport",
+            "args": [["", ""]]
+          },
+          {
+            "method": "rejects",
+            "args": []
+          },
+          {
+            "method": "runImport",
+            "args": [["c@d,m,2"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "runImport",
+            "args": [["a@b,n,1", "A@B,n,1", "a@b,other,2"]]
+          },
+          {
+            "method": "runImport",
+            "args": [["a@b,n,1"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["events"]
+          },
+          {
+            "method": "runImport",
+            "args": [["5,click,u", "5,click,u"]]
+          },
+          {
+            "method": "runImport",
+            "args": [["5,click,u"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "runImport",
+            "args": [[]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "dedupe",
+        "params": [
+          {
+            "name": "on",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "dedupe",
+            "args": [true]
+          },
+          {
+            "method": "runImport",
+            "args": [
+              ["a@b,Ann,1", "A@B,Annie,2", "c@d,Cy,3", "bad", "c@d,Cy,3"]
+            ]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["events"]
+          },
+          {
+            "method": "runImport",
+            "args": [["5,click,u", "5,click,u"]]
+          },
+          {
+            "method": "dedupe",
+            "args": [true]
+          },
+          {
+            "method": "runImport",
+            "args": [
+              ["5,click,u", "5,view,u", "6,click,u", "5,click,v", "5,view,u"]
+            ]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "dedupe",
+            "args": [false]
+          },
+          {
+            "method": "runImport",
+            "args": [["5,click,u"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["users"]
+          },
+          {
+            "method": "dedupe",
+            "args": [false]
+          },
+          {
+            "method": "runImport",
+            "args": [["a@b,n,1", "a@b,n,1"]]
+          },
+          {
+            "method": "dedupe",
+            "args": [true]
+          },
+          {
+            "method": "runImport",
+            "args": [["a@b,n,1", "x"]]
+          },
+          {
+            "method": "dedupe",
+            "args": [true]
+          },
+          {
+            "method": "runImport",
+            "args": [["e@f,n,1"]]
+          },
+          {
+            "method": "runImport",
+            "args": [["e@f,n,1"]]
+          },
+          {
+            "method": "loaded",
+            "args": []
+          },
+          {
+            "method": "rejects",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,855 @@
+{
+  "slug": "oncall-escalation",
+  "title": "On-call escalation",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["chain-of-responsibility-pattern"],
+  "interface": {
+    "class": "Escalation",
+    "constructor": {
+      "params": [
+        {
+          "name": "levels",
+          "type": "list<string>"
+        },
+        {
+          "name": "ackTimeoutMs",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "page",
+        "params": [
+          {
+            "name": "incident",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "tick",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "ack",
+        "params": [
+          {
+            "name": "incident",
+            "type": "string"
+          },
+          {
+            "name": "person",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "holder",
+        "params": [
+          {
+            "name": "incident",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 300]
+          },
+          {
+            "method": "page",
+            "args": ["db-down", 1000]
+          },
+          {
+            "method": "tick",
+            "args": [1200]
+          },
+          {
+            "method": "tick",
+            "args": [1300]
+          },
+          {
+            "method": "holder",
+            "args": ["db-down"]
+          },
+          {
+            "method": "ack",
+            "args": ["db-down", "ana", 1350]
+          },
+          {
+            "method": "ack",
+            "args": ["db-down", "bo", 1400]
+          },
+          {
+            "method": "tick",
+            "args": [5000]
+          },
+          {
+            "method": "holder",
+            "args": ["db-down"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo"], 100]
+          },
+          {
+            "method": "page",
+            "args": ["b", 0]
+          },
+          {
+            "method": "page",
+            "args": ["a", 50]
+          },
+          {
+            "method": "tick",
+            "args": [100]
+          },
+          {
+            "method": "tick",
+            "args": [150]
+          },
+          {
+            "method": "tick",
+            "args": [10000]
+          },
+          {
+            "method": "holder",
+            "args": ["a"]
+          },
+          {
+            "method": "holder",
+            "args": ["b"]
+          },
+          {
+            "method": "page",
+            "args": ["a", 10000]
+          },
+          {
+            "method": "holder",
+            "args": ["zz"]
+          },
+          {
+            "method": "ack",
+            "args": ["zz", "ana", 10000]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [[], 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", ""], 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "ana"], 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana"], 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["solo"], 1]
+          },
+          {
+            "method": "page",
+            "args": ["x", 0]
+          },
+          {
+            "method": "tick",
+            "args": [1]
+          },
+          {
+            "method": "tick",
+            "args": [2]
+          },
+          {
+            "method": "tick",
+            "args": [1000]
+          },
+          {
+            "method": "holder",
+            "args": ["x"]
+          },
+          {
+            "method": "ack",
+            "args": ["x", "solo", 1000]
+          },
+          {
+            "method": "ack",
+            "args": ["x", "solo", 1000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy", "dee"], 10]
+          },
+          {
+            "method": "page",
+            "args": ["i", 5]
+          },
+          {
+            "method": "tick",
+            "args": [14]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "tick",
+            "args": [15]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "tick",
+            "args": [24]
+          },
+          {
+            "method": "tick",
+            "args": [25]
+          },
+          {
+            "method": "tick",
+            "args": [1000]
+          },
+          {
+            "method": "tick",
+            "args": [1000]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "tick",
+            "args": [1010]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "tick",
+            "args": [5000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "page",
+            "args": ["i", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "bo", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "cy", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "Ana", 1]
+          },
+          {
+            "method": "tick",
+            "args": [10]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "ana", 11]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "bo", 11]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "bo", 12]
+          },
+          {
+            "method": "tick",
+            "args": [100]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "cy", 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "page",
+            "args": ["i", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "ana", 50]
+          },
+          {
+            "method": "tick",
+            "args": [60]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "page",
+            "args": ["j", 60]
+          },
+          {
+            "method": "tick",
+            "args": [70]
+          },
+          {
+            "method": "holder",
+            "args": ["j"]
+          },
+          {
+            "method": "ack",
+            "args": ["j", "ana", 70]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "page",
+            "args": ["b", 0]
+          },
+          {
+            "method": "page",
+            "args": ["B", 3]
+          },
+          {
+            "method": "page",
+            "args": ["a", 5]
+          },
+          {
+            "method": "page",
+            "args": ["ab", 9]
+          },
+          {
+            "method": "tick",
+            "args": [9]
+          },
+          {
+            "method": "tick",
+            "args": [13]
+          },
+          {
+            "method": "tick",
+            "args": [15]
+          },
+          {
+            "method": "tick",
+            "args": [19]
+          },
+          {
+            "method": "ack",
+            "args": ["B", "bo", 19]
+          },
+          {
+            "method": "tick",
+            "args": [23]
+          },
+          {
+            "method": "tick",
+            "args": [29]
+          },
+          {
+            "method": "holder",
+            "args": ["a"]
+          },
+          {
+            "method": "holder",
+            "args": ["ab"]
+          },
+          {
+            "method": "holder",
+            "args": ["b"]
+          },
+          {
+            "method": "holder",
+            "args": ["B"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "page",
+            "args": ["i", 100]
+          },
+          {
+            "method": "page",
+            "args": ["j", 99]
+          },
+          {
+            "method": "holder",
+            "args": ["j"]
+          },
+          {
+            "method": "tick",
+            "args": [99]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "ana", 50]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "page",
+            "args": ["", 100]
+          },
+          {
+            "method": "ack",
+            "args": ["", "ana", 100]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "", 100]
+          },
+          {
+            "method": "holder",
+            "args": [""]
+          },
+          {
+            "method": "tick",
+            "args": [110]
+          },
+          {
+            "method": "page",
+            "args": ["i", 120]
+          },
+          {
+            "method": "tick",
+            "args": [120]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "page",
+            "args": ["x", -1]
+          },
+          {
+            "method": "tick",
+            "args": [-3]
+          },
+          {
+            "method": "holder",
+            "args": ["x"]
+          },
+          {
+            "method": "page",
+            "args": ["x", 0]
+          },
+          {
+            "method": "tick",
+            "args": [0]
+          },
+          {
+            "method": "holder",
+            "args": ["x"]
+          },
+          {
+            "method": "tick",
+            "args": [9]
+          },
+          {
+            "method": "tick",
+            "args": [10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 5]
+          },
+          {
+            "method": "page",
+            "args": ["i", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "ana", 1]
+          },
+          {
+            "method": "page",
+            "args": ["i", 2]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "tick",
+            "args": [100]
+          },
+          {
+            "method": "page",
+            "args": ["j", 100]
+          },
+          {
+            "method": "page",
+            "args": ["j", 100]
+          },
+          {
+            "method": "holder",
+            "args": ["j"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["p", "s"], 1]
+          },
+          {
+            "method": "page",
+            "args": ["inc0", 0]
+          },
+          {
+            "method": "page",
+            "args": ["inc1", 1]
+          },
+          {
+            "method": "page",
+            "args": ["inc2", 2]
+          },
+          {
+            "method": "page",
+            "args": ["inc3", 3]
+          },
+          {
+            "method": "page",
+            "args": ["inc4", 4]
+          },
+          {
+            "method": "page",
+            "args": ["inc5", 5]
+          },
+          {
+            "method": "ack",
+            "args": ["inc2", "p", 6]
+          },
+          {
+            "method": "tick",
+            "args": [6]
+          },
+          {
+            "method": "tick",
+            "args": [7]
+          },
+          {
+            "method": "holder",
+            "args": ["inc5"]
+          },
+          {
+            "method": "holder",
+            "args": ["inc2"]
+          },
+          {
+            "method": "ack",
+            "args": ["inc0", "s", 8]
+          },
+          {
+            "method": "ack",
+            "args": ["inc0", "s", 8]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "cover",
+        "params": [
+          {
+            "name": "person",
+            "type": "string"
+          },
+          {
+            "name": "substitute",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "cover",
+            "args": ["bo", "dan"]
+          },
+          {
+            "method": "page",
+            "args": ["i", 0]
+          },
+          {
+            "method": "tick",
+            "args": [10]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "bo", 11]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "dan", 11]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "page",
+            "args": ["i", 0]
+          },
+          {
+            "method": "cover",
+            "args": ["ana", "eve"]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "eve", 1]
+          },
+          {
+            "method": "page",
+            "args": ["j", 1]
+          },
+          {
+            "method": "holder",
+            "args": ["j"]
+          },
+          {
+            "method": "cover",
+            "args": ["eve", "zed"]
+          },
+          {
+            "method": "cover",
+            "args": ["bo", "ana"]
+          },
+          {
+            "method": "tick",
+            "args": [10]
+          },
+          {
+            "method": "tick",
+            "args": [11]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "holder",
+            "args": ["j"]
+          },
+          {
+            "method": "cover",
+            "args": ["ana", "ana"]
+          },
+          {
+            "method": "page",
+            "args": ["k", 11]
+          },
+          {
+            "method": "holder",
+            "args": ["k"]
+          },
+          {
+            "method": "tick",
+            "args": [21]
+          },
+          {
+            "method": "holder",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [["ana", "bo", "cy"], 10]
+          },
+          {
+            "method": "cover",
+            "args": ["dan", "eve"]
+          },
+          {
+            "method": "cover",
+            "args": ["", "eve"]
+          },
+          {
+            "method": "cover",
+            "args": ["ana", ""]
+          },
+          {
+            "method": "cover",
+            "args": ["Ana", "eve"]
+          },
+          {
+            "method": "page",
+            "args": ["i", 0]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "cover",
+            "args": ["cy", "bo"]
+          },
+          {
+            "method": "tick",
+            "args": [10]
+          },
+          {
+            "method": "tick",
+            "args": [20]
+          },
+          {
+            "method": "holder",
+            "args": ["i"]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "cy", 20]
+          },
+          {
+            "method": "ack",
+            "args": ["i", "bo", 20]
+          }
+        ]
+      }
+    ]
+  }
+}
