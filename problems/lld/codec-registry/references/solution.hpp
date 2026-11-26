@@ -5,7 +5,6 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <regex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -91,7 +90,7 @@ class CsvCodec : public Codec {
 class CodecRegistry {
  public:
   void add(std::string contentType, std::string codec) {
-    if (!std::regex_match(contentType, contentTypePattern())) throw std::invalid_argument("bad content type");
+    if (!isType(contentType, false)) throw std::invalid_argument("bad content type");
     if (codecs_.count(contentType)) throw std::invalid_argument("already added");
     codecs_[contentType] = makeCodec(codec);
     order_.push_back(contentType);
@@ -137,13 +136,18 @@ class CodecRegistry {
   }
 
  private:
-  static const std::string& token() {
-    static const std::string t = "[a-z0-9][a-z0-9.+-]*";
-    return t;
+  // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+  // time limit in the judge's gcc image. Same grammar: a token is [a-z0-9][a-z0-9.+-]*,
+  // a type is token/token, and a range's subtype may also be *.
+  static bool isToken(const std::string& text) {
+    return !text.empty() && text[0] != '.' && text[0] != '+' && text[0] != '-' &&
+           text.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789.+-") == std::string::npos;
   }
-  static const std::regex& contentTypePattern() {
-    static const std::regex r(token() + "/" + token());
-    return r;
+  static bool isType(const std::string& text, bool wildcardSubtype) {
+    size_t slash = text.find('/');
+    if (slash == std::string::npos || !isToken(text.substr(0, slash))) return false;
+    std::string subtype = text.substr(slash + 1);
+    return isToken(subtype) || (wildcardSubtype && subtype == "*");
   }
 
   // The factory method's table: a codec's name makes its codec, and nothing else in the
@@ -161,8 +165,12 @@ class CodecRegistry {
 
   // A q-value in thousandths, so no float is ever compared.
   static int64_t quality(const std::string& text) {
-    static const std::regex pattern("0(\\.[0-9]{0,3})?|1(\\.0{0,3})?");
-    if (!std::regex_match(text, pattern)) throw std::invalid_argument("bad q-value");
+    // Not std::regex (see isToken): 0(\.[0-9]{0,3})?|1(\.0{0,3})?, the whole text.
+    bool unit = !text.empty() && (text[0] == '0' || text[0] == '1');
+    if (!unit || (text.size() > 1 && (text.size() > 5 || text[1] != '.' ||
+                                      text.find_first_not_of(text[0] == '0' ? "0123456789" : "0", 2) !=
+                                          std::string::npos)))
+      throw std::invalid_argument("bad q-value");
     size_t dot = text.find('.');
     std::string whole = text.substr(0, dot);
     std::string fraction = dot == std::string::npos ? "" : text.substr(dot + 1);
@@ -187,13 +195,12 @@ class CodecRegistry {
   }
 
   static std::map<std::string, int64_t> parseRanges(const std::string& accept) {
-    static const std::regex mediaRange("\\*/\\*|" + token() + "/\\*|" + token() + "/" + token());
     std::map<std::string, int64_t> ranges;
     for (const auto& item : split(accept, ',')) {
       std::vector<std::string> parts;
       for (const auto& p : split(item, ';')) parts.push_back(trimmed(p));
       const std::string& media = parts[0];
-      if (!std::regex_match(media, mediaRange) || ranges.count(media) || parts.size() > 2)
+      if (!(media == "*/*" || isType(media, true)) || ranges.count(media) || parts.size() > 2)
         throw std::invalid_argument("bad media range");
       int64_t q = 1000;
       if (parts.size() == 2) {

@@ -3,7 +3,6 @@
 #include <map>
 #include <mutex>
 #include <optional>
-#include <regex>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -79,11 +78,13 @@ class ParkingLot {
 
  private:
   std::pair<std::string, int64_t> spotOf(const std::string& spot) const {
-    std::smatch m;
-    static const std::regex pattern("([SL])([1-9][0-9]{0,17})");
-    if (!std::regex_match(spot, m, pattern)) throw std::invalid_argument("unknown spot");
-    std::string kind = m[1] == "S" ? "small" : "large";
-    int64_t number = std::stoll(m[2]);
+    // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+    // time limit in the judge's gcc image. Same grammar: ([SL])([1-9][0-9]{0,17}), the whole text.
+    if (spot.size() < 2 || spot.size() > 19 || (spot[0] != 'S' && spot[0] != 'L') || spot[1] < '1' || spot[1] > '9' ||
+        spot.find_first_not_of("0123456789", 1) != std::string::npos)
+      throw std::invalid_argument("unknown spot");
+    std::string kind = spot[0] == 'S' ? "small" : "large";
+    int64_t number = std::stoll(spot.substr(1));
     if (number > counts_.at(kind)) throw std::invalid_argument("unknown spot");
     return {kind, number};
   }

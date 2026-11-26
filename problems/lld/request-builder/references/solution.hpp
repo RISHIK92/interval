@@ -5,7 +5,6 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <regex>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -15,9 +14,12 @@ class RequestBuilder {
  public:
   RequestBuilder(std::string method, std::string url) : method_(method), url_(url) {
     static const std::set<std::string> methods = {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"};
-    static const std::regex form("https?://[^?# ]+");
     if (methods.count(method) == 0) throw std::invalid_argument("unknown method");
-    if (!std::regex_match(url, form)) throw std::invalid_argument("bad url");
+    // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+    // time limit in the judge's gcc image. Same grammar: https?://[^?# ]+, the whole text.
+    std::size_t rest = url.rfind("http://", 0) == 0 ? 7 : url.rfind("https://", 0) == 0 ? 8 : 0;
+    if (rest == 0 || rest == url.size() || url.find_first_of("?# ", rest) != std::string::npos)
+      throw std::invalid_argument("bad url");
   }
 
   void header(std::string name, std::string value) {
@@ -75,8 +77,10 @@ class RequestBuilder {
   }
 
   static std::string canonical(const std::string& name) {
-    static const std::regex token("[A-Za-z0-9-]+");
-    if (!std::regex_match(name, token)) throw std::invalid_argument("a header name is letters, digits and dashes");
+    // Not std::regex, for the same reason as the url check: [A-Za-z0-9-]+, the whole text.
+    if (name.empty() || name.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-") !=
+                            std::string::npos)
+      throw std::invalid_argument("a header name is letters, digits and dashes");
     std::string out;
     bool start = true;
     for (char c : name) {

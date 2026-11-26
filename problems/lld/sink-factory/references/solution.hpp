@@ -3,7 +3,6 @@
 #include <deque>
 #include <map>
 #include <memory>
-#include <regex>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -103,13 +102,22 @@ class SinkFactory {
   // The creation step, a parameterised factory (the simple form of factory method): the
   // spec decides which class to make, and only here.
   static std::unique_ptr<Sink> parse(const std::string& spec) {
-    static const std::regex file("file:(/[^ ]*)");
-    static const std::regex syslog("syslog:([A-Za-z0-9.-]+):([1-9][0-9]{0,4})");
     if (spec == "stdout") return std::make_unique<StdoutSink>();
-    std::smatch m;
-    if (std::regex_match(spec, m, file) && spec.back() != '/') return std::make_unique<FileSink>(m[1].str());
-    if (std::regex_match(spec, m, syslog) && std::stoi(m[2].str()) <= 65535)
-      return std::make_unique<SyslogSink>(m[1].str(), std::stoi(m[2].str()));
+    // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+    // time limit in the judge's gcc image. Same grammar, the whole text:
+    // file:(/[^ ]*) or syslog:([A-Za-z0-9.-]+):([1-9][0-9]{0,4})
+    if (spec.rfind("file:/", 0) == 0 && spec.find(' ') == std::string::npos && spec.back() != '/')
+      return std::make_unique<FileSink>(spec.substr(5));
+    if (spec.rfind("syslog:", 0) == 0) {
+      std::size_t colon = spec.find(':', 7);
+      std::string host = spec.substr(7, colon - 7);
+      std::string port = colon == std::string::npos ? "" : spec.substr(colon + 1);
+      static const std::string hostChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-";
+      bool hostOk = !host.empty() && host.find_first_not_of(hostChars) == std::string::npos;
+      bool portOk = !port.empty() && port.size() <= 5 && port[0] != '0' &&
+                    port.find_first_not_of("0123456789") == std::string::npos;
+      if (hostOk && portOk && std::stoi(port) <= 65535) return std::make_unique<SyslogSink>(host, std::stoi(port));
+    }
     throw std::invalid_argument("malformed spec");
   }
 

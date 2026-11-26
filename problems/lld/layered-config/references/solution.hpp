@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <map>
 #include <optional>
-#include <regex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -56,8 +55,12 @@ class LayeredConfig {
 
   // Parsing is its own concern: lookup finds the text, this decides what it means.
   static int64_t parseInteger(const std::string& text) {
-    static const std::regex integer("-?[0-9]{1,15}");
-    if (!std::regex_match(text, integer)) throw std::invalid_argument("not an integer");
+    // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+    // time limit in the judge's gcc image. Same grammar: -?[0-9]{1,15}, the whole text.
+    std::size_t sign = !text.empty() && text[0] == '-' ? 1 : 0;
+    std::size_t digits = text.size() - sign;
+    if (digits < 1 || digits > 15 || text.find_first_not_of("0123456789", sign) != std::string::npos)
+      throw std::invalid_argument("not an integer");
     return std::stoll(text);
   }
 

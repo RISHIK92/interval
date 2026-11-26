@@ -1,7 +1,6 @@
 #pragma once
 #include <cmath>
 #include <cstdint>
-#include <regex>
 #include <stdexcept>
 #include <string>
 
@@ -25,12 +24,20 @@ class Duration {
 
  private:
   static int64_t seconds(const std::string& text) {
-    static const std::regex pattern("(?:([0-9]{1,9})h)?(?:([0-9]{1,9})m)?(?:([0-9]{1,9})s)?");
-    std::smatch m;
-    if (text.empty() || !std::regex_match(text, m, pattern))
-      throw std::invalid_argument("a duration is like 1h30m15s");
-    auto part = [&m](int i) -> int64_t { return m[i].matched ? std::stoll(m[i].str()) : 0; };
-    return part(1) * 3600 + part(2) * 60 + part(3);
+    // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+    // time limit in the judge's gcc image. Same grammar, the whole text:
+    // (?:([0-9]{1,9})h)?(?:([0-9]{1,9})m)?(?:([0-9]{1,9})s)?
+    int64_t parts[3] = {0, 0, 0};
+    std::size_t at = 0;
+    for (int i = 0; i < 3; i++) {
+      std::size_t end = at;
+      while (end < text.size() && text[end] >= '0' && text[end] <= '9') ++end;
+      if (end == at || end == text.size() || text[end] != "hms"[i] || end - at > 9) continue;
+      parts[i] = std::stoll(text.substr(at, end - at));
+      at = end + 1;
+    }
+    if (text.empty() || at != text.size()) throw std::invalid_argument("a duration is like 1h30m15s");
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
   }
 
   static std::string canonical(int64_t total) {

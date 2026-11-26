@@ -3,7 +3,6 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <regex>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -63,13 +62,34 @@ class CsvFormat : public LogFormat {
 class AccessFormat : public LogFormat {
  public:
   std::optional<LogFields> fields(const std::string& line) const override {
-    static const std::regex access(
-        R"re(([^ ]+) ([^ ]+) ([^ ]+) \[([^\]]+)\] "([^ "]+) ([^ "]+) ([^ "]+)" ([0-9]{3}) ([0-9]+|-))re");
+    // Hand-parsed rather than std::regex: libstdc++'s regex is slow enough to hit the
+    // time limit in the judge's gcc image. Same grammar, the whole line:
+    // ([^ ]+) ([^ ]+) ([^ ]+) \[([^\]]+)\] "([^ "]+) ([^ "]+) ([^ "]+)" ([0-9]{3}) ([0-9]+|-)
+    // No field may hold the character that ends it, so each one ends at its first stop character.
     static const char* keys[] = {"host", "ident", "user", "time", "method", "path", "protocol", "status", "bytes"};
-    std::smatch match;
-    if (!std::regex_match(line, match, access)) return std::nullopt;
+    std::vector<std::string> values;
+    std::size_t at = 0;
+    // One non-empty field of anything but `stop`, then the literal `then`.
+    auto field = [&](const std::string& stop, const std::string& then) {
+      std::size_t end = line.find_first_of(stop, at);
+      if (end == std::string::npos) end = line.size();
+      if (end == at || line.compare(end, then.size(), then) != 0) return false;
+      values.push_back(line.substr(at, end - at));
+      at = end + then.size();
+      return true;
+    };
+    const std::string digits = "0123456789";
+    if (!field(" ", " ") || !field(" ", " ") || !field(" ", " [") || !field("]", "] \"") || !field(" \"", " ") ||
+        !field(" \"", " ") || !field(" \"", "\" "))
+      return std::nullopt;
+    if (line.size() - at < 4 || line.find_first_not_of(digits, at) != at + 3 || line[at + 3] != ' ')
+      return std::nullopt;
+    values.push_back(line.substr(at, 3));
+    std::string bytes = line.substr(at + 4);
+    if (bytes != "-" && (bytes.empty() || bytes.find_first_not_of(digits) != std::string::npos)) return std::nullopt;
+    values.push_back(bytes);
     LogFields out;
-    for (int i = 0; i < 9; i++) out[keys[i]] = match[i + 1].str();
+    for (int i = 0; i < 9; i++) out[keys[i]] = values[i];
     return out;
   }
 };
