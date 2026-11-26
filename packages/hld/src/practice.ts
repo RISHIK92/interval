@@ -21,7 +21,7 @@ export function allPracticeProblems(): readonly HldProblem[] {
 }
 
 // ADR-0050 §6, Q-WD-31: what practice offers at `now`: a family on a spec version
-// joins at that version's season boundary, as it does matches.
+// joins from the day that version takes effect, as it does matches.
 export function practiceProblems(now: Date): readonly HldProblem[] {
   return allPracticeProblems().filter((p) => specInEffect(p.spec, now));
 }

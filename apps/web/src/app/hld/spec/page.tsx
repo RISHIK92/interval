@@ -19,7 +19,7 @@ import { PAGE_TITLE } from "../../ui/Page";
 // before a battle, as they would a game's balance sheet. ADR-0050 §6: the newest
 // version's sheet, with what each version added marked, since a version only adds
 // (1.0's numbers are 2.0's less what's new). A family stays on the version it was made
-// on (owner, 2026-11-24): a new version, from its season boundary, is only its own
+// on (owner, 2026-11-24): a new version, from the day it takes effect, is only its own
 // families'.
 export const metadata: Metadata = {
   title: "HLD spec sheet",
@@ -155,13 +155,13 @@ export default function SpecPage() {
         </Link>
         <h1 className={PAGE_TITLE}>HLD spec sheet</h1>
         <p className="mt-1 text-ink-muted">
-          Version {spec.version}, from {day(spec.date)}, a season boundary.
+          Version {spec.version}, in effect from {day(spec.date)}.
           {EARLIER.length === 0
             ? ""
-            : ` Families made on ${EARLIER.length === 1 ? "version" : "versions"} ${versions(EARLIER)} stay on ${EARLIER.length === 1 ? "it" : "them"}, before and after that boundary; only families made for ${spec.version} run on ${spec.version}, from it. Each earlier version's numbers are these, less what's marked new since it.`}{" "}
+            : ` Families made on ${EARLIER.length === 1 ? "version" : "versions"} ${versions(EARLIER)} stay on ${EARLIER.length === 1 ? "it" : "them"}, before and after that day; only families made for ${spec.version} run on ${spec.version}, from it. Each earlier version's numbers are these, less what's marked new since it.`}{" "}
           Every simulation runs against one version, and a match keeps the
-          version it was drawn on. Numbers change only at season boundaries,
-          with patch notes.
+          version it was drawn on. Numbers change only with patch notes, at
+          season boundaries unless a note says otherwise.
           {spec.provisional
             ? " These numbers are provisional until launch."
             : ""}

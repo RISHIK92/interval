@@ -188,7 +188,7 @@ export async function nextRound(
   const problem = rounds.find((r) => r.round === to);
   if (problem === undefined)
     throw new Error(`hld: tournament ${id} has no round ${String(to)}`);
-  // ADR-0050 §6, Q-WD-31: a version is played only from its season boundary, and a
+  // ADR-0050 §6, ADR-0055: a version is played only from the day it takes effect, and a
   // round can be started before the cup's own start.
   const spec = variantSpec(problem.family);
   if (spec !== null && !specInEffect(spec, deps.now())) return "not_yet";

@@ -42,7 +42,7 @@ export async function createTournamentAction(form: FormData): Promise<void> {
     return { family, seed: Number(seed) };
   });
   // Only pooled variants of this battle mode: validated, so a round can't fail mid-cup;
-  // and on a spec version in effect when the cup starts (ADR-0050 §6, Q-WD-31).
+  // and on a spec version in effect when the cup starts (ADR-0050 §6, ADR-0055).
   const playable = (p: { family: string; seed: number }) => {
     const spec = variantSpec(p.family);
     return (

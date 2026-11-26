@@ -11,7 +11,7 @@ import { specInEffect } from "./spec";
 
 // `retired`: "<family>/<seed>" of variants a tournament used, never drawn again (HLDQ-3).
 // Once the pools split, only battle families are drawn (ADR-0050 §1, Q-WD-31), and only
-// those whose seeds' spec version is in effect at `now` (a season boundary, §6).
+// those whose seeds' spec version is in effect at `now` (§6, ADR-0055).
 export function drawVariant(
   battleMode: BattleMode,
   random: () => number,

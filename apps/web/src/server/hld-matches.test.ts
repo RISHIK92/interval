@@ -234,9 +234,9 @@ describe("an HLD match", () => {
     }
   });
 
-  // ADR-0050 §6, Q-WD-31: a match records the spec version its variant was validated
-  // under, and spec 2.0's and 2.1's families join at their season boundaries.
-  test("records its variant's spec, and draws 2.0 and 2.1 families only from their boundaries", async () => {
+  // ADR-0050 §6: a match records the spec version its variant was validated under, and
+  // spec 2.0's and 2.1's families join from the day they take effect (ADR-0055).
+  test("records its variant's spec, and draws 2.0 and 2.1 families only from the day they take effect", async () => {
     const specs = async (now: string) => {
       clock.now = new Date(now);
       const seen = new Set<string>();
@@ -254,14 +254,12 @@ describe("an HLD match", () => {
       }
       return [...seen].sort();
     };
-    expect(await specs("2026-11-30T23:59:00Z")).toEqual(["1.0"]);
-    expect(await specs("2026-12-01T00:00:00Z")).toEqual(["1.0", "2.0"]);
-    expect(await specs("2026-12-31T23:59:00Z")).toEqual(["1.0", "2.0"]);
-    expect(await specs("2027-01-01T00:00:00Z")).toEqual(["1.0", "2.0", "2.1"]);
+    expect(await specs("2026-11-25T23:59:00Z")).toEqual(["1.0"]);
+    expect(await specs("2026-11-26T00:00:00Z")).toEqual(["1.0", "2.0", "2.1"]);
   });
 
   test("a 2.0 match rebuilds under 2.0, and a design drawn against 1.0 doesn't fit it", async () => {
-    clock.now = new Date("2026-12-01T09:00:00Z");
+    clock.now = new Date("2026-11-26T09:00:00Z");
     const seed = POOL["file-sync"]?.human[0] ?? 0;
     const id = await startHldMatch(deps, ["ada"], "human", {
       unrated: true,

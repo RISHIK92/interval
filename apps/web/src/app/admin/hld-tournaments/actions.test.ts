@@ -2,8 +2,8 @@ import { POOL } from "@interval/hld";
 import { afterEach, expect, test, vi } from "vitest";
 import type { Actor, HldTournaments } from "../../../server/ports";
 
-// P6-W43 (§6.4, Q-P6-07), ADR-0050 §6, Q-WD-31: a cup's rounds are pooled variants on a
-// spec version in effect when it starts; 2.0 from its season boundary (1 December UTC).
+// P6-W43 (§6.4, Q-P6-07), ADR-0050 §6, ADR-0055: a cup's rounds are pooled variants on a
+// spec version in effect when it starts; 2.0 and 2.1 from 26 November 2026 (UTC).
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>();
 const create = vi.fn<HldTournaments["create"]>(() => Promise.resolve("t1"));
@@ -41,38 +41,38 @@ const form = (family: string, startsAt: string) => {
   return data;
 };
 
-test("a cup on a 2.0 family is refused before the boundary and made from it", async () => {
+test("a cup on a 2.0 family is refused before 2026-11-26 and made from it", async () => {
   current.mockResolvedValue(admin);
   can.mockResolvedValue(true);
   const { createTournamentAction } = await import("./actions");
   await expect(
-    createTournamentAction(form("file-sync", "2026-11-30T23:59")),
+    createTournamentAction(form("file-sync", "2026-11-25T23:59")),
   ).rejects.toThrow("redirect:/admin/hld-tournaments?error=invalid");
   expect(create).not.toHaveBeenCalled();
   await expect(
-    createTournamentAction(form("file-sync", "2026-12-01T00:00")),
+    createTournamentAction(form("file-sync", "2026-11-26T00:00")),
   ).rejects.toThrow("redirect:/admin/hld-tournaments?saved=t1");
   expect(create).toHaveBeenCalledWith(
-    expect.objectContaining({ startsAt: new Date("2026-12-01T00:00:00Z") }),
+    expect.objectContaining({ startsAt: new Date("2026-11-26T00:00:00Z") }),
     "a1",
   );
 });
 
-// Q-WD-31: 2.1's families from its own boundary, a month after 2.0's.
-test("a cup on a 2.1 family is refused before 2027-01-01 and made from it", async () => {
+// ADR-0055: 2.1's families from the same day as 2.0's.
+test("a cup on a 2.1 family is refused before 2026-11-26 and made from it", async () => {
   current.mockResolvedValue(admin);
   can.mockResolvedValue(true);
   const { createTournamentAction } = await import("./actions");
   await expect(
-    createTournamentAction(form("like-counters", "2026-12-31T23:59")),
+    createTournamentAction(form("like-counters", "2026-11-25T23:59")),
   ).rejects.toThrow("redirect:/admin/hld-tournaments?error=invalid");
   expect(create).not.toHaveBeenCalled();
   await expect(
-    createTournamentAction(form("like-counters", "2027-01-01T00:00")),
+    createTournamentAction(form("like-counters", "2026-11-26T00:00")),
   ).rejects.toThrow("redirect:/admin/hld-tournaments?saved=t1");
 });
 
-test("a cup on a 1.0 family can start before the boundary", async () => {
+test("a cup on a 1.0 family can start before 2026-11-26", async () => {
   current.mockResolvedValue(admin);
   can.mockResolvedValue(true);
   const { createTournamentAction } = await import("./actions");

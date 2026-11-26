@@ -293,20 +293,20 @@ describe("the spec sheet", () => {
     }
   });
 
-  // Q-WD-31: a version takes effect at a monthly season boundary (UTC).
-  test("2.0 is in effect from the first of December, not a moment before", () => {
-    expect(SPEC_V2_FROM).toBe("2026-12-01");
-    expect(specInEffect("2.0", new Date("2026-11-30T23:59:59Z"))).toBe(false);
-    expect(specInEffect("2.0", new Date("2026-12-01T00:00:00Z"))).toBe(true);
-    expect(specInEffect("1.0", new Date("2026-11-30T23:59:59Z"))).toBe(true);
+  // ADR-0055 (owner, 2026-11-26): 2.0 and 2.1 take effect the same day, now, instead
+  // of Q-WD-31's two monthly boundaries; a UTC day, as before.
+  test("2.0 and 2.1 are both in effect from 26 November 2026, not a moment before", () => {
+    expect(SPEC_V2_FROM).toBe("2026-11-26");
+    expect(SPEC_V21_FROM).toBe("2026-11-26");
+    for (const version of ["2.0", "2.1"]) {
+      expect(specInEffect(version, new Date("2026-11-25T23:59:59Z"))).toBe(
+        false,
+      );
+      expect(specInEffect(version, new Date("2026-11-26T00:00:00Z"))).toBe(
+        true,
+      );
+    }
+    expect(specInEffect("1.0", new Date("2026-11-25T23:59:59Z"))).toBe(true);
     expect(specInEffect("9.9", new Date("2030-01-01T00:00:00Z"))).toBe(false);
-  });
-
-  // Q-WD-31: v2.1 at the next monthly boundary, a month after v2.0's.
-  test("2.1 is in effect from the first of January 2027, not a moment before", () => {
-    expect(SPEC_V21_FROM).toBe("2027-01-01");
-    expect(specInEffect("2.1", new Date("2026-12-31T23:59:59Z"))).toBe(false);
-    expect(specInEffect("2.1", new Date("2027-01-01T00:00:00Z"))).toBe(true);
-    expect(specInEffect("2.0", new Date("2026-12-31T23:59:59Z"))).toBe(true);
   });
 });

@@ -17,16 +17,16 @@ import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
 import { removeNode } from "./edit";
 import { simulate } from "./simulate";
-import { SPEC_V2_FROM, SPEC_V21_FROM } from "./spec";
+import { SPEC_V2_FROM, SPEC_V21_FROM, specInEffect } from "./spec";
 
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): the families, their variants and the pool.
 const pool = POOL;
-// A day before and the day of spec 2.0's season boundary (Q-WD-31).
-const BEFORE = new Date("2026-11-30T23:59:59Z");
+// The last second before, and the first of, the day spec 2.0 takes effect, and 2.1's
+// (ADR-0055: the same day, 2026-11-26).
 const FROM = new Date(`${SPEC_V2_FROM}T00:00:00Z`);
-// And spec 2.1's, a month later.
-const BEFORE_21 = new Date("2026-12-31T23:59:59Z");
+const BEFORE = new Date(FROM.getTime() - 1000);
 const FROM_21 = new Date(`${SPEC_V21_FROM}T00:00:00Z`);
+const BEFORE_21 = new Date(FROM_21.getTime() - 1000);
 
 test("there are 31 families, each with its own slug", () => {
   expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(31);
@@ -349,9 +349,9 @@ test("every family keeps the spec version it was made on", () => {
   });
 });
 
-// ADR-0050 §6, Q-WD-31: spec 2.0 and its families arrive at a monthly season boundary.
+// ADR-0050 §6, ADR-0055: spec 2.0 and its families arrive on the day it takes effect.
 // Families on 1.0 stay there: their seeds, results and matches never move.
-describe("spec versions and the season boundary", () => {
+describe("spec versions and the day they take effect", () => {
   const V2 = FAMILIES.filter((f) => familySpec(f) === "2.0");
 
   test("stage 1 is seven families on 2.0; the rest stay on 1.0, as their pool says", () => {
@@ -369,7 +369,7 @@ describe("spec versions and the season boundary", () => {
   });
 
   test.each(["human", "ai"] as const)(
-    "before the boundary no %s match is drawn on a 2.0 family; from it, they are",
+    "before its day no %s match is drawn on a 2.0 family; from it, they are",
     (battleMode) => {
       const v2 = new Set(V2.map((f) => f.slug));
       const drawn = (now: Date) =>
@@ -390,7 +390,7 @@ describe("spec versions and the season boundary", () => {
     },
   );
 
-  test("practice offers a 2.0 family only from the boundary", () => {
+  test("practice offers a 2.0 family only from its day", () => {
     const slugs = (now: Date) => practiceProblems(now).map((p) => p.slug);
     for (const slug of ["otp-login", "webhook-delivery", "image-resizer"]) {
       expect(slugs(BEFORE)).not.toContain(slug);
@@ -659,9 +659,9 @@ describe("spec versions and the season boundary", () => {
   });
 });
 
-// ADR-0050 stage 2, Q-WD-31: spec 2.1 and its families arrive at the next monthly
-// boundary. Families on 1.0 and 2.0 stay there.
-describe("spec 2.1 and its season boundary", () => {
+// ADR-0050 stage 2, ADR-0055: spec 2.1 and its families arrive on the day it takes
+// effect, the same as 2.0's. Families on 1.0 and 2.0 stay there.
+describe("spec 2.1 and the day it takes effect", () => {
   const V21 = FAMILIES.filter((f) => familySpec(f) === "2.1");
 
   test("stage 2 is twelve families on 2.1, five of them practice", () => {
@@ -682,7 +682,7 @@ describe("spec 2.1 and its season boundary", () => {
   });
 
   test.each(["human", "ai"] as const)(
-    "before 2027-01-01 no %s match is drawn on a 2.1 family; from it, the seven battle ones are",
+    "before its day no %s match is drawn on a 2.1 family; from it, the seven battle ones are",
     (battleMode) => {
       const v21 = new Set(V21.map((f) => f.slug));
       const drawn = (now: Date) =>
@@ -706,7 +706,7 @@ describe("spec 2.1 and its season boundary", () => {
     },
   );
 
-  test("practice offers a 2.1 family only from its boundary", () => {
+  test("practice offers a 2.1 family only from its day", () => {
     const slugs = (now: Date) => practiceProblems(now).map((p) => p.slug);
     for (const slug of [
       "nearby-places",
@@ -718,7 +718,38 @@ describe("spec 2.1 and its season boundary", () => {
       expect(slugs(BEFORE_21)).not.toContain(slug);
       expect(slugs(FROM_21)).toContain(slug);
     }
-    expect(slugs(BEFORE_21)).toContain("otp-login");
+  });
+
+  // ADR-0055 (owner, 2026-11-26): 2.0 and 2.1 take effect together, today, for
+  // practice and both battle modes, each family in its own pool. Tournament rounds are
+  // the admin's pick, gated in apps/web (hld-tournaments.test.ts, actions.test.ts).
+  test("on 26 November 2026 every 2.0 and 2.1 family is offered in its pool", () => {
+    const today = new Date("2026-11-26T09:00:00Z");
+    const practice = new Set(practiceProblems(today).map((p) => p.slug));
+    const drawn = new Set(
+      (["human", "ai"] as const).flatMap((battleMode) =>
+        Array.from(
+          { length: 400 },
+          (_, i) =>
+            drawVariant(battleMode, () => i / 400, new Set(), today).family,
+        ),
+      ),
+    );
+    for (const family of FAMILIES.filter((f) => familySpec(f) !== "1.0")) {
+      const offered =
+        family.pool === "practice"
+          ? practice.has(family.slug)
+          : drawn.has(family.slug);
+      expect(offered, family.slug).toBe(true);
+      expect(specInEffect(familySpec(family), today)).toBe(true);
+    }
+    expect(practice).toEqual(
+      new Set(practiceFamilies(FAMILIES).map((f) => f.slug)),
+    );
+    expect(
+      [...drawn].some((slug) => variantSpec(slug) === "2.0") &&
+        [...drawn].some((slug) => variantSpec(slug) === "2.1"),
+    ).toBe(true);
   });
 
   test("a match records 2.1 and rebuilds under it, and no other", () => {

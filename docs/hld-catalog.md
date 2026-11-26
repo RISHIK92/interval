@@ -721,7 +721,7 @@ The four battle families that exist today could adopt v2 behaviours at a later b
 
 ## Stage 1 as built (spec 2.0, PROVISIONAL)
 
-Spec 2.0 takes effect on 2026-12-01, the first monthly season boundary after ADR-0050 (`SPEC_V2_FROM` in `packages/hld/src/spec.ts`, Q-WD-31). Before it, no match, tournament round or practice problem uses a 2.0 family. The 1.0 families stay on 1.0: their pool, calibration designs and results are unchanged, and their matches keep playing on 1.0 after the boundary.
+Spec 2.0 takes effect on 2026-11-26, with 2.1 ([ADR-0055](adr/0055-hld-spec-2-and-2-1-effective-now.md), owner, 2026-11-26: brought forward from Q-WD-31's 2026-12-01 boundary; `SPEC_V2_FROM` in `packages/hld/src/spec.ts`). Before it, no match, tournament round or practice problem uses a 2.0 family. The 1.0 families stay on 1.0: their pool, calibration designs and results are unchanged, and their matches keep playing on 1.0 after that day.
 
 Seven families are written on 2.0: otp-login, webhook-delivery and image-resizer (practice), and file-sync, video-on-demand, payment-processing and web-crawler (battle). Each validates (HLDQ-3) in both battle modes. Where the numbers differ from the plan above, it's so the simulator shows the lesson:
 
@@ -749,7 +749,7 @@ What the engine does beyond ADR-0050's text, each only under 2.0, is recorded in
 
 ## Stage 2 as built (spec 2.1, PROVISIONAL)
 
-Spec 2.1 takes effect on 2027-01-01, the monthly season boundary after 2.0's (`SPEC_V21_FROM` in `packages/hld/src/spec.ts`, Q-WD-31). Before it, no match, tournament round or practice problem uses a 2.1 family. Families on 1.0 and 2.0 stay on their versions. What the engine does beyond ADR-0050's text is proposed in [ADR-0052](adr/0052-hld-spec-2-1-engine-rules.md) (PROPOSED: the owner accepts).
+Spec 2.1 takes effect on 2026-11-26, the same day as 2.0 (ADR-0055: brought forward from Q-WD-31's 2027-01-01 boundary; `SPEC_V21_FROM` in `packages/hld/src/spec.ts`). Before it, no match, tournament round or practice problem uses a 2.1 family. Families on 1.0 and 2.0 stay on their versions. What the engine does beyond ADR-0050's text is in [ADR-0052](adr/0052-hld-spec-2-1-engine-rules.md) (ACCEPTED, owner, 2026-11-24).
 
 Twelve families are written on 2.1, each with the pool, theme and difficulty planned above:
 
@@ -760,7 +760,7 @@ Each battle family validates (HLDQ-3) in both battle modes, at least 15 of its f
 
 ### The two 2.0 lessons, restored
 
-The owner asked for both. Each uses only 2.0's features, so both families stay on 2.0. Neither is drawn or offered before 2026-12-01, so no player has seen the earlier version. Their calibration designs change, and so do image-resizer's AI pool seeds; every other 1.0 and 2.0 entry is byte-identical.
+The owner asked for both. Each uses only 2.0's features, so both families stay on 2.0. Neither was drawn or offered before the change (2.0 takes effect on 2026-11-26, ADR-0055), so no player has seen the earlier version. Their calibration designs change, and so do image-resizer's AI pool seeds; every other 1.0 and 2.0 entry is byte-identical.
 
 - **web-crawler:** a new scenario, "a sitemap floods the frontier: three times the fetches for 90 minutes".
   - Politeness caps fetching at the provider's rate limit, so the flood waits in the frontier for 2 to 3 hours.

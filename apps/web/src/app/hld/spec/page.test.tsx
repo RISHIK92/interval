@@ -7,10 +7,10 @@ import SpecPage from "./page";
 // patch notes, without the client (it's the traffic, not a component you size).
 test("the spec sheet lists the components, their numbers and the patch notes", () => {
   const html = renderToStaticMarkup(<SpecPage />);
-  expect(html).toContain("Version 2.1, from 1 Jan 2027, a season boundary.");
+  expect(html).toContain("Version 2.1, in effect from 26 Nov 2026.");
   // A version is taken up by families made for it: 1.0's and 2.0's stay on theirs.
   expect(html).toContain(
-    "Families made on versions 1.0 and 2.0 stay on them, before and after that boundary; only families made for 2.1 run on 2.1, from it.",
+    "Families made on versions 1.0 and 2.0 stay on them, before and after that day; only families made for 2.1 run on 2.1, from it.",
   );
   expect(html).not.toContain("Until then every match");
   expect(html).toContain("provisional until launch");
@@ -42,7 +42,7 @@ test("the spec sheet is static: no session read, no app frame", () => {
   expect(renderToStaticMarkup(page)).not.toContain('aria-label="Main"');
 });
 
-// ADR-0050 §6, Q-WD-31: v2.0 at its season boundary, with what it adds and its notes.
+// ADR-0050 §6, ADR-0055: v2.0 from 26 November 2026, with what it adds and its notes.
 test("the sheet shows 2.0: the provider marked new, the engine's bytes and backlog, and its notes", () => {
   const html = renderToStaticMarkup(<SpecPage />);
   expect(html).toContain("External provider");
@@ -56,12 +56,15 @@ test("the sheet shows 2.0: the provider marked new, the engine's bytes and backl
   );
   expect(html).toContain("A spike or outage lasts 15 minutes");
   expect(html).toContain("a GB from anything else. From 2.0.");
-  expect(html).toMatch(/2\.0 <span[^>]*>· 1 Dec 2026/);
+  expect(html).toMatch(/2\.0 <span[^>]*>· 26 Nov 2026/);
+  expect(html).toContain(
+    "Brought forward (owner, 26 Nov 2026): 2.0 takes effect on 26 Nov 2026, with 2.1, instead of at the 1 Dec 2026 season boundary.",
+  );
   expect(html).toContain("New component: the external provider");
   expect(html).toContain("Every version 1.0 number is unchanged");
 });
 
-// ADR-0050 stage 2, Q-WD-31: v2.1 a month later, with its three kinds and its engine.
+// ADR-0050 stage 2, ADR-0055: v2.1 the same day as 2.0, with its three kinds and its engine.
 test("the sheet shows 2.1: its kinds marked new, their numbers, the engine's rules, and its notes", () => {
   const html = renderToStaticMarkup(<SpecPage />);
   expect(html.match(/New in 2\.1/g)).toHaveLength(3);
@@ -82,7 +85,10 @@ test("the sheet shows 2.1: its kinds marked new, their numbers, the engine's rul
   expect(html).toContain("A coordination service holds at most 8 GB.");
   expect(html).toContain("go out 50 at a time. From 2.1.");
   expect(html).toContain("waits at most 5 seconds to fill a batch. From 2.1.");
-  expect(html).toMatch(/2\.1 <span[^>]*>· 1 Jan 2027/);
+  expect(html).toMatch(/2\.1 <span[^>]*>· 26 Nov 2026/);
+  expect(html).toContain(
+    "Brought forward (owner, 26 Nov 2026): 2.1 takes effect on 26 Nov 2026, with 2.0, instead of at the 1 Jan 2027 season boundary.",
+  );
   expect(html).toContain("New component: the geo index");
   expect(html).toContain("Every version 1.0 and 2.0 number is unchanged");
 });

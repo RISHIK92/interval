@@ -229,9 +229,9 @@ describe("a tournament", () => {
     expect(view?.standings.map((s) => s.points)).toEqual([0, 0]);
   });
 
-  // ADR-0050 §6, Q-WD-31: a round on a version not yet in effect waits for its season
-  // boundary, however early the admin presses.
-  test("a round on a spec version not yet in effect can't start before its boundary", async () => {
+  // ADR-0050 §6, ADR-0055: a round on a version not yet in effect waits for the day
+  // it takes effect, however early the admin presses.
+  test("a round on a spec version not yet in effect can't start before its day", async () => {
     const w = world(["a", "b"], {});
     const seed = POOL["file-sync"]?.human[0] ?? 0;
     w.deps.tournaments.rounds = () =>
@@ -242,16 +242,17 @@ describe("a tournament", () => {
           seed,
         })),
       );
-    w.deps.now = () => new Date("2026-11-30T23:59:59Z");
+    w.deps.now = () => new Date("2026-11-25T23:59:59Z");
     expect(await nextRound(w.deps, "t1")).toBe("not_yet");
     expect(w.get().round).toBe(0);
     expect(w.matches.size).toBe(0);
-    w.deps.now = () => new Date("2026-12-01T00:00:00Z");
+    w.deps.now = () => new Date("2026-11-26T00:00:00Z");
     expect(await nextRound(w.deps, "t1")).toBe("started");
     expect([...w.matches.values()][0]?.match.spec).toBe("2.0");
   });
 
-  test("a round on a 2.1 family waits for 2027-01-01", async () => {
+  // ADR-0055: 2.1 takes effect with 2.0, on 26 November 2026.
+  test("a round on a 2.1 family waits for 2026-11-26", async () => {
     const w = world(["a", "b"], {});
     const seed = POOL["job-scheduler"]?.human[0] ?? 0;
     w.deps.tournaments.rounds = () =>
@@ -262,9 +263,9 @@ describe("a tournament", () => {
           seed,
         })),
       );
-    w.deps.now = () => new Date("2026-12-31T23:59:59Z");
+    w.deps.now = () => new Date("2026-11-25T23:59:59Z");
     expect(await nextRound(w.deps, "t1")).toBe("not_yet");
-    w.deps.now = () => new Date("2027-01-01T00:00:00Z");
+    w.deps.now = () => new Date("2026-11-26T00:00:00Z");
     expect(await nextRound(w.deps, "t1")).toBe("started");
     expect([...w.matches.values()][0]?.match.spec).toBe("2.1");
   });

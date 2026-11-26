@@ -577,7 +577,7 @@ const PROVIDER_PRICES: readonly ProviderPrice[] = [
 
 export type SpecVersion = {
   version: string;
-  date: string; // ISO day it took effect: a season boundary (CANVAS-4)
+  date: string; // ISO day it took effect: a season boundary (CANVAS-4), or ADR-0055's day
   provisional: boolean;
   // The kinds this version has: a design using any other is refused.
   components: Partial<Record<ComponentKind, ComponentStats>>;
@@ -729,9 +729,9 @@ const V1_0 = {
   },
 } satisfies SpecVersion;
 
-// Q-WD-31: an HLD season is monthly, and v2.0 takes effect at the first boundary after
-// ADR-0050 was accepted. Before it, no match or practice problem is drawn on 2.0.
-export const SPEC_V2_FROM = "2026-12-01";
+// ADR-0055 (owner, 2026-11-26): v2.0 takes effect now, with v2.1, instead of at Q-WD-31's
+// monthly boundary (2026-12-01). Before it, no match or practice problem is drawn on 2.0.
+export const SPEC_V2_FROM = "2026-11-26";
 
 // ADR-0050 stage 1 (§5, PROVISIONAL like 1.0): the external provider, backlog and lag,
 // work units, and payload bandwidth with egress. Every 1.0 number is unchanged.
@@ -756,6 +756,7 @@ const V2_0: SpecVersion = {
     "A request type says what must do its work: a code isn't sent until it reaches the SMS provider, and an upload isn't transcoded until it reaches a worker. A design that leaves that out serves none of it, however cheap.",
     "Pick your provider (amended on 24 Nov 2026, before 2.0 took effect): where a problem offers it, you pick the external provider's provider and channel. Twilio, MSG91, Amazon or Vonage, by SMS, WhatsApp, email or a voice call; Stripe, Razorpay or PayPal for card payments. Each is priced at its real list price in the problem's region (seen 24 Nov 2026, provisional), and one not offered there can't be picked. A payment's fee is its percentage of the problem's average ticket plus its fixed fee, paid apart from the infrastructure budget and held to the problem's target for fees per payment. Used by one-time code sign-in and payment processing. The sheet also prices push (FCM, APNs, Amazon, OneSignal), which only 2.1's notification service offers.",
     "Every version 1.0 number is unchanged, and so is every 1.0 family's result: they stay on 1.0.",
+    "Brought forward (owner, 26 Nov 2026): 2.0 takes effect on 26 Nov 2026, with 2.1, instead of at the 1 Dec 2026 season boundary.",
   ],
   engine: V1_0.engine,
   components: {
@@ -777,8 +778,9 @@ const V2_0: SpecVersion = {
   },
 };
 
-// Q-WD-31: v2.1 takes effect at the next monthly boundary after v2.0's.
-export const SPEC_V21_FROM = "2027-01-01";
+// ADR-0055 (owner, 2026-11-26): v2.1 takes effect the same day as v2.0, instead of at
+// the monthly boundary after it (Q-WD-31: 2027-01-01).
+export const SPEC_V21_FROM = "2026-11-26";
 
 // ADR-0050 stage 2 (§2, §3, §5, PROVISIONAL like the rest), with ADR-0052's rules: the
 // geo index, the connection gateway and the coordination service; fan-out, hot
@@ -804,6 +806,7 @@ const V2_1: SpecVersion = {
     "Hot partitions: a request type can put a share of its load on one partition of a key-value store, stream, queue or geo index (a viral post, a big merchant). That partition can overload while the rest idle; a cache in front takes hot reads, and batching takes hot writes.",
     "Batching: workers and app services gain a batch size. A worker's or app service's onward writes go in batches of that many, and a worker waits at most 5 seconds to fill one. An app service's batch is an ID block it hands out without asking again.",
     "Every version 1.0 and 2.0 number is unchanged, and so is every 1.0 and 2.0 family's result: they stay on their versions.",
+    "Brought forward (owner, 26 Nov 2026): 2.1 takes effect on 26 Nov 2026, with 2.0, instead of at the 1 Jan 2027 season boundary.",
   ],
   engine: V1_0.engine,
   components: {
@@ -857,7 +860,7 @@ export function specVersion(version: string): SpecVersion | null {
   return SPEC_VERSIONS.find((s) => s.version === version) ?? null;
 }
 
-// A version is in effect from its season boundary on (UTC days).
+// A version is in effect from its day on (UTC days).
 export function specInEffect(version: string, now: Date): boolean {
   const spec = specVersion(version);
   return spec !== null && spec.date <= now.toISOString().slice(0, 10);
