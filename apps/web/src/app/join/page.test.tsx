@@ -35,17 +35,20 @@ test("a visitor with a session is sent home instead of seeing the form", async (
   await expect(render("ABCDE-FGHJK")).rejects.toThrow("redirect:/");
 });
 
-test("a link's code pre-fills the form", async () => {
+// ADR-0056: an old invite link's code rides along hidden and still sets its group.
+test("a link's code is kept, hidden, for the submit", async () => {
   current.mockResolvedValue(null);
-  expect(await render("ABCDE-FGHJK")).toContain('value="ABCDE-FGHJK"');
+  const html = await render("ABCDE-FGHJK");
+  expect(html).toContain('type="hidden" name="code" value="ABCDE-FGHJK"');
 });
 
-// Account first (ADR-0016): one form for the code and the account.
-test("the form asks for the code, a name, an email and a password", async () => {
+// Account first (ADR-0016), open to anyone (ADR-0056): no code to enter.
+test("the form asks for a name, an email and a password, and no code", async () => {
   current.mockResolvedValue(null);
   const html = await render();
-  for (const field of ["code", "name", "email", "password"]) {
+  for (const field of ["name", "email", "password"]) {
     expect(html).toContain(`name="${field}"`);
   }
-  expect(html).toContain("Create your account with your invite code.");
+  expect(html).not.toContain('name="code"');
+  expect(html).not.toMatch(/invite|private beta/i);
 });

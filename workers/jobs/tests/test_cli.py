@@ -4,7 +4,7 @@ import json
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -491,12 +491,17 @@ def test_daily_challenge_due_prints_what_it_did(
 
 
 def test_prune_snapshots_needs_the_private_bucket(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, store: InMemoryStore
 ) -> None:
-    """P5-W31-S04b-2: without a bucket the objects can't go, so nothing is forgotten."""
+    """P5-W31-S04b-2: without a bucket the objects can't go, so nothing is forgotten.
+    ADR-0046: Explore's questions past 30 days are purged first, bucket or not."""
+    now = datetime.now(UTC)
+    store.ask.asked_at["old"] = now - timedelta(days=31)
+    store.ask.asked_at["recent"] = now - timedelta(days=29)
     monkeypatch.setattr(cli, "files", lambda: None)
     with pytest.raises(SystemExit, match="PRIVATE_CONTENT_BUCKET"):
         main(["prune-snapshots"])
+    assert set(store.ask.asked_at) == {"recent"}
 
 
 def test_rewrite_stems_needs_the_question_model_and_a_positive_limit(
@@ -571,3 +576,25 @@ def test_rewrite_stems_exits_non_zero_after_model_errors(
     # One call at a time (no batch tier), the limit and cool-off as given.
     assert asked == [("qwen-questions", 5, timedelta(days=2))]
     assert json.loads(capsys.readouterr().out)["errors"] == errors
+
+
+def test_eval_ask_needs_both_models_and_its_questions(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """ADR-0046 (AI-5): the eval runs only with EMBEDDING_MODEL and ASK_MODEL set."""
+
+    @contextmanager
+    def no_model(variable: str) -> Generator[None]:
+        assert variable in ("EMBEDDING_MODEL", "ASK_MODEL")
+        yield None
+
+    @contextmanager
+    def no_units() -> Generator[None]:
+        yield None
+
+    monkeypatch.setattr(cli, "model_job", no_model)
+    monkeypatch.setattr(cli, "stage_units", no_units)
+    with pytest.raises(SystemExit, match="EMBEDDING_MODEL and ASK_MODEL"):
+        main(["eval-ask", "--user-id", "u1"])
+    with pytest.raises(SystemExit, match="No such file"):
+        main(["eval-ask", "--user-id", "u1", "--questions", str(tmp_path / "none")])

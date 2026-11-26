@@ -6,9 +6,10 @@ import { Button } from "../ui/Button";
 import { FIELD } from "../ui/field";
 import { join } from "./actions";
 
-// Account first (ADR-0016): the invite code and the account together. The code from an
-// invite link only pre-fills the form: a use is spent on submit, never on a GET, so
-// link previews and prefetching cannot burn it.
+// Account first (ADR-0016), open to anyone (ADR-0056): no code to enter. A code from an
+// invite link sent during the private beta rides along hidden and still sets its group;
+// its use is spent on submit, never on a GET, so link previews and prefetching cannot
+// burn it.
 export function JoinForm({ code }: { code: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(
     join,
@@ -16,16 +17,7 @@ export function JoinForm({ code }: { code: string }) {
   );
   return (
     <form action={action} className="mt-6 flex flex-col gap-4">
-      <label className="text-section">
-        Invite code
-        <input
-          name="code"
-          defaultValue={code}
-          autoComplete="off"
-          required
-          className={FIELD}
-        />
-      </label>
+      {code === "" ? null : <input type="hidden" name="code" value={code} />}
       <label className="text-section">
         Name
         <input

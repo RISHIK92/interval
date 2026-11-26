@@ -74,8 +74,13 @@ def test_render_defines_enum_alias_with_labels_in_order() -> None:
 
 
 def test_unknown_type_fails_with_its_name() -> None:
-    with pytest.raises(UnknownTypeError, match="tsvector"):
-        python_type(col("c", "tsvector"), enums={})
+    with pytest.raises(UnknownTypeError, match="tsquery"):
+        python_type(col("c", "tsquery"), enums={})
+
+
+def test_tsvector_column_maps_to_its_text_form() -> None:
+    # ADR-0046's search columns: generated, only ever read as text.
+    assert python_type(col("c", "tsvector"), enums={}) == "str"
 
 
 def test_render_sorts_tables_and_keeps_column_order() -> None:

@@ -24,12 +24,14 @@ from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
 from interval_db.messages import (
     AgentNudge,
     AnswerInterviewer,
+    Ask,
     BookCheckpoint,
     BookProcess,
     CheckLink,
@@ -39,6 +41,7 @@ from interval_db.messages import (
     GenerateQuestions,
     GithubSync,
     JudgeHld,
+    LeaguePoints,
     MatchFinished,
     MessageName,
     OcrPage,
@@ -55,6 +58,8 @@ from interval_db.messages import (
 from interval_jobs import log
 from interval_jobs.agent_push import NOTICE, deliver
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.ask import MAX_PASSAGES, passage_body, relevant
+from interval_jobs.ask import answer as ask_answer
 from interval_jobs.books.checkpoint import (
     GAVE_UP as CHECKPOINT_GAVE_UP,
 )
@@ -78,11 +83,15 @@ from interval_jobs.hld_judge import coach as hld_coach
 from interval_jobs.hld_judge import judge as hld_judge
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.interviewer import answer as interviewer_answer
+from interval_jobs.leagues import UTC_ZONE, credit_source, say_leagues
 from interval_jobs.link_health import check_link
 from interval_jobs.match_results import MatchResult, ResultsRedis, parse_result
 from interval_jobs.normalize import page_canonical, simhash
 from interval_jobs.polling import MIN_INTERVAL, next_interval
 from interval_jobs.ports import (
+    AskPassage,
+    AskRequest,
+    AskResult,
     ConceptGraph,
     Delivery,
     EventSink,
@@ -225,8 +234,14 @@ class Pipeline:
         results: ResultsRedis | None = None,
         push: WebPush | None = None,
         events: EventSink | None = None,
+        ask: ModelJob | None = None,
+        league_zone: ZoneInfo = UTC_ZONE,
     ) -> None:
         self._unit = unit_of_work
+        # ADR-0045: the leagues' week and day (BATTLE_WINDOW_TIME_ZONE).
+        self._league_zone = league_zone
+        # ADR-0046: ASK_MODEL; None answers every question as unavailable.
+        self._ask = ask
         # DB-5: where a stage's events go; None writes none (a stage's own tests).
         self._events = events
         # P3-W17-S05b: None without VAPID keys; agent nudges are then skipped.
@@ -272,7 +287,23 @@ class Pipeline:
             "review_code": self._review_stage,
             "judge_hld": self._hld_judge_stage,
             "rate_hld_match": self._hld_rate_stage,
+            "ask": self._ask_stage,
+            "league_points": self._league_stage,
         }
+
+    # ADR-0045: one source's weekly league points, once per player (LOAD-5); a
+    # player's first points of the week place them, said after the commit (DB-5).
+    def _league_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, LeaguePoints)
+        with self._unit() as services:
+            placed = credit_source(
+                services.store.leagues,
+                message.source_kind,
+                message.source_id,
+                self._league_zone,
+            )
+        if self._events is not None:
+            say_leagues(self._events, [], placed)
 
     # P5-W35 (§6.5, Q-P5-14, Q-P5-22): a battle player's AI code review, on request:
     # their best submission from the bucket, QUESTIONS_MODEL through the gateway.
@@ -386,6 +417,106 @@ class Pipeline:
                 unavailable("failed")
             raise
 
+    # ADR-0046 (AI-1, AI-3, ING-2, OPS-4): an Explore question, answered from the
+    # user's catalogue: the question embedded (EMBEDDING_MODEL), the nearest passages,
+    # each read as its rights allow, then one ASK_MODEL call, validated before it's
+    # stored. Nothing relevant: no model is called.
+    def _ask_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, Ask)
+        question_id = message.question_id
+        with self._unit() as services:
+            request = services.store.ask.to_answer(question_id)
+        if request is None:
+            return  # answered already (a redelivery), or deleted or purged
+        try:
+            result = self.answer(request)
+        except Exception:
+            # Retried by the queue; on its last try the user is told, not left waiting.
+            if delivery.attempt >= ATTEMPTS:
+                self._ask_done(request, AskResult("unavailable"))
+            raise
+        self._ask_done(request, result)
+
+    def answer(self, request: AskRequest) -> AskResult:
+        """An answer, not stored: the stage's, and the Ask eval's (AI-5)."""
+        if self._ask is None or self._embedding is None:
+            log.warn(
+                "ask: no model",
+                question_id=request.question_id,
+                missing="ASK_MODEL" if self._ask is None else "EMBEDDING_MODEL",
+            )
+            return AskResult("unavailable")
+        with self._embedding.gateway() as gateway:
+            embedded = gateway.embed(
+                feature="ask",
+                user_id=request.user_id,
+                model=self._embedding.model,
+                texts=[request.text],
+                purpose="query",
+            )
+        if isinstance(embedded, OverBudget):
+            return AskResult("over_budget")
+        with self._unit() as services:
+            found = services.store.ask.nearest(
+                request.user_id,
+                embedded.vectors[0],
+                self._embedding.model,
+                MAX_PASSAGES,
+            )
+            passages = relevant(found)
+            bodies = {
+                p.passage: passage_body(p, self._section_text(services.store, p))
+                for p in passages
+            }
+        if not passages:
+            return AskResult("nothing_found", cost_usd=embedded.usage.cost_usd)
+        model = self._ask.model.removeprefix(BATCH_PREFIX)
+        with self._ask.gateway() as gateway:
+            result = ask_answer(gateway, model, request, passages, bodies)
+        if result.cost_usd is None:
+            return result
+        return AskResult(
+            result.outcome,
+            result.text,
+            result.citations,
+            result.model,
+            result.prompt_version,
+            result.cost_usd + embedded.usage.cost_usd,
+            result.refused,
+        )
+
+    @staticmethod
+    def _section_text(store: Store, p: AskPassage) -> str | None:
+        # Full text is read here, in the worker, and only for a moment of a source
+        # whose rights allow it (ING-2); passage_body decides what the model sees.
+        if p.kind != "moment" or p.item_id is None or p.moment_id is None:
+            return None
+        if p.rights_profile not in ("full_text_internal", "full_text_display"):
+            return None
+        item = store.tags.input(p.item_id)
+        if item is None or item.full_text is None:
+            return None
+        return moment_texts(item.full_text, item.moments).get(p.moment_id)
+
+    def _ask_done(self, request: AskRequest, result: AskResult) -> None:
+        with self._unit() as services:
+            saved = services.store.ask.save(request.question_id, result)
+        log.info("ask: done", question_id=request.question_id, outcome=result.outcome)
+        if not saved or self._events is None:
+            return
+        # After the commit, so a redelivery that finds it saved says nothing.
+        events = Emitter(self._events)
+        events.emit(
+            "ask_answered",
+            {
+                "outcome": result.outcome,
+                "citation_count": len(result.citations),
+                "cost_micro_usd": int((result.cost_usd or 0) * 1_000_000),
+            },
+            EventContext(request.user_id, request.is_guest, request.beta_group, None),
+        )
+        events.flush()
+
     # P6-W42 (MATCH-1, Q-P6-06, ADR-0043): a scored HLD match's ratings, by its places.
     def _hld_rate_stage(self, message: BaseModel, delivery: Delivery) -> None:
         assert isinstance(message, RateHldMatch)
@@ -476,6 +607,13 @@ class Pipeline:
         with self._unit() as services:
             recorded = services.store.match_results.record(result)
         log.info("game: result", match_id=message.match_id, recorded=recorded)
+        # ADR-0045: its league points, on every delivery too (the ledger scores a
+        # source once).
+        self._queue.enqueue(
+            "league_points",
+            {"source_kind": "match", "source_id": message.match_id},
+            idempotency_key=f"league-match-{message.match_id}",
+        )
         # Every delivery, not only the first recording: a retry after a crash between
         # the two still keeps them (rows on conflict do nothing; the same object).
         self._keep_bests(result)

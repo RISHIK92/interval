@@ -28,7 +28,7 @@ def event(
     name: str,
     user: str,
     at: datetime,
-    group: str = "student",
+    group: str | None = "student",
     guest: bool = False,
     version: int = 1,
     source: str = "web",
@@ -624,3 +624,79 @@ def test_window_matched_sums_each_weeks_groupings(tmp_path: Path) -> None:
 
 def test_window_matched_gives_no_rows_without_events(tmp_path: Path) -> None:
     assert run("window_matched.sql", [], tmp_path) == []
+
+
+# ADR-0056: users who joined after the private beta have no group (a null beta_group).
+# Each query that splits by group counts them in their own "none" bucket, never drops
+# them. One counted user per group: the "none" row matches the student one.
+def _one_counted_user(query: str, user: str) -> list[dict[str, object]]:
+    path_week = TODAY - days(14)
+    match query:
+        case "return_rate.sql":
+            return [
+                event("signup_completed", user, SIGNUP),
+                event("session_started", user, SIGNUP + days(8)),
+            ]
+        case "finished_rate.sql":
+            return [
+                opened(user, "1", "11"),
+                finished_section(user, "1", "11", OPENED + days(1)),
+            ]
+        case "quiz_rate.sql":
+            done = TODAY - days(5)
+            return [
+                finished_section(user, "1", "11", done),
+                quiz_started(user, "11", done + days(0.5)),
+            ]
+        case "path_progress.sql":
+            return [
+                event("path_started", user, path_week - days(1), path_id="1"),
+                event(
+                    "checkpoint_finished",
+                    user,
+                    path_week + days(1),
+                    path_id="1",
+                    section_id="10",
+                    passed=True,
+                ),
+            ]
+        case "listen_share.sql":
+            return [event("explainer_started", user, WEEK, explainer_id="7")]
+        case "explainer_completion.sql":
+            return [
+                event("explainer_started", user, LAST_WEEK, explainer_id="7"),
+                event("explainer_finished", user, LAST_WEEK, explainer_id="7"),
+            ]
+        case "push_opt_in.sql":
+            return [
+                event("session_started", user, WEEK),
+                event(
+                    "push_setting_changed",
+                    user,
+                    TODAY - days(5),
+                    kind="digest",
+                    on=True,
+                ),
+            ]
+        case _:
+            raise AssertionError(query)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "return_rate.sql",
+        "finished_rate.sql",
+        "quiz_rate.sql",
+        "path_progress.sql",
+        "listen_share.sql",
+        "explainer_completion.sql",
+        "push_opt_in.sql",
+    ],
+)
+def test_users_with_no_group_are_their_own_bucket(query: str, tmp_path: Path) -> None:
+    ungrouped = [{**e, "beta_group": None} for e in _one_counted_user(query, "n")]
+    events = [*_one_counted_user(query, "s"), *ungrouped]
+    rows = run(query, events, tmp_path)
+    assert [row[0] for row in rows] == ["none", "student"]
+    assert rows[0][1:] == rows[1][1:]

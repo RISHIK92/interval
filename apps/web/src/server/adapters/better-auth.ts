@@ -16,7 +16,6 @@ import {
   type Actor,
   type GuestSessions,
   type Mailer,
-  type Redemption,
   type SessionReader,
 } from "../ports";
 
@@ -25,18 +24,17 @@ import {
 
 const DAY_SECONDS = 60 * 60 * 24;
 
-type Redeemed = Extract<Redemption, { ok: true }>;
-
-// The redemption being turned into a user, and the user once its row exists. No
-// redemption, no user (Q-P1-24): the create hook below refuses any user created
-// outside this scope.
-type PendingGuest = { redemption: Redeemed; userId?: string };
+// A guest being started, and its user once the row exists. The create hook below
+// refuses any user created outside this scope: Better Auth's own endpoints make no
+// users (ADR-0016, ADR-0029).
+type PendingGuest = { userId?: string };
 const pendingGuest = new AsyncLocalStorage<PendingGuest>();
 
 // P3-W13-S07: whether this sign-in merged a guest, for accounts.signIn to report.
 const guestMerge = new AsyncLocalStorage<{ merged: boolean }>();
 
-const betaGroup = z.enum(["student", "developer"]);
+// ADR-0056: null for users who joined without an invite code.
+const betaGroup = z.enum(["student", "developer"]).nullable();
 
 const timestamps = {
   createdAt: "created_at",
@@ -60,9 +58,9 @@ export function createAuth(opts: {
     // in Phase 1, a reset link valid for an hour that signs out every other session.
     emailAndPassword: {
       enabled: true,
-      // Accounts are made only from an invite redemption (Accounts.create, ADR-0016),
-      // never through the public endpoint, which would skip the invite code, or by a
-      // Play guest's upgrade (Accounts.signUp, ADR-0029).
+      // Accounts are made only at /join (Accounts.create, ADR-0016), which applies the
+      // network's limit and an optional invite code (ADR-0056), or by a Play guest's
+      // upgrade (Accounts.signUp, ADR-0029); never through the public endpoint.
       disableSignUp: true,
       minPasswordLength: 8,
       maxPasswordLength: 128,
@@ -135,19 +133,10 @@ export function createAuth(opts: {
     databaseHooks: {
       user: {
         create: {
-          before: (user) => {
-            const pending = pendingGuest.getStore();
-            if (pending === undefined) return Promise.resolve(false);
-            return Promise.resolve({
-              data: {
-                ...user,
-                betaGroup: pending.redemption.betaGroup,
-                inviteCodeId: pending.redemption.inviteCodeId,
-              },
-            });
-          },
+          before: () => Promise.resolve(pendingGuest.getStore() !== undefined),
           // Better Auth commits the user before creating its session; if that later
-          // step fails, start() removes this user so the code's count stays exact.
+          // step fails, start() removes this user so no guest is left that no browser
+          // holds.
           after: (user) => {
             const pending = pendingGuest.getStore();
             if (pending !== undefined) pending.userId = user.id;
@@ -211,8 +200,8 @@ export type Auth = ReturnType<typeof createAuth>;
 
 export function guestSessions(auth: Auth): GuestSessions {
   return {
-    start: async (redemption, headers) => {
-      const pending: PendingGuest = { redemption };
+    start: async (headers) => {
+      const pending: PendingGuest = {};
       try {
         const result = await pendingGuest.run(pending, () =>
           auth.api.signInAnonymous({ headers, returnHeaders: true }),
@@ -222,7 +211,7 @@ export function guestSessions(auth: Auth): GuestSessions {
           actor: {
             userId: result.response.user.id,
             isGuest: true,
-            betaGroup: redemption.betaGroup,
+            betaGroup: null,
           },
         };
       } catch (error) {
@@ -281,8 +270,8 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
               name: input.name,
               email: input.email,
               is_anonymous: false,
-              beta_group: redemption.betaGroup,
-              invite_code_id: redemption.inviteCodeId,
+              beta_group: redemption?.betaGroup ?? null,
+              invite_code_id: redemption?.inviteCodeId ?? null,
             })
             .execute();
           await trx
@@ -317,12 +306,12 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
           actor: {
             userId: user.id,
             isGuest: false,
-            betaGroup: betaGroup.parse(user.betaGroup),
+            betaGroup: betaGroup.parse(user.betaGroup ?? null),
           },
         };
       } catch (error) {
         // Nothing left behind (credentials and sessions cascade), so the caller can give
-        // the invite use back; if even that fails, it must not.
+        // an invite use back; if even that fails, it must not.
         try {
           await db.deleteFrom("app_user").where("id", "=", userId).execute();
         } catch (cleanup) {
@@ -423,7 +412,7 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
           actor: {
             userId: user.id,
             isGuest: user.isAnonymous === true,
-            betaGroup: betaGroup.parse(user.betaGroup),
+            betaGroup: betaGroup.parse(user.betaGroup ?? null),
           },
           mergedGuest: report.merged,
         };
@@ -490,7 +479,7 @@ export function sessionReader(auth: Auth): SessionReader {
       return {
         userId: user.id,
         isGuest: user.isAnonymous === true,
-        betaGroup: betaGroup.parse(user.betaGroup),
+        betaGroup: betaGroup.parse(user.betaGroup ?? null),
       };
     },
   };

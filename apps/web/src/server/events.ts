@@ -12,7 +12,7 @@ import type { BetaGroup, EventSink } from "./ports";
 export type EventContext = {
   userId: string;
   isGuest: boolean;
-  betaGroup: BetaGroup;
+  betaGroup: BetaGroup | null;
   sessionId: string | null;
   // P4-W20-S01 (Q-P4-14): the native app's platform; the site's own pages are "web".
   source?: "ios" | "android";

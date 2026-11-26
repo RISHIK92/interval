@@ -123,6 +123,12 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
   - **Guests:** not in leagues.
   - **University:** "Verified with college email" stays out, because ADR-0032 (ACCEPTED) has universities picked from a list and unverified.
 
+- **ADR-0045's open questions (owner, 2026-11-26):**
+  - **Solo games:** the daily challenge earns 5 league points, once per challenge per player, within the 300-a-day cap. Other solo games earn nothing.
+  - **Rank visibility:** a league rank stays visible to others by default until Q-WD-26's "Who sees your rank" setting exists.
+  - **Abandoned matches:** the player who stayed earns the finished-match points without the win bonus; the player who left earns nothing.
+  - **Checkpoints:** 10 points only the first time a player passes a checkpoint; later passes earn nothing.
+
 ## Play
 
 ### Q-WD-08 vs people / vs AI (P1)
@@ -274,6 +280,11 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
   - **AI and voice:** "Ask anything" and the AI chips come later, under their own ADR (AI-1: an answer must cite and lead back to reading). No voice input.
 
 - **Answer (owner, 2026-11-23):** build "Ask anything" now as well as search, the gap card and spaces. That needs an ADR first: AI-1 says an answer must cite and lead back to reading, AI-3 says it is stored apart from source text and labelled, and it also needs an OPS-4 budget and an AI-5 eval.
+- **Answers (owner, 2026-11-26), building ADR-0046:**
+  - **"Make it a 4-min session":** a small `/explore/session` page lists the answer's cited moments in prerequisite order, cut to about 4 minutes, with the real total shown; each opens its deep link through `/out`. The `ask_session_started` event records the moment count and minutes.
+  - **AI-5 eval:** the `eval-ask` runner is built on the answer validator, reading `workers/jobs/evals/ask.yaml`, which holds only the format and marked placeholders. The owner adds 30+ questions; Ask stays off (`ASK_MODEL` unset) until it passes.
+  - **Daily limit:** counted from today's `ai_usage` rows for Ask, so deleting a question doesn't give it back.
+  - **Thresholds:** `MIN_SCORE` 0.5 and `INTERNAL_VERBATIM_MAX_WORDS` 7 stay, marked PROVISIONAL.
 
 ## Onboarding, Library, Profile
 

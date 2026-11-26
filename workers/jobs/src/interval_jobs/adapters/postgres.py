@@ -11,6 +11,7 @@ from dataclasses import asdict
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Literal, cast
+from uuid import UUID
 
 import psycopg
 from psycopg.rows import class_row
@@ -22,12 +23,14 @@ from interval_db.generated import (
     BreakLength,
     Capability,
     Difficulty,
+    LeagueTier,
     LearningGoal,
     RightsProfile,
     Topic,
 )
 from interval_db.messages import PracticeJudged
 from interval_jobs import log
+from interval_jobs.ask import MAX_FOLLOW_UPS
 from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.irt import Answer
 from interval_jobs.match_results import MatchResult, flagged
@@ -37,6 +40,11 @@ from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
     Arm,
     ArmOutcome,
+    AskChip,
+    AskPassage,
+    AskRequest,
+    AskResult,
+    AskTurn,
     BatchItemResult,
     BatchKind,
     BookChapterRow,
@@ -47,11 +55,13 @@ from interval_jobs.ports import (
     CandidateMoment,
     Caption,
     ChapterForCheckpoint,
+    CheckpointFacts,
     ConceptCoverage,
     ConceptCycleError,
     ConceptEdge,
     ConceptGraph,
     ConceptSeed,
+    DailyFacts,
     DuplicateInviteCode,
     EntryFacts,
     EstimateDraft,
@@ -65,15 +75,30 @@ from interval_jobs.ports import (
     Finished,
     GitHubSyncInput,
     GrantResult,
+    HldFacts,
     HldJudgeAsk,
     HldLevels,
+    HldSeat,
     InterviewerAsk,
     ItemDecisions,
+    LeagueCohort,
+    LeagueCredit,
+    LeagueMemberResult,
+    LeaguePlayer,
+    LeagueReturning,
+    LeagueSourceKind,
+    LeagueStanding,
+    LeagueUser,
+    LeagueWeekRow,
+    MatchFacts,
+    MatchSeat,
     MomentLink,
     MomentRow,
     NativeTarget,
     NoteBatchEntry,
     PathDraft,
+    PenaltyFacts,
+    PointsReason,
     PracticeKept,
     ProjectConcepts,
     ProjectNoteInput,
@@ -4108,6 +4133,435 @@ class PostgresTechnologies:
         )
 
 
+def _uuid(value: str) -> str | None:
+    try:
+        return str(UUID(value))
+    except ValueError:
+        return None
+
+
+def _bigint(value: str) -> int | None:
+    return int(value) if value.isdecimal() and len(value) <= 18 else None
+
+
+class PostgresLeagues:
+    """Weekly leagues (ADR-0045). Ranks and moves are the database's views, so the web
+    app shows the zones a close applies."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def match(self, match_id: str) -> MatchFacts | None:
+        key = _uuid(match_id)
+        if key is None:
+            return None
+        found = self._conn.execute(
+            "select mode, outcome, finished_at, replay_seat is not null"
+            " from game_match where id = %s and finished_at is not null",
+            (key,),
+        ).fetchone()
+        if found is None:
+            return None
+        seats = self._conn.execute(
+            """
+            select p.user_id, coalesce(p.abandoned, false),
+                   p.user_id is not distinct from m.winner_id,
+                   m.battle_mode = 'human' and exists (
+                     select 1 from fair_play_flag f
+                     where f.match_id = p.match_id and f.user_id = p.user_id
+                       and f.decision = 'penalized')
+            from game_match_player p join game_match m on m.id = p.match_id
+            where p.match_id = %s
+            order by p.user_id
+            """,
+            (key,),
+        ).fetchall()
+        return MatchFacts(
+            str(found[0]),
+            str(found[1]),
+            found[2],
+            bool(found[3]),
+            tuple(MatchSeat(str(u), bool(a), bool(w), bool(p)) for u, a, w, p in seats),
+        )
+
+    def hld_match(self, match_id: str) -> HldFacts | None:
+        key = _uuid(match_id)
+        if key is None:
+            return None
+        found = self._conn.execute(
+            "select scored_at from hld_match where id = %s and scored_at is not null",
+            (key,),
+        ).fetchone()
+        if found is None:
+            return None
+        seats = self._conn.execute(
+            "select user_id, submitted_at is not null, place from hld_match_player"
+            " where match_id = %s order by user_id",
+            (key,),
+        ).fetchall()
+        return HldFacts(
+            found[0],
+            tuple(
+                HldSeat(str(u), bool(s), None if p is None else int(p))
+                for u, s, p in seats
+            ),
+        )
+
+    def checkpoint(self, attempt_id: str) -> CheckpointFacts | None:
+        key = _bigint(attempt_id)
+        if key is None:
+            return None
+        found = self._conn.execute(
+            "select user_id, finished_at, checkpoint_passed,"
+            " case when path_section_id is not null"
+            " then 'section-' || path_section_id else 'chapter-' || book_chapter_id end"
+            " from quiz_attempt"
+            " where id = %s and checkpoint_passed is not null"
+            " and finished_at is not null",
+            (key,),
+        ).fetchone()
+        return (
+            None
+            if found is None
+            else CheckpointFacts(str(found[0]), found[1], bool(found[2]), str(found[3]))
+        )
+
+    def daily(self, attempt_id: str) -> DailyFacts | None:
+        key = _bigint(attempt_id)
+        if key is None:
+            return None
+        found = self._conn.execute(
+            "select user_id, daily_day, finished_at from quiz_attempt"
+            " where id = %s and daily_day is not null and finished_at is not null",
+            (key,),
+        ).fetchone()
+        return None if found is None else DailyFacts(str(found[0]), found[1], found[2])
+
+    def penalty(self, flag_id: str) -> PenaltyFacts | None:
+        key = _bigint(flag_id)
+        if key is None:
+            return None
+        found = self._conn.execute(
+            """
+            select f.user_id, f.match_id::text, f.decided_at
+            from fair_play_flag f join game_match m on m.id = f.match_id
+            where f.id = %s and f.decision = 'penalized' and m.battle_mode = 'human'
+            """,
+            (key,),
+        ).fetchone()
+        return (
+            None
+            if found is None
+            else PenaltyFacts(str(found[0]), str(found[1]), found[2])
+        )
+
+    def player(self, user_id: str) -> LeaguePlayer | None:
+        conn = self._conn
+        found = conn.execute(
+            """
+            select u.beta_group from app_user u
+            where u.id = %s and not u.is_anonymous
+              and exists (select 1 from user_entitlement e
+                where e.user_id = u.id and e.capability = 'play.league')
+            """,
+            (user_id,),
+        ).fetchone()
+        if found is None:
+            return None
+        conn.execute(
+            "insert into league_player (user_id) values (%s) on conflict do nothing",
+            (user_id,),
+        )
+        tier = conn.execute(
+            "select tier from league_player where user_id = %s for update", (user_id,)
+        ).fetchone()
+        assert tier is not None
+        return LeaguePlayer(
+            LeagueUser(user_id, cast("BetaGroup | None", found[0])),
+            cast("LeagueTier", tier[0]),
+        )
+
+    def week(self, starts_on: date, time_zone: str) -> LeagueWeekRow:
+        self._conn.execute(
+            "insert into league_week (starts_on, time_zone) values (%s, %s)"
+            " on conflict (starts_on) do nothing",
+            (starts_on, time_zone),
+        )
+        found = self.week_starting(starts_on)
+        assert found is not None
+        return found
+
+    def week_starting(self, starts_on: date) -> LeagueWeekRow | None:
+        found = self._conn.execute(
+            "select id, starts_on, formed_at is not null, closed_at is not null"
+            " from league_week where starts_on = %s",
+            (starts_on,),
+        ).fetchone()
+        return (
+            None
+            if found is None
+            else LeagueWeekRow(int(found[0]), found[1], bool(found[2]), bool(found[3]))
+        )
+
+    def earned(self, user_id: str, start: datetime, end: datetime) -> int:
+        found = self._conn.execute(
+            "select coalesce(sum(points), 0) from league_points"
+            " where user_id = %s and points > 0 and at >= %s and at < %s",
+            (user_id, start, end),
+        ).fetchone()
+        assert found is not None
+        return int(found[0])
+
+    def credited(
+        self, kind: LeagueSourceKind, source_id: str, user_id: str
+    ) -> LeagueCredit | None:
+        found = self._conn.execute(
+            "select week_id, points from league_points"
+            " where source_kind = %s and source_id = %s and user_id = %s",
+            (kind, source_id, user_id),
+        ).fetchone()
+        return None if found is None else LeagueCredit(int(found[0]), int(found[1]))
+
+    def add(
+        self,
+        user_id: str,
+        week_id: int,
+        kind: LeagueSourceKind,
+        source_id: str,
+        points: int,
+        reason: PointsReason,
+        at: datetime,
+    ) -> bool:
+        written = self._conn.execute(
+            """
+            insert into league_points
+              (user_id, week_id, source_kind, source_id, points, reason, at)
+            values (%s, %s, %s, %s, %s, %s, %s)
+            on conflict (source_kind, source_id, user_id) do nothing
+            """,
+            (user_id, week_id, kind, source_id, points, reason, at),
+        )
+        return written.rowcount == 1
+
+    def member(self, week_id: int, user_id: str) -> bool:
+        return (
+            self._conn.execute(
+                "select 1 from league_member where week_id = %s and user_id = %s",
+                (week_id, user_id),
+            ).fetchone()
+            is not None
+        )
+
+    def place(
+        self, week_id: int, user_id: str, tier: LeagueTier, pace_days: int, room: int
+    ) -> int:
+        conn = self._conn
+        # Locked, so two players joining at once can't overfill it.
+        found = conn.execute(
+            "select id from league_cohort where week_id = %s and tier = %s"
+            " and size < %s order by id desc limit 1 for update",
+            (week_id, tier, room),
+        ).fetchone()
+        if found is None:
+            found = conn.execute(
+                "insert into league_cohort (week_id, tier) values (%s, %s)"
+                " returning id",
+                (week_id, tier),
+            ).fetchone()
+            assert found is not None
+        conn.execute(
+            "insert into league_member"
+            " (week_id, cohort_id, user_id, pace_days, mid_week)"
+            " values (%s, %s, %s, %s, true)",
+            (week_id, found[0], user_id, pace_days),
+        )
+        size = conn.execute(
+            "update league_cohort set size = size + 1 where id = %s returning size",
+            (found[0],),
+        ).fetchone()
+        assert size is not None
+        return int(size[0])
+
+    def due(self, before: date) -> list[LeagueWeekRow]:
+        return [
+            LeagueWeekRow(int(i), s, bool(f), bool(c))
+            for i, s, f, c in self._conn.execute(
+                "select id, starts_on, formed_at is not null, closed_at is not null"
+                " from league_week where closed_at is null and starts_on < %s"
+                " order by starts_on",
+                (before,),
+            ).fetchall()
+        ]
+
+    def cohorts(self, week_id: int) -> list[LeagueCohort]:
+        members: dict[int, list[LeagueStanding]] = {}
+        for cohort_id, user_id, rank, points, group in self._conn.execute(
+            """
+            select s.cohort_id, s.user_id, s.rank, s.points, u.beta_group
+            from league_standing s join app_user u on u.id = s.user_id
+            where s.week_id = %s
+            order by s.cohort_id, s.rank
+            """,
+            (week_id,),
+        ).fetchall():
+            members.setdefault(int(cohort_id), []).append(
+                LeagueStanding(
+                    LeagueUser(str(user_id), cast("BetaGroup | None", group)),
+                    int(rank),
+                    int(points),
+                )
+            )
+        return [
+            LeagueCohort(
+                int(i),
+                cast("LeagueTier", tier),
+                int(up),
+                int(down),
+                tuple(members.get(int(i), [])),
+            )
+            for i, tier, up, down in self._conn.execute(
+                "select cohort_id, tier, up, down from league_cohort_moves"
+                " where week_id = %s order by cohort_id",
+                (week_id,),
+            ).fetchall()
+        ]
+
+    def close(
+        self, week_id: int, results: Sequence[LeagueMemberResult], now: datetime
+    ) -> bool:
+        conn = self._conn
+        with conn.transaction():
+            if (
+                conn.execute(
+                    "update league_week set closed_at = %s"
+                    " where id = %s and closed_at is null returning id",
+                    (now, week_id),
+                ).fetchone()
+                is None
+            ):
+                return False
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "update league_member set final_rank = %s, outcome = %s"
+                    " where week_id = %s and user_id = %s",
+                    [(r.rank, r.outcome, week_id, r.user.user_id) for r in results],
+                )
+                # In user order, as the points stage locks players: no deadlock
+                # with a late result scored while this runs.
+                cur.executemany(
+                    "insert into league_player (user_id, tier) values (%s, %s)"
+                    " on conflict (user_id) do update"
+                    " set tier = excluded.tier, updated_at = now()",
+                    sorted((r.user.user_id, r.tier) for r in results),
+                )
+        return True
+
+    def returning(self, week_id: int) -> list[LeagueReturning]:
+        rows = self._conn.execute(
+            """
+            select p.user_id, u.beta_group, coalesce(lp.tier, 'bronze'),
+                   least(7, count(distinct (p.at at time zone w.time_zone)::date)
+                     filter (where p.points > 0))
+            from league_points p
+            join league_week w on w.id = p.week_id
+            join app_user u on u.id = p.user_id
+            left join league_player lp on lp.user_id = p.user_id
+            where p.week_id = %s and not u.is_anonymous
+              and exists (select 1 from user_entitlement e
+                where e.user_id = p.user_id and e.capability = 'play.league')
+            group by p.user_id, u.beta_group, lp.tier
+            having sum(p.points) > 0
+            order by p.user_id
+            """,
+            (week_id,),
+        ).fetchall()
+        return [
+            LeagueReturning(
+                LeagueUser(str(u), cast("BetaGroup | None", g)),
+                cast("LeagueTier", t),
+                int(d),
+            )
+            for u, g, t, d in rows
+        ]
+
+    def unplaced(self, week_id: int) -> list[LeagueReturning]:
+        rows = self._conn.execute(
+            """
+            select p.user_id, u.beta_group, coalesce(lp.tier, 'bronze')
+            from league_points p
+            join app_user u on u.id = p.user_id
+            left join league_player lp on lp.user_id = p.user_id
+            where p.week_id = %s and not u.is_anonymous
+              and exists (select 1 from user_entitlement e
+                where e.user_id = p.user_id and e.capability = 'play.league')
+              and not exists (select 1 from league_member m
+                where m.week_id = p.week_id and m.user_id = p.user_id)
+            group by p.user_id, u.beta_group, lp.tier
+            having sum(p.points) > 0
+            order by p.user_id
+            """,
+            (week_id,),
+        ).fetchall()
+        return [
+            LeagueReturning(
+                LeagueUser(str(u), cast("BetaGroup | None", g)),
+                cast("LeagueTier", t),
+                0,
+            )
+            for u, g, t in rows
+        ]
+
+    def form(
+        self,
+        week_id: int,
+        cohorts: Sequence[tuple[LeagueTier, Sequence[LeagueReturning]]],
+        now: datetime,
+    ) -> list[tuple[LeagueUser, LeagueTier, int]]:
+        conn = self._conn
+        with conn.transaction():
+            if (
+                conn.execute(
+                    "update league_week set formed_at = %s"
+                    " where id = %s and formed_at is null returning id",
+                    (now, week_id),
+                ).fetchone()
+                is None
+            ):
+                return []
+            placed: list[tuple[LeagueUser, LeagueTier, int]] = []
+            for tier, players in cohorts:
+                made = conn.execute(
+                    "insert into league_cohort (week_id, tier) values (%s, %s)"
+                    " returning id",
+                    (week_id, tier),
+                ).fetchone()
+                assert made is not None
+                joined: list[LeagueUser] = []
+                for p in players:
+                    # A player placed by points before this ran keeps that place.
+                    if (
+                        conn.execute(
+                            "insert into league_member"
+                            " (week_id, cohort_id, user_id, pace_days, mid_week)"
+                            " values (%s, %s, %s, %s, false)"
+                            " on conflict (week_id, user_id) do nothing"
+                            " returning user_id",
+                            (week_id, made[0], p.user.user_id, p.pace_days),
+                        ).fetchone()
+                        is not None
+                    ):
+                        joined.append(p.user)
+                if not joined:
+                    conn.execute("delete from league_cohort where id = %s", (made[0],))
+                    continue
+                conn.execute(
+                    "update league_cohort set size = %s where id = %s",
+                    (len(joined), made[0]),
+                )
+                placed.extend((user, tier, len(joined)) for user in joined)
+        return placed
+
+
 class PostgresSeasons:
     """Quick-game seasons (P3-W16-S06)."""
 
@@ -4881,6 +5335,213 @@ class PostgresHldJudgements:
         ]
 
 
+class PostgresAsk:
+    """ADR-0046: Explore questions, their retrieval and their answers."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def to_answer(self, question_id: str) -> AskRequest | None:
+        row = self._conn.execute(
+            "select q.user_id, u.is_anonymous, u.beta_group, q.text, q.chip,"
+            " p.level, q.follow_up_of"
+            " from ask_question q join app_user u on u.id = q.user_id"
+            " left join user_preferences p on p.user_id = q.user_id"
+            " where q.id = %s::uuid and not exists"
+            " (select 1 from ask_answer a where a.question_id = q.id)",
+            (question_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        user_id, chip = str(row[0]), row[4]
+        technologies = (
+            [
+                str(r[0])
+                for r in self._conn.execute(
+                    "select distinct t.name from github_dependency_technology g"
+                    " join technology t on t.id = g.technology_id"
+                    " where g.user_id = %s and t.retired_at is null"
+                    " order by t.name limit 20",
+                    (user_id,),
+                ).fetchall()
+            ]
+            if chip == "my_stack"
+            else []
+        )
+        # The earlier turns of the thread, the user's own, oldest first.
+        thread = (
+            [
+                AskTurn(str(r[0]), None if r[1] is None else str(r[1]))
+                for r in self._conn.execute(
+                    """
+                    with recursive t (id, depth) as (
+                      select id, 1 from ask_question
+                      where id = %(start)s::uuid and user_id = %(user)s
+                      union all
+                      select q.follow_up_of, t.depth + 1
+                      from ask_question q join t on q.id = t.id
+                      where q.follow_up_of is not null and t.depth < %(max)s
+                    )
+                    select q.text, a.text from t
+                    join ask_question q on q.id = t.id and q.user_id = %(user)s
+                    left join ask_answer a on a.question_id = q.id
+                    order by t.depth desc
+                    """,
+                    {"start": row[6], "user": user_id, "max": MAX_FOLLOW_UPS},
+                ).fetchall()
+            ]
+            if row[6] is not None
+            else []
+        )
+        return AskRequest(
+            question_id,
+            user_id,
+            bool(row[1]),
+            cast(BetaGroup | None, row[2]),
+            str(row[3]),
+            cast(AskChip | None, chip),
+            # Explore follows onboarding; a user without a level reads the middle one.
+            cast(Difficulty, row[5] or "intermediate"),
+            technologies,
+            thread,
+        )
+
+    def nearest(
+        self, user_id: str, vector: list[float], model: str, limit: int
+    ) -> list[AskPassage]:
+        v = _vector(vector)
+        # Filtered HNSW: keep scanning until `limit` rows match (as `similar` does).
+        self._conn.execute("set local hnsw.iterative_scan = strict_order")
+        passages: list[AskPassage] = []
+        for r in self._conn.execute(
+            """
+            select m.id, ci.id, m.title, ci.title, s.name, ci.author,
+                   s.rights_profile, 1 - (e.embedding <=> %(v)s::vector),
+                   array(select c.name from moment_concept mc
+                         join concept c on c.id = mc.concept_id
+                         where mc.moment_id = m.id order by c.name)
+            from moment_embedding e
+            join moment m on m.id = e.moment_id
+            join content_item ci on ci.id = m.content_item_id
+            join source s on s.id = ci.source_id
+            where e.model = %(model)s and s.moments_enabled
+              and s.rights_profile in ('full_text_internal', 'full_text_display')
+              -- Shown: no broken link, no duplicate, no source switched off
+              -- or hidden by the user.
+              and ci.link_broken_at is null and ci.duplicate_of is null and s.active
+              and not exists (select 1 from user_hidden_source h
+                              where h.user_id = %(user)s and h.source_id = s.id)
+            order by e.embedding <=> %(v)s::vector
+            limit %(limit)s
+            """,
+            {"v": v, "model": model, "user": user_id, "limit": limit},
+        ).fetchall():
+            section, article = str(r[2]), str(r[3])
+            passages.append(
+                AskPassage(
+                    passage=f"m{r[0]}",
+                    kind="moment",
+                    score=float(r[7]),
+                    title=article if section == article else f"{article}: {section}",
+                    rights_profile=cast(RightsProfile, r[6]),
+                    source_name=str(r[4]),
+                    author=r[5],
+                    concept_names=[str(n) for n in r[8]],
+                    item_id=int(r[1]),
+                    moment_id=int(r[0]),
+                )
+            )
+        concepts = self._conn.execute(
+            "select c.id, c.name, 1 - (e.embedding <=> %(v)s::vector)"
+            " from concept_embedding e join concept c on c.id = e.concept_id"
+            " where e.model = %(model)s and c.retired_at is null"
+            " and c.merged_into is null"
+            " order by e.embedding <=> %(v)s::vector limit 3",
+            {"v": v, "model": model},
+        ).fetchall()
+        for concept_id, name, score in concepts:
+            script = self._conn.execute(
+                "select script from concept_explainer where concept_id = %s"
+                " and status = 'approved' order by decided_at desc nulls last limit 1",
+                (concept_id,),
+            ).fetchone()
+            if script is not None:
+                passages.append(
+                    AskPassage(
+                        passage=f"c{concept_id}",
+                        kind="explainer",
+                        score=float(score),
+                        title=str(name),
+                        rights_profile=None,
+                        script=str(script[0]),
+                        concept_id=int(concept_id),
+                    )
+                )
+            # Sources without full text have no moments or vectors: they're found
+            # through the concepts they're tagged with, by their metadata (ING-2).
+            for r in self._conn.execute(
+                """
+                select ci.id, ci.title, s.name, ci.author, s.rights_profile,
+                       ci.excerpt,
+                       array(select c.name from item_concept ic
+                             join concept c on c.id = ic.concept_id
+                             where ic.content_item_id = ci.id order by c.name)
+                from item_concept x
+                join content_item ci on ci.id = x.content_item_id
+                join source s on s.id = ci.source_id
+                where x.concept_id = %(concept)s
+                  and s.rights_profile in ('metadata_only', 'excerpt')
+                  -- Shown: no broken link, no duplicate, no source switched off
+              -- or hidden by the user.
+              and ci.link_broken_at is null and ci.duplicate_of is null and s.active
+              and not exists (select 1 from user_hidden_source h
+                              where h.user_id = %(user)s and h.source_id = s.id)
+                order by ci.published_at desc nulls last, ci.id
+                limit 3
+                """,
+                {"concept": concept_id, "user": user_id},
+            ).fetchall():
+                profile = cast(RightsProfile, r[4])
+                passages.append(
+                    AskPassage(
+                        passage=f"i{r[0]}",
+                        kind="item",
+                        score=float(score),
+                        title=str(r[1]),
+                        rights_profile=profile,
+                        source_name=str(r[2]),
+                        author=r[3],
+                        concept_names=[str(n) for n in r[6]],
+                        excerpt=r[5] if profile == "excerpt" else None,
+                        item_id=int(r[0]),
+                    )
+                )
+        return passages
+
+    def save(self, question_id: str, result: AskResult) -> bool:
+        saved = self._conn.execute(
+            "insert into ask_answer (question_id, outcome, text, citations, model,"
+            " prompt_version, cost_usd)"
+            " select id, %s, %s, %s, %s, %s, %s from ask_question where id = %s::uuid"
+            " on conflict (question_id) do nothing returning question_id",
+            (
+                result.outcome,
+                result.text,
+                Jsonb(result.citations),
+                result.model,
+                result.prompt_version,
+                result.cost_usd,
+                question_id,
+            ),
+        ).fetchone()
+        return saved is not None
+
+    def purge(self, before: datetime) -> int:
+        return self._conn.execute(
+            "delete from ask_question where asked_at < %s", (before,)
+        ).rowcount
+
+
 class PostgresHldMatches:
     """HLD match ratings (P6-W42, MATCH-1, Q-P6-06): Glicko-2 for a 1v1, OpenSkill for a
     room of 3 or 4, from the places the web app set; per battle mode, apart from
@@ -5020,12 +5681,14 @@ class PostgresStore:
         self.match_results = PostgresMatchResults(conn)
         self.lld_practice = PostgresLldPractice(conn)
         self.seasons = PostgresSeasons(conn)
+        self.leagues = PostgresLeagues(conn)
         self.agent_nudges = PostgresAgentNudges(conn)
         self.device_tokens = PostgresDeviceTokens(conn)
         self.reminders = PostgresReminders(conn)
         self.interviewer = PostgresInterviewer(conn)
         self.reviews = PostgresReviews(conn)
         self.hld_judgements = PostgresHldJudgements(conn)
+        self.ask = PostgresAsk(conn)
         self.hld_matches = PostgresHldMatches(conn)
         self.scenes = PostgresScenes(conn)
         self.daily = PostgresDailyChallenges(conn)

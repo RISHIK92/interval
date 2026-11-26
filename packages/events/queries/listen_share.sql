@@ -4,7 +4,8 @@
 -- guests left out, as they have no reader to listen from, ADR-0029); a listener started
 -- an explainer then (explainer_started, P4-W23-S01: a new listen, not a resume).
 with active as (
-  select user_id, min(beta_group) as beta_group
+  -- ADR-0056: users with no beta group count in a group of their own, 'none'.
+  select user_id, coalesce(min(beta_group), 'none') as beta_group
   from events
   where not is_guest
     -- The agent hook's events come with no visit (§7): not activity.

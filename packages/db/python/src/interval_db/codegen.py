@@ -36,6 +36,8 @@ SCALARS: dict[str, tuple[str, str | None]] = {
     "bytea": ("bytes", None),
     # pgvector's text form, '[0.1,0.2]', as the TS codegen also types it.
     "vector": ("str", None),
+    # Full-text search columns (ADR-0046): read as their text form, never written.
+    "tsvector": ("str", None),
 }
 
 IMPORTS: dict[str, str] = {

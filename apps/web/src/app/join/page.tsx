@@ -18,7 +18,7 @@ export default async function JoinPage({
     <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
       <h1 className={`text-display ${TITLE}`}>Join Interval</h1>
       <p className="mt-2 text-ink-muted">
-        Interval is in private beta. Create your account with your invite code.
+        Create your account with your email and a password.
       </p>
       <JoinForm code={typeof code === "string" ? code : ""} />
       <p className="mt-6">

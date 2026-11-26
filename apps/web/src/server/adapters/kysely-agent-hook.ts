@@ -84,7 +84,7 @@ export function kyselyAgentHook(db: Kysely<DB>): AgentHook {
       const { rows } = await sql<{
         id: string;
         user_id: string;
-        beta_group: BetaGroup;
+        beta_group: BetaGroup | null;
       }>`
         update agent_device d set last_used_at = ${now}
         from app_user u

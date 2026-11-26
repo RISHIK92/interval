@@ -7,7 +7,8 @@
 -- weekly active is the base). Two changes to one kind in the same millisecond are
 -- ordered by event id: arbitrary, but the same every run.
 with active as (
-  select user_id, min(beta_group) as beta_group
+  -- ADR-0056: users with no beta group count in a group of their own, 'none'.
+  select user_id, coalesce(min(beta_group), 'none') as beta_group
   from events
   where not is_guest
     -- The agent hook's events come with no visit (§7): not activity.

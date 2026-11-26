@@ -7,6 +7,7 @@ import type {
   Difficulty,
   FeedbackKind,
   FlagReason,
+  LeagueTier,
   LearnerState,
   LearningGoal,
   QuestionStatus,
@@ -631,36 +632,42 @@ export interface DatabasePing {
 
 export type BetaGroup = "student" | "developer";
 
-// Q-P1-24: any access in the private beta needs a code; the code sets the group.
+// Q-P1-24: a redeemed code sets the user's group. ADR-0056: codes are optional now, and a
+// user who joined without one has no group (null).
 export type Redemption =
   | { ok: true; inviteCodeId: string; betaGroup: BetaGroup }
   | { ok: false; reason: "unknown" | "expired" | "used_up" };
 
 export interface InviteCodes {
-  // Consumes one use when the code is valid; never consumes on failure. Better Auth
-  // creates users in its own transactions, so a guest start that fails afterwards
-  // gives the use back with release() (owner choice, 2026-10-25).
+  // Consumes one use when the code is valid; never consumes on failure. An account
+  // made after a redeem can still fail, so that use is given back with release()
+  // (owner choice, 2026-10-25).
   redeem(code: string): Promise<Redemption>;
   // Gives back one use after a redeem whose user creation failed; never below zero.
   release(inviteCodeId: string): Promise<void>;
 }
 
-export type Actor = { userId: string; isGuest: boolean; betaGroup: BetaGroup };
+export type Actor = {
+  userId: string;
+  isGuest: boolean;
+  betaGroup: BetaGroup | null;
+};
 
 // Guest creation failed after the user row was written, and removing that row failed
-// too: the guest holds the code's use, so it must not be released.
+// too: a guest no browser holds is left behind.
 export class GuestNotRemoved extends Error {
   override name = "GuestNotRemoved";
 }
 
 // Account first (ADR-0016): an account half made (no session) that couldn't be removed.
-// It still holds its invite use, so the use must not be given back.
+// It still holds its invite use, if it had one, so the use must not be given back.
 export class AccountNotRemoved extends Error {
   override name = "AccountNotRemoved";
 }
 
 // P3-W13-S07 (ADR-0029): at most 10 guests a day from one network. Only a guest that
-// started counts, so mistyped codes don't use up a shared network's day.
+// started counts, so a failed start doesn't use up a shared network's day. With no
+// invite code (ADR-0056), this and the one-player-per-browser rule are the only limits.
 export interface GuestLimits {
   allow(ip: string): Promise<boolean>;
   record(ip: string): Promise<void>;
@@ -1007,6 +1014,44 @@ export interface Follows {
   followers(userId: string): Promise<Person[]>;
 }
 
+// ADR-0045: weekly leagues. The worker writes points and moves tiers; pages only read.
+// A member's week so far: matches counts quick games (bot and ghost ones too), battles
+// LLD and HLD ones; today is their points since the league day began.
+export type LeagueRow = {
+  userId: string;
+  username: string | null;
+  rank: number;
+  points: number;
+  matches: number;
+  battles: number;
+  checkpoints: number;
+  today: number;
+};
+// up and down: how many move, as the week's close will apply them (the database's
+// league_cohort_moves). Rows in rank order (league_standing).
+export type LeagueCohort = {
+  size: number;
+  up: number;
+  down: number;
+  rows: LeagueRow[];
+};
+export interface Leagues {
+  // The player's tier (Bronze before their first league) and their cohort in the week
+  // starting `weekStart` (YYYY-MM-DD), or null while they aren't placed in it.
+  standing(
+    userId: string,
+    weekStart: string,
+    todayFrom: Date,
+  ): Promise<{ tier: LeagueTier; cohort: LeagueCohort | null }>;
+  // The week's league points of these players; those with none are left out.
+  pointsOf(
+    userIds: string[],
+    weekStart: string,
+  ): Promise<{ userId: string; points: number }[]>;
+  // Null before their first league.
+  tier(userId: string): Promise<LeagueTier | null>;
+}
+
 // P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02): an account's country, optional, set
 // or changed at most once in 30 days; removing it is always allowed and keeps the clock.
 export interface PlayerCountries {
@@ -1057,13 +1102,10 @@ export interface PlayerUniversities {
 }
 
 export interface GuestSessions {
-  // Creates a guest (anonymous user) in the redemption's beta group and returns it with
-  // the Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no
+  // Creates a guest (anonymous user, no beta group: ADR-0056) and returns it with the
+  // Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no
   // user was left behind.
-  start(
-    redemption: Extract<Redemption, { ok: true }>,
-    headers: Headers,
-  ): Promise<{ setCookies: string[]; actor: Actor }>;
+  start(headers: Headers): Promise<{ setCookies: string[]; actor: Actor }>;
 }
 
 export interface SessionReader {
@@ -1087,16 +1129,17 @@ export type SignUpResult =
 // Email-and-password accounts (ADR-0004). Inputs arrive validated and normalised.
 // Sign-up and sign-in return the new session's Set-Cookie values, like GuestSessions.
 export interface Accounts {
-  // Account first (ADR-0016): a new account from an invite redemption, in its beta
-  // group, signed in. Nothing is left behind when it refuses or throws, except when it
-  // throws AccountNotRemoved.
+  // Account first (ADR-0016): a new account, signed in; in the redemption's beta group
+  // when an invite code came with it, else in none (ADR-0056). Nothing is left behind
+  // when it refuses or throws, except when it throws AccountNotRemoved.
   create(
-    redemption: Extract<Redemption, { ok: true }>,
+    redemption: Extract<Redemption, { ok: true }> | null,
     input: { name: string; email: string; password: string },
     headers: Headers,
   ): Promise<CreateResult>;
-  // Turns the current guest into the account, keeping its user id, code and group
-  // (Q-P1-11, Q-P1-24), and replaces the guest's session with a new one.
+  // Turns the current guest into the account, keeping its user id, and its code and
+  // group if it has them (Q-P1-11, Q-P1-24), and replaces the guest's session with a
+  // new one.
   signUp(
     headers: Headers,
     input: { name: string; email: string; password: string },
@@ -2582,4 +2625,160 @@ export interface HldTournaments {
   roundOf(
     matchId: string,
   ): Promise<{ players: string[]; over: boolean } | null>;
+}
+
+// ADR-0046: Explore. Search covers what cards already show (titles, authors, sources,
+// moment titles, concept and technology names, excerpt sources' excerpts) and the
+// user's own saves and notes; never private text (ING-2). Hidden sources, broken links
+// and switched-off sources are left out everywhere on the page.
+export type ExploreResult = {
+  itemId: string;
+  // The section that matched, when one did and its source makes moments; the result
+  // then opens that deep link.
+  momentId: string | null;
+  title: string;
+  articleTitle: string;
+  sourceName: string;
+  author: string | null;
+  minutes: number | null;
+  saved: boolean;
+  // The user's own note on the item, when its text matched.
+  note: string | null;
+};
+
+// A space is a topic; `fresh` counts this week's items in it the user hasn't opened.
+export type SpaceStats = { topic: Topic; learners: number; fresh: number };
+
+// "A gap worth closing": an unmastered concept linked to two mastered ones, opened at
+// its shortest moment.
+export type ExploreGap = {
+  conceptId: string;
+  concept: string;
+  topic: Topic | null;
+  known: [string, string];
+  itemId: string;
+  momentId: string;
+  minutes: number;
+};
+
+export const SAVED_MOST_TABS = ["everyone", "spaces", "new"] as const;
+export type SavedMostTab = (typeof SAVED_MOST_TABS)[number];
+export type SavedMostItem = {
+  itemId: string;
+  title: string;
+  sourceName: string;
+  minutes: number | null;
+  topic: Topic | null;
+};
+
+export interface Explore {
+  search(
+    userId: string,
+    query: string,
+    limit: number,
+  ): Promise<ExploreResult[]>;
+  spaces(userId: string, now: Date): Promise<SpaceStats[]>;
+  gap(userId: string): Promise<ExploreGap | null>;
+  // Stored per user and concept; that concept is never the gap card again.
+  dismissGap(userId: string, conceptId: string): Promise<void>;
+  // Q-WD-03's recommended rules (pending the owner): at least 5 distinct savers in the
+  // last 7 days, none the user read or hid. `followed`: the Spaces tab's topics.
+  savedMost(
+    userId: string,
+    tab: SavedMostTab,
+    followed: readonly Topic[],
+    now: Date,
+  ): Promise<SavedMostItem[]>;
+}
+
+export const ASK_CHIPS = [
+  "compare",
+  "explain_new",
+  "interview_drill",
+  "my_stack",
+] as const;
+export type AskChip = (typeof ASK_CHIPS)[number];
+export const ASK_MAX_CHARS = 300;
+export const ASK_MAX_FOLLOW_UPS = 3;
+
+export type AskOutcome =
+  "answered" | "nothing_found" | "over_budget" | "unavailable";
+
+// A cited passage, as its chip shows it: a moment or item opens its deep link; an
+// approved concept explainer is named only.
+export type AskCitation =
+  | {
+      kind: "reading";
+      passage: string;
+      itemId: string;
+      momentId: string | null;
+      label: string;
+      topic: Topic | null;
+    }
+  | { kind: "explainer"; passage: string; label: string; topic: Topic | null };
+
+export type AskThread = {
+  id: string;
+  text: string;
+  chip: AskChip | null;
+  askedAt: Date;
+  // How many follow-ups led to it (0 for a first question).
+  depth: number;
+  answer: {
+    outcome: AskOutcome;
+    text: string | null;
+    citations: AskCitation[];
+  } | null;
+};
+
+export type AskSubmit = {
+  text: string;
+  chip: AskChip | null;
+  idempotencyKey: string;
+  followUpOf: string | null;
+};
+
+// "Make it a 4-min session" (owner, 2026-11-26): an answer's cited moments the user may
+// still open, with their concepts, and the prerequisite edges among those concepts.
+export type SessionMoment = {
+  itemId: string;
+  momentId: string;
+  title: string;
+  sourceName: string;
+  minutes: number;
+  conceptIds: string[];
+};
+
+export interface Asks {
+  // LOAD-5: the same key is the same question. "no_thread": the question it follows
+  // isn't the user's (or is gone); "thread_full": ASK_MAX_FOLLOW_UPS reached.
+  submit(
+    userId: string,
+    ask: AskSubmit,
+  ): Promise<{ id: string; created: boolean } | "no_thread" | "thread_full">;
+  // The question already stored under this key, if any: a retry gets it back even once
+  // today's limits are reached (LOAD-5).
+  existing(userId: string, idempotencyKey: string): Promise<string | null>;
+  // Its message couldn't be queued: the question goes, so the user may ask again.
+  drop(id: string): Promise<void>;
+  get(id: string, userId: string): Promise<AskThread | null>;
+  latest(userId: string): Promise<AskThread | null>;
+  remove(id: string, userId: string): Promise<boolean>;
+  // Null when the question isn't the user's or has no answer; moments in citation order.
+  sessionMoments(
+    id: string,
+    userId: string,
+  ): Promise<{
+    moments: SessionMoment[];
+    prerequisites: [from: string, to: string][];
+  } | null>;
+  // Questions asked since `since`, deleted ones included (owner, 2026-11-26).
+  askedSince(userId: string, since: Date): Promise<number>;
+  // OPS-4, as the worker's gateway counts it: the user's spend today and the global
+  // (offline) spend today, in US dollars, unmetered providers left out; and the
+  // global cap in cents.
+  spentToday(
+    userId: string,
+    dayStart: Date,
+  ): Promise<{ userUsd: number; globalUsd: number; globalCapCents: number }>;
 }

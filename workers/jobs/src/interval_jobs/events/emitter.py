@@ -28,7 +28,7 @@ _ENVELOPE = TypeAdapter[Envelope](Envelope)
 class EventContext:
     user_id: str
     is_guest: bool
-    beta_group: BetaGroup
+    beta_group: BetaGroup | None
     session_id: str | None
 
 

@@ -41,6 +41,9 @@ Docker restarts containers that exit, but not ones that are merely unhealthy. Ch
 ## Run a job
 `docker compose -f /opt/interval/deploy/compose.prod.yml run --rm jobs ingest-one --name ... --feed-url ... --rights-profile ...`
 
+## Weekly leagues (ADR-0045)
+`interval-leagues.timer` runs `close-leagues-due` hourly: within the hour after Monday 00:00 in `BATTLE_WINDOW_TIME_ZONE` (UTC when empty) it closes last week's leagues and forms this week's cohorts; every other run changes nothing. A missed Monday is caught by the next run. To run it by hand: `docker compose -f /opt/interval/deploy/compose.prod.yml run --rm jobs close-leagues-due`.
+
 ## Turn on concept tagging (P1-W3-S02)
 Tagging is off until the tagging eval has picked a model (ADR-0010). Run `eval-tagging` against owner-labelled moments first. Then add `TAGGING_MODEL=<openrouter model id>` to the app env written by `deploy/bin/write-env.sh` and redeploy; the worker logs "TAGGING_MODEL: off (not set)" until it is set. Polls then queue tagging for every untagged item, within the AI budgets (OPS-4).
 

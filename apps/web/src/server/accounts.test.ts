@@ -99,7 +99,7 @@ describe("signUp", () => {
       "email_taken",
       "An account with that email already exists. Sign in instead.",
     ],
-    ["not_a_guest", "Join with an invite code first."],
+    ["not_a_guest", "Your guest session ended. Create your account from Join."],
   ] as const)("maps %s to its message", async (reason, message) => {
     const port = fake({ signUp: { ok: false, reason } });
     expect(await signUp(port, headers, valid)).toEqual({ ok: false, message });

@@ -4,6 +4,7 @@ import type {
   Actor,
   AdminFairPlay,
   FairPlayFlagRow,
+  JobQueue,
 } from "../../../server/ports";
 
 // P3-W18-S02 (§6.9, Q-P3-20): fair-play flags, for admin.review only. Flags wait here
@@ -15,11 +16,13 @@ const decide = vi.fn<AdminFairPlay["decide"]>(() =>
   Promise.resolve({ userId: "u9" }),
 );
 const invalidate = vi.fn(() => Promise.resolve());
+const enqueue = vi.fn<JobQueue["enqueue"]>(() => Promise.resolve());
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   adminFairPlay: () => ({ pending, decide }),
   leaderboards: () => ({ invalidate }),
+  jobQueue: () => ({ enqueue }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -135,6 +138,12 @@ test("a penalty is decided by the admin and the player's boards are rebuilt", as
   ).rejects.toThrow("redirect:/admin/fair-play?saved=1");
   expect(decide).toHaveBeenCalledWith("7", "a1", "penalize");
   expect(invalidate).toHaveBeenCalledWith("u9");
+  // ADR-0045: the match's league points come off too, once (the flag is the key).
+  expect(enqueue).toHaveBeenCalledWith(
+    "league_points",
+    { source_kind: "fair_play", source_id: "7" },
+    { idempotencyKey: "league-fair-play-7" },
+  );
 });
 
 test("a dismissal moves no board; one already decided says so", async () => {
@@ -145,11 +154,18 @@ test("a dismissal moves no board; one already decided says so", async () => {
     decideFairPlayAction(form({ flagId: "7", decision: "dismiss" })),
   ).rejects.toThrow("redirect:/admin/fair-play?saved=1");
   expect(invalidate).not.toHaveBeenCalled();
+  expect(enqueue).not.toHaveBeenCalled();
   decide.mockResolvedValueOnce(null);
   await expect(
     decideFairPlayAction(form({ flagId: "7", decision: "penalize" })),
   ).rejects.toThrow("redirect:/admin/fair-play?error=decided");
   expect(invalidate).not.toHaveBeenCalled();
+  // A retry after a queue failure queues the penalty's league points again.
+  expect(enqueue).toHaveBeenCalledWith(
+    "league_points",
+    { source_kind: "fair_play", source_id: "7" },
+    { idempotencyKey: "league-fair-play-7" },
+  );
 });
 
 test("the action checks access and its fields", async () => {

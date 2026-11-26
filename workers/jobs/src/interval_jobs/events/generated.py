@@ -17,6 +17,9 @@ type EventName = Literal[
     "agent_task_finished",
     "agent_task_started",
     "article_finished",
+    "ask_answered",
+    "ask_session_started",
+    "ask_submitted",
     "battle_window_grouped",
     "book_checkpoint_finished",
     "book_checkpoint_started",
@@ -34,15 +37,21 @@ type EventName = Literal[
     "estimate_answered",
     "explainer_finished",
     "explainer_started",
+    "explore_searched",
     "feed_viewed",
     "feedback_given",
     "feedback_undone",
     "game_finished",
     "game_started",
+    "gap_dismissed",
+    "gap_opened",
     "github_connected",
     "github_disconnected",
     "guest_merged",
     "item_saved",
+    "league_placed",
+    "league_viewed",
+    "league_week_closed",
     "lld_practice_started",
     "lld_practice_submitted",
     "match_finished",
@@ -67,6 +76,8 @@ type EventName = Literal[
     "session_started",
     "signup_completed",
     "source_hidden",
+    "space_followed",
+    "space_unfollowed",
     "university_changed",
 ]
 type BetaGroup = Literal["student", "developer"]
@@ -76,6 +87,9 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "agent_task_finished": 1,
     "agent_task_started": 1,
     "article_finished": 3,
+    "ask_answered": 1,
+    "ask_session_started": 1,
+    "ask_submitted": 1,
     "battle_window_grouped": 1,
     "book_checkpoint_finished": 1,
     "book_checkpoint_started": 1,
@@ -93,15 +107,21 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "estimate_answered": 1,
     "explainer_finished": 1,
     "explainer_started": 1,
+    "explore_searched": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
     "feedback_undone": 1,
     "game_finished": 3,
     "game_started": 3,
+    "gap_dismissed": 1,
+    "gap_opened": 1,
     "github_connected": 1,
     "github_disconnected": 1,
     "guest_merged": 1,
     "item_saved": 1,
+    "league_placed": 1,
+    "league_viewed": 1,
+    "league_week_closed": 1,
     "lld_practice_started": 1,
     "lld_practice_submitted": 1,
     "match_finished": 1,
@@ -126,6 +146,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "session_started": 1,
     "signup_completed": 1,
     "source_hidden": 1,
+    "space_followed": 1,
+    "space_unfollowed": 1,
     "university_changed": 1,
 }
 
@@ -146,6 +168,31 @@ class AgentTaskStartedProps(_Model):
 class ArticleFinishedProps(_Model):
     method: Literal["return_prompt", "mark_done", "auto"]
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class AskAnsweredProps(_Model):
+    outcome: Literal[
+        "answered",
+        "nothing_found",
+        "daily_limit",
+        "user_budget",
+        "global_budget",
+        "over_budget",
+        "unavailable",
+    ]
+    citation_count: int = Field(ge=0, strict=True)
+    cost_micro_usd: int = Field(ge=0, strict=True)
+
+
+class AskSessionStartedProps(_Model):
+    moment_count: int = Field(ge=0, strict=True)
+    minutes: int = Field(ge=0, strict=True)
+
+
+class AskSubmittedProps(_Model):
+    length: int = Field(ge=0, strict=True)
+    chip: Literal["none", "compare", "explain_new", "interview_drill", "my_stack"]
+    follow_up: StrictBool
 
 
 class BattleWindowGroupedProps(_Model):
@@ -246,6 +293,10 @@ class ExplainerStartedProps(_Model):
     concept_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
+class ExploreSearchedProps(_Model):
+    result_count: int = Field(ge=0, strict=True)
+
+
 class FeedViewedProps(_Model):
     card_count: int = Field(ge=0, strict=True)
 
@@ -271,6 +322,14 @@ class GameStartedProps(_Model):
     game: Literal["sprint", "estimation", "daily"]
 
 
+class GapDismissedProps(_Model):
+    concept_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class GapOpenedProps(_Model):
+    concept_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
 class GithubConnectedProps(_Model):
     installations: int = Field(ge=0, strict=True)
 
@@ -285,6 +344,23 @@ class GuestMergedProps(_Model):
 
 class ItemSavedProps(_Model):
     pass
+
+
+class LeaguePlacedProps(_Model):
+    tier: Literal["bronze", "silver", "gold", "sapphire", "ruby", "diamond"]
+    cohort_size: int = Field(ge=0, strict=True)
+    placement: Literal["monday", "mid_week"]
+
+
+class LeagueViewedProps(_Model):
+    tab: Literal["league", "friends"]
+
+
+class LeagueWeekClosedProps(_Model):
+    tier: Literal["bronze", "silver", "gold", "sapphire", "ruby", "diamond"]
+    rank: int = Field(ge=0, strict=True)
+    points: int = Field(ge=0, strict=True)
+    outcome: Literal["up", "stay", "down"]
 
 
 class LldPracticeStartedProps(_Model):
@@ -419,6 +495,26 @@ class SourceHiddenProps(_Model):
     pass
 
 
+class SpaceFollowedProps(_Model):
+    topic: Literal[
+        "system-design",
+        "databases",
+        "distributed-systems",
+        "backend",
+        "software-design",
+    ]
+
+
+class SpaceUnfollowedProps(_Model):
+    topic: Literal[
+        "system-design",
+        "databases",
+        "distributed-systems",
+        "backend",
+        "software-design",
+    ]
+
+
 class UniversityChangedProps(_Model):
     action: Literal["set", "removed"]
     listed: StrictBool
@@ -429,7 +525,8 @@ class _EnvelopeBase(_Model):
     occurred_at: AwareDatetime
     user_id: str = Field(min_length=1)
     is_guest: StrictBool
-    beta_group: BetaGroup
+    # ADR-0056: users who joined after the private beta have no group.
+    beta_group: BetaGroup | None
     session_id: str | None = Field(min_length=1)
     source: Source
 
@@ -456,6 +553,24 @@ class ArticleFinishedEvent(_EnvelopeBase):
     name: Literal["article_finished"]
     version: Literal[3]
     props: ArticleFinishedProps
+
+
+class AskAnsweredEvent(_EnvelopeBase):
+    name: Literal["ask_answered"]
+    version: Literal[1]
+    props: AskAnsweredProps
+
+
+class AskSessionStartedEvent(_EnvelopeBase):
+    name: Literal["ask_session_started"]
+    version: Literal[1]
+    props: AskSessionStartedProps
+
+
+class AskSubmittedEvent(_EnvelopeBase):
+    name: Literal["ask_submitted"]
+    version: Literal[1]
+    props: AskSubmittedProps
 
 
 class BattleWindowGroupedEvent(_EnvelopeBase):
@@ -560,6 +675,12 @@ class ExplainerStartedEvent(_EnvelopeBase):
     props: ExplainerStartedProps
 
 
+class ExploreSearchedEvent(_EnvelopeBase):
+    name: Literal["explore_searched"]
+    version: Literal[1]
+    props: ExploreSearchedProps
+
+
 class FeedViewedEvent(_EnvelopeBase):
     name: Literal["feed_viewed"]
     version: Literal[1]
@@ -590,6 +711,18 @@ class GameStartedEvent(_EnvelopeBase):
     props: GameStartedProps
 
 
+class GapDismissedEvent(_EnvelopeBase):
+    name: Literal["gap_dismissed"]
+    version: Literal[1]
+    props: GapDismissedProps
+
+
+class GapOpenedEvent(_EnvelopeBase):
+    name: Literal["gap_opened"]
+    version: Literal[1]
+    props: GapOpenedProps
+
+
 class GithubConnectedEvent(_EnvelopeBase):
     name: Literal["github_connected"]
     version: Literal[1]
@@ -612,6 +745,24 @@ class ItemSavedEvent(_EnvelopeBase):
     name: Literal["item_saved"]
     version: Literal[1]
     props: ItemSavedProps
+
+
+class LeaguePlacedEvent(_EnvelopeBase):
+    name: Literal["league_placed"]
+    version: Literal[1]
+    props: LeaguePlacedProps
+
+
+class LeagueViewedEvent(_EnvelopeBase):
+    name: Literal["league_viewed"]
+    version: Literal[1]
+    props: LeagueViewedProps
+
+
+class LeagueWeekClosedEvent(_EnvelopeBase):
+    name: Literal["league_week_closed"]
+    version: Literal[1]
+    props: LeagueWeekClosedProps
 
 
 class LldPracticeStartedEvent(_EnvelopeBase):
@@ -758,6 +909,18 @@ class SourceHiddenEvent(_EnvelopeBase):
     props: SourceHiddenProps
 
 
+class SpaceFollowedEvent(_EnvelopeBase):
+    name: Literal["space_followed"]
+    version: Literal[1]
+    props: SpaceFollowedProps
+
+
+class SpaceUnfollowedEvent(_EnvelopeBase):
+    name: Literal["space_unfollowed"]
+    version: Literal[1]
+    props: SpaceUnfollowedProps
+
+
 class UniversityChangedEvent(_EnvelopeBase):
     name: Literal["university_changed"]
     version: Literal[1]
@@ -769,6 +932,9 @@ type Envelope = Annotated[
     AgentTaskFinishedEvent
     | AgentTaskStartedEvent
     | ArticleFinishedEvent
+    | AskAnsweredEvent
+    | AskSessionStartedEvent
+    | AskSubmittedEvent
     | BattleWindowGroupedEvent
     | BookCheckpointFinishedEvent
     | BookCheckpointStartedEvent
@@ -786,15 +952,21 @@ type Envelope = Annotated[
     | EstimateAnsweredEvent
     | ExplainerFinishedEvent
     | ExplainerStartedEvent
+    | ExploreSearchedEvent
     | FeedViewedEvent
     | FeedbackGivenEvent
     | FeedbackUndoneEvent
     | GameFinishedEvent
     | GameStartedEvent
+    | GapDismissedEvent
+    | GapOpenedEvent
     | GithubConnectedEvent
     | GithubDisconnectedEvent
     | GuestMergedEvent
     | ItemSavedEvent
+    | LeaguePlacedEvent
+    | LeagueViewedEvent
+    | LeagueWeekClosedEvent
     | LldPracticeStartedEvent
     | LldPracticeSubmittedEvent
     | MatchFinishedEvent
@@ -819,6 +991,8 @@ type Envelope = Annotated[
     | SessionStartedEvent
     | SignupCompletedEvent
     | SourceHiddenEvent
+    | SpaceFollowedEvent
+    | SpaceUnfollowedEvent
     | UniversityChangedEvent,
     Field(discriminator="name"),
 ]

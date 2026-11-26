@@ -11,6 +11,7 @@ import {
   follows,
   githubAccounts,
   githubApp,
+  leagues,
   playerCountries,
   playerUniversities,
   preferences,
@@ -24,6 +25,7 @@ import type { GitHubConnection, Person, University } from "../../server/ports";
 import { offeredTopics } from "../../server/preferences";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
 import { countriesByName, countryName } from "../../server/countries";
+import { TIER_NAMES } from "../../server/leagues";
 import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
 import { signOutAction } from "../actions";
 import { TabBar } from "../TabBar";
@@ -160,6 +162,10 @@ export default async function ProfilePage(props: {
     pushSettings().get(actor.userId),
     offeredTopics(feedReader()),
   ]);
+  // ADR-0045 (Profile, web): the header's league, on a plan with leagues.
+  const league = (await entitlements().can(actor.userId, "play.league"))
+    ? await leagues().tier(actor.userId)
+    : null;
   // ADR-0036: the push settings only on a plan with push.notify.
   const pushSettingsNow = pushGranted ? savedPush : null;
   const query = (uq ?? "").trim();
@@ -225,6 +231,7 @@ export default async function ProfilePage(props: {
           </h1>
           <p className="hidden text-[15px] text-ink-muted lg:block">
             @{me.username}
+            {league === null ? null : ` · ${TIER_NAMES[league]} league`}
           </p>
         </div>
       </div>

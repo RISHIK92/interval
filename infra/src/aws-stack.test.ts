@@ -606,8 +606,8 @@ describe("containers", () => {
     // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due,
     // suggest-technologies, daily-challenge-due, game-0 (ADR-0033), close-season,
     // push-due (P4-W24-S01b), prune-snapshots (P5-W31-S04b-2), window-reminders-due
-    // (P5-W32)
-    expect(tasks.length).toBe(18);
+    // (P5-W32), close-leagues-due (ADR-0045)
+    expect(tasks.length).toBe(19);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -871,9 +871,10 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
       target.EcsParameters.NetworkConfiguration.AwsvpcConfiguration;
     expect(network.AssignPublicIp ?? "DISABLED").toBe("DISABLED");
     expect(JSON.stringify(network.SecurityGroups)).toContain("AppSg");
-    // Each schedule's role may run its own task only (thirteen schedules: push-due the
+    // Each schedule's role may run its own task only (fourteen schedules: push-due the
     // eleventh, P4-W24-S01b; prune-snapshots the twelfth, P5-W31-S04b-2;
-    // window-reminders-due the thirteenth, P5-W32).
+    // window-reminders-due the thirteenth, P5-W32; close-leagues-due the fourteenth,
+    // ADR-0045).
     const runTask = all("AWS::IAM::Policy").flatMap(([, policy]) =>
       (
         policy.Properties["PolicyDocument"] as {
@@ -881,7 +882,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(13);
+    expect(runTask).toHaveLength(14);
     expect(
       runTask.filter((st) =>
         JSON.stringify(st.Resource).includes("WindowRemindersTask"),
@@ -1554,6 +1555,35 @@ describe("monthly seasons (P3-W16-S06, Q-P3-13)", () => {
         ).Statement.flatMap((st) => [st.Action].flat()),
       );
     expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
+  });
+});
+
+describe("weekly leagues (ADR-0045)", () => {
+  test("EventBridge Scheduler runs close-leagues-due hourly, with only the DB secret, events and no queue", () => {
+    const schedule = scheduleFor("CloseLeaguesDueTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(1 hour)");
+    expect(containerNamed("close-leagues-due")?.Command).toEqual([
+      "close-leagues-due",
+    ]);
+    expect(
+      (containerNamed("close-leagues-due")?.Secrets ?? []).map((x) => x.Name),
+    ).toEqual(["DB_PASSWORD"]);
+    const actions = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("CloseLeaguesDueTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[] }[];
+          }
+        ).Statement.flatMap((st) => [st.Action].flat()),
+      );
+    expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
+    // DB-5: league_week_closed and league_placed.
+    expect(actions.some((a) => a.startsWith("firehose:"))).toBe(true);
   });
 });
 

@@ -7,21 +7,17 @@ import { clientIp } from "../../server/clientIp";
 import {
   guestLimits,
   guestSessions,
-  inviteCodes,
   sessionReader,
 } from "../../server/container";
 import { startGuest } from "../../server/guest";
 import { PLAYER_COOKIE } from "../../server/visits";
-import { type FormState, textField } from "../form";
+import type { FormState } from "../form";
 import { startVisit } from "../visit";
 
-// ADR-0029, Q-P1-24: a guest for Play, made with an invite code; one per browser, so a
+// ADR-0029, ADR-0056: a guest for Play, no invite code needed; one per browser, so a
 // visitor who already has a session just plays. Better Auth's nextCookies plugin sets
 // the session cookie on this action's response.
-export async function startGuestAction(
-  _previous: FormState,
-  form: FormData,
-): Promise<FormState> {
+export async function startGuestAction(): Promise<FormState> {
   const requestHeaders = await headers();
   if ((await sessionReader().current(requestHeaders)) !== null)
     redirect("/play");
@@ -30,8 +26,7 @@ export async function startGuestAction(
   if ((await cookies()).get(PLAYER_COOKIE) !== undefined)
     return { message: "This browser already had a player. Sign in instead." };
   const result = await startGuest(
-    { codes: inviteCodes(), guests: guestSessions(), limits: guestLimits() },
-    textField(form, "code"),
+    { guests: guestSessions(), limits: guestLimits() },
     requestHeaders,
     clientIp(requestHeaders, env().TRUSTED_PROXIES),
   );

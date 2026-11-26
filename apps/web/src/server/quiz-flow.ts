@@ -1,8 +1,16 @@
 import type { Game, QuizResults } from "@interval/api-client";
 import type { Capability } from "@interval/db";
 import { points } from "@interval/scoring";
-import { entitlements, events, leaderboards, quizzes } from "./container";
+import {
+  entitlements,
+  events,
+  jobQueue,
+  leaderboards,
+  quizzes,
+} from "./container";
 import type { EventContext } from "./events";
+import { queueLeaguePoints } from "./leagues";
+import { log } from "./log";
 import type {
   EstimateResult,
   QuizAttempt,
@@ -28,7 +36,8 @@ function gameScore(
 
 // P3-W14-S01 (§6.7): a game on its board at every finish, not only the first: the
 // store keeps one score per game, and a repeat mends a board a failed write left
-// behind (LOAD-5).
+// behind (LOAD-5). ADR-0045: likewise the league points of a passed checkpoint or a
+// daily challenge (owner, 2026-11-26), which the worker writes once.
 async function scoreGame(
   userId: string,
   attemptId: string,
@@ -37,6 +46,19 @@ async function scoreGame(
   const score = gameScore(done);
   if (score !== null)
     await leaderboards().record(userId, attemptId, score.points);
+  const league =
+    done.checkpoint?.passed === true
+      ? "checkpoint"
+      : done.daily !== null
+        ? "daily"
+        : null;
+  if (league !== null)
+    try {
+      await queueLeaguePoints(jobQueue(), league, attemptId);
+    } catch (error) {
+      // LOAD-5: the finish stands; only these points wait for the next finish.
+      log.error("leagues: points not queued", { attemptId, error });
+    }
 }
 
 // The finish of a quiz, once: on the page, or when a start closes one left open (owner,

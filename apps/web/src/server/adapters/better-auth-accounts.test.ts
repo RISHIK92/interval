@@ -32,7 +32,8 @@ vi.mock("./kysely-guest-merge", async (original) => {
 });
 
 // Real Better Auth against the local database. Better Auth commits on its own
-// connections, so every row made here hangs off a TESTACCT code and is removed after.
+// connections, so every row made here is removed before and after: by its TESTACCT
+// code, its testacct email, or (a guest, with no code since ADR-0056) its TESTACCT name.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) throw new Error("DATABASE_URL is not set");
 const db = createDb(connectionString);
@@ -56,18 +57,26 @@ const PREFIX = "TESTACCT";
 const PASSWORD = "correct horse battery";
 let codeId = "";
 let counter = 0;
+const guestIds: string[] = [];
 
 async function cleanup(): Promise<void> {
   const users = db
     .selectFrom("app_user")
     .select("id")
-    .where(
-      "invite_code_id",
-      "in",
-      db
-        .selectFrom("invite_code")
-        .select("id")
-        .where("code", "like", `${PREFIX}%`),
+    .where((eb) =>
+      eb.or([
+        eb(
+          "invite_code_id",
+          "in",
+          db
+            .selectFrom("invite_code")
+            .select("id")
+            .where("code", "like", `${PREFIX}%`),
+        ),
+        eb("email", "like", "%@testacct.example.test"),
+        eb("name", "=", PREFIX),
+        eb("id", "in", guestIds.length > 0 ? guestIds : [""]),
+      ]),
     );
   await db
     .deleteFrom("auth_verification")
@@ -116,10 +125,14 @@ function email(): string {
 }
 
 async function newGuest(): Promise<{ headers: Headers; userId: string }> {
-  const { setCookies } = await guests.start(
-    { ok: true, inviteCodeId: codeId, betaGroup: "developer" },
-    new Headers(),
-  );
+  const { setCookies, actor: started } = await guests.start(new Headers());
+  guestIds.push(started.userId);
+  // Named so a run that crashed is swept by the next (guests have no code, ADR-0056).
+  await db
+    .updateTable("app_user")
+    .set({ name: PREFIX })
+    .where("id", "=", started.userId)
+    .execute();
   const headers = cookieHeader(setCookies);
   const actor = await sessions.current(headers);
   if (actor === null) throw new Error("no session after start");
@@ -149,44 +162,59 @@ async function signedIn(
   return headers;
 }
 
-test("sign-up turns the guest into the account: same user, code and group", async () => {
-  const guest = await newGuest();
-  guest.headers.set("user-agent", "test-agent/1");
-  const address = email();
-  const result = await port.signUp(guest.headers, {
-    name: "Ada",
-    email: address,
-    password: PASSWORD,
-  });
-  expect(result.ok).toBe(true);
-  if (!result.ok) return;
-  const user = await db
-    .selectFrom("app_user")
-    .select(["name", "email", "is_anonymous", "beta_group", "invite_code_id"])
-    .where("id", "=", guest.userId)
-    .executeTakeFirstOrThrow();
-  expect(user).toEqual({
-    name: "Ada",
-    email: address,
-    is_anonymous: false,
-    beta_group: "developer",
-    invite_code_id: codeId,
-  });
-  // The session is rotated: the guest cookie is dead, the new one is the account,
-  // recorded with the request's user agent like any other session.
-  expect(await sessions.current(guest.headers)).toBeNull();
-  expect(await sessions.current(cookieHeader(result.setCookies))).toEqual({
-    userId: guest.userId,
-    isGuest: false,
-    betaGroup: "developer",
-  });
-  const rows = await db
-    .selectFrom("auth_session")
-    .select("user_agent")
-    .where("user_id", "=", guest.userId)
-    .execute();
-  expect(rows).toEqual([{ user_agent: "test-agent/1" }]);
-});
+// ADR-0056: a guest has no code or group; one made during the private beta has both.
+// Either way the account keeps what the guest had.
+test.each([
+  ["no code or group", false],
+  ["its code and group", true],
+])(
+  "sign-up turns the guest into the account: same user, %s",
+  async (_case, coded) => {
+    const guest = await newGuest();
+    if (coded)
+      await db
+        .updateTable("app_user")
+        .set({ beta_group: "developer", invite_code_id: codeId })
+        .where("id", "=", guest.userId)
+        .execute();
+    const group = coded ? "developer" : null;
+    guest.headers.set("user-agent", "test-agent/1");
+    const address = email();
+    const result = await port.signUp(guest.headers, {
+      name: "Ada",
+      email: address,
+      password: PASSWORD,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const user = await db
+      .selectFrom("app_user")
+      .select(["name", "email", "is_anonymous", "beta_group", "invite_code_id"])
+      .where("id", "=", guest.userId)
+      .executeTakeFirstOrThrow();
+    expect(user).toEqual({
+      name: "Ada",
+      email: address,
+      is_anonymous: false,
+      beta_group: group,
+      invite_code_id: coded ? codeId : null,
+    });
+    // The session is rotated: the guest cookie is dead, the new one is the account,
+    // recorded with the request's user agent like any other session.
+    expect(await sessions.current(guest.headers)).toBeNull();
+    expect(await sessions.current(cookieHeader(result.setCookies))).toEqual({
+      userId: guest.userId,
+      isGuest: false,
+      betaGroup: group,
+    });
+    const rows = await db
+      .selectFrom("auth_session")
+      .select("user_agent")
+      .where("user_id", "=", guest.userId)
+      .execute();
+    expect(rows).toEqual([{ user_agent: "test-agent/1" }]);
+  },
+);
 
 test("an email already in use is refused and the guest stays a guest", async () => {
   const taken = await newAccount();
@@ -226,7 +254,33 @@ test("only a guest can sign up", async () => {
   }
 });
 
-// Account-first join (ADR-0016): a new account straight from an invite redemption.
+// Account-first join (ADR-0016), open to anyone (ADR-0056): no code, no group.
+test("create with no code makes a signed-in account with no group", async () => {
+  const address = email();
+  const result = await port.create(
+    null,
+    { name: "Hedy", email: address, password: PASSWORD },
+    new Headers(),
+  );
+  if (!result.ok) throw new Error(`create refused: ${result.reason}`);
+  expect(result.actor).toMatchObject({ isGuest: false, betaGroup: null });
+  expect(await sessions.current(cookieHeader(result.setCookies))).toEqual(
+    result.actor,
+  );
+  const row = await db
+    .selectFrom("app_user")
+    .select(["is_anonymous", "invite_code_id", "beta_group"])
+    .where("id", "=", result.actor.userId)
+    .executeTakeFirstOrThrow();
+  expect(row).toEqual({
+    is_anonymous: false,
+    invite_code_id: null,
+    beta_group: null,
+  });
+  expect(await signedIn(address, PASSWORD)).not.toBeNull();
+});
+
+// A code from an old /join?code= link still sets its group (ADR-0056).
 test("create makes a signed-in account in the code's group, with its code", async () => {
   const address = email();
   const result = await port.create(

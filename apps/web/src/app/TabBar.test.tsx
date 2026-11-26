@@ -2,10 +2,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import { TabBar } from "./TabBar";
 
-// The design's five tabs (owner, 2026-10-26): Home, Paths, Play and Library work; the
-// rest come with their phases and show as disabled meanwhile (overrides Q-P1-42's
-// "hidden").
-test.each(["home", "library", "paths", "play"] as const)(
+// The design's five tabs (owner, 2026-10-26): Home, Explore (ADR-0046), Paths, Play and
+// Library work; the rest come with their phases and show as disabled meanwhile
+// (overrides Q-P1-42's "hidden").
+test.each(["home", "explore", "library", "paths", "play"] as const)(
   "on %s, five tabs, that one current",
   (current) => {
     const html = renderToStaticMarkup(
@@ -16,11 +16,13 @@ test.each(["home", "library", "paths", "play"] as const)(
     }
     expect(html).toMatch(/<nav[^>]*aria-label="Main"/);
     expect(html).toMatch(/<a[^>]*href="\/"[^>]*>/);
+    expect(html).toMatch(/<a[^>]*href="\/explore"[^>]*>/);
     expect(html).toMatch(/<a[^>]*href="\/library"[^>]*>/);
     expect(html).toMatch(/<a[^>]*href="\/paths"[^>]*>/);
     expect(html).toMatch(/<a[^>]*href="\/play"[^>]*>/);
     const currentHref = {
       home: "/",
+      explore: "/explore",
       library: "/library",
       paths: "/paths",
       play: "/play",
@@ -34,24 +36,33 @@ test.each(["home", "library", "paths", "play"] as const)(
   },
 );
 
-// P2-W10-S03: Paths works now; P3-W13-S01: Play too.
-test("Explore and Leagues are not links, and say they're coming later", () => {
+// P2-W10-S03: Paths works now; P3-W13-S01: Play too; ADR-0046: Explore too; ADR-0045:
+// Leagues too, so nothing is disabled.
+test("Leagues is a link, current on its page", () => {
   const html = renderToStaticMarkup(<TabBar current="home" firstName={null} />);
-  expect(html.match(/aria-disabled="true"/g)).toHaveLength(2);
-  for (const name of ["Explore", "Leagues"]) {
-    expect(html).toContain(`${name}<span class="sr-only">Coming later</span>`);
-  }
+  expect(html).not.toContain("aria-disabled");
+  expect(html).not.toContain("Coming later");
+  const leagues = renderToStaticMarkup(
+    <TabBar current="leagues" firstName={null} />,
+  );
+  expect(leagues).toMatch(
+    /<a(?=[^>]*href="\/leagues")(?=[^>]*aria-current="page")[^>]*>/,
+  );
+  expect(leagues.match(/aria-current="page"/g)).toHaveLength(1);
 });
 
 // ADR-0019: on wide screens the bar is the design's sidebar, with the wordmark,
-// Leagues (web only) and the profile at the bottom; phones keep five tabs.
+// Leagues (web only; ADR-0045: phones reach it from Play) and the profile at the
+// bottom; phones keep five tabs.
 test("Leagues, the wordmark and the profile show only in the wide sidebar", () => {
   const html = renderToStaticMarkup(<TabBar current="home" firstName={null} />);
   // Hidden on phones, shown in the sidebar: the class has both.
   const wide = String.raw`class="(?=[^"]*\bhidden\b)(?=[^"]*lg:flex)[^"]*"`;
-  // Anchored on the Leagues item itself: its span, its icon, its name.
+  // Anchored on the Leagues link itself: its icon, its name.
   expect(html).toMatch(
-    new RegExp(`<span aria-disabled="true" ${wide}><svg[^]*?</svg>Leagues<`),
+    new RegExp(
+      `<a(?=[^>]*href="/leagues")[^>]*${wide}[^>]*><svg[^]*?</svg>Leagues<`,
+    ),
   );
   expect(html).toMatch(new RegExp(`<span[^>]*${wide}[^>]*>.*?Interval`));
   expect(html).toMatch(
@@ -59,8 +70,8 @@ test("Leagues, the wordmark and the profile show only in the wide sidebar", () =
       `<a(?=[^>]*href="/profile")[^>]*${wide}[^>]*>.*?Profile and settings`,
     ),
   );
-  // Home, Paths, Play, Library and the profile are the only links.
-  expect(html.match(/<a /g)).toHaveLength(5);
+  // Home, Explore, Paths, Play, Leagues, Library and the profile are the only links.
+  expect(html.match(/<a /g)).toHaveLength(7);
 });
 
 // The web design marks the profile row on Profile, and no tab on a page that is none.

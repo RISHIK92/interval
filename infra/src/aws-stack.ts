@@ -1064,6 +1064,34 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // ADR-0045: EventBridge Scheduler runs `close-leagues-due` hourly, so last week's
+    // leagues close within the hour after Monday 00:00 in the leagues' zone, whatever
+    // it is; other runs change nothing. It writes only to the database and its events
+    // (DB-5): no queue, no model.
+    const closeLeaguesTask = taskDefinition("CloseLeaguesDue");
+    closeLeaguesTask.addContainer("close-leagues-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["close-leagues-due"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("close-leagues-due"),
+    });
+    eventStream.grantPutRecords(closeLeaguesTask.taskRole);
+    new scheduler.Schedule(this, "CloseLeaguesDueSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.hours(1)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: closeLeaguesTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // The next hour's run closes what a failed one left.
+        retryAttempts: 0,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
     // Q-3 (P2-W9-S08): EventBridge Scheduler runs `recalibrate-difficulty` weekly. It
     // reads answers and writes levels and reviews in the database: no queue, no model.
     const recalibrateTask = taskDefinition("RecalibrateDifficulty");

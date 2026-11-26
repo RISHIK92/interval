@@ -4,6 +4,7 @@ import type { Chip } from "./chips";
 // ids and the card's place go in it; the publisher URL is looked up there.
 // A feed card has a chip and position. A Continue link counts as continue_clicked and
 // a Library link as an outbound click only (owner, 2026-10-26); neither needs a chip.
+// An Explore link (ADR-0046) counts as a Library one does.
 export function outHref(
   link: {
     itemId: string;
@@ -11,7 +12,10 @@ export function outHref(
     target: "section" | "original";
   } & (
     | { from: { position: number }; chip: Chip }
-    | { from: "continue" | "library" | "reader" | "path"; chip?: never }
+    | {
+        from: "continue" | "library" | "reader" | "path" | "explore";
+        chip?: never;
+      }
   ),
 ): string {
   const query = new URLSearchParams({ item: link.itemId });

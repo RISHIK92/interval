@@ -360,6 +360,111 @@
         "improved": "boolean"
       }
     },
+    "explore_searched": {
+      "version": 1,
+      "description": "A search on Explore (ADR-0046): how many results it found, never the query.",
+      "props": { "result_count": "count" }
+    },
+    "space_followed": {
+      "version": 1,
+      "description": "A space (a topic) was followed on Explore, adding it to the user's explicit topics (ADR-0046, PER-1).",
+      "props": {
+        "topic": [
+          "system-design",
+          "databases",
+          "distributed-systems",
+          "backend",
+          "software-design"
+        ]
+      }
+    },
+    "space_unfollowed": {
+      "version": 1,
+      "description": "A space (a topic) was unfollowed on Explore, removing it from the user's explicit topics (ADR-0046, PER-1).",
+      "props": {
+        "topic": [
+          "system-design",
+          "databases",
+          "distributed-systems",
+          "backend",
+          "software-design"
+        ]
+      }
+    },
+    "gap_opened": {
+      "version": 1,
+      "description": "Explore's \"A gap worth closing\" was opened: its concept's shortest moment (ADR-0046).",
+      "props": { "concept_id": "id" }
+    },
+    "gap_dismissed": {
+      "version": 1,
+      "description": "Explore's gap card was dismissed; that concept is never shown there again (ADR-0046).",
+      "props": { "concept_id": "id" }
+    },
+    "ask_submitted": {
+      "version": 1,
+      "description": "A question was asked on Explore (ADR-0046): its length, its prompt chip and whether it follows another; never its text.",
+      "props": {
+        "length": "count",
+        "chip": [
+          "none",
+          "compare",
+          "explain_new",
+          "interview_drill",
+          "my_stack"
+        ],
+        "follow_up": "boolean"
+      }
+    },
+    "ask_answered": {
+      "version": 1,
+      "description": "An Explore question ended (ADR-0046): answered (with its citations and cost in micro-dollars), nothing in the library covered it, or refused and why (the daily count, the user's or the global AI budget, or no model).",
+      "props": {
+        "outcome": [
+          "answered",
+          "nothing_found",
+          "daily_limit",
+          "user_budget",
+          "global_budget",
+          "over_budget",
+          "unavailable"
+        ],
+        "citation_count": "count",
+        "cost_micro_usd": "count"
+      }
+    },
+    "ask_session_started": {
+      "version": 1,
+      "description": "\"Make it a 4-min session\" was opened from an Ask answer (ADR-0046; owner, 2026-11-26): how many cited moments it holds and their real total in minutes; never the question.",
+      "props": {
+        "moment_count": "count",
+        "minutes": "count"
+      }
+    },
+    "league_placed": {
+      "version": 1,
+      "description": "A player was put into a weekly league cohort (ADR-0045): on Monday from last week's play, or mid-week by their first points of the week.",
+      "props": {
+        "tier": ["bronze", "silver", "gold", "sapphire", "ruby", "diamond"],
+        "cohort_size": "count",
+        "placement": ["monday", "mid_week"]
+      }
+    },
+    "league_week_closed": {
+      "version": 1,
+      "description": "A weekly league closed for one member (ADR-0045): the tier they played in, their final rank and points, and whether they moved up, stayed or moved down.",
+      "props": {
+        "tier": ["bronze", "silver", "gold", "sapphire", "ruby", "diamond"],
+        "rank": "count",
+        "points": "count",
+        "outcome": ["up", "stay", "down"]
+      }
+    },
+    "league_viewed": {
+      "version": 1,
+      "description": "The Leagues page was rendered (ADR-0045), on its League or Friends tab.",
+      "props": { "tab": ["league", "friends"] }
+    },
     "outbound_click": {
       "version": 1,
       "description": "A link to a publisher's page was followed.",

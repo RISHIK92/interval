@@ -11,8 +11,8 @@ import {
 import { useColors } from "../components/theme";
 import { SITE, authClient } from "../lib/auth";
 
-// P4-W19-S03 (ADR-0016, Q-P4-02): accounts come from an invite on the web; the app only
-// signs in. No guests on native.
+// P4-W19-S03 (ADR-0016, Q-P4-02): accounts are made on the web (open to anyone,
+// ADR-0056); the app only signs in. No guests on native.
 export default function SignInScreen() {
   const c = useColors();
   const [email, setEmail] = useState("");
@@ -85,13 +85,13 @@ export default function SignInScreen() {
         </Text>
       </Pressable>
       <Text style={{ color: c["ink-muted"] }}>
-        New here? Interval is invite-only: join on the web with your invite.
+        New here? Create your account on the web.
       </Text>
       <Pressable
         accessibilityRole="link"
         onPress={() => void Linking.openURL(`${SITE}/join`)}
       >
-        <Text style={{ color: c.select }}>Join on the web</Text>
+        <Text style={{ color: c.select }}>Create an account</Text>
       </Pressable>
     </View>
   );

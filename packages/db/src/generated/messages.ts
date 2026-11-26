@@ -10,6 +10,10 @@ export const messageSchemas = {
   answer_interviewer: z.strictObject({
     question_id: z.number().int().min(1),
   }),
+  // Answer an Explore question from the user's catalogue: retrieve moments, call ASK_MODEL through the gateway, validate and store the answer (ADR-0046).
+  ask: z.strictObject({
+    question_id: z.string().min(1),
+  }),
   // Make one book chapter's checkpoint: tag its sessions, draft and validate its questions (§5F, Q-P2-35, P2-W11-S06).
   book_checkpoint: z.strictObject({
     chapter_id: z.number().int().min(1),
@@ -47,6 +51,11 @@ export const messageSchemas = {
   // Judge an HLD design against its rubric (the median of 3) and write the coach's advice, on the player's request (CANVAS-6, Q-P6-05, P6-W41).
   judge_hld: z.strictObject({
     judgement_id: z.string().min(1),
+  }),
+  // Write the weekly league points one source earns (ADR-0045), once per source and player (LOAD-5): a finished quick game or LLD battle (match, a game_match id), a scored HLD match (hld_match), a finished checkpoint attempt (checkpoint, a quiz_attempt id), a finished daily challenge (daily, a quiz_attempt id), or a fair-play penalty (fair_play, a fair_play_flag id) that takes a match's points back.
+  league_points: z.strictObject({
+    source_id: z.string().min(1),
+    source_kind: z.enum(["match", "hld_match", "checkpoint", "daily", "fair_play"]),
   }),
   // A live match has ended (P3-W15-S05, ADR-0033): record its result once. The result itself waits in Valkey at game:result:<match_id>, written by its game server (services/game); the worker's relay queues this from game:results.
   match_finished: z.strictObject({

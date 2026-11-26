@@ -6,7 +6,7 @@ import psycopg
 import pytest
 
 from interval_jobs.adapters.postgres import unit_of_work
-from interval_jobs.compose import database_url, model_job
+from interval_jobs.compose import database_url, league_time_zone, model_job
 
 URL = os.environ.get("DATABASE_URL", "")
 NAME = "uow-test-source"
@@ -255,3 +255,16 @@ def test_a_blank_model_setting_is_off(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("EMBEDDING_MODEL", "  ")
     with model_job("EMBEDDING_MODEL") as job:
         assert job is None
+
+
+# ADR-0045: the leagues' week and day are in the battle windows' zone, UTC when empty.
+def test_the_league_zone_is_the_battle_window_zone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BATTLE_WINDOW_TIME_ZONE", "Asia/Kolkata")
+    assert league_time_zone().key == "Asia/Kolkata"
+    monkeypatch.setenv("BATTLE_WINDOW_TIME_ZONE", "")
+    assert league_time_zone().key == "UTC"
+    monkeypatch.setenv("BATTLE_WINDOW_TIME_ZONE", "Mars/Base")
+    with pytest.raises(SystemExit, match="BATTLE_WINDOW_TIME_ZONE"):
+        league_time_zone()

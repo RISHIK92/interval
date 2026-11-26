@@ -36,6 +36,8 @@ vi.mock("../../server/container", () => ({
     startCheckpoint,
   }),
   events: () => ({ emit }),
+  // ADR-0045: a passed checkpoint's league points.
+  jobQueue: () => ({ enqueue: () => Promise.resolve() }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),

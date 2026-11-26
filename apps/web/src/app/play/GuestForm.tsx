@@ -3,10 +3,9 @@
 import { useActionState } from "react";
 import type { FormState } from "../form";
 import { Button } from "../ui/Button";
-import { FIELD } from "../ui/field";
 import { startGuestAction } from "./actions";
 
-// ADR-0029: play without an account, with an invite code during the beta (Q-P1-24).
+// ADR-0029, ADR-0056: play without an account; no invite code needed.
 export function GuestForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(
     startGuestAction,
@@ -14,10 +13,6 @@ export function GuestForm() {
   );
   return (
     <form action={action} className="flex flex-col gap-3">
-      <label className="text-section">
-        Invite code
-        <input name="code" autoComplete="off" required className={FIELD} />
-      </label>
       <Button type="submit" disabled={pending}>
         Play as a guest
       </Button>

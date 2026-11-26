@@ -7,6 +7,7 @@ Usage:
   python -m interval_jobs issue-invites --group student --uses 30 --days 30 [--count N]
   python -m interval_jobs purge-guests
   python -m interval_jobs close-season
+  python -m interval_jobs close-leagues-due
   python -m interval_jobs poll-due
   python -m interval_jobs load-concepts [--file F]
   python -m interval_jobs draft-concepts --topic T --model M --out F
@@ -35,15 +36,21 @@ import psycopg
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs import log
 from interval_jobs.adapters.ffmpeg_hls import FfmpegHls, HlsError
+from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.adapters.postgres import PostgresAi, PostgresSnapshots
 from interval_jobs.adapters.redis_results import RedisResults
 from interval_jobs.ai.gateway import OverBudget
+from interval_jobs.ask import ASK_RETENTION
+from interval_jobs.ask_eval import EvalError as AskEvalError
+from interval_jobs.ask_eval import parse_questions as parse_ask_questions
+from interval_jobs.ask_eval import run_eval as run_ask_eval
 from interval_jobs.compose import (
     ai_gateway,
     database_url,
     event_sink,
     files,
     github_app,
+    league_time_zone,
     media_files,
     model_job,
     native_push,
@@ -76,6 +83,7 @@ from interval_jobs.hld_judge_eval import run_eval as run_hld_eval
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
+from interval_jobs.leagues import close_leagues_due, say_leagues
 from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
 from interval_jobs.lld_practice import relay_practice
@@ -122,6 +130,7 @@ CONCEPT_FILE = Path("workers/jobs/seeds/concepts.yaml")
 TECHNOLOGY_FILE = Path("workers/jobs/seeds/technologies.yaml")
 PRONUNCIATION_FILE = Path("workers/jobs/seeds/pronunciations.yaml")
 HLD_CALIBRATION_FILE = Path("packages/hld/src/calibration.json")
+ASK_EVAL_FILE = Path("workers/jobs/evals/ask.yaml")
 TTS_SCRIPTS_FILE = Path("workers/jobs/seeds/tts_scripts.yaml")
 UNIVERSITY_FILE = Path("workers/jobs/seeds/universities.json")
 
@@ -221,6 +230,20 @@ def main(argv: list[str]) -> None:
     vectors.add_argument("--model", required=True, help="Voyage model id")
     vectors.add_argument("--min-recall", type=float, default=MIN_RECALL)
     vectors.add_argument("--min-pool", type=int, default=MIN_POOL)
+    asked = commands.add_parser(
+        "eval-ask",
+        help="run the owner's Ask questions through ASK_MODEL, storing nothing "
+        "(ADR-0046, AI-5); Ask stays off until it passes",
+    )
+    asked.add_argument("--questions", type=Path, default=ASK_EVAL_FILE)
+    asked.add_argument(
+        "--user-id", required=True, help="whose catalogue and hidden sources"
+    )
+    asked.add_argument(
+        "--level",
+        choices=["beginner", "intermediate", "advanced"],
+        default="intermediate",
+    )
     concept_vectors = commands.add_parser(
         "embed-concepts",
         help="embed each active concept for the tagging shortlist (changed ones only)",
@@ -301,7 +324,7 @@ def main(argv: list[str]) -> None:
     commands.add_parser(
         "prune-snapshots",
         help="delete battle code snapshots past 90 days with no flag waiting"
-        " (P5-W31-S04b-2)",
+        " (P5-W31-S04b-2), and Explore questions past 30 days (ADR-0046)",
     )
     commands.add_parser(
         "check-links-due",
@@ -316,6 +339,11 @@ def main(argv: list[str]) -> None:
         "close-season",
         help="close last month's quick-game season: keep its board, reset ratings"
         " (P3-W16-S06)",
+    )
+    commands.add_parser(
+        "close-leagues-due",
+        help="close past weekly leagues (ranks, tier moves) and form this week's"
+        " cohorts, each once (ADR-0045)",
     )
     technologies = commands.add_parser(
         "load-technologies",
@@ -422,6 +450,11 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         return
 
     if args.command == "prune-snapshots":
+        # ADR-0046: Explore's questions and answers are kept 30 days. First, and on
+        # its own commit: it needs only the database, never the bucket.
+        with services() as s:
+            asks = s.store.ask.purge(datetime.now(UTC) - ASK_RETENTION)
+        log.info("ask: purged", questions=asks)
         # Q-P5-17: daily; each object is removed before its row, so a rerun finishes.
         bucket = files()
         if bucket is None:
@@ -430,7 +463,7 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
             removed = prune_snapshots(
                 PostgresSnapshots(conn), bucket, datetime.now(UTC)
             )
-        print(json.dumps({"removed": removed}))
+        print(json.dumps({"removed": removed, "asks_purged": asks}))
         return
 
     if args.command == "check-links-due":
@@ -474,6 +507,16 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.command == "close-season":
         with services() as s:
             print(json.dumps(close_season(s.store.seasons, datetime.now(UTC))))
+        return
+
+    if args.command == "close-leagues-due":
+        with services() as s:
+            closed, placed = close_leagues_due(
+                s.store.leagues, datetime.now(UTC), league_time_zone()
+            )
+        # After the commit: a close that rolled back says nothing (DB-5).
+        say_leagues(event_sink(), closed, placed)
+        print(json.dumps({"closed": len(closed), "placed": len(placed)}))
         return
 
     if args.command == "enqueue-discover":
@@ -763,6 +806,32 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         print(json.dumps(asdict(shortlist_report), default=str))
         return
 
+    if args.command == "eval-ask":
+        try:
+            ask_questions = parse_ask_questions(
+                args.questions.read_text(encoding="utf-8"), str(args.questions)
+            )
+            with (
+                stage_units() as units,
+                model_job("EMBEDDING_MODEL") as embedding,
+                model_job("ASK_MODEL") as asking,
+            ):
+                if embedding is None or asking is None:
+                    sys.exit("eval-ask needs EMBEDDING_MODEL and ASK_MODEL")
+                # The stage's own answer path; its queue is never used.
+                pipeline = Pipeline(
+                    units, InMemoryQueue(), embedding=embedding, ask=asking
+                )
+                ask_report = run_ask_eval(
+                    pipeline.answer, ask_questions, args.user_id, args.level
+                )
+        except (OSError, AskEvalError, ModelError) as error:
+            sys.exit(str(error))
+        print(json.dumps(asdict(ask_report), default=str))
+        if not ask_report.passed:
+            sys.exit(1)
+        return
+
     if args.command == "eval-embeddings":
         try:
             queries = parse_queries(
@@ -866,6 +935,7 @@ def _consume(max_entries: int | None) -> None:
             model_job("EMBEDDING_MODEL") as embedding,
             model_job("NOTES_MODEL") as notes,
             model_job("QUESTIONS_MODEL") as questions,
+            model_job("ASK_MODEL") as ask,
         ):
             # P3-W15-S05 (ADR-0033): match results the game servers leave in Valkey.
             results = RedisResults(_valkey_url())
@@ -883,6 +953,8 @@ def _consume(max_entries: int | None) -> None:
                 results=results,
                 push=web_push(),
                 events=event_sink(),
+                league_zone=league_time_zone(),
+                ask=ask,
             )
 
             relay_failed: list[BaseException] = []

@@ -14,6 +14,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from interval_db.generated import (
     AiProvider,
@@ -21,6 +22,7 @@ from interval_db.generated import (
     BreakLength,
     Capability,
     Difficulty,
+    LeagueTier,
     LearningGoal,
     RightsProfile,
     Topic,
@@ -36,6 +38,9 @@ from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
     Arm,
     ArmOutcome,
+    AskPassage,
+    AskRequest,
+    AskResult,
     BatchItemResult,
     BatchKind,
     BookChapterRow,
@@ -46,9 +51,11 @@ from interval_jobs.ports import (
     CandidateMoment,
     Caption,
     ChapterForCheckpoint,
+    CheckpointFacts,
     ConceptCoverage,
     ConceptGraph,
     ConceptSeed,
+    DailyFacts,
     DuplicateInviteCode,
     EntryFacts,
     EstimateDraft,
@@ -65,15 +72,28 @@ from interval_jobs.ports import (
     Finished,
     GitHubSyncInput,
     GrantResult,
+    HldFacts,
     HldJudgeAsk,
     HldLevels,
     InterviewerAsk,
     ItemDecisions,
+    LeagueCohort,
+    LeagueCredit,
+    LeagueMemberResult,
+    LeaguePlayer,
+    LeagueReturning,
+    LeagueSourceKind,
+    LeagueStanding,
+    LeagueUser,
+    LeagueWeekRow,
+    MatchFacts,
     MomentLink,
     MomentRow,
     NativeTarget,
     NoteBatchEntry,
     PathDraft,
+    PenaltyFacts,
+    PointsReason,
     PracticeKept,
     ProjectConcepts,
     ProjectNoteInput,
@@ -698,7 +718,7 @@ class InMemoryUsers:
 # The migration's seed: capabilities the beta plan limits (a database trigger refuses
 # granting these; the fake mirrors it).
 LIMITED_CAPABILITIES: frozenset[Capability] = frozenset(
-    {"ai.notes.daily", "ai.budget.daily_cents"}
+    {"ai.notes.daily", "ai.budget.daily_cents", "explore.ask.daily"}
 )
 
 
@@ -2114,12 +2134,14 @@ class InMemoryStore:
         self.match_results = InMemoryMatchResults()
         self.lld_practice = InMemoryLldPractice()
         self.seasons = InMemorySeasons()
+        self.leagues = InMemoryLeagues()
         self.agent_nudges = InMemoryAgentNudges()
         self.device_tokens = InMemoryDeviceTokens()
         self.reminders = InMemoryReminders()
         self.interviewer = InMemoryInterviewer()
         self.reviews = InMemoryReviews()
         self.hld_judgements = InMemoryHldJudgements()
+        self.ask = InMemoryAsk()
         self.hld_matches = InMemoryHldMatches()
         self.scenes = InMemoryScenes()
         self.daily = InMemoryDailyChallenges()
@@ -2514,6 +2536,273 @@ class InMemorySeasons:
         return True
 
 
+@dataclass
+class _LeagueRow:
+    user_id: str
+    week_id: int
+    kind: LeagueSourceKind
+    source_id: str
+    points: int
+    reason: PointsReason
+    at: datetime
+
+
+@dataclass
+class _LeagueWeek:
+    id: int
+    starts_on: date
+    time_zone: str
+    formed: bool = False
+    closed: bool = False
+
+
+@dataclass
+class _LeagueMember:
+    week_id: int
+    cohort_id: int
+    user_id: str
+    pace_days: int
+    mid_week: bool
+    placed: int  # placement order, for the rank's last tie-break
+    final_rank: int | None = None
+    outcome: str | None = None
+
+
+def _moved(size: int, share: int) -> int:
+    """league_cohort_moves' count: round(size * share / 30), half up; 1 from 4."""
+    return max(math.floor(size * share / 30 + 0.5), 1 if size >= 4 else 0)
+
+
+class InMemoryLeagues:
+    """Weekly leagues (ADR-0045). Sources are set by tests; `allowed` holds the users
+    who may be in leagues (play.league, not a guest); `groups` their beta groups."""
+
+    def __init__(self) -> None:
+        self.matches: dict[str, MatchFacts] = {}
+        self.hld: dict[str, HldFacts] = {}
+        self.checkpoints: dict[str, CheckpointFacts] = {}
+        self.dailies: dict[str, DailyFacts] = {}
+        self.penalties: dict[str, PenaltyFacts] = {}
+        self.allowed: set[str] = set()
+        self.groups: dict[str, BetaGroup | None] = {}
+        self.tiers: dict[str, LeagueTier] = {}
+        self.rows: list[_LeagueRow] = []
+        self.weeks: dict[int, _LeagueWeek] = {}
+        self.cohort_tiers: dict[int, tuple[int, LeagueTier]] = {}  # id: week, tier
+        self.members: list[_LeagueMember] = []
+
+    def _user(self, user_id: str) -> LeagueUser:
+        return LeagueUser(user_id, self.groups.get(user_id))
+
+    def match(self, match_id: str) -> MatchFacts | None:
+        return self.matches.get(match_id)
+
+    def hld_match(self, match_id: str) -> HldFacts | None:
+        return self.hld.get(match_id)
+
+    def checkpoint(self, attempt_id: str) -> CheckpointFacts | None:
+        return self.checkpoints.get(attempt_id)
+
+    def daily(self, attempt_id: str) -> DailyFacts | None:
+        return self.dailies.get(attempt_id)
+
+    def penalty(self, flag_id: str) -> PenaltyFacts | None:
+        return self.penalties.get(flag_id)
+
+    def player(self, user_id: str) -> LeaguePlayer | None:
+        if user_id not in self.allowed:
+            return None
+        tier = self.tiers.setdefault(user_id, "bronze")
+        return LeaguePlayer(self._user(user_id), tier)
+
+    def _row(self, week: _LeagueWeek) -> LeagueWeekRow:
+        return LeagueWeekRow(week.id, week.starts_on, week.formed, week.closed)
+
+    def week(self, starts_on: date, time_zone: str) -> LeagueWeekRow:
+        found = self.week_starting(starts_on)
+        if found is not None:
+            return found
+        week = _LeagueWeek(len(self.weeks) + 1, starts_on, time_zone)
+        self.weeks[week.id] = week
+        return self._row(week)
+
+    def week_starting(self, starts_on: date) -> LeagueWeekRow | None:
+        for week in self.weeks.values():
+            if week.starts_on == starts_on:
+                return self._row(week)
+        return None
+
+    def earned(self, user_id: str, start: datetime, end: datetime) -> int:
+        return sum(
+            r.points
+            for r in self.rows
+            if r.user_id == user_id and r.points > 0 and start <= r.at < end
+        )
+
+    def credited(
+        self, kind: LeagueSourceKind, source_id: str, user_id: str
+    ) -> LeagueCredit | None:
+        for r in self.rows:
+            if (r.kind, r.source_id, r.user_id) == (kind, source_id, user_id):
+                return LeagueCredit(r.week_id, r.points)
+        return None
+
+    def add(
+        self,
+        user_id: str,
+        week_id: int,
+        kind: LeagueSourceKind,
+        source_id: str,
+        points: int,
+        reason: PointsReason,
+        at: datetime,
+    ) -> bool:
+        if self.credited(kind, source_id, user_id) is not None:
+            return False
+        self.rows.append(
+            _LeagueRow(user_id, week_id, kind, source_id, points, reason, at)
+        )
+        return True
+
+    def member(self, week_id: int, user_id: str) -> bool:
+        return any(m.week_id == week_id and m.user_id == user_id for m in self.members)
+
+    def _size(self, cohort_id: int) -> int:
+        return sum(m.cohort_id == cohort_id for m in self.members)
+
+    def _new_cohort(self, week_id: int, tier: LeagueTier) -> int:
+        cohort_id = len(self.cohort_tiers) + 1
+        self.cohort_tiers[cohort_id] = (week_id, tier)
+        return cohort_id
+
+    def _join(
+        self, week_id: int, cohort_id: int, user_id: str, pace: int, mid_week: bool
+    ) -> None:
+        self.members.append(
+            _LeagueMember(
+                week_id, cohort_id, user_id, pace, mid_week, len(self.members)
+            )
+        )
+
+    def place(
+        self, week_id: int, user_id: str, tier: LeagueTier, pace_days: int, room: int
+    ) -> int:
+        roomy = [
+            c
+            for c, (w, t) in self.cohort_tiers.items()
+            if w == week_id and t == tier and self._size(c) < room
+        ]
+        cohort_id = max(roomy) if roomy else self._new_cohort(week_id, tier)
+        self._join(week_id, cohort_id, user_id, pace_days, True)
+        return self._size(cohort_id)
+
+    def due(self, before: date) -> list[LeagueWeekRow]:
+        return [
+            self._row(w)
+            for w in sorted(self.weeks.values(), key=lambda w: w.starts_on)
+            if not w.closed and w.starts_on < before
+        ]
+
+    def _standing(self, cohort_id: int) -> list[LeagueStanding]:
+        def key(m: _LeagueMember) -> tuple[int, int, datetime, int, str]:
+            rows = [
+                r
+                for r in self.rows
+                if r.user_id == m.user_id and r.week_id == m.week_id
+            ]
+            points = sum(r.points for r in rows)
+            # A capped or penalty row doesn't reach a total (league_standing).
+            reached = max((r.at for r in rows if r.points > 0), default=None)
+            return (
+                -points,
+                reached is None,
+                reached or datetime.min.replace(tzinfo=UTC),
+                m.placed,
+                m.user_id,
+            )
+
+        ranked = sorted((m for m in self.members if m.cohort_id == cohort_id), key=key)
+        return [
+            LeagueStanding(self._user(m.user_id), i + 1, -key(m)[0])
+            for i, m in enumerate(ranked)
+        ]
+
+    def cohorts(self, week_id: int) -> list[LeagueCohort]:
+        found: list[LeagueCohort] = []
+        for cohort_id, (w, tier) in sorted(self.cohort_tiers.items()):
+            if w != week_id:
+                continue
+            size = self._size(cohort_id)
+            found.append(
+                LeagueCohort(
+                    cohort_id,
+                    tier,
+                    _moved(size, 7) if tier != "diamond" else 0,
+                    _moved(size, 5) if tier != "bronze" else 0,
+                    tuple(self._standing(cohort_id)),
+                )
+            )
+        return found
+
+    def close(
+        self, week_id: int, results: Sequence[LeagueMemberResult], now: datetime
+    ) -> bool:
+        week = self.weeks[week_id]
+        if week.closed:
+            return False
+        week.closed = True
+        for result in results:
+            for m in self.members:
+                if m.week_id == week_id and m.user_id == result.user.user_id:
+                    m.final_rank, m.outcome = result.rank, result.outcome
+            self.tiers[result.user.user_id] = result.tier
+        return True
+
+    def returning(self, week_id: int) -> list[LeagueReturning]:
+        users = sorted({r.user_id for r in self.rows if r.week_id == week_id})
+        found: list[LeagueReturning] = []
+        for user_id in users:
+            rows = [
+                r for r in self.rows if r.user_id == user_id and r.week_id == week_id
+            ]
+            if user_id not in self.allowed or sum(r.points for r in rows) <= 0:
+                continue
+            zone = ZoneInfo(self.weeks[week_id].time_zone)
+            days = {r.at.astimezone(zone).date() for r in rows if r.points > 0}
+            found.append(
+                LeagueReturning(
+                    self._user(user_id), self.tiers.get(user_id, "bronze"), len(days)
+                )
+            )
+        return found
+
+    def form(
+        self,
+        week_id: int,
+        cohorts: Sequence[tuple[LeagueTier, Sequence[LeagueReturning]]],
+        now: datetime,
+    ) -> list[tuple[LeagueUser, LeagueTier, int]]:
+        week = self.weeks[week_id]
+        if week.formed:
+            return []
+        week.formed = True
+        placed: list[tuple[LeagueUser, int]] = []
+        for tier, players in cohorts:
+            cohort_id = self._new_cohort(week_id, tier)
+            for p in players:
+                if not self.member(week_id, p.user.user_id):
+                    self._join(week_id, cohort_id, p.user.user_id, p.pace_days, False)
+                    placed.append((p.user, cohort_id))
+        return [(user, self.cohort_tiers[c][1], self._size(c)) for user, c in placed]
+
+    def unplaced(self, week_id: int) -> list[LeagueReturning]:
+        return [
+            LeagueReturning(r.user, r.tier, 0)
+            for r in self.returning(week_id)
+            if not self.member(week_id, r.user.user_id)
+        ]
+
+
 class InMemoryAgentNudges:
     """The agent hook's nudge targets (P3-W17-S05b): running tasks and their targets."""
 
@@ -2649,6 +2938,41 @@ class InMemoryHldJudgements:
 
     def resolved_appeals(self) -> list[tuple[str, dict[str, int]]]:
         return self.appeals
+
+
+class InMemoryAsk:
+    """ADR-0046: Explore questions as Postgres keeps them (tests set `pending`, when
+    each was asked, and what retrieval finds)."""
+
+    def __init__(self) -> None:
+        self.pending: dict[str, AskRequest] = {}
+        self.asked_at: dict[str, datetime] = {}
+        self.passages: list[AskPassage] = []
+        self.saved: dict[str, AskResult] = {}
+        self.searched: list[tuple[str, str, int]] = []  # (user, model, limit)
+
+    def to_answer(self, question_id: str) -> AskRequest | None:
+        return None if question_id in self.saved else self.pending.get(question_id)
+
+    def nearest(
+        self, user_id: str, vector: list[float], model: str, limit: int
+    ) -> list[AskPassage]:
+        self.searched.append((user_id, model, limit))
+        return self.passages[:limit]
+
+    def save(self, question_id: str, result: AskResult) -> bool:
+        if question_id in self.saved or question_id not in self.pending:
+            return False
+        self.saved[question_id] = result
+        return True
+
+    def purge(self, before: datetime) -> int:
+        old = [q for q, at in self.asked_at.items() if at < before]
+        for q in old:
+            del self.asked_at[q]
+            self.pending.pop(q, None)
+            self.saved.pop(q, None)
+        return len(old)
 
 
 class InMemoryHldMatches:

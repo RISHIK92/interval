@@ -4,10 +4,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { gameEnv, windowTimeZone } from "../../env";
 import { windowStatus, windowsFrom } from "../../server/battle-windows";
+import { leagueWeek, timeLeft } from "../../server/leagues";
 import {
   battleWindows,
   entitlements,
   hldWindows,
+  leagues,
   playerRatings,
   preferences,
   quizzes,
@@ -25,6 +27,7 @@ import { requireUsername } from "../username/gate";
 import { applyMatchEvidence } from "./live/evidence";
 import { Card } from "../ui/Card";
 import { Page } from "../ui/Page";
+import { LeagueCard } from "../leagues/LeagueCard";
 import { GuestForm } from "./GuestForm";
 import { type QuickGame, QuickGames } from "./QuickGames";
 import { RankedBattles } from "./RankedBattles";
@@ -387,6 +390,14 @@ export default async function PlayPage(props: {
           lld ? battleWindows().registration(next, actor.userId) : null,
           hld ? hldWindows().registration(next, actor.userId) : null,
         ]);
+  // ADR-0045: the player's weekly league, for accounts on a plan with it (guests
+  // aren't in leagues, ADR-0029).
+  const league =
+    actor === null ||
+    actor.isGuest ||
+    !(await entitlements().can(actor.userId, "play.league"))
+      ? null
+      : await leagueNow(actor.userId, now);
   const way = (game: Game) =>
     wayIn(game, allowedFor(allowed, game.capability), signedIn, live, today);
   const ranked = [
@@ -400,6 +411,9 @@ export default async function PlayPage(props: {
   const rail =
     actor === null ? undefined : (
       <>
+        {league === null ? null : (
+          <LeagueCard {...league} userId={actor.userId} />
+        )}
         {next === undefined || ranked.length === 0 ? null : (
           <RankedBattles
             at={next.toISOString()}
@@ -484,6 +498,10 @@ export default async function PlayPage(props: {
           </Link>
         ) : null}
       </header>
+      {/* ADR-0045: phones reach Leagues from here; wide screens have it in the rail. */}
+      {actor === null || league === null ? null : (
+        <LeagueCard {...league} userId={actor.userId} className="lg:hidden" />
+      )}
       {actor?.isGuest === true ? (
         <p className="text-sm text-ink-muted">
           <Link href="/sign-up" className="underline underline-offset-2">
@@ -575,9 +593,6 @@ export default async function PlayPage(props: {
       {actor === null ? (
         <Card className="flex flex-col gap-4 p-5">
           <h2 className="text-title">Play without an account</h2>
-          <p className="text-sm text-ink-muted">
-            Interval is in private beta: a guest needs an invite code too.
-          </p>
           <GuestForm />
           <p className="text-sm">
             Or{" "}
@@ -792,6 +807,16 @@ function RatingCard({
       </div>
     </section>
   );
+}
+
+async function leagueNow(userId: string, now: Date) {
+  const week = leagueWeek(now, windowTimeZone());
+  const { tier, cohort } = await leagues().standing(
+    userId,
+    week.start,
+    week.todayFrom,
+  );
+  return { tier, cohort, left: timeLeft(now, week.endsAt) };
 }
 
 // §6.3, Q-P3-07: the daily challenge, a dot a day for the last week of its streak, and

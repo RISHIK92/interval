@@ -23,37 +23,23 @@ const auth = createAuth({ db, secret: SECRET, baseURL: BASE_URL, mailer });
 const guests = guestSessions(auth);
 const sessions = sessionReader(auth);
 const PREFIX = "TESTAUTH";
-let codeId = "";
+// ADR-0056: guests have no invite code to find them by, so each one made here is
+// tracked, and named TESTAUTH so a run that crashed is swept by the next.
+const made: string[] = [];
 
 async function cleanup(): Promise<void> {
-  const codes = db
-    .selectFrom("invite_code")
-    .select("id")
-    .where("code", "like", `${PREFIX}%`);
   await db
     .deleteFrom("app_user")
-    .where("invite_code_id", "in", codes)
-    .execute();
-  await db
-    .deleteFrom("invite_code")
-    .where("code", "like", `${PREFIX}%`)
+    .where((eb) =>
+      eb.or([
+        eb("name", "=", PREFIX),
+        eb("id", "in", made.length > 0 ? made : [""]),
+      ]),
+    )
     .execute();
 }
 
-beforeAll(async () => {
-  await cleanup();
-  const row = await db
-    .insertInto("invite_code")
-    .values({
-      code: `${PREFIX}${String(Date.now()).slice(-6)}`,
-      beta_group: "student",
-      max_uses: 100,
-      expires_at: sql<Date>`now() + interval '1 day'`,
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  codeId = row.id;
-});
+beforeAll(cleanup);
 
 afterAll(async () => {
   await cleanup();
@@ -66,10 +52,13 @@ function cookieHeader(setCookies: string[]): Headers {
 }
 
 async function newGuest(): Promise<{ headers: Headers; userId: string }> {
-  const started = await guests.start(
-    { ok: true, inviteCodeId: codeId, betaGroup: "student" },
-    new Headers(),
-  );
+  const started = await guests.start(new Headers());
+  made.push(started.actor.userId);
+  await db
+    .updateTable("app_user")
+    .set({ name: PREFIX })
+    .where("id", "=", started.actor.userId)
+    .execute();
   const headers = cookieHeader(started.setCookies);
   const actor = await sessions.current(headers);
   if (actor === null) throw new Error("no session after start");
@@ -78,7 +67,8 @@ async function newGuest(): Promise<{ headers: Headers; userId: string }> {
   return { headers, userId: actor.userId };
 }
 
-test("a guest is created in the code's group, anonymous, and the cookie resolves to it", async () => {
+// ADR-0056: no invite code, so no beta group.
+test("a guest is created with no code or group, anonymous, and the cookie resolves to it", async () => {
   const { headers, userId } = await newGuest();
   const user = await db
     .selectFrom("app_user")
@@ -86,30 +76,55 @@ test("a guest is created in the code's group, anonymous, and the cookie resolves
     .where("id", "=", userId)
     .executeTakeFirstOrThrow();
   expect(user).toEqual({
-    beta_group: "student",
-    invite_code_id: codeId,
+    beta_group: null,
+    invite_code_id: null,
     is_anonymous: true,
   });
   expect(await sessions.current(headers)).toEqual({
     userId,
     isGuest: true,
-    betaGroup: "student",
+    betaGroup: null,
   });
 });
 
-async function usersOnCode(): Promise<number> {
-  const rows = await db
-    .selectFrom("app_user")
-    .select("id")
-    .where("invite_code_id", "=", codeId)
-    .execute();
-  return rows.length;
-}
+// Existing users keep the group their code gave them (ADR-0056).
+test("a user who joined with a code still reads back in its group", async () => {
+  const code = await db
+    .insertInto("invite_code")
+    .values({
+      code: `${PREFIX}${String(Date.now()).slice(-6)}`,
+      beta_group: "student",
+      max_uses: 1,
+      expires_at: sql<Date>`now() + interval '1 day'`,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  try {
+    const { headers, userId } = await newGuest();
+    await db
+      .updateTable("app_user")
+      .set({ beta_group: "student", invite_code_id: code.id })
+      .where("id", "=", userId)
+      .execute();
+    expect(await sessions.current(headers)).toEqual({
+      userId,
+      isGuest: true,
+      betaGroup: "student",
+    });
+  } finally {
+    await db
+      .updateTable("app_user")
+      .set({ beta_group: null, invite_code_id: null })
+      .where("invite_code_id", "=", code.id)
+      .execute();
+    await db.deleteFrom("invite_code").where("id", "=", code.id).execute();
+  }
+});
 
 // The refusal is the evidence: Better Auth answers FAILED_TO_CREATE_USER only when its
 // create was refused. (Counting every user before and after raced the other test files
 // that share the database, and failed CI.)
-test("Better Auth cannot create a user outside the invite flow", async () => {
+test("Better Auth cannot create a user outside a guest start", async () => {
   await expect(
     auth.api.signInAnonymous({ headers: new Headers() }),
   ).rejects.toMatchObject({ body: { code: "FAILED_TO_CREATE_USER" } });
@@ -124,10 +139,13 @@ function tableOf(node: OperationNode): string | undefined {
     : undefined;
 }
 
-// Fails the chosen writes, to reach the step after Better Auth has committed the user.
+// Fails the chosen writes, to reach the step after Better Auth has committed the user,
+// and records the users it inserts, so a test can look for them afterwards.
 function failing(writes: { kind: "insert" | "delete"; table: string }[]) {
+  const inserted: string[] = [];
+  const userInserts = new WeakSet<object>();
   const plugin: KyselyPlugin = {
-    transformQuery: ({ node }) => {
+    transformQuery: ({ node, queryId }) => {
       const kind = InsertQueryNode.is(node)
         ? "insert"
         : DeleteQueryNode.is(node)
@@ -137,11 +155,17 @@ function failing(writes: { kind: "insert" | "delete"; table: string }[]) {
       if (writes.some((w) => w.kind === kind && w.table === table)) {
         throw new Error(`test: ${String(kind)} into ${String(table)} refused`);
       }
+      if (kind === "insert" && table === "app_user") userInserts.add(queryId);
       return node;
     },
-    transformResult: ({ result }) => Promise.resolve(result),
+    transformResult: ({ result, queryId }) => {
+      if (userInserts.has(queryId))
+        for (const row of result.rows)
+          if (typeof row["id"] === "string") inserted.push(row["id"]);
+      return Promise.resolve(result);
+    },
   };
-  return guestSessions(
+  const sessions = guestSessions(
     createAuth({
       db: db.withPlugin(plugin),
       secret: SECRET,
@@ -149,45 +173,45 @@ function failing(writes: { kind: "insert" | "delete"; table: string }[]) {
       mailer,
     }),
   );
+  return { guests: sessions, inserted };
 }
 
-const redemption = {
-  ok: true,
-  inviteCodeId: "",
-  betaGroup: "student",
-} as const;
+async function exists(userId: string): Promise<boolean> {
+  const row = await db
+    .selectFrom("app_user")
+    .select("id")
+    .where("id", "=", userId)
+    .executeTakeFirst();
+  return row !== undefined;
+}
 
 test("when the session cannot be created, the half-made guest is removed", async () => {
   vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-  const guestsFailingSession = failing([
-    { kind: "insert", table: "auth_session" },
-  ]);
-  const before = await usersOnCode();
+  const failingSession = failing([{ kind: "insert", table: "auth_session" }]);
   await expect(
-    guestsFailingSession.start(
-      { ...redemption, inviteCodeId: codeId },
-      new Headers(),
-    ),
+    failingSession.guests.start(new Headers()),
   ).rejects.not.toBeInstanceOf(GuestNotRemoved);
-  expect(await usersOnCode()).toBe(before);
+  const [userId] = failingSession.inserted;
+  expect(userId).toBeDefined();
+  made.push(userId ?? "");
+  expect(await exists(userId ?? "")).toBe(false);
   vi.restoreAllMocks();
 });
 
 test("if the half-made guest cannot be removed either, start says so", async () => {
   vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-  const guestsFailingBoth = failing([
+  const failingBoth = failing([
     { kind: "insert", table: "auth_session" },
     { kind: "delete", table: "app_user" },
   ]);
-  const before = await usersOnCode();
-  await expect(
-    guestsFailingBoth.start(
-      { ...redemption, inviteCodeId: codeId },
-      new Headers(),
-    ),
-  ).rejects.toBeInstanceOf(GuestNotRemoved);
-  // Left for cleanup(); the use stays spent, so the code's count stays exact.
-  expect(await usersOnCode()).toBe(before + 1);
+  await expect(failingBoth.guests.start(new Headers())).rejects.toBeInstanceOf(
+    GuestNotRemoved,
+  );
+  const [userId] = failingBoth.inserted;
+  expect(userId).toBeDefined();
+  // Left behind; removed by cleanup().
+  made.push(userId ?? "");
+  expect(await exists(userId ?? "")).toBe(true);
   vi.restoreAllMocks();
 });
 

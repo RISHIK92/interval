@@ -189,6 +189,14 @@ describe("sign-in", () => {
     expect(await page()).toContain('name="password"');
   });
 
+  // ADR-0056: sign-up is open; nothing asks for an invite code.
+  test("a newcomer is sent to create an account, with no invite code", async () => {
+    current.mockResolvedValue(null);
+    const html = await page();
+    expect(html).toMatch(/href="\/join"[^>]*>Create an account/);
+    expect(html).not.toMatch(/invite|private beta/i);
+  });
+
   test("after a reset the page says the password changed", async () => {
     current.mockResolvedValue(null);
     expect(await page("1")).toContain("Your password was changed.");

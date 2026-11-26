@@ -1,11 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi, onTestFinished } from "vitest";
 import type {
   Actor,
   BattleWindows,
   DailyStatus,
   Entitlements,
   HldWindows,
+  Leagues,
   PlayerRatings,
   Preferences,
   Usernames,
@@ -35,6 +36,9 @@ const lldRegistration = vi.fn<BattleWindows["registration"]>(() =>
 const hldRegistration = vi.fn<HldWindows["registration"]>(() =>
   Promise.resolve(null),
 );
+const leagueStanding = vi.fn<Leagues["standing"]>(() =>
+  Promise.resolve({ tier: "bronze", cohort: null }),
+);
 let gameConfigured = true;
 vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -50,6 +54,7 @@ vi.mock("../../server/container", () => ({
   playerRatings: () => ({ of: ratingOf, adjustments }),
   battleWindows: () => ({ registration: lldRegistration }),
   hldWindows: () => ({ registration: hldRegistration }),
+  leagues: () => ({ standing: leagueStanding }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -135,11 +140,13 @@ test("each game asks its own capability; one the plan lacks says so", async () =
   expect(text.match(/Not on your plan/g)).toHaveLength(1);
 });
 
-test("signed out: the games, a guest form with an invite code, and Join or Sign in", async () => {
+// ADR-0056: a guest needs no invite code.
+test("signed out: the games, a guest button with no code, and Join or Sign in", async () => {
   current.mockResolvedValue(null);
   const html = await page();
   expect(html).toContain("Daily challenge");
-  expect(html).toMatch(/<input[^>]*name="code"/);
+  expect(html).not.toMatch(/<input[^>]*name="code"/);
+  expect(html).not.toMatch(/invite code|private beta/i);
   expect(html).toContain("Play as a guest");
   expect(html).toMatch(/href="\/join"/);
   expect(html).toMatch(/href="\/sign-in"/);
@@ -367,6 +374,12 @@ test("the wide layout's sprint panel plays solo by the sprint's start, or a live
 // Play hub, web: the rail's ranked battles card, from the lobbies' own data: the next
 // ranked window (MATCH-7) and the player's registration in each battle on their plan.
 test("the rail shows the next window and a registration made in it", async () => {
+  // Midday, hours before the nightly window: registration is open whatever the
+  // real clock says (at 21:00 the window is live and the card reads differently).
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-26T12:00:00Z") });
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
   current.mockResolvedValue(account);
   lldRegistration.mockResolvedValueOnce({ matchId: null, battleMode: "human" });
   const html = await page();
@@ -389,4 +402,32 @@ test("no ranked battles card without the battles on the plan", async () => {
   expect(html).not.toContain("Ranked battles");
   expect(lldRegistration).not.toHaveBeenCalled();
   expect(hldRegistration).not.toHaveBeenCalled();
+});
+
+// ADR-0045 (Play hub, web): the league card, in the rail and inline on phones (their
+// way to Leagues); only for accounts on a plan with leagues.
+test("an account sees its league card; a guest or a plan without leagues doesn't", async () => {
+  current.mockResolvedValue({
+    userId: "u1",
+    isGuest: false,
+    betaGroup: "student",
+  });
+  leagueStanding.mockResolvedValueOnce({ tier: "gold", cohort: null });
+  const html = await page();
+  // The card twice (rail, phones), besides the sidebar's link.
+  const links = (h: string) => h.match(/href="\/leagues"/g)?.length ?? 0;
+  expect(links(html)).toBe(3);
+  expect(html).toContain("Gold league");
+  expect(leagueStanding).toHaveBeenCalledWith(
+    "u1",
+    expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    expect.any(Date),
+  );
+  can.mockImplementation((_, capability) =>
+    Promise.resolve(capability !== "play.league"),
+  );
+  expect(links(await page())).toBe(1);
+  can.mockImplementation(() => Promise.resolve(true));
+  current.mockResolvedValue({ userId: "g1", isGuest: true, betaGroup: null });
+  expect(links(await page())).toBe(1);
 });

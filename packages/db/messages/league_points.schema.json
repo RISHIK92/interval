@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Write the weekly league points one source earns (ADR-0045), once per source and player (LOAD-5): a finished quick game or LLD battle (match, a game_match id), a scored HLD match (hld_match), a finished checkpoint attempt (checkpoint, a quiz_attempt id), a finished daily challenge (daily, a quiz_attempt id), or a fair-play penalty (fair_play, a fair_play_flag id) that takes a match's points back.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_kind", "source_id"],
+  "properties": {
+    "source_kind": {
+      "enum": ["match", "hld_match", "checkpoint", "daily", "fair_play"]
+    },
+    "source_id": { "type": "string", "minLength": 1 }
+  }
+}

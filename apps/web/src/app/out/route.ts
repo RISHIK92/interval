@@ -22,7 +22,9 @@ const Open = z.object({
   // "reader": Open in browser from inside the in-app reader, after a move there
   // (ADR-0018); it records the section and the outbound click only.
   // "path": a path's reading (P2-W10-S03), counted as a Library open is.
-  from: z.enum(["continue", "library", "reader", "path"]).optional(),
+  // "explore": a search result, gap or cited source on Explore (ADR-0046), counted as a
+  // Library open is.
+  from: z.enum(["continue", "library", "reader", "path", "explore"]).optional(),
   target: z.enum(["section", "original"]),
 });
 
@@ -70,7 +72,12 @@ export async function GET(request: Request): Promise<Response> {
     };
     // Not for a Library or path open: the panel is about what the feed sent you to
     // (owner). Nor for a guest, whose reading isn't tracked (ADR-0029: guests play).
-    if (from !== "library" && from !== "path" && !actor.isGuest)
+    if (
+      from !== "library" &&
+      from !== "path" &&
+      from !== "explore" &&
+      !actor.isGuest
+    )
       jar.set(
         READING_COOKIE,
         formatReading({

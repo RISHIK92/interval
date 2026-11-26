@@ -33,7 +33,9 @@ active as (
   where m.name = 'path_started' and m.at >= b.week_start and m.at < b.week_end
 ),
 groups as (
-  select user_id, min(beta_group) as beta_group from moves group by user_id
+  -- ADR-0056: users with no beta group count in a group of their own, 'none'.
+  select user_id, coalesce(min(beta_group), 'none') as beta_group
+  from moves group by user_id
 ),
 passed as (
   select distinct e.user_id, e.props.path_id as path_id,

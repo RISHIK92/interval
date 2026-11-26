@@ -374,6 +374,13 @@ describe("an HLD match", () => {
       expect.anything(),
       expect.anything(),
     );
+    // ADR-0045: its league points are still the worker's to weigh (a lone seat
+    // earns none there).
+    expect(enqueue).toHaveBeenCalledWith(
+      "league_points",
+      { source_kind: "hld_match", source_id: id },
+      { idempotencyKey: `league-hld-match-${id}` },
+    );
   });
 
   test("a judgement that couldn't be queued is asked again on the next look", async () => {
@@ -419,6 +426,12 @@ describe("an HLD match", () => {
       "rate_hld_match",
       { match_id: id },
       { idempotencyKey: `hld-rate-${id}` },
+    );
+    // ADR-0045: its league points with it, under their own key.
+    expect(enqueue).toHaveBeenCalledWith(
+      "league_points",
+      { source_kind: "hld_match", source_id: id },
+      { idempotencyKey: `league-hld-match-${id}` },
     );
   });
 

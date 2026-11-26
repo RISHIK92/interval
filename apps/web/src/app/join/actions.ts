@@ -2,27 +2,30 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { joinWithInvite } from "../../server/accounts";
+import { env } from "../../env";
+import { createAccount } from "../../server/accounts";
+import { clientIp } from "../../server/clientIp";
 import {
   accounts,
   events,
   inviteCodes,
+  rateLimits,
   sessionReader,
 } from "../../server/container";
 import { type FormState, textField } from "../form";
 import { startVisit } from "../visit";
 
-// Q-P1-24, ADR-0016: the only way in during the private beta, an account made with an
-// invite code. Better Auth's nextCookies plugin sets the session cookie on this
-// action's response.
+// ADR-0016, ADR-0056: the way in, an account open to anyone; an invite code from an old
+// /join?code= link only sets a group. Better Auth's nextCookies plugin sets the session
+// cookie on this action's response.
 export async function join(
   _previous: FormState,
   form: FormData,
 ): Promise<FormState> {
   const requestHeaders = await headers();
   if ((await sessionReader().current(requestHeaders)) !== null) redirect("/");
-  const result = await joinWithInvite(
-    { codes: inviteCodes(), accounts: accounts() },
+  const result = await createAccount(
+    { codes: inviteCodes(), accounts: accounts(), limits: rateLimits() },
     {
       code: textField(form, "code"),
       name: textField(form, "name"),
@@ -30,6 +33,7 @@ export async function join(
       password: textField(form, "password"),
     },
     requestHeaders,
+    clientIp(requestHeaders, env().TRUSTED_PROXIES),
   );
   if (!result.ok) return { message: result.message };
   const visit = await startVisit(result.actor);

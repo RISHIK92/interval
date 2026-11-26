@@ -6,7 +6,9 @@
 -- usually comes before Mark done. Only finishes a day or more old: their window has
 -- closed. Reviews aren't quizzes on a moment.
 with finished as (
-  select user_id, min(beta_group) as beta_group, props.moment_id as moment_id,
+  -- ADR-0056: users with no beta group count in a group of their own, 'none'.
+  select user_id, coalesce(min(beta_group), 'none') as beta_group,
+         props.moment_id as moment_id,
          min(from_iso8601_timestamp(occurred_at)) as finished_at
   from events
   where name = 'section_finished' and version >= 2 and props.moment_id is not null

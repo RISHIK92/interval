@@ -13,6 +13,7 @@ import {
   variantSpec,
   type HldProblem,
 } from "@interval/hld";
+import { queueLeaguePoints } from "./leagues";
 import { log } from "./log";
 import type {
   HldJudgements,
@@ -224,6 +225,9 @@ export async function advance(deps: HldDeps, matchId: string): Promise<void> {
   if (found === null) return;
   const { match, seats } = found;
   if (match.scoredAt !== null) {
+    // ADR-0045: queued again on every look, rated or not: one that failed at scoring
+    // is mended, and the worker scores a match once.
+    await queueLeaguePoints(deps.queue, "hld_match", match.id);
     await queueRating(deps, match, seats.length);
     return;
   }
@@ -308,8 +312,11 @@ async function score(deps: HldDeps, matchId: string, now: Date): Promise<void> {
       standings(entries, included),
       now,
     )
-  )
+  ) {
+    // ADR-0045: its league points, rated or not (the worker scores a match once).
+    await queueLeaguePoints(deps.queue, "hld_match", match.id);
     await queueRating(deps, match, seats.length);
+  }
 }
 
 // Q-WD-14 (owner, 2026-11-23): each opponent's progress during a match, as the number of

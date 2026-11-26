@@ -12,7 +12,7 @@ const WEEKEND_HOUR = 11;
 const MINUTE = 60_000;
 
 // The zone's offset from UTC at an instant, in ms.
-function offset(at: number, timeZone: string): number {
+export function offset(at: number, timeZone: string): number {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -39,7 +39,7 @@ function offset(at: number, timeZone: string): number {
 }
 
 // A local wall time in the zone as an instant (checked twice, for a DST change).
-function zoned(
+export function zoned(
   year: number,
   month: number,
   day: number,

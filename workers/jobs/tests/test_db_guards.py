@@ -170,11 +170,33 @@ def test_lowering_the_profile_purges_private_text_and_excerpt_before_any_reinges
     assert row == (None,)
 
 
-def test_a_user_needs_a_beta_group_and_an_invite_code(conn: psycopg.Connection) -> None:
-    with pytest.raises(psycopg.errors.NotNullViolation):
+# ADR-0056: sign-up needs no invite code, so a user may have neither a code nor a
+# group; a group still only comes with a code.
+def test_a_user_may_have_no_invite_code_and_then_no_group(
+    conn: psycopg.Connection,
+) -> None:
+    conn.execute(
+        "insert into app_user (id, name, email) values ('u1', 'n', 'u1@example.test')"
+    )
+    row = conn.execute(
+        "select beta_group, invite_code_id from app_user where id = 'u1'"
+    ).fetchone()
+    assert row == (None, None)
+    with pytest.raises(psycopg.errors.CheckViolation), conn.transaction():
         conn.execute(
-            "insert into app_user (id, name, email) "
-            "values ('u1', 'n', 'u1@example.test')"
+            "insert into app_user (id, name, email, beta_group) "
+            "values ('u3', 'n', 'u3@example.test', 'student')"
+        )
+    code = conn.execute(
+        "insert into invite_code (code, beta_group, max_uses, expires_at) "
+        "values ('NOGROUPCODE1', 'student', 1, now() + interval '1 day') returning id"
+    ).fetchone()
+    assert code is not None
+    with pytest.raises(psycopg.errors.CheckViolation), conn.transaction():
+        conn.execute(
+            "insert into app_user (id, name, email, invite_code_id) "
+            "values ('u4', 'n', 'u4@example.test', %s)",
+            (code[0],),
         )
 
 
@@ -242,11 +264,14 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
         ("books.count", 5),
         ("books.max_mb", 50),
         ("books.max_pages", 1000),
+        ("explore.ask", None),  # ADR-0046
+        ("explore.ask.daily", 20),
         ("feed.read", None),
         ("play.battle", None),  # P5-W31-S03
         ("play.daily", None),
         ("play.estimation", None),
         ("play.hld", None),  # P6-W39, ADR-0042
+        ("play.league", None),  # ADR-0045
         ("play.live", None),
         ("play.sprint", None),
         ("push.notify", None),  # ADR-0036
@@ -279,11 +304,14 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
         ("books.count", 5),
         ("books.max_mb", 50),
         ("books.max_pages", 1000),
+        ("explore.ask", None),  # ADR-0046
+        ("explore.ask.daily", 20),
         ("feed.read", None),
         ("play.battle", None),  # P5-W31-S03
         ("play.daily", None),
         ("play.estimation", None),
         ("play.hld", None),  # P6-W39, ADR-0042
+        ("play.league", None),  # ADR-0045
         ("play.live", None),
         ("play.sprint", None),
         ("push.notify", None),  # ADR-0036

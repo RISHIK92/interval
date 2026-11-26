@@ -1,23 +1,14 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type {
-  Actor,
-  GuestLimits,
-  GuestSessions,
-  InviteCodes,
-  Redemption,
-} from "../../server/ports";
+import type { Actor, GuestLimits, GuestSessions } from "../../server/ports";
 
-// ADR-0029, Q-P1-24: a guest for Play starts with an invite code, one per browser.
+// ADR-0029, ADR-0056: a guest for Play starts with no invite code, one per browser.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
-const redeem = vi.fn<(code: string) => Promise<Redemption>>();
 const start = vi.fn<GuestSessions["start"]>();
-const codes: InviteCodes = { redeem, release: () => Promise.resolve() };
 const emit = vi.fn();
 const allow = vi.fn<GuestLimits["allow"]>(() => Promise.resolve(true));
 const record = vi.fn<GuestLimits["record"]>(() => Promise.resolve());
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
-  inviteCodes: () => codes,
   guestSessions: () => ({ start }),
   guestLimits: () => ({ allow, record }),
   events: () => ({ emit }),
@@ -38,46 +29,26 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function form(code?: string): FormData {
-  const data = new FormData();
-  if (code !== undefined) data.set("code", code);
-  return data;
-}
-
-async function startGuest(data: FormData) {
+async function startGuest() {
   const { startGuestAction } = await import("./actions");
-  return startGuestAction(null, data);
+  return startGuestAction();
 }
 
-test("a visitor with a session goes to Play without a second guest or a code use", async () => {
+test("a visitor with a session goes to Play without a second guest", async () => {
   current.mockResolvedValue({
     userId: "g1",
     isGuest: true,
     betaGroup: "student",
   });
-  await expect(startGuest(form("ABCDE-FGHJK"))).rejects.toThrow(
-    "redirect:/play",
-  );
-  expect(redeem).not.toHaveBeenCalled();
+  await expect(startGuest()).rejects.toThrow("redirect:/play");
   expect(start).not.toHaveBeenCalled();
 });
 
-test("a valid code starts a guest, starts a visit and lands on Play", async () => {
+test("with no code, a guest starts, with no group, starts a visit and lands on Play", async () => {
   current.mockResolvedValue(null);
-  redeem.mockResolvedValue({
-    ok: true,
-    inviteCodeId: "4",
-    betaGroup: "developer",
-  });
-  const guest = {
-    userId: "g1",
-    isGuest: true,
-    betaGroup: "developer",
-  } as const;
+  const guest = { userId: "g1", isGuest: true, betaGroup: null } as const;
   start.mockResolvedValue({ setCookies: [], actor: guest });
-  await expect(startGuest(form("ABCDE-FGHJK"))).rejects.toThrow(
-    "redirect:/play",
-  );
+  await expect(startGuest()).rejects.toThrow("redirect:/play");
   expect(start).toHaveBeenCalledOnce();
   // Local tests have no proxy in front: every visitor is one network.
   expect(allow).toHaveBeenCalledWith("local");
@@ -97,42 +68,25 @@ test("a valid code starts a guest, starts a visit and lands on Play", async () =
   );
 });
 
-test("a refused code returns its message and stays on Play", async () => {
-  current.mockResolvedValue(null);
-  redeem.mockResolvedValue({ ok: false, reason: "used_up" });
-  expect(await startGuest(form("ABCDE-FGHJK"))).toEqual({
-    message: "That invite code has no uses left.",
-  });
-  expect(redirect).not.toHaveBeenCalled();
-});
-
-test("a missing code is refused without touching the store", async () => {
-  current.mockResolvedValue(null);
-  expect(await startGuest(form())).toEqual({
-    message: "That invite code isn't valid.",
-  });
-  expect(redeem).not.toHaveBeenCalled();
-});
-
 test("a browser that already had a player gets no new guest (P3-W13-S07)", async () => {
   current.mockResolvedValue(null);
   getCookie.mockImplementation((name) =>
     name === "iv_player" ? { value: "1" } : undefined,
   );
-  expect(await startGuest(form("ABCDE-FGHJK"))).toEqual({
+  expect(await startGuest()).toEqual({
     message: "This browser already had a player. Sign in instead.",
   });
   expect(allow).not.toHaveBeenCalled();
-  expect(redeem).not.toHaveBeenCalled();
+  expect(start).not.toHaveBeenCalled();
   getCookie.mockReset();
 });
 
 test("a network over its daily limit gets no guest", async () => {
   current.mockResolvedValue(null);
   allow.mockResolvedValueOnce(false);
-  expect(await startGuest(form("ABCDE-FGHJK"))).toEqual({
+  expect(await startGuest()).toEqual({
     message:
       "Too many guests from this network today. Sign in, or try again tomorrow.",
   });
-  expect(redeem).not.toHaveBeenCalled();
+  expect(start).not.toHaveBeenCalled();
 });

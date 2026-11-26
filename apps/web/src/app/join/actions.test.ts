@@ -1,23 +1,27 @@
 import { afterEach, expect, test, vi } from "vitest";
+import { ACCOUNTS_PER_NETWORK_HOUR } from "../../server/accounts";
 import type {
   Accounts,
   Actor,
   InviteCodes,
+  RateLimits,
   Redemption,
 } from "../../server/ports";
 
-// Account first (ADR-0016, owner 2026-10-26): /join makes the account with the invite
-// code, then onboarding.
+// Account first (ADR-0016, owner 2026-10-26): /join makes the account, then onboarding.
+// ADR-0056: no invite code needed; a link's code still sets the group.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const redeem = vi.fn<(code: string) => Promise<Redemption>>();
 const release = vi.fn(() => Promise.resolve());
 const create = vi.fn<Accounts["create"]>();
 const codes: InviteCodes = { redeem, release };
 const emit = vi.fn();
+const allow = vi.fn<RateLimits["allow"]>(() => Promise.resolve(true));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   inviteCodes: () => codes,
   accounts: () => ({ create }),
+  rateLimits: () => ({ allow }),
   events: () => ({ emit }),
 }));
 const setCookie = vi.fn();
@@ -34,8 +38,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const FIELDS = {
-  code: "ABCDE-FGHJK",
+const FIELDS: Record<string, string> = {
   name: "Ada",
   email: "ada@example.test",
   password: "correct horse",
@@ -62,21 +65,23 @@ test("a visitor who already has a session goes home without using a code", async
   expect(redeem).not.toHaveBeenCalled();
 });
 
-test("a valid code makes the account, starts a visit and goes to onboarding", async () => {
+test("with no code, the account is made with no group, a visit starts and onboarding follows", async () => {
   current.mockResolvedValue(null);
-  redeem.mockResolvedValue({
-    ok: true,
-    inviteCodeId: "4",
-    betaGroup: "developer",
-  });
-  const account = {
-    userId: "u9",
-    isGuest: false,
-    betaGroup: "developer",
-  } as const;
+  const account = { userId: "u9", isGuest: false, betaGroup: null } as const;
   create.mockResolvedValue({ ok: true, setCookies: [], actor: account });
   await expect(join(form())).rejects.toThrow("redirect:/onboarding");
-  expect(create).toHaveBeenCalledOnce();
+  expect(redeem).not.toHaveBeenCalled();
+  expect(create).toHaveBeenCalledExactlyOnceWith(
+    null,
+    { name: "Ada", email: "ada@example.test", password: "correct horse" },
+    expect.any(Headers),
+  );
+  // Local tests have no proxy in front: every visitor is one network.
+  expect(allow).toHaveBeenCalledWith(
+    "sign-up:local",
+    ACCOUNTS_PER_NETWORK_HOUR,
+    3600,
+  );
   // The visit starts here, not in the proxy (app/visit.ts explains why).
   const [name, value] = setCookie.mock.calls[0] as [string, string];
   expect(name).toBe("iv_visit");
@@ -87,28 +92,45 @@ test("a valid code makes the account, starts a visit and goes to onboarding", as
   ]);
 });
 
-test("a refused code or detail returns its message and stays on the page", async () => {
+test("a code from an old invite link still sets the group", async () => {
   current.mockResolvedValue(null);
-  redeem.mockResolvedValue({ ok: false, reason: "used_up" });
-  expect(await join(form())).toEqual({
-    message: "That invite code has no uses left.",
-  });
+  const redemption = {
+    ok: true,
+    inviteCodeId: "4",
+    betaGroup: "developer",
+  } as const;
+  redeem.mockResolvedValue(redemption);
+  const account = {
+    userId: "u9",
+    isGuest: false,
+    betaGroup: "developer",
+  } as const;
+  create.mockResolvedValue({ ok: true, setCookies: [], actor: account });
+  await expect(join(form({ ...FIELDS, code: "ABCDE-FGHJK" }))).rejects.toThrow(
+    "redirect:/onboarding",
+  );
+  expect(redeem).toHaveBeenCalledWith("ABCDE-FGHJK");
+  expect(create.mock.calls[0]?.[0]).toEqual(redemption);
+});
+
+test("refused details or a busy network return a message and stay on the page", async () => {
+  current.mockResolvedValue(null);
   expect(await join(form({ ...FIELDS, password: "short" }))).toEqual({
     message: "Use a password of 8 to 128 characters.",
   });
+  allow.mockResolvedValueOnce(false);
+  expect(await join(form())).toEqual({
+    message: "Too many new accounts from this network. Try again in an hour.",
+  });
+  expect(create).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
   expect(redirect).not.toHaveBeenCalled();
 });
 
-test.each([
-  ["a missing code", { ...FIELDS, code: undefined }],
-  ["a file instead of a password", { ...FIELDS, password: new Blob(["x"]) }],
-])("%s is refused without touching the store", async (_case, fields) => {
+test("a file instead of a password is refused without touching the store", async () => {
   current.mockResolvedValue(null);
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    if (value !== undefined) data.set(key, value);
-  }
+  const data = form();
+  data.set("password", new Blob(["x"]));
   const result = await join(data);
   expect(result).not.toBeNull();
   expect(create).not.toHaveBeenCalled();

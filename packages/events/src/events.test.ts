@@ -76,6 +76,19 @@ describe("the event list (Q-P1-20)", () => {
         // ADR-0048 (accepted by the owner, 2026-11-23): LLD practice, ids and counts only.
         "lld_practice_started",
         "lld_practice_submitted",
+        // ADR-0045 (accepted by the owner, 2026-11-23): weekly leagues.
+        "league_placed",
+        "league_week_closed",
+        "league_viewed",
+        // ADR-0046 (accepted by the owner, 2026-11-23): Explore and Ask, no query text.
+        "explore_searched",
+        "space_followed",
+        "space_unfollowed",
+        "gap_opened",
+        "gap_dismissed",
+        "ask_submitted",
+        "ask_answered",
+        "ask_session_started",
       ].sort(),
     );
   });
@@ -183,6 +196,22 @@ describe("the envelope", () => {
       ...change,
     };
     expect(envelopeSchema.safeParse(event).success).toBe(false);
+  });
+
+  // ADR-0056: a user who joined after the private beta has no group.
+  test("beta_group may be null, never missing", () => {
+    const event = {
+      ...base,
+      name: "signup_completed",
+      version: 1,
+      props: {},
+    };
+    expect(
+      envelopeSchema.safeParse({ ...event, beta_group: null }).success,
+    ).toBe(true);
+    const missing: Record<string, unknown> = { ...event };
+    delete missing["beta_group"];
+    expect(envelopeSchema.safeParse(missing).success).toBe(false);
   });
 
   test("session_id may be null", () => {

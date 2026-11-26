@@ -13,7 +13,11 @@ test("signed out, sign-in is all there is", async () => {
     await screen.findByRole("header", { name: "Sign in" }),
   ).toBeOnTheScreen();
   expect(screen.queryByText("Library")).toBeNull();
-  expect(screen.getByText(/invite-only: join on the web/)).toBeOnTheScreen();
+  // ADR-0056: sign-up is open; accounts are still made on the web.
+  expect(
+    screen.getByText("New here? Create your account on the web."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/invite/i)).toBeNull();
 });
 
 test("a wrong password says so and stays on sign-in", async () => {

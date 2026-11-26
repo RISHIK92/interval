@@ -40,6 +40,13 @@ class AnswerInterviewer(_Message):
     question_id: Annotated[int, Field(ge=1)]
 
 
+class Ask(_Message):
+    """Answer an Explore question from the user's catalogue: retrieve moments, call
+    ASK_MODEL through the gateway, validate and store the answer (ADR-0046)."""
+
+    question_id: Annotated[str, Field(min_length=1)]
+
+
 class BookCheckpoint(_Message):
     """Make one book chapter's checkpoint: tag its sessions, draft and validate its
     questions (§5F, Q-P2-35, P2-W11-S06)."""
@@ -102,6 +109,18 @@ class JudgeHld(_Message):
     advice, on the player's request (CANVAS-6, Q-P6-05, P6-W41)."""
 
     judgement_id: Annotated[str, Field(min_length=1)]
+
+
+class LeaguePoints(_Message):
+    """Write the weekly league points one source earns (ADR-0045), once per source
+    and player (LOAD-5): a finished quick game or LLD battle (match, a game_match
+    id), a scored HLD match (hld_match), a finished checkpoint attempt
+    (checkpoint, a quiz_attempt id), a finished daily challenge (daily, a
+    quiz_attempt id), or a fair-play penalty (fair_play, a fair_play_flag id) that
+    takes a match's points back."""
+
+    source_id: Annotated[str, Field(min_length=1)]
+    source_kind: Literal["match", "hld_match", "checkpoint", "daily", "fair_play"]
 
 
 class MatchFinished(_Message):
@@ -206,6 +225,7 @@ class ValidateQuestion(_Message):
 type MessageName = Literal[
     "agent_nudge",
     "answer_interviewer",
+    "ask",
     "book_checkpoint",
     "book_process",
     "check_link",
@@ -215,6 +235,7 @@ type MessageName = Literal[
     "generate_questions",
     "github_sync",
     "judge_hld",
+    "league_points",
     "match_finished",
     "ocr_page",
     "practice_judged",
@@ -231,6 +252,7 @@ type MessageName = Literal[
 MESSAGES: dict[MessageName, type[_Message]] = {
     "agent_nudge": AgentNudge,
     "answer_interviewer": AnswerInterviewer,
+    "ask": Ask,
     "book_checkpoint": BookCheckpoint,
     "book_process": BookProcess,
     "check_link": CheckLink,
@@ -240,6 +262,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "generate_questions": GenerateQuestions,
     "github_sync": GithubSync,
     "judge_hld": JudgeHld,
+    "league_points": LeaguePoints,
     "match_finished": MatchFinished,
     "ocr_page": OcrPage,
     "practice_judged": PracticeJudged,

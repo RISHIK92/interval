@@ -228,6 +228,19 @@ def test_the_best_is_kept_once_per_submit_and_counts_every_submit(
     assert _best(conn, "lpa")[5] == 5  # type: ignore[index]
 
 
+def test_a_player_with_no_beta_group_is_kept_with_none(
+    conn: psycopg.Connection,
+) -> None:
+    # ADR-0056: users who joined after the private beta have no group.
+    conn.execute(
+        "insert into app_user (id, name, email) values ('lpn', 'n', 'lpn@example.test')"
+    )
+    match_id = a_practice(conn, "lpn")
+    kept = PostgresLldPractice(conn).keep(judged(match_id, "lpn", 1, 300))
+    assert kept is not None
+    assert kept.beta_group is None
+
+
 @pytest.mark.parametrize("adapter", ["postgres", "memory"])
 def test_each_submit_counts_once_whatever_order_it_arrives_in(
     adapter: str, request: pytest.FixtureRequest

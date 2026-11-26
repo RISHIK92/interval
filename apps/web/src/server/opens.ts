@@ -31,7 +31,7 @@ export async function countOpen(
     momentId: string | undefined;
     link: OutboundLink;
     card: { chip: Chip; pos: number } | null;
-    from: "continue" | "library" | "reader" | "path" | undefined;
+    from: "continue" | "library" | "reader" | "path" | "explore" | undefined;
     surface: "in_app" | "browser";
   },
 ): Promise<void> {

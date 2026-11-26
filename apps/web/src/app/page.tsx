@@ -59,7 +59,7 @@ export default async function HomePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  // Private beta (Q-P1-24): no session, no app.
+  // Account first (ADR-0016): no session, no app; /join is open to anyone (ADR-0056).
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   // ADR-0029: guests play, and only play; the rest is for accounts.

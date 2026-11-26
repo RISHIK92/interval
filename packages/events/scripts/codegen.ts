@@ -101,7 +101,8 @@ const base = {
   occurred_at: z.iso.datetime(),
   user_id: z.string().min(1),
   is_guest: z.boolean(),
-  beta_group: z.enum([${spec.envelope.beta_group.map(quote).join(", ")}]),
+  // ADR-0056: users who joined after the private beta have no group.
+  beta_group: z.enum([${spec.envelope.beta_group.map(quote).join(", ")}]).nullable(),
   session_id: z.string().min(1).nullable(),
   source: z.enum([${spec.envelope.source.map(quote).join(", ")}]),
 };
@@ -162,7 +163,8 @@ class _EnvelopeBase(_Model):
     occurred_at: AwareDatetime
     user_id: str = Field(min_length=1)
     is_guest: StrictBool
-    beta_group: BetaGroup
+    # ADR-0056: users who joined after the private beta have no group.
+    beta_group: BetaGroup | None
     session_id: str | None = Field(min_length=1)
     source: Source
 

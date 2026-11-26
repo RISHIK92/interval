@@ -4,7 +4,8 @@
 -- signup_completed. Guests never sign up, so they are not in it. Only users who signed
 -- up 14+ days before today: their window has closed (owner, 2026-10-26).
 with signups as (
-  select user_id, min(beta_group) as beta_group,
+  -- ADR-0056: users with no beta group count in a group of their own, 'none'.
+  select user_id, coalesce(min(beta_group), 'none') as beta_group,
          min(from_iso8601_timestamp(occurred_at)) as signed_up_at
   from events
   where name = 'signup_completed' and not is_guest

@@ -35,6 +35,8 @@ Per ADR-0013 nothing is deployed until every phase is built. The owner runs ever
 The same `run-task` as migrations, with `<JobsTaskDefinition>` and
 `--overrides '{"containerOverrides":[{"name":"jobs","command":["recompute-due"]}]}'`.
 
+EventBridge Scheduler runs `close-leagues-due` hourly (ADR-0045): within the hour after Monday 00:00 in `BATTLE_WINDOW_TIME_ZONE` (UTC when empty) it closes last week's leagues and forms this week's; other runs change nothing.
+
 ## Database
 - TLS: every task connects with `sslmode=verify-full`, using the RDS CA bundle baked into the images (`/certs/rds-global-bundle.pem`).
 - Backups: RDS automated backups are kept for 7 days. Deleting the stack leaves a final snapshot, and deletion protection is on.

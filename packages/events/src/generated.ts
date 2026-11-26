@@ -5,6 +5,9 @@ export const EVENT_NAMES = [
   "agent_task_finished",
   "agent_task_started",
   "article_finished",
+  "ask_answered",
+  "ask_session_started",
+  "ask_submitted",
   "battle_window_grouped",
   "book_checkpoint_finished",
   "book_checkpoint_started",
@@ -22,15 +25,21 @@ export const EVENT_NAMES = [
   "estimate_answered",
   "explainer_finished",
   "explainer_started",
+  "explore_searched",
   "feed_viewed",
   "feedback_given",
   "feedback_undone",
   "game_finished",
   "game_started",
+  "gap_dismissed",
+  "gap_opened",
   "github_connected",
   "github_disconnected",
   "guest_merged",
   "item_saved",
+  "league_placed",
+  "league_viewed",
+  "league_week_closed",
   "lld_practice_started",
   "lld_practice_submitted",
   "match_finished",
@@ -55,6 +64,8 @@ export const EVENT_NAMES = [
   "session_started",
   "signup_completed",
   "source_hidden",
+  "space_followed",
+  "space_unfollowed",
   "university_changed",
 ] as const;
 export type EventName = (typeof EVENT_NAMES)[number];
@@ -63,6 +74,9 @@ export const EVENT_VERSIONS = {
   agent_task_finished: 1,
   agent_task_started: 1,
   article_finished: 3,
+  ask_answered: 1,
+  ask_session_started: 1,
+  ask_submitted: 1,
   battle_window_grouped: 1,
   book_checkpoint_finished: 1,
   book_checkpoint_started: 1,
@@ -80,15 +94,21 @@ export const EVENT_VERSIONS = {
   estimate_answered: 1,
   explainer_finished: 1,
   explainer_started: 1,
+  explore_searched: 1,
   feed_viewed: 1,
   feedback_given: 1,
   feedback_undone: 1,
   game_finished: 3,
   game_started: 3,
+  gap_dismissed: 1,
+  gap_opened: 1,
   github_connected: 1,
   github_disconnected: 1,
   guest_merged: 1,
   item_saved: 1,
+  league_placed: 1,
+  league_viewed: 1,
+  league_week_closed: 1,
   lld_practice_started: 1,
   lld_practice_submitted: 1,
   match_finished: 1,
@@ -113,6 +133,8 @@ export const EVENT_VERSIONS = {
   session_started: 1,
   signup_completed: 1,
   source_hidden: 1,
+  space_followed: 1,
+  space_unfollowed: 1,
   university_changed: 1,
 } as const satisfies Record<EventName, number>;
 
@@ -125,6 +147,34 @@ export const propsSchemas = {
   article_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done", "auto"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  ask_answered: z.strictObject({
+    outcome: z.enum([
+      "answered",
+      "nothing_found",
+      "daily_limit",
+      "user_budget",
+      "global_budget",
+      "over_budget",
+      "unavailable",
+    ]),
+    citation_count: z.number().int().nonnegative(),
+    cost_micro_usd: z.number().int().nonnegative(),
+  }),
+  ask_session_started: z.strictObject({
+    moment_count: z.number().int().nonnegative(),
+    minutes: z.number().int().nonnegative(),
+  }),
+  ask_submitted: z.strictObject({
+    length: z.number().int().nonnegative(),
+    chip: z.enum([
+      "none",
+      "compare",
+      "explain_new",
+      "interview_drill",
+      "my_stack",
+    ]),
+    follow_up: z.boolean(),
   }),
   battle_window_grouped: z.strictObject({
     registered: z.number().int().nonnegative(),
@@ -204,6 +254,9 @@ export const propsSchemas = {
     explainer_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     concept_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
+  explore_searched: z.strictObject({
+    result_count: z.number().int().nonnegative(),
+  }),
   feed_viewed: z.strictObject({ card_count: z.number().int().nonnegative() }),
   feedback_given: z.strictObject({
     kind: z.enum(["more_like_this", "less_like_this", "not_interested"]),
@@ -220,12 +273,30 @@ export const propsSchemas = {
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     game: z.enum(["sprint", "estimation", "daily"]),
   }),
+  gap_dismissed: z.strictObject({
+    concept_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  gap_opened: z.strictObject({
+    concept_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
   github_connected: z.strictObject({
     installations: z.number().int().nonnegative(),
   }),
   github_disconnected: z.strictObject({}),
   guest_merged: z.strictObject({}),
   item_saved: z.strictObject({}),
+  league_placed: z.strictObject({
+    tier: z.enum(["bronze", "silver", "gold", "sapphire", "ruby", "diamond"]),
+    cohort_size: z.number().int().nonnegative(),
+    placement: z.enum(["monday", "mid_week"]),
+  }),
+  league_viewed: z.strictObject({ tab: z.enum(["league", "friends"]) }),
+  league_week_closed: z.strictObject({
+    tier: z.enum(["bronze", "silver", "gold", "sapphire", "ruby", "diamond"]),
+    rank: z.number().int().nonnegative(),
+    points: z.number().int().nonnegative(),
+    outcome: z.enum(["up", "stay", "down"]),
+  }),
   lld_practice_started: z.strictObject({
     problem_slug: z.string(),
     difficulty: z.enum(["easy", "medium", "hard"]),
@@ -337,6 +408,24 @@ export const propsSchemas = {
   session_started: z.strictObject({}),
   signup_completed: z.strictObject({}),
   source_hidden: z.strictObject({}),
+  space_followed: z.strictObject({
+    topic: z.enum([
+      "system-design",
+      "databases",
+      "distributed-systems",
+      "backend",
+      "software-design",
+    ]),
+  }),
+  space_unfollowed: z.strictObject({
+    topic: z.enum([
+      "system-design",
+      "databases",
+      "distributed-systems",
+      "backend",
+      "software-design",
+    ]),
+  }),
   university_changed: z.strictObject({
     action: z.enum(["set", "removed"]),
     listed: z.boolean(),
@@ -352,7 +441,8 @@ const base = {
   occurred_at: z.iso.datetime(),
   user_id: z.string().min(1),
   is_guest: z.boolean(),
-  beta_group: z.enum(["student", "developer"]),
+  // ADR-0056: users who joined after the private beta have no group.
+  beta_group: z.enum(["student", "developer"]).nullable(),
   session_id: z.string().min(1).nullable(),
   source: z.enum(["web", "jobs", "ios", "android"]),
 };
@@ -376,6 +466,24 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("article_finished"),
     version: z.literal(3),
     props: propsSchemas.article_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("ask_answered"),
+    version: z.literal(1),
+    props: propsSchemas.ask_answered,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("ask_session_started"),
+    version: z.literal(1),
+    props: propsSchemas.ask_session_started,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("ask_submitted"),
+    version: z.literal(1),
+    props: propsSchemas.ask_submitted,
   }),
   z.strictObject({
     ...base,
@@ -481,6 +589,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   }),
   z.strictObject({
     ...base,
+    name: z.literal("explore_searched"),
+    version: z.literal(1),
+    props: propsSchemas.explore_searched,
+  }),
+  z.strictObject({
+    ...base,
     name: z.literal("feed_viewed"),
     version: z.literal(1),
     props: propsSchemas.feed_viewed,
@@ -511,6 +625,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   }),
   z.strictObject({
     ...base,
+    name: z.literal("gap_dismissed"),
+    version: z.literal(1),
+    props: propsSchemas.gap_dismissed,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("gap_opened"),
+    version: z.literal(1),
+    props: propsSchemas.gap_opened,
+  }),
+  z.strictObject({
+    ...base,
     name: z.literal("github_connected"),
     version: z.literal(1),
     props: propsSchemas.github_connected,
@@ -532,6 +658,24 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("item_saved"),
     version: z.literal(1),
     props: propsSchemas.item_saved,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("league_placed"),
+    version: z.literal(1),
+    props: propsSchemas.league_placed,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("league_viewed"),
+    version: z.literal(1),
+    props: propsSchemas.league_viewed,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("league_week_closed"),
+    version: z.literal(1),
+    props: propsSchemas.league_week_closed,
   }),
   z.strictObject({
     ...base,
@@ -676,6 +820,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("source_hidden"),
     version: z.literal(1),
     props: propsSchemas.source_hidden,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("space_followed"),
+    version: z.literal(1),
+    props: propsSchemas.space_followed,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("space_unfollowed"),
+    version: z.literal(1),
+    props: propsSchemas.space_unfollowed,
   }),
   z.strictObject({
     ...base,

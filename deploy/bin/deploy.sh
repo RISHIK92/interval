@@ -54,6 +54,7 @@ for unit in interval.service interval-poll.service interval-poll.timer \
   interval-technologies.service interval-technologies.timer \
   interval-daily.service interval-daily.timer \
   interval-season.service interval-season.timer \
+  interval-leagues.service interval-leagues.timer \
   interval-push.service interval-push.timer; do
   install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
 done
@@ -80,6 +81,8 @@ systemctl enable --now interval-github.timer
 systemctl enable --now interval-technologies.timer
 # Q-P3-13: closes last month's quick-game season (daily: a no-op after the 1st).
 systemctl enable --now interval-season.timer
+# ADR-0045: closes last week's leagues and forms this week's (hourly: a no-op after).
+systemctl enable --now interval-leagues.timer
 # Q-2: queues the week's question spot checks, as EventBridge Scheduler does in AWS.
 systemctl enable --now interval-spot-checks.timer
 # Q-P2-13: question batches every 30 minutes, as EventBridge Scheduler does in AWS.

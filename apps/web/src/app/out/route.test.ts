@@ -454,3 +454,23 @@ test("a guest's open records the outbound click only", async () => {
     { ...guest, sessionId: "visit-1" },
   );
 });
+
+// ADR-0046: a search result, the gap card or a cited source on Explore opens as a
+// Library one does: the section counts as reached, the outbound click only, and no Now
+// reading cookie (Explore isn't the feed).
+test("an Explore open of a section records the outbound click only", async () => {
+  current.mockResolvedValue(user);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  const response = await open("item=5&moment=9&from=explore&target=section");
+  expect(response.headers.get("location")).toBe(
+    "https://pub.test/post?utm_source=interval#raft",
+  );
+  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
+    "outbound_click",
+  ]);
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
+  expect(setCookie).not.toHaveBeenCalled();
+});

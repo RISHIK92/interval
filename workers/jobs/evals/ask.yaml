@@ -1,0 +1,24 @@
+# Ask eval questions (ADR-0046, AI-5): `eval-ask --questions` reads this file.
+#
+# The owner writes at least 30 questions over the local catalogue (owner, 2026-11-26),
+# including metadata_only, excerpt and full-text cases, and questions nothing covers.
+# Ask stays off (ASK_MODEL unset) until `eval-ask` passes: 90% or more of questions get
+# the expected outcome and no answer breaks a rights rule. It runs again on every prompt
+# or model change.
+#
+# Each question:
+#   question: what a learner might ask (1-300 characters)
+#   expect:   answer  - a validated, cited answer is expected
+#             nothing - nothing in the catalogue covers it: no model call
+#   chip:     optional; compare, explain_new, interview_drill or my_stack
+#   placeholder: true marks an example of the format; it is never run.
+
+version: 1
+questions:
+  # PLACEHOLDER examples of the format, not real questions: never run.
+  - question: "PLACEHOLDER: When should I shard a database?"
+    expect: answer
+    placeholder: true
+  - question: "PLACEHOLDER: Who won the 1998 World Cup?"
+    expect: nothing
+    placeholder: true

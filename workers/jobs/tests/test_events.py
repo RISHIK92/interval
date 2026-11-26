@@ -46,6 +46,20 @@ def failures(capsys: pytest.CaptureFixture[str]) -> list[dict[str, Any]]:
     return [line for line in lines if line["msg"] == "events: emit failed"]
 
 
+def test_a_user_with_no_beta_group_emits_a_null_group() -> None:
+    # ADR-0056: users who joined after the private beta have no group.
+    sink = RecordingSink()
+    emitter = Emitter(sink)
+    ungrouped = EventContext(
+        user_id="u2", is_guest=False, beta_group=None, session_id=None
+    )
+    emitter.emit("feed_viewed", {"card_count": 1}, ungrouped)
+    emitter.flush()
+    [event] = sink.batches[0]
+    assert event.beta_group is None
+    assert json.loads(event.model_dump_json())["beta_group"] is None
+
+
 def test_events_carry_a_valid_envelope_from_the_jobs_source() -> None:
     sink = RecordingSink()
     emitter = Emitter(sink)

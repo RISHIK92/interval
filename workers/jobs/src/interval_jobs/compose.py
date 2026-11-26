@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import boto3  # pyright: ignore[reportMissingTypeStubs]
 import httpx
@@ -105,6 +106,16 @@ def _required(name: str) -> str:
     if not value:
         sys.exit(f"{name} is not set; see .env.example")
     return value
+
+
+def league_time_zone() -> ZoneInfo:
+    """ADR-0045: weekly leagues run Monday to Sunday in the battle windows' zone
+    (BATTLE_WINDOW_TIME_ZONE, the web app's too), UTC when it's empty (Q-P5-12)."""
+    name = os.environ.get("BATTLE_WINDOW_TIME_ZONE") or "UTC"
+    try:
+        return ZoneInfo(name)
+    except (ValueError, ZoneInfoNotFoundError):
+        sys.exit(f"Invalid BATTLE_WINDOW_TIME_ZONE: {name}")
 
 
 def event_sink() -> EventSink:

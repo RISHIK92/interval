@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { accounts, sessionReader } from "../server/container";
 import { endVisit } from "./visit";
 
-// Accounts only (owner choice, 2026-10-25): a guest who signed out could not get back
-// in without a new invite code.
+// Accounts only (owner choice, 2026-10-25): a guest has no password, so a guest who
+// signed out could never get back to its games.
 export async function signOutAction(): Promise<void> {
   const requestHeaders = await headers();
   const actor = await sessionReader().current(requestHeaders);

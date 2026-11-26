@@ -24,6 +24,7 @@ type AiFeature = Literal[
     "code_review",
     "hld_judge",
     "hld_coach",
+    "ask",
 ]
 type AiProvider = Literal[
     "openrouter", "voyage", "groq", "google", "elevenlabs", "inworld", "polly"
@@ -48,6 +49,9 @@ type Capability = Literal[
     "push.notify",
     "play.battle",
     "play.hld",
+    "explore.ask",
+    "explore.ask.daily",
+    "play.league",
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type DependencyEcosystem = Literal["npm", "pypi", "go"]
@@ -56,6 +60,7 @@ type ExplainerStatus = Literal["pending", "approved", "rejected"]
 type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
 type FinishMethod = Literal["return_prompt", "mark_done", "auto"]
 type FlagReason = Literal["wrong_key", "unclear", "not_in_section", "other"]
+type LeagueTier = Literal["bronze", "silver", "gold", "sapphire", "ruby", "diamond"]
 type LearnerState = Literal["explored", "practiced", "mastered", "due_for_review"]
 type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
@@ -133,11 +138,32 @@ class AppUser(TypedDict):
     email_verified: bool
     image: str | None
     is_anonymous: bool
-    beta_group: BetaGroup
-    invite_code_id: int
+    beta_group: BetaGroup | None
+    invite_code_id: int | None
     created_at: datetime
     updated_at: datetime
     plan_id: str
+
+
+class AskAnswer(TypedDict):
+    question_id: UUID
+    outcome: str
+    text: str | None
+    citations: JsonValue
+    model: str | None
+    prompt_version: int | None
+    cost_usd: Decimal | None
+    answered_at: datetime
+
+
+class AskQuestion(TypedDict):
+    id: UUID
+    user_id: str
+    text: str
+    chip: str | None
+    idempotency_key: str
+    asked_at: datetime
+    follow_up_of: UUID | None
 
 
 class AuthAccount(TypedDict):
@@ -434,6 +460,7 @@ class ContentItem(TypedDict):
     simhash: int | None
     link_broken_at: datetime | None
     frameable: bool | None
+    search_vector: str | None
 
 
 class ContentItemPrivateText(TypedDict):
@@ -520,6 +547,12 @@ class ExploreArmOutcome(TypedDict):
     arm: str
     shown: int
     finished: int
+
+
+class ExploreGapDismissal(TypedDict):
+    user_id: str
+    concept_id: int
+    dismissed_at: datetime
 
 
 class FairPlayFlag(TypedDict):
@@ -901,6 +934,68 @@ class ItemTagging(TypedDict):
     tagged_at: datetime
 
 
+class LeagueCohort(TypedDict):
+    id: int
+    week_id: int
+    tier: LeagueTier
+    size: int
+    created_at: datetime
+
+
+class LeagueCohortMoves(TypedDict):
+    cohort_id: int | None
+    week_id: int | None
+    tier: LeagueTier | None
+    size: int | None
+    up: int | None
+    down: int | None
+
+
+class LeagueMember(TypedDict):
+    week_id: int
+    cohort_id: int
+    user_id: str
+    pace_days: int
+    mid_week: bool
+    placed_at: datetime
+    final_rank: int | None
+    outcome: str | None
+
+
+class LeaguePlayer(TypedDict):
+    user_id: str
+    tier: LeagueTier
+    updated_at: datetime
+
+
+class LeaguePoints(TypedDict):
+    id: int
+    user_id: str
+    week_id: int
+    source_kind: str
+    source_id: str
+    points: int
+    reason: str
+    at: datetime
+    recorded_at: datetime
+
+
+class LeagueStanding(TypedDict):
+    week_id: int | None
+    cohort_id: int | None
+    user_id: str | None
+    points: int | None
+    rank: int | None
+
+
+class LeagueWeek(TypedDict):
+    id: int
+    starts_on: date
+    time_zone: str
+    formed_at: datetime | None
+    closed_at: datetime | None
+
+
 class ListenQueue(TypedDict):
     user_id: str
     explainer_id: int
@@ -971,6 +1066,7 @@ class Moment(TypedDict):
     link_type: MomentLinkType
     created_at: datetime
     oversized: bool
+    search_vector: str | None
 
 
 class MomentBoundaryOverride(TypedDict):
@@ -1566,6 +1662,7 @@ class UserNote(TypedDict):
     body: str
     created_at: datetime
     updated_at: datetime
+    search_vector: str | None
 
 
 class UserPath(TypedDict):

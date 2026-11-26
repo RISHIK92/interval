@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "code_review" | "concept_drafting" | "embeddings" | "explainer" | "hld_coach" | "hld_judge" | "interviewer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
+export type AiFeature = "ask" | "code_review" | "concept_drafting" | "embeddings" | "explainer" | "hld_coach" | "hld_judge" | "interviewer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
 
 export type AiProvider = "elevenlabs" | "google" | "groq" | "inworld" | "openrouter" | "polly" | "voyage";
 
@@ -25,7 +25,7 @@ export type BookStatus = "failed" | "ocr" | "processing" | "ready";
 
 export type BreakLength = "1-3" | "3-8" | "8-15";
 
-export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.hld" | "play.live" | "play.sprint" | "push.notify";
+export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "explore.ask" | "explore.ask.daily" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.hld" | "play.league" | "play.live" | "play.sprint" | "push.notify";
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
@@ -58,6 +58,8 @@ export type JsonObject = {
 export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
+export type LeagueTier = "bronze" | "diamond" | "gold" | "ruby" | "sapphire" | "silver";
 
 export type LearnerState = "due_for_review" | "explored" | "mastered" | "practiced";
 
@@ -139,17 +141,38 @@ export interface AiUsage {
 }
 
 export interface AppUser {
-  beta_group: BetaGroup;
+  beta_group: BetaGroup | null;
   created_at: Generated<Timestamp>;
   email: string;
   email_verified: Generated<boolean>;
   id: string;
   image: string | null;
-  invite_code_id: Int8;
+  invite_code_id: Int8 | null;
   is_anonymous: Generated<boolean>;
   name: string;
   plan_id: Generated<string>;
   updated_at: Generated<Timestamp>;
+}
+
+export interface AskAnswer {
+  answered_at: Generated<Timestamp>;
+  citations: Generated<Json>;
+  cost_usd: Numeric | null;
+  model: string | null;
+  outcome: string;
+  prompt_version: number | null;
+  question_id: string;
+  text: string | null;
+}
+
+export interface AskQuestion {
+  asked_at: Generated<Timestamp>;
+  chip: string | null;
+  follow_up_of: string | null;
+  id: Generated<string>;
+  idempotency_key: string;
+  text: string;
+  user_id: string;
 }
 
 export interface AuthAccount {
@@ -443,6 +466,7 @@ export interface ContentItem {
   id: Generated<Int8>;
   link_broken_at: Timestamp | null;
   published_at: Timestamp | null;
+  search_vector: Generated<string | null>;
   simhash: Int8 | null;
   source_id: Int8;
   title: string;
@@ -532,6 +556,12 @@ export interface ExploreArmOutcome {
   finished: Generated<Int8>;
   kind: string;
   shown: Generated<Int8>;
+}
+
+export interface ExploreGapDismissal {
+  concept_id: Int8;
+  dismissed_at: Generated<Timestamp>;
+  user_id: string;
 }
 
 export interface FairPlayFlag {
@@ -913,6 +943,68 @@ export interface ItemTagging {
   tagged_at: Generated<Timestamp>;
 }
 
+export interface LeagueCohort {
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  size: Generated<number>;
+  tier: LeagueTier;
+  week_id: Int8;
+}
+
+export interface LeagueCohortMoves {
+  cohort_id: Int8 | null;
+  down: number | null;
+  size: number | null;
+  tier: LeagueTier | null;
+  up: number | null;
+  week_id: Int8 | null;
+}
+
+export interface LeagueMember {
+  cohort_id: Int8;
+  final_rank: number | null;
+  mid_week: boolean;
+  outcome: string | null;
+  pace_days: number;
+  placed_at: Generated<Timestamp>;
+  user_id: string;
+  week_id: Int8;
+}
+
+export interface LeaguePlayer {
+  tier: Generated<LeagueTier>;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
+export interface LeaguePoints {
+  at: Timestamp;
+  id: Generated<Int8>;
+  points: number;
+  reason: string;
+  recorded_at: Generated<Timestamp>;
+  source_id: string;
+  source_kind: string;
+  user_id: string;
+  week_id: Int8;
+}
+
+export interface LeagueStanding {
+  cohort_id: Int8 | null;
+  points: number | null;
+  rank: number | null;
+  user_id: string | null;
+  week_id: Int8 | null;
+}
+
+export interface LeagueWeek {
+  closed_at: Timestamp | null;
+  formed_at: Timestamp | null;
+  id: Generated<Int8>;
+  starts_on: Timestamp;
+  time_zone: string;
+}
+
 export interface ListenQueue {
   added_at: Generated<Timestamp>;
   explainer_id: Int8;
@@ -982,6 +1074,7 @@ export interface Moment {
   link_type: MomentLinkType;
   ordinal: number;
   oversized: Generated<boolean>;
+  search_vector: Generated<string | null>;
   title: string;
 }
 
@@ -1575,6 +1668,7 @@ export interface UserNote {
   created_at: Generated<Timestamp>;
   id: Generated<Int8>;
   moment_id: Int8 | null;
+  search_vector: Generated<string | null>;
   section_title: string | null;
   updated_at: Generated<Timestamp>;
   user_id: string;
@@ -1627,6 +1721,8 @@ export interface DB {
   ai_budget: AiBudget;
   ai_usage: AiUsage;
   app_user: AppUser;
+  ask_answer: AskAnswer;
+  ask_question: AskQuestion;
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
@@ -1669,6 +1765,7 @@ export interface DB {
   explainer_scene: ExplainerScene;
   explainer_scene_attempt: ExplainerSceneAttempt;
   explore_arm_outcome: ExploreArmOutcome;
+  explore_gap_dismissal: ExploreGapDismissal;
   fair_play_flag: FairPlayFlag;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
@@ -1710,6 +1807,13 @@ export interface DB {
   item_embedding: ItemEmbedding;
   item_feedback: ItemFeedback;
   item_tagging: ItemTagging;
+  league_cohort: LeagueCohort;
+  league_cohort_moves: LeagueCohortMoves;
+  league_member: LeagueMember;
+  league_player: LeaguePlayer;
+  league_points: LeaguePoints;
+  league_standing: LeagueStanding;
+  league_week: LeagueWeek;
   listen_queue: ListenQueue;
   lld_practice_best: LldPracticeBest;
   lld_practice_code: LldPracticeCode;

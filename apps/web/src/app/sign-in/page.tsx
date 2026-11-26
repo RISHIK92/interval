@@ -51,7 +51,7 @@ export default async function SignInPage({
       <p className="mt-2">
         New here?{" "}
         <Link href="/join" className="font-semibold underline">
-          Join with an invite code
+          Create an account
         </Link>
       </p>
     </Standalone>

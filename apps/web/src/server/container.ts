@@ -25,6 +25,8 @@ import { kyselyAdminSources } from "./adapters/kysely-admin-sources";
 import { kyselyRanking } from "./adapters/kysely-ranking";
 import { kyselyFeedback } from "./adapters/kysely-feedback";
 import { kyselyLibrary } from "./adapters/kysely-library";
+import { kyselyAsks } from "./adapters/kysely-asks";
+import { kyselyExplore } from "./adapters/kysely-explore";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
@@ -82,6 +84,7 @@ import { kyselyBattleQuestions } from "./adapters/kysely-battle-questions";
 import { kyselyBattleWindows } from "./adapters/kysely-battle-windows";
 import { randomProblem, startBattle, startPracticeSession } from "./battles";
 import { startLiveMatch, startReplayMatch } from "./live";
+import { kyselyLeagues } from "./adapters/kysely-leagues";
 import { kyselyFollows, kyselyUsernames } from "./adapters/kysely-people";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
 import { kyselyProgress } from "./adapters/kysely-progress";
@@ -146,7 +149,10 @@ import type {
   InviteCodes,
   JobQueue,
   Leaderboards,
+  Leagues,
   Library,
+  Asks,
+  Explore,
   OutboundLinks,
   PreferencesStore,
   Notes,
@@ -195,6 +201,15 @@ export function feedback(): Feedback {
 
 export function library(): Library {
   return kyselyLibrary(db());
+}
+
+// ADR-0046: Explore, and its Ask questions and answers.
+export function explore(): Explore {
+  return kyselyExplore(db());
+}
+
+export function asks(): Asks {
+  return kyselyAsks(db());
 }
 
 export function outboundLinks(): OutboundLinks {
@@ -449,6 +464,11 @@ export function replayMatch(
 
 export function playerRatings(): PlayerRatings {
   return kyselyRatings(db());
+}
+
+// ADR-0045: weekly leagues, as the worker keeps them.
+export function leagues(): Leagues {
+  return kyselyLeagues(db());
 }
 
 // P3-W14-S02 (§6.7, Q-P3-08).

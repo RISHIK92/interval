@@ -10,7 +10,8 @@
 -- merging into an account (guest_merged, W1-S12, not built yet) don't match; map ids
 -- through guest_merged once merging exists.
 with opens as (
-  select user_id, min(beta_group) as beta_group,
+  -- ADR-0056: users with no beta group count in a group of their own, 'none'.
+  select user_id, coalesce(min(beta_group), 'none') as beta_group,
          props.item_id as item_id, props.moment_id as moment_id,
          min(from_iso8601_timestamp(occurred_at)) as opened_at
   from events

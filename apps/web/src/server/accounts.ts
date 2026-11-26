@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { INVITE_MESSAGES, redeemInvite } from "./invites";
+import { redeemInvite } from "./invites";
 import { log } from "./log";
 import {
   AccountNotRemoved,
   type Accounts,
   type Actor,
   type InviteCodes,
+  type RateLimits,
+  type Redemption,
 } from "./ports";
 
 type FormResult = { ok: true } | { ok: false; message: string };
@@ -21,10 +23,18 @@ const BAD_NAME = "Enter a name of up to 80 characters.";
 const WRONG = "Email or password is incorrect.";
 const SIGN_UP_REFUSED = {
   email_taken: "An account with that email already exists. Sign in instead.",
-  not_a_guest: "Join with an invite code first.",
+  not_a_guest: "Your guest session ended. Create your account from Join.",
 } as const;
 const BAD_TOKEN = "That reset link is invalid or has expired.";
 const NO_ACCOUNT = "No account with that email.";
+const TOO_MANY_ACCOUNTS =
+  "Too many new accounts from this network. Try again in an hour.";
+
+// ADR-0056: with no invite code to spend, the network's sign-ups are the throttle on
+// new accounts. If the limit can't be read (Valkey down), sign-up fails rather than run
+// unthrottled: the error reaches the log like any other. Attempts with valid details count, refused ones included (owner may set
+// another number, ADR-0056's open question).
+export const ACCOUNTS_PER_NETWORK_HOUR = 30;
 
 const refused = (message: string) => ({ ok: false as const, message });
 
@@ -40,13 +50,34 @@ async function releaseUse(
   }
 }
 
-// Account first (ADR-0016, owner 2026-10-26): the invite code and the account in one
-// form. Details are checked before the code is spent; the use is given back when the
-// account can't be made.
-export async function joinWithInvite(
-  deps: { codes: InviteCodes; accounts: Pick<Accounts, "create"> },
+// ADR-0056: a code is optional. A valid one (from a /join?code= link sent during the
+// private beta) still sets the group and spends a use; any other only means no group,
+// never a refusal, since the form no longer shows the code to correct.
+async function redeemIfGiven(
+  codes: InviteCodes,
+  raw: string,
+): Promise<Extract<Redemption, { ok: true }> | null> {
+  if (raw.trim() === "") return null;
+  const redemption = await redeemInvite(codes, raw);
+  if (redemption.ok) return redemption;
+  log.info("join: invite code not used; the account has no group", {
+    reason: redemption.reason,
+  });
+  return null;
+}
+
+// Account first (ADR-0016, owner 2026-10-26): the account in one form, open to anyone
+// (ADR-0056). Details are checked before the network's limit or a code is touched; a
+// code's use is given back when the account can't be made.
+export async function createAccount(
+  deps: {
+    codes: InviteCodes;
+    accounts: Pick<Accounts, "create">;
+    limits: RateLimits;
+  },
   raw: { code: string; name: string; email: string; password: string },
   headers: Headers,
+  ip: string,
 ): Promise<
   | { ok: true; setCookies: string[]; actor: Actor }
   | { ok: false; message: string }
@@ -56,8 +87,15 @@ export async function joinWithInvite(
   const parsedEmail = email.safeParse(raw.email);
   if (!parsedEmail.success) return refused(BAD_EMAIL);
   if (!password.safeParse(raw.password).success) return refused(BAD_PASSWORD);
-  const redemption = await redeemInvite(deps.codes, raw.code);
-  if (!redemption.ok) return refused(INVITE_MESSAGES[redemption.reason]);
+  if (
+    !(await deps.limits.allow(
+      `sign-up:${ip}`,
+      ACCOUNTS_PER_NETWORK_HOUR,
+      60 * 60,
+    ))
+  )
+    return refused(TOO_MANY_ACCOUNTS);
+  const redemption = await redeemIfGiven(deps.codes, raw.code);
   let result;
   try {
     result = await deps.accounts.create(
@@ -70,6 +108,7 @@ export async function joinWithInvite(
       headers,
     );
   } catch (error) {
+    if (redemption === null) throw error;
     if (error instanceof AccountNotRemoved) {
       log.error("join: account half made and kept; its use stays spent", {
         inviteCodeId: redemption.inviteCodeId,
@@ -85,7 +124,8 @@ export async function joinWithInvite(
     throw error;
   }
   if (!result.ok) {
-    await releaseUse(deps.codes, redemption.inviteCodeId);
+    if (redemption !== null)
+      await releaseUse(deps.codes, redemption.inviteCodeId);
     return refused(SIGN_UP_REFUSED.email_taken);
   }
   return result;

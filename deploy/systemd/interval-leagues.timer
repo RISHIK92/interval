@@ -1,0 +1,13 @@
+# VM mode (ADR-0011), ADR-0045: hourly, so the week closes within the hour after
+# Monday 00:00 in BATTLE_WINDOW_TIME_ZONE whatever that zone is. Other runs find the
+# week closed and formed and change nothing. Persistent, so a VM that was off runs it
+# once it is back.
+[Unit]
+Description=Interval close-leagues-due every hour
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

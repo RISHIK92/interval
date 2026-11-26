@@ -5,7 +5,9 @@
 -- explainer_finished for the same account and explainer at or after that start, before
 -- today. Guests have no reader to listen from (ADR-0029).
 with started as (
-  select user_id, props.explainer_id as explainer_id, min(beta_group) as beta_group,
+  -- ADR-0056: users with no beta group count in a group of their own, 'none'.
+  select user_id, props.explainer_id as explainer_id,
+         coalesce(min(beta_group), 'none') as beta_group,
          min(from_iso8601_timestamp(occurred_at)) as started_at
   from events
   where name = 'explainer_started' and not is_guest

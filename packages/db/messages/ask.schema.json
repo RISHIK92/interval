@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Answer an Explore question from the user's catalogue: retrieve moments, call ASK_MODEL through the gateway, validate and store the answer (ADR-0046).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["question_id"],
+  "properties": {
+    "question_id": { "type": "string", "minLength": 1 }
+  }
+}

@@ -21,6 +21,7 @@ from interval_db.generated import (
     Capability,
     ConceptEdgeType,
     Difficulty,
+    LeagueTier,
     LearningGoal,
     MomentLinkType,
     RightsProfile,
@@ -1331,6 +1332,9 @@ class Store(Protocol):
     def seasons(self) -> "Seasons": ...
 
     @property
+    def leagues(self) -> "Leagues": ...
+
+    @property
     def agent_nudges(self) -> "AgentNudges": ...
 
     @property
@@ -1356,6 +1360,9 @@ class Store(Protocol):
 
     @property
     def scenes(self) -> "Scenes": ...
+
+    @property
+    def ask(self) -> "AskStore": ...
 
 
 # GitHub projects (§5H, ADR-0024, P2-W12-S02): a connected user's repositories, read by
@@ -1561,7 +1568,7 @@ class PracticeKept:
 
     user_id: str
     is_guest: bool
-    beta_group: BetaGroup
+    beta_group: BetaGroup | None  # none for users who joined after the beta (ADR-0056)
     improved: bool
 
 
@@ -1573,6 +1580,240 @@ class LldPractice(Protocol):
         their best when it scores more (an equal score keeps the earlier one). None
         when it was counted already (its match and sequence number, LOAD-5), or it
         isn't that player's practice on that problem."""
+        ...
+
+
+# Weekly leagues (ADR-0045): what a source earned, and the weeks' cohorts.
+type LeagueSourceKind = Literal[
+    "match", "hld_match", "checkpoint", "daily", "fair_play"
+]
+type PointsReason = Literal[
+    "match", "bot_match", "battle", "checkpoint", "daily", "penalty"
+]
+
+
+@dataclass(frozen=True)
+class LeagueUser:
+    """A league player, as their events (DB-5) name them; never a guest."""
+
+    user_id: str
+    beta_group: BetaGroup | None  # none for users who joined after the beta (ADR-0056)
+
+
+@dataclass(frozen=True)
+class MatchSeat:
+    user_id: str
+    abandoned: bool
+    won: bool
+    # A confirmed fair-play penalty on this seat of a human-mode match (§6.9).
+    penalized: bool
+
+
+@dataclass(frozen=True)
+class MatchFacts:
+    """A finished game_match and its human seats (a bot's or ghost's seat is none)."""
+
+    mode: str  # sprint, fastest_finger, battle or practice
+    outcome: str  # finished, abandoned, cancelled or void
+    finished_at: datetime
+    replay: bool  # against a bot or a ghost
+    seats: tuple[MatchSeat, ...]
+
+
+@dataclass(frozen=True)
+class HldSeat:
+    user_id: str
+    submitted: bool
+    place: int | None
+
+
+@dataclass(frozen=True)
+class HldFacts:
+    scored_at: datetime
+    seats: tuple[HldSeat, ...]
+
+
+@dataclass(frozen=True)
+class CheckpointFacts:
+    user_id: str
+    finished_at: datetime
+    passed: bool
+    checkpoint: str  # section-<id> or chapter-<id>: which checkpoint, across attempts
+
+
+@dataclass(frozen=True)
+class DailyFacts:
+    """A finished daily challenge attempt."""
+
+    user_id: str
+    day: date
+    finished_at: datetime
+
+
+@dataclass(frozen=True)
+class PenaltyFacts:
+    """A penalised fair-play flag on a human-mode match."""
+
+    user_id: str
+    match_id: str
+    decided_at: datetime
+
+
+@dataclass(frozen=True)
+class LeaguePlayer:
+    user: LeagueUser
+    tier: LeagueTier
+
+
+@dataclass(frozen=True)
+class LeagueWeekRow:
+    id: int
+    starts_on: date
+    formed: bool
+    closed: bool
+
+
+@dataclass(frozen=True)
+class LeagueCredit:
+    week_id: int
+    points: int
+
+
+@dataclass(frozen=True)
+class LeagueStanding:
+    user: LeagueUser
+    rank: int
+    points: int
+
+
+@dataclass(frozen=True)
+class LeagueCohort:
+    """A cohort ranked by the database's rule, with how many move (its views)."""
+
+    id: int
+    tier: LeagueTier
+    up: int
+    down: int
+    members: tuple[LeagueStanding, ...]  # rank order
+
+
+@dataclass(frozen=True)
+class LeagueMemberResult:
+    user: LeagueUser
+    cohort_id: int
+    rank: int
+    points: int
+    outcome: Literal["up", "stay", "down"]
+    tier: LeagueTier  # the tier it leaves them in
+
+
+@dataclass(frozen=True)
+class LeagueReturning:
+    """A player with points last week, placed again on Monday."""
+
+    user: LeagueUser
+    tier: LeagueTier
+    pace_days: int  # last week's days with any points, in the league's zone
+
+
+class Leagues(Protocol):
+    """Weekly leagues (ADR-0045): the sources points come from, the ledger, and the
+    weeks' cohorts."""
+
+    def match(self, match_id: str) -> MatchFacts | None:
+        """None while it isn't finished, or when there is no such match."""
+        ...
+
+    def hld_match(self, match_id: str) -> HldFacts | None:
+        """None while it isn't scored."""
+        ...
+
+    def checkpoint(self, attempt_id: str) -> CheckpointFacts | None:
+        """None while it isn't settled, or when the attempt isn't a checkpoint."""
+        ...
+
+    def daily(self, attempt_id: str) -> DailyFacts | None:
+        """None while it isn't finished, or when the attempt isn't a daily challenge."""
+        ...
+
+    def penalty(self, flag_id: str) -> PenaltyFacts | None:
+        """None unless the flag was penalised on a human-mode match."""
+        ...
+
+    def player(self, user_id: str) -> LeaguePlayer | None:
+        """Their tier (Bronze for a new player), locked until the unit of work ends.
+        None for a guest or a plan without play.league (OPS-3)."""
+        ...
+
+    def week(self, starts_on: date, time_zone: str) -> LeagueWeekRow:
+        """The week starting that Monday, made when it's new."""
+        ...
+
+    def week_starting(self, starts_on: date) -> LeagueWeekRow | None: ...
+
+    def earned(self, user_id: str, start: datetime, end: datetime) -> int:
+        """Points earned in [start, end), penalties not taken off: the cap's count."""
+        ...
+
+    def credited(
+        self, kind: LeagueSourceKind, source_id: str, user_id: str
+    ) -> LeagueCredit | None: ...
+
+    def add(
+        self,
+        user_id: str,
+        week_id: int,
+        kind: LeagueSourceKind,
+        source_id: str,
+        points: int,
+        reason: PointsReason,
+        at: datetime,
+    ) -> bool:
+        """False when that source already scored for them (LOAD-5)."""
+        ...
+
+    def member(self, week_id: int, user_id: str) -> bool: ...
+
+    def place(
+        self, week_id: int, user_id: str, tier: LeagueTier, pace_days: int, room: int
+    ) -> int:
+        """Into the tier's newest cohort that week with fewer than `room` members (the
+        one formed last on Monday, the least active), or a new one. The cohort's size
+        after."""
+        ...
+
+    def due(self, before: date) -> list[LeagueWeekRow]:
+        """Weeks still open that start before `before`, oldest first."""
+        ...
+
+    def cohorts(self, week_id: int) -> list[LeagueCohort]: ...
+
+    def close(
+        self, week_id: int, results: Sequence[LeagueMemberResult], now: datetime
+    ) -> bool:
+        """Final ranks and outcomes, and each player's new tier, once: False when it
+        was closed already."""
+        ...
+
+    def returning(self, week_id: int) -> list[LeagueReturning]:
+        """Players with points that week who may still be in leagues, at their tier
+        now."""
+        ...
+
+    def form(
+        self,
+        week_id: int,
+        cohorts: Sequence[tuple[LeagueTier, Sequence[LeagueReturning]]],
+        now: datetime,
+    ) -> list[tuple[LeagueUser, LeagueTier, int]]:
+        """Monday's cohorts, once: each player placed (with their cohort's size), or
+        none when the week was formed already. A player already a member is
+        skipped."""
+        ...
+
+    def unplaced(self, week_id: int) -> list[LeagueReturning]:
+        """Players with points that week who may be in leagues but aren't members,
+        at their tier now (pace 0)."""
         ...
 
 
@@ -2350,4 +2591,90 @@ class CodeReviews(Protocol):
         self, match_id: str, user_id: str, review: str | None, model: str | None
     ) -> None:
         """The review, or None: it couldn't be written (shown as such)."""
+        ...
+
+
+# ADR-0046 (AI-1, AI-3, ING-2, OPS-4): Explore's "Ask anything", answered by the worker
+# from the user's catalogue. The question and answer are stored apart from source text.
+type AskChip = Literal["compare", "explain_new", "interview_drill", "my_stack"]
+type AskOutcome = Literal["answered", "nothing_found", "over_budget", "unavailable"]
+
+
+@dataclass(frozen=True)
+class AskTurn:
+    """An earlier question of the thread and its answer (None when it had none)."""
+
+    question: str
+    answer: str | None
+
+
+@dataclass(frozen=True)
+class AskRequest:
+    question_id: str
+    user_id: str
+    is_guest: bool
+    beta_group: BetaGroup | None
+    text: str
+    chip: AskChip | None
+    level: Difficulty  # the user's chosen level; Explain like I'm new overrides it
+    technologies: list[str]  # names only (PER-4, ADR-0024), never code
+    thread: list[AskTurn]  # oldest first, at most 3 earlier turns
+
+
+@dataclass(frozen=True)
+class AskPassage:
+    """A retrieved candidate. `passage` is the id the model cites: m<moment id>,
+    i<item id> or c<concept id> (an approved explainer script). The body is filled
+    by rights profile only (ask.passage_body); for a moment of a full-text source the
+    worker reads its section text itself."""
+
+    passage: str
+    kind: Literal["moment", "item", "explainer"]
+    score: float  # cosine similarity to the question
+    title: str
+    rights_profile: RightsProfile | None  # None for an explainer (original content)
+    source_name: str | None = None
+    author: str | None = None
+    concept_names: list[str] = field(default_factory=list[str])
+    excerpt: str | None = None  # stored only for excerpt sources (ING-2)
+    script: str | None = None  # an approved explainer's script
+    item_id: int | None = None
+    moment_id: int | None = None
+    concept_id: int | None = None
+
+
+@dataclass(frozen=True)
+class AskResult:
+    outcome: AskOutcome
+    text: str | None = None
+    citations: list[dict[str, str]] = field(default_factory=list[dict[str, str]])
+    model: str | None = None
+    prompt_version: int | None = None
+    cost_usd: Decimal | None = None
+    # Why the validator refused the model's answer (logged, never stored); the Ask eval
+    # counts rights failures by it.
+    refused: str | None = None
+
+
+class AskStore(Protocol):
+    def to_answer(self, question_id: str) -> AskRequest | None:
+        """A question still waiting for its answer; None once answered, or gone
+        (deleted by the user, or purged)."""
+        ...
+
+    def nearest(
+        self, user_id: str, vector: list[float], model: str, limit: int
+    ) -> list[AskPassage]:
+        """The nearest moments and, through the nearest concepts, their approved
+        explainers and the metadata-only and excerpt items tagged with them; never
+        a source the user hid, a broken link, a source switched off or a duplicate."""
+        ...
+
+    def save(self, question_id: str, result: AskResult) -> bool:
+        """Stores the answer once; False when one was stored already (a redelivery)
+        or the question is gone."""
+        ...
+
+    def purge(self, before: datetime) -> int:
+        """Deletes questions asked before `before` with their answers (30 days)."""
         ...

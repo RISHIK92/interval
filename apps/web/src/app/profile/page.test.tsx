@@ -6,6 +6,7 @@ import type {
   Feedback,
   Follows,
   GitHubAccounts,
+  Leagues,
   PlayerCountries,
   PlayerUniversities,
   Preferences,
@@ -71,7 +72,9 @@ vi.mock("../../server/container", () => ({
   playerCountries: () => ({ get: countryGet }),
   playerUniversities: () => ({ get: universityGet, search: universitySearch }),
   feedReader: () => ({ topicsWithReading: () => Promise.resolve([]) }),
+  leagues: () => ({ tier: leagueTier }),
 }));
+const leagueTier = vi.fn<Leagues["tier"]>(() => Promise.resolve(null));
 const universityGet = vi.fn<PlayerUniversities["get"]>(() =>
   Promise.resolve({ university: null, changeableFrom: null }),
 );
@@ -753,4 +756,19 @@ test("Notifications: each kind with what it sends, the hour, and this browser", 
   expect(html).toMatch(/<option value="9" selected="">09:00<\/option>/);
   expect(html).toContain("This browser");
   pushKey = null;
+});
+
+// ADR-0045 (Profile, web): the header names the player's league once they have one.
+test("the header names the player's league, on a plan with leagues", async () => {
+  current.mockResolvedValue(user);
+  get.mockResolvedValue(preferences);
+  leagueTier.mockResolvedValue("sapphire");
+  expect(await page()).toMatch(/@[a-z_]+ · Sapphire league/);
+  can.mockImplementation((_, capability) =>
+    Promise.resolve(capability !== "play.league"),
+  );
+  expect(await page()).not.toContain("Sapphire league");
+  can.mockImplementation(() => Promise.resolve(true));
+  leagueTier.mockResolvedValue(null);
+  expect(await page()).not.toContain(" league<");
 });
