@@ -42,6 +42,11 @@ const LAYER_NAMES: Record<string, string> = {
   concurrency: "Concurrency",
   extension: "Extension",
 };
+// A verdict whose name alone would mislead: a slow compile isn't the program's time
+// limit (owner, 2026-11-26). Every other verdict reads as its name ("time limit").
+const VERDICT_WORDS: Record<string, string> = {
+  compile_time_limit: "your code took too long to compile",
+};
 
 type Props = {
   // ADR-0048: null while a practice page is starting its session.
@@ -1077,7 +1082,7 @@ export function BattleView({
                     {t.passed
                       ? ""
                       : t.verdict !== undefined && t.verdict !== "ok"
-                        ? ` (${t.verdict.replace("_", " ")})`
+                        ? ` (${VERDICT_WORDS[t.verdict] ?? t.verdict.replace("_", " ")})`
                         : t.call !== undefined
                           ? ` at call ${String(t.call)}: ${t.reason ?? ""}`
                           : ""}

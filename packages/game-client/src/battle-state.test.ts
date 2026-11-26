@@ -330,6 +330,22 @@ test("hints: the costs at the start, each text when opened, the spend", () => {
   ).toBeNull();
 });
 
+// Owner, 2026-11-26: code that took too long to compile fails each test with its own
+// verdict and the judge's words, the failing-test box included.
+test("a compile past its budget is its own verdict, kept as the judge said it", () => {
+  const message = "compile time limit: it took too long to compile";
+  const ran = play(start, {
+    type: "ran",
+    tests: [
+      { passed: false, verdict: "compile_time_limit", name: "Test 1", message },
+    ],
+  });
+  expect(ran).toMatchObject({
+    ran: [{ passed: false, verdict: "compile_time_limit" }],
+    failing: { name: "Test 1", message },
+  });
+});
+
 // Q-WD-17 (LLDQ-4): a failing visible test's name, message and line, from a Run or a
 // Submit's visible layer; the latest answer's first one is the failing-test box.
 test("a failing visible test comes with its name, message and line", () => {

@@ -16,7 +16,8 @@ import (
 // Judges by the code: "perfect" passes every run, "none" fails every run, "error" is
 // the judge's own failure, and "slow" passes once the test lets it go. "explained"
 // fails every run with a failure's details, named or not: a judge breaking LLDQ-4,
-// which the game server must not pass on for a hidden test.
+// which the game server must not pass on for a hidden test. "slow to compile" overran
+// its compile budget: every run is compile_time_limit, the visible ones saying so.
 type fakeJudge struct{ release chan struct{} }
 
 func (f fakeJudge) Judge(ctx context.Context, job judge.JudgeJob) (judge.JudgeResult, error) {
@@ -38,6 +39,14 @@ func (f fakeJudge) Judge(ctx context.Context, job judge.JudgeJob) (judge.JudgeRe
 		passed := code == "perfect"
 		ms := int64(3)
 		r := judge.RunResult{Verdict: &ok, TimeMs: &ms, Report: &judge.Report{Passed: &passed}}
+		if code == "slow to compile" {
+			verdict, ms := "compile_time_limit", int64(0)
+			r.Verdict, r.TimeMs = &verdict, &ms
+			if run.Name != nil {
+				message := "compile time limit: it took too long to compile"
+				r.Failure = &judge.Failure{Name: run.Name, Message: &message}
+			}
+		}
 		if code == "explained" {
 			name, message, line := "a hidden test", "call 1 (get): expected 1, got 2 (secret)", int64(14)
 			if run.Name != nil {

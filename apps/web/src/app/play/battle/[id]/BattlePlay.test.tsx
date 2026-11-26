@@ -100,6 +100,8 @@ test("a Run shows each visible test; a Submit only counts per layer", () => {
       { passed: true, verdict: "ok" },
       { passed: false, verdict: "ok", call: 3, reason: "wrong value" },
       { passed: false, verdict: "compile_error" },
+      { passed: false, verdict: "compile_time_limit" },
+      { passed: false, verdict: "time_limit" },
     ],
     submitted: {
       points: 700,
@@ -115,6 +117,9 @@ test("a Run shows each visible test; a Submit only counts per layer", () => {
   expect(html).toContain("Running…");
   expect(html).toContain("Test 2: failed at call 3: wrong value");
   expect(html).toContain("Test 3: failed (compile error)");
+  // A slow compile says so, never "time limit", which is the program's own.
+  expect(html).toContain("Test 4: failed (your code took too long to compile)");
+  expect(html).toContain("Test 5: failed (time limit)");
   expect(html).toContain("Submission: 700 points");
   // On a desktop each layer is a row of the Tests column: its name, then its count.
   expect(html).toMatch(/Hidden<span[^>]*>: <\/span><\/span><span[^>]*>9 of 10/);

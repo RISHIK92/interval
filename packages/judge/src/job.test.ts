@@ -38,3 +38,25 @@ test("a failure is a name, a message of at most 200 characters, and a line from 
     false,
   );
 });
+
+// Owner, 2026-11-26: a compile past its budget is a verdict of its own; every verdict
+// before it stays valid, and one outside the list is refused.
+test("compile_time_limit is a verdict, beside the ones before it", () => {
+  const verdict = (v: string) =>
+    JudgeResult.safeParse({
+      id,
+      status: "done",
+      runs: [{ verdict: v, timeMs: 0 }],
+    }).success;
+  for (const v of [
+    "ok",
+    "runtime_error",
+    "time_limit",
+    "memory_limit",
+    "output_limit",
+    "compile_error",
+    "compile_time_limit",
+  ])
+    expect(verdict(v)).toBe(true);
+  expect(verdict("compile_slow")).toBe(false);
+});

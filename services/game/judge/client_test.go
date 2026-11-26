@@ -70,6 +70,23 @@ func TestJudgeSubmitsThenPollsUntilTheResult(t *testing.T) {
 	}
 }
 
+// Owner, 2026-11-26: a compile past its budget is a verdict of its own, in the contract.
+func TestACompileTimeLimitIsAVerdict(t *testing.T) {
+	done := `{"id":"` + jobID + `","status":"done","runs":[{"verdict":"compile_time_limit","timeMs":0}]}`
+	srv, _ := fakeVelox(t, 0, done)
+	got, err := velox(srv.URL, "key-1").Judge(context.Background(), job(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *got.Runs[0].Verdict != "compile_time_limit" {
+		t.Fatalf("%+v", got.Runs[0])
+	}
+	unknown, _ := fakeVelox(t, 0, strings.Replace(done, "compile_time_limit", "compile_slow", 1))
+	if _, err := velox(unknown.URL, "key-1").Judge(context.Background(), job(t)); err == nil {
+		t.Error("a verdict outside the contract was accepted")
+	}
+}
+
 func TestJudgeFailsClearly(t *testing.T) {
 	ctx := context.Background()
 	srv, _ := fakeVelox(t, 0, `{"id":"`+jobID+`","runs":[]}`)

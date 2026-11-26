@@ -98,7 +98,7 @@ jobs:
         shard: ${{ fromJSON(needs.pick.outputs.shards) }}
     env:
       # The Velox commit Interval's judge contract was last synced with.
-      VELOX_REF: 013c4042f6d56d4db76189f05783f3cd4658b774
+      VELOX_REF: 6f8c91e23bfd391369a549a798205e8336fef3b3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

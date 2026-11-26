@@ -103,3 +103,21 @@ func TestAPassingSubmitHasNoFailures(t *testing.T) {
 		t.Fatalf("%v", test)
 	}
 }
+
+// Owner, 2026-11-26: code that took too long to compile fails every test with its own
+// verdict, said to its player, never the program's time limit.
+func TestCodeThatTookTooLongToCompileSaysSo(t *testing.T) {
+	a, clock, _, ada, _ := startBattle(t)
+	send(a, clock, "ada", "run", "slow to compile")
+	test := nextOf(t, ada, "ran")["tests"].([]any)[0].(map[string]any)
+	if test["passed"] != false || test["verdict"] != "compile_time_limit" || test["name"] != "Test 1" ||
+		test["message"] != "compile time limit: it took too long to compile" {
+		t.Fatalf("%v", test)
+	}
+	clock.Advance(time.Minute)
+	send(a, clock, "ada", "submit", "slow to compile")
+	sub := nextOf(t, ada, "submitted")
+	if sub["points"] != float64(0) {
+		t.Fatalf("%v", sub)
+	}
+}

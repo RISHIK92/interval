@@ -82,6 +82,9 @@ export const JudgeResult = z.strictObject({
           "memory_limit",
           "output_limit",
           "compile_error",
+          // The compile overran its own budget, apart from the program's time limit
+          // (owner, 2026-11-26).
+          "compile_time_limit",
         ]),
         timeMs: z.int().nonnegative(),
         report: z
