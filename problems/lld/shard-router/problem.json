@@ -1,0 +1,1231 @@
+{
+  "slug": "shard-router",
+  "title": "Shard routing",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["strategy-pattern", "sharding"],
+  "interface": {
+    "class": "ShardRouter",
+    "constructor": {
+      "params": [
+        {
+          "name": "shards",
+          "type": "int"
+        },
+        {
+          "name": "strategy",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "route",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "track",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "assignDirectory",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "shard",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "rebalance",
+        "params": [
+          {
+            "name": "shards",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4, "hash"]
+          },
+          {
+            "method": "route",
+            "args": ["ab"]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          },
+          {
+            "method": "route",
+            "args": ["ba"]
+          },
+          {
+            "method": "track",
+            "args": ["ab"]
+          },
+          {
+            "method": "track",
+            "args": ["a"]
+          },
+          {
+            "method": "track",
+            "args": ["ba"]
+          },
+          {
+            "method": "track",
+            "args": ["ab"]
+          },
+          {
+            "method": "rebalance",
+            "args": [5]
+          },
+          {
+            "method": "route",
+            "args": ["ab"]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          },
+          {
+            "method": "route",
+            "args": ["ba"]
+          },
+          {
+            "method": "rebalance",
+            "args": [5]
+          },
+          {
+            "method": "rebalance",
+            "args": [1]
+          },
+          {
+            "method": "route",
+            "args": ["ab"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "directory"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["alice", 2]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["bob", 0]
+          },
+          {
+            "method": "route",
+            "args": ["alice"]
+          },
+          {
+            "method": "route",
+            "args": ["carol"]
+          },
+          {
+            "method": "track",
+            "args": ["alice"]
+          },
+          {
+            "method": "track",
+            "args": ["bob"]
+          },
+          {
+            "method": "track",
+            "args": ["carol"]
+          },
+          {
+            "method": "rebalance",
+            "args": [2]
+          },
+          {
+            "method": "route",
+            "args": ["alice"]
+          },
+          {
+            "method": "route",
+            "args": ["bob"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["bob", 2]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["bob", 1]
+          },
+          {
+            "method": "route",
+            "args": ["bob"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [997, "hash"]
+          },
+          {
+            "method": "route",
+            "args": ["user:1001"]
+          },
+          {
+            "method": "route",
+            "args": ["user:1002"]
+          },
+          {
+            "method": "route",
+            "args": ["order-77731"]
+          },
+          {
+            "method": "route",
+            "args": ["inventory/sku/99"]
+          },
+          {
+            "method": "route",
+            "args": ["zzzzzzzzzzzz"]
+          },
+          {
+            "method": "route",
+            "args": ["~~~~~~~~~~~~~~~~~~~~"]
+          },
+          {
+            "method": "route",
+            "args": ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+          },
+          {
+            "method": "route",
+            "args": ["session:9f8e7d6c5b4a"]
+          },
+          {
+            "method": "route",
+            "args": [" "]
+          },
+          {
+            "method": "route",
+            "args": ["~"]
+          },
+          {
+            "method": "route",
+            "args": ["Ab"]
+          },
+          {
+            "method": "route",
+            "args": ["aB"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000, "hash"]
+          },
+          {
+            "method": "route",
+            "args": ["user:1001"]
+          },
+          {
+            "method": "route",
+            "args": ["user:1002"]
+          },
+          {
+            "method": "route",
+            "args": ["order-77731"]
+          },
+          {
+            "method": "route",
+            "args": ["inventory/sku/99"]
+          },
+          {
+            "method": "route",
+            "args": ["zzzzzzzzzzzz"]
+          },
+          {
+            "method": "route",
+            "args": ["~~~~~~~~~~~~~~~~~~~~"]
+          },
+          {
+            "method": "route",
+            "args": ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+          },
+          {
+            "method": "route",
+            "args": ["session:9f8e7d6c5b4a"]
+          },
+          {
+            "method": "track",
+            "args": ["user:1001"]
+          },
+          {
+            "method": "track",
+            "args": ["user:1002"]
+          },
+          {
+            "method": "track",
+            "args": ["order-77731"]
+          },
+          {
+            "method": "track",
+            "args": ["inventory/sku/99"]
+          },
+          {
+            "method": "track",
+            "args": ["zzzzzzzzzzzz"]
+          },
+          {
+            "method": "track",
+            "args": ["~~~~~~~~~~~~~~~~~~~~"]
+          },
+          {
+            "method": "track",
+            "args": ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+          },
+          {
+            "method": "track",
+            "args": ["session:9f8e7d6c5b4a"]
+          },
+          {
+            "method": "rebalance",
+            "args": [999]
+          },
+          {
+            "method": "route",
+            "args": ["user:1001"]
+          },
+          {
+            "method": "route",
+            "args": ["user:1002"]
+          },
+          {
+            "method": "route",
+            "args": ["order-77731"]
+          },
+          {
+            "method": "route",
+            "args": ["inventory/sku/99"]
+          },
+          {
+            "method": "route",
+            "args": ["zzzzzzzzzzzz"]
+          },
+          {
+            "method": "route",
+            "args": ["~~~~~~~~~~~~~~~~~~~~"]
+          },
+          {
+            "method": "route",
+            "args": ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+          },
+          {
+            "method": "route",
+            "args": ["session:9f8e7d6c5b4a"]
+          },
+          {
+            "method": "rebalance",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, "hash"]
+          },
+          {
+            "method": "route",
+            "args": ["user:1001"]
+          },
+          {
+            "method": "route",
+            "args": ["user:1002"]
+          },
+          {
+            "method": "route",
+            "args": ["order-77731"]
+          },
+          {
+            "method": "track",
+            "args": ["user:1001"]
+          },
+          {
+            "method": "track",
+            "args": ["user:1002"]
+          },
+          {
+            "method": "track",
+            "args": ["order-77731"]
+          },
+          {
+            "method": "track",
+            "args": ["inventory/sku/99"]
+          },
+          {
+            "method": "track",
+            "args": ["zzzzzzzzzzzz"]
+          },
+          {
+            "method": "track",
+            "args": ["~~~~~~~~~~~~~~~~~~~~"]
+          },
+          {
+            "method": "track",
+            "args": ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+          },
+          {
+            "method": "track",
+            "args": ["session:9f8e7d6c5b4a"]
+          },
+          {
+            "method": "rebalance",
+            "args": [2]
+          },
+          {
+            "method": "rebalance",
+            "args": [3]
+          },
+          {
+            "method": "rebalance",
+            "args": [3]
+          },
+          {
+            "method": "rebalance",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [95, "range"]
+          },
+          {
+            "method": "route",
+            "args": [" "]
+          },
+          {
+            "method": "route",
+            "args": ["!x"]
+          },
+          {
+            "method": "route",
+            "args": ["A"]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          },
+          {
+            "method": "route",
+            "args": ["}"]
+          },
+          {
+            "method": "route",
+            "args": ["~"]
+          },
+          {
+            "method": "route",
+            "args": ["~~~"]
+          },
+          {
+            "method": "rebalance",
+            "args": [94]
+          },
+          {
+            "method": "route",
+            "args": ["~"]
+          },
+          {
+            "method": "route",
+            "args": [" "]
+          },
+          {
+            "method": "route",
+            "args": ["O"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, "range"]
+          },
+          {
+            "method": "route",
+            "args": [" "]
+          },
+          {
+            "method": "route",
+            "args": ["N"]
+          },
+          {
+            "method": "route",
+            "args": ["O"]
+          },
+          {
+            "method": "route",
+            "args": ["P"]
+          },
+          {
+            "method": "route",
+            "args": ["o"]
+          },
+          {
+            "method": "route",
+            "args": ["~"]
+          },
+          {
+            "method": "track",
+            "args": [" "]
+          },
+          {
+            "method": "track",
+            "args": ["N"]
+          },
+          {
+            "method": "track",
+            "args": ["O"]
+          },
+          {
+            "method": "track",
+            "args": ["P"]
+          },
+          {
+            "method": "track",
+            "args": ["~"]
+          },
+          {
+            "method": "rebalance",
+            "args": [3]
+          },
+          {
+            "method": "route",
+            "args": ["N"]
+          },
+          {
+            "method": "route",
+            "args": ["O"]
+          },
+          {
+            "method": "route",
+            "args": ["P"]
+          },
+          {
+            "method": "route",
+            "args": ["o"]
+          },
+          {
+            "method": "route",
+            "args": ["_"]
+          },
+          {
+            "method": "route",
+            "args": ["`"]
+          },
+          {
+            "method": "rebalance",
+            "args": [1]
+          },
+          {
+            "method": "route",
+            "args": ["~"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000, "range"]
+          },
+          {
+            "method": "route",
+            "args": [" "]
+          },
+          {
+            "method": "route",
+            "args": ["!"]
+          },
+          {
+            "method": "route",
+            "args": ["~"]
+          },
+          {
+            "method": "route",
+            "args": ["A"]
+          },
+          {
+            "method": "track",
+            "args": ["A"]
+          },
+          {
+            "method": "track",
+            "args": ["B"]
+          },
+          {
+            "method": "track",
+            "args": ["C"]
+          },
+          {
+            "method": "rebalance",
+            "args": [999]
+          },
+          {
+            "method": "route",
+            "args": ["A"]
+          },
+          {
+            "method": "rebalance",
+            "args": [10]
+          },
+          {
+            "method": "route",
+            "args": ["A"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "directory"]
+          },
+          {
+            "method": "route",
+            "args": ["k"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k", 4]
+          },
+          {
+            "method": "route",
+            "args": ["k"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k", 0]
+          },
+          {
+            "method": "route",
+            "args": ["k"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["K", 3]
+          },
+          {
+            "method": "route",
+            "args": ["K"]
+          },
+          {
+            "method": "route",
+            "args": ["k"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k", 5]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k", -1]
+          },
+          {
+            "method": "route",
+            "args": ["k"]
+          },
+          {
+            "method": "track",
+            "args": ["x"]
+          },
+          {
+            "method": "track",
+            "args": ["k"]
+          },
+          {
+            "method": "track",
+            "args": ["K"]
+          },
+          {
+            "method": "rebalance",
+            "args": [3]
+          },
+          {
+            "method": "route",
+            "args": ["k"]
+          },
+          {
+            "method": "route",
+            "args": ["K"]
+          },
+          {
+            "method": "route",
+            "args": ["x"]
+          },
+          {
+            "method": "rebalance",
+            "args": [5]
+          },
+          {
+            "method": "route",
+            "args": ["K"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10, "directory"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k0", 0]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k1", 1]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k2", 2]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k3", 3]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k4", 4]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k5", 5]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k6", 6]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k7", 7]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k8", 8]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["k9", 9]
+          },
+          {
+            "method": "track",
+            "args": ["k0"]
+          },
+          {
+            "method": "track",
+            "args": ["k1"]
+          },
+          {
+            "method": "track",
+            "args": ["k2"]
+          },
+          {
+            "method": "track",
+            "args": ["k3"]
+          },
+          {
+            "method": "track",
+            "args": ["k4"]
+          },
+          {
+            "method": "track",
+            "args": ["k5"]
+          },
+          {
+            "method": "track",
+            "args": ["k6"]
+          },
+          {
+            "method": "track",
+            "args": ["k7"]
+          },
+          {
+            "method": "track",
+            "args": ["k8"]
+          },
+          {
+            "method": "track",
+            "args": ["k9"]
+          },
+          {
+            "method": "track",
+            "args": ["none"]
+          },
+          {
+            "method": "rebalance",
+            "args": [7]
+          },
+          {
+            "method": "route",
+            "args": ["k0"]
+          },
+          {
+            "method": "route",
+            "args": ["k1"]
+          },
+          {
+            "method": "route",
+            "args": ["k2"]
+          },
+          {
+            "method": "route",
+            "args": ["k3"]
+          },
+          {
+            "method": "route",
+            "args": ["k4"]
+          },
+          {
+            "method": "route",
+            "args": ["k5"]
+          },
+          {
+            "method": "route",
+            "args": ["k6"]
+          },
+          {
+            "method": "route",
+            "args": ["k7"]
+          },
+          {
+            "method": "route",
+            "args": ["k8"]
+          },
+          {
+            "method": "route",
+            "args": ["k9"]
+          },
+          {
+            "method": "rebalance",
+            "args": [4]
+          },
+          {
+            "method": "rebalance",
+            "args": [4]
+          },
+          {
+            "method": "rebalance",
+            "args": [10]
+          },
+          {
+            "method": "route",
+            "args": ["k9"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4, "hash"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["x", 3]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["y", 4]
+          },
+          {
+            "method": "route",
+            "args": ["x"]
+          },
+          {
+            "method": "track",
+            "args": ["x"]
+          },
+          {
+            "method": "rebalance",
+            "args": [2]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["x", 2]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["x", 1]
+          },
+          {
+            "method": "rebalance",
+            "args": [8]
+          },
+          {
+            "method": "route",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "hash"]
+          },
+          {
+            "method": "route",
+            "args": [""]
+          },
+          {
+            "method": "track",
+            "args": [""]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["", 0]
+          },
+          {
+            "method": "rebalance",
+            "args": [0]
+          },
+          {
+            "method": "rebalance",
+            "args": [1001]
+          },
+          {
+            "method": "rebalance",
+            "args": [-1]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["a", 3]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          },
+          {
+            "method": "track",
+            "args": ["a"]
+          },
+          {
+            "method": "rebalance",
+            "args": [1000]
+          },
+          {
+            "method": "rebalance",
+            "args": [3]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0, "hash"]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1001, "range"]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "Hash"]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, ""]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "useStrategy",
+        "params": [
+          {
+            "name": "strategy",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4, "hash"]
+          },
+          {
+            "method": "track",
+            "args": ["ab"]
+          },
+          {
+            "method": "track",
+            "args": ["a"]
+          },
+          {
+            "method": "track",
+            "args": ["ba"]
+          },
+          {
+            "method": "track",
+            "args": ["zz"]
+          },
+          {
+            "method": "track",
+            "args": ["~"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["range"]
+          },
+          {
+            "method": "route",
+            "args": ["ab"]
+          },
+          {
+            "method": "route",
+            "args": ["~"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["range"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["hash"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["directory"]
+          },
+          {
+            "method": "route",
+            "args": ["ab"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["ab", 1]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["zz", 3]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["hash"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["directory"]
+          },
+          {
+            "method": "route",
+            "args": ["zz"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, "directory"]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["a", 0]
+          },
+          {
+            "method": "assignDirectory",
+            "args": ["b", 1]
+          },
+          {
+            "method": "track",
+            "args": ["a"]
+          },
+          {
+            "method": "track",
+            "args": ["b"]
+          },
+          {
+            "method": "track",
+            "args": ["c"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["range"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["directory"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["Range"]
+          },
+          {
+            "method": "useStrategy",
+            "args": [""]
+          },
+          {
+            "method": "route",
+            "args": ["c"]
+          },
+          {
+            "method": "rebalance",
+            "args": [2]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["hash"]
+          },
+          {
+            "method": "route",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [95, "range"]
+          },
+          {
+            "method": "track",
+            "args": ["user:1001"]
+          },
+          {
+            "method": "track",
+            "args": ["user:1002"]
+          },
+          {
+            "method": "track",
+            "args": ["order-77731"]
+          },
+          {
+            "method": "track",
+            "args": ["inventory/sku/99"]
+          },
+          {
+            "method": "track",
+            "args": ["zzzzzzzzzzzz"]
+          },
+          {
+            "method": "track",
+            "args": ["~~~~~~~~~~~~~~~~~~~~"]
+          },
+          {
+            "method": "track",
+            "args": ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+          },
+          {
+            "method": "track",
+            "args": ["session:9f8e7d6c5b4a"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["hash"]
+          },
+          {
+            "method": "rebalance",
+            "args": [7]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["range"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["directory"]
+          },
+          {
+            "method": "useStrategy",
+            "args": ["hash"]
+          }
+        ]
+      }
+    ]
+  }
+}

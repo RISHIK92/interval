@@ -1,0 +1,1176 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 1
+      },
+      {
+        "call": 14,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no directory entry"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "error": "ValueError: no such shard"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 953
+      },
+      {
+        "call": 2,
+        "value": 954
+      },
+      {
+        "call": 3,
+        "value": 88
+      },
+      {
+        "call": 4,
+        "value": 959
+      },
+      {
+        "call": 5,
+        "value": 70
+      },
+      {
+        "call": 6,
+        "value": 572
+      },
+      {
+        "call": 7,
+        "value": 575
+      },
+      {
+        "call": 8,
+        "value": 148
+      },
+      {
+        "call": 9,
+        "value": 32
+      },
+      {
+        "call": 10,
+        "value": 126
+      },
+      {
+        "call": 11,
+        "value": 119
+      },
+      {
+        "call": 12,
+        "value": 82
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 684
+      },
+      {
+        "call": 2,
+        "value": 685
+      },
+      {
+        "call": 3,
+        "value": 608
+      },
+      {
+        "call": 4,
+        "value": 979
+      },
+      {
+        "call": 5,
+        "value": 276
+      },
+      {
+        "call": 6,
+        "value": 45
+      },
+      {
+        "call": 7,
+        "value": 20
+      },
+      {
+        "call": 8,
+        "value": 689
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": 8
+      },
+      {
+        "call": 18,
+        "value": 790
+      },
+      {
+        "call": 19,
+        "value": 791
+      },
+      {
+        "call": 20,
+        "value": 730
+      },
+      {
+        "call": 21,
+        "value": 336
+      },
+      {
+        "call": 22,
+        "value": 896
+      },
+      {
+        "call": 23,
+        "value": 13
+      },
+      {
+        "call": 24,
+        "value": 510
+      },
+      {
+        "call": 25,
+        "value": 376
+      },
+      {
+        "call": 26,
+        "value": 8
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": 4
+      },
+      {
+        "call": 13,
+        "value": 5
+      },
+      {
+        "call": 14,
+        "value": 0
+      },
+      {
+        "call": 15,
+        "value": 6
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 33
+      },
+      {
+        "call": 4,
+        "value": 65
+      },
+      {
+        "call": 5,
+        "value": 93
+      },
+      {
+        "call": 6,
+        "value": 94
+      },
+      {
+        "call": 7,
+        "value": 94
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": 93
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": 46
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 0
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": 3
+      },
+      {
+        "call": 13,
+        "value": 1
+      },
+      {
+        "call": 14,
+        "value": 1
+      },
+      {
+        "call": 15,
+        "value": 1
+      },
+      {
+        "call": 16,
+        "value": 2
+      },
+      {
+        "call": 17,
+        "value": 1
+      },
+      {
+        "call": 18,
+        "value": 2
+      },
+      {
+        "call": 19,
+        "value": 4
+      },
+      {
+        "call": 20,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 10
+      },
+      {
+        "call": 3,
+        "value": 989
+      },
+      {
+        "call": 4,
+        "value": 347
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": 347
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: no directory entry"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 4
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": 3
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "error": "ValueError: no such shard"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: no such shard"
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": 1
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": 0
+      },
+      {
+        "call": 18,
+        "error": "ValueError: no directory entry"
+      },
+      {
+        "call": 19,
+        "value": 0
+      },
+      {
+        "call": 20,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "value": null
+      },
+      {
+        "call": 20,
+        "value": null
+      },
+      {
+        "call": 21,
+        "value": null
+      },
+      {
+        "call": 22,
+        "value": 3
+      },
+      {
+        "call": 23,
+        "value": 0
+      },
+      {
+        "call": 24,
+        "value": 1
+      },
+      {
+        "call": 25,
+        "value": 2
+      },
+      {
+        "call": 26,
+        "value": 3
+      },
+      {
+        "call": 27,
+        "value": 4
+      },
+      {
+        "call": 28,
+        "value": 5
+      },
+      {
+        "call": 29,
+        "value": 6
+      },
+      {
+        "call": 30,
+        "value": 0
+      },
+      {
+        "call": 31,
+        "value": 1
+      },
+      {
+        "call": 32,
+        "value": 2
+      },
+      {
+        "call": 33,
+        "value": 3
+      },
+      {
+        "call": 34,
+        "value": 0
+      },
+      {
+        "call": 35,
+        "value": 0
+      },
+      {
+        "call": 36,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: no such shard"
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "error": "ValueError: no such shard"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty key"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty key"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: empty key"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: shards out of range"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: shards out of range"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: shards out of range"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no such shard"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: shards out of range"
+      },
+      {
+        "call": 1,
+        "error": "AttributeError: 'NoneType' object has no attribute 'route'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: shards out of range"
+      },
+      {
+        "call": 1,
+        "error": "AttributeError: 'NoneType' object has no attribute 'route'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown strategy"
+      },
+      {
+        "call": 1,
+        "error": "AttributeError: 'NoneType' object has no attribute 'route'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: unknown strategy"
+      },
+      {
+        "call": 1,
+        "error": "AttributeError: 'NoneType' object has no attribute 'route'"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 5
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 5
+      },
+      {
+        "call": 11,
+        "value": 5
+      },
+      {
+        "call": 12,
+        "error": "ValueError: no directory entry"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": 4
+      },
+      {
+        "call": 16,
+        "value": 4
+      },
+      {
+        "call": 17,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 3
+      },
+      {
+        "call": 7,
+        "value": 3
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown strategy"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown strategy"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: no directory entry"
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 3
+      },
+      {
+        "call": 13,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 8
+      },
+      {
+        "call": 10,
+        "value": 8
+      },
+      {
+        "call": 11,
+        "value": 7
+      },
+      {
+        "call": 12,
+        "value": 8
+      },
+      {
+        "call": 13,
+        "value": 8
+      }
+    ]
+  }
+]

@@ -1,0 +1,1116 @@
+{
+  "slug": "invalidation-bus",
+  "title": "Cache invalidation bus",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["observer-pattern", "publish-subscribe", "cache-invalidation"],
+  "interface": {
+    "class": "InvalidationBus",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "join",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "cacheLocal",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "write",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "cached",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "offline",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "down",
+            "type": "bool"
+          }
+        ],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["b"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "user:1", "Ann"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "user:1", "Ann"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "user:2", "Bo"]
+          },
+          {
+            "method": "write",
+            "args": ["user:1"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "user:1"]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "user:2"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "write",
+            "args": ["user:2"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "user:1"]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "user:2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", "v"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", "w"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "write",
+            "args": ["x"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "cached",
+            "args": ["zz", "k"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["b"]
+          },
+          {
+            "method": "join",
+            "args": ["c"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k1", "1"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k2", "2"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "k1", "1"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["c", "K1", "x"]
+          },
+          {
+            "method": "write",
+            "args": ["k1"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k1"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k2"]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "k1"]
+          },
+          {
+            "method": "cached",
+            "args": ["c", "K1"]
+          },
+          {
+            "method": "write",
+            "args": ["k3"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k2"]
+          },
+          {
+            "method": "write",
+            "args": ["k2"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k2"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "nope"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "write",
+            "args": ["x"]
+          },
+          {
+            "method": "write",
+            "args": ["x"]
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "x", "1"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "x", "2"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "write",
+            "args": ["y"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "write",
+            "args": ["x"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "x", "3"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "p", "1"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "q", "2"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "p"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "q"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "write",
+            "args": ["other"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "p"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "q"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "p", "3"]
+          },
+          {
+            "method": "write",
+            "args": ["other"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "write",
+            "args": ["w"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", "v"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "write",
+            "args": ["k"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "write",
+            "args": ["a"]
+          },
+          {
+            "method": "write",
+            "args": ["b"]
+          },
+          {
+            "method": "join",
+            "args": ["late"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["late", "a", "1"]
+          },
+          {
+            "method": "offline",
+            "args": ["late", true]
+          },
+          {
+            "method": "offline",
+            "args": ["late", false]
+          },
+          {
+            "method": "cached",
+            "args": ["late", "a"]
+          },
+          {
+            "method": "offline",
+            "args": ["late", true]
+          },
+          {
+            "method": "write",
+            "args": ["c"]
+          },
+          {
+            "method": "offline",
+            "args": ["late", false]
+          },
+          {
+            "method": "cached",
+            "args": ["late", "a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["b"]
+          },
+          {
+            "method": "join",
+            "args": ["c"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", "a"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "k", "b"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["c", "k", "c"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "offline",
+            "args": ["b", true]
+          },
+          {
+            "method": "write",
+            "args": ["x"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "offline",
+            "args": ["c", true]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "offline",
+            "args": ["b", false]
+          },
+          {
+            "method": "offline",
+            "args": ["c", false]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "k"]
+          },
+          {
+            "method": "cached",
+            "args": ["c", "k"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["c", "k", "again"]
+          },
+          {
+            "method": "write",
+            "args": ["k"]
+          },
+          {
+            "method": "cached",
+            "args": ["c", "k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", "v"]
+          },
+          {
+            "method": "write",
+            "args": ["k"]
+          },
+          {
+            "method": "write",
+            "args": ["k"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", "v"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "write",
+            "args": ["j"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": [""]
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["A"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "", "v"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", ""]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["", "k", "v"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "k", "v"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "k", "v"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", ""]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "k"]
+          },
+          {
+            "method": "cached",
+            "args": ["", "k"]
+          },
+          {
+            "method": "write",
+            "args": [""]
+          },
+          {
+            "method": "offline",
+            "args": ["b", true]
+          },
+          {
+            "method": "offline",
+            "args": ["", true]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "k"]
+          },
+          {
+            "method": "cached",
+            "args": ["A", "k"]
+          },
+          {
+            "method": "write",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["n0"]
+          },
+          {
+            "method": "join",
+            "args": ["n1"]
+          },
+          {
+            "method": "join",
+            "args": ["n2"]
+          },
+          {
+            "method": "join",
+            "args": ["n3"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n0", "k0", "00"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n0", "k1", "01"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n0", "k2", "02"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n1", "k0", "10"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n1", "k1", "11"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n1", "k2", "12"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n2", "k0", "20"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n2", "k1", "21"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n2", "k2", "22"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n3", "k0", "30"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n3", "k1", "31"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["n3", "k2", "32"]
+          },
+          {
+            "method": "offline",
+            "args": ["n1", true]
+          },
+          {
+            "method": "write",
+            "args": ["k0"]
+          },
+          {
+            "method": "offline",
+            "args": ["n2", true]
+          },
+          {
+            "method": "write",
+            "args": ["k1"]
+          },
+          {
+            "method": "offline",
+            "args": ["n1", false]
+          },
+          {
+            "method": "offline",
+            "args": ["n3", true]
+          },
+          {
+            "method": "offline",
+            "args": ["n3", false]
+          },
+          {
+            "method": "write",
+            "args": ["k2"]
+          },
+          {
+            "method": "offline",
+            "args": ["n2", false]
+          },
+          {
+            "method": "cached",
+            "args": ["n0", "k0"]
+          },
+          {
+            "method": "cached",
+            "args": ["n0", "k1"]
+          },
+          {
+            "method": "cached",
+            "args": ["n0", "k2"]
+          },
+          {
+            "method": "cached",
+            "args": ["n1", "k0"]
+          },
+          {
+            "method": "cached",
+            "args": ["n1", "k1"]
+          },
+          {
+            "method": "cached",
+            "args": ["n1", "k2"]
+          },
+          {
+            "method": "cached",
+            "args": ["n2", "k0"]
+          },
+          {
+            "method": "cached",
+            "args": ["n2", "k1"]
+          },
+          {
+            "method": "cached",
+            "args": ["n2", "k2"]
+          },
+          {
+            "method": "cached",
+            "args": ["n3", "k0"]
+          },
+          {
+            "method": "cached",
+            "args": ["n3", "k1"]
+          },
+          {
+            "method": "cached",
+            "args": ["n3", "k2"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "keyspace",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "prefix",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "user:1", "x"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "order:1", "y"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "user:2", "z"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["a", "user:"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "order:1"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "order:1", "y"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "user:1"]
+          },
+          {
+            "method": "write",
+            "args": ["order:1"]
+          },
+          {
+            "method": "write",
+            "args": ["user:1"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "user:1"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "user:2"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["a", "order:"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["a", "order:"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "order:2", "w"]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "order:2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["a", "user:1", "x"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["a", "user:"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "write",
+            "args": ["order:9"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "user:1"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", true]
+          },
+          {
+            "method": "write",
+            "args": ["user:7"]
+          },
+          {
+            "method": "offline",
+            "args": ["a", false]
+          },
+          {
+            "method": "cached",
+            "args": ["a", "user:1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "join",
+            "args": ["a"]
+          },
+          {
+            "method": "join",
+            "args": ["b"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["b", ""]
+          },
+          {
+            "method": "keyspace",
+            "args": ["c", "x"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["", "x"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "u", "1"]
+          },
+          {
+            "method": "offline",
+            "args": ["b", true]
+          },
+          {
+            "method": "keyspace",
+            "args": ["b", "u"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["b", "U"]
+          },
+          {
+            "method": "offline",
+            "args": ["b", false]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "u"]
+          },
+          {
+            "method": "write",
+            "args": ["v"]
+          },
+          {
+            "method": "offline",
+            "args": ["b", true]
+          },
+          {
+            "method": "write",
+            "args": ["vu"]
+          },
+          {
+            "method": "offline",
+            "args": ["b", false]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "u"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "uu", "2"]
+          },
+          {
+            "method": "cacheLocal",
+            "args": ["b", "Uu", "3"]
+          },
+          {
+            "method": "keyspace",
+            "args": ["b", "uu"]
+          },
+          {
+            "method": "write",
+            "args": ["uu"]
+          },
+          {
+            "method": "cached",
+            "args": ["b", "Uu"]
+          }
+        ]
+      }
+    ]
+  }
+}

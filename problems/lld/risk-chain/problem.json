@@ -1,0 +1,1182 @@
+{
+  "slug": "risk-chain",
+  "title": "Payment risk checks",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["chain-of-responsibility-pattern"],
+  "interface": {
+    "class": "RiskChain",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addCheck",
+        "params": [
+          {
+            "name": "check",
+            "type": "string"
+          },
+          {
+            "name": "param",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "block",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "assess",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          },
+          {
+            "name": "country",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "decisions",
+        "params": [
+          {
+            "name": "verdict",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 2]
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 50000]
+          },
+          {
+            "method": "block",
+            "args": ["mallory"]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 1000, "DE", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 90000, "DE", 1000]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 90000, "DE", 2000]
+          },
+          {
+            "method": "assess",
+            "args": ["mallory", 10, "DE", 3000]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 50000, "FR", 4000]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 5, "DE", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 5, "FR", 10]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 5, "FR", 20]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 5, "DE", 30]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 5, "DE", 40]
+          },
+          {
+            "method": "addCheck",
+            "args": ["nope", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 1]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 100]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 100, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 101, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1000000000000, "X", 0]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 0]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 59999]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 60000]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 120000]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 180000]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 180000]
+          },
+          {
+            "method": "assess",
+            "args": ["b", 1, "X", 180000]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 3]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 10]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 20]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 30]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 40]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 60010]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 60020]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 60030]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 60031]
+          },
+          {
+            "method": "assess",
+            "args": ["c", 1, "X", 120030]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 0]
+          },
+          {
+            "method": "block",
+            "args": ["a"]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 1]
+          },
+          {
+            "method": "block",
+            "args": ["a"]
+          },
+          {
+            "method": "assess",
+            "args": ["b", 1, "X", 2]
+          },
+          {
+            "method": "assess",
+            "args": ["A", 1, "X", 3]
+          },
+          {
+            "method": "block",
+            "args": ["A"]
+          },
+          {
+            "method": "assess",
+            "args": ["A", 1, "X", 4]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "US", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "us", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "US", 2]
+          },
+          {
+            "method": "assess",
+            "args": ["b", 1, "us", 3]
+          },
+          {
+            "method": "assess",
+            "args": ["b", 1, "US", 4]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "CA", 5]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "Y", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "Y", 2]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 3]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "Y", 3]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 4]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 70000]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 10]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 1]
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 0]
+          },
+          {
+            "method": "block",
+            "args": ["z"]
+          },
+          {
+            "method": "assess",
+            "args": ["z", 5, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["z", 50, "X", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["z", 5, "X", 2]
+          },
+          {
+            "method": "assess",
+            "args": ["y", 5, "X", 3]
+          },
+          {
+            "method": "assess",
+            "args": ["y", 5, "X", 4]
+          },
+          {
+            "method": "assess",
+            "args": ["y", 50, "X", 5]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 10]
+          },
+          {
+            "method": "block",
+            "args": ["z"]
+          },
+          {
+            "method": "assess",
+            "args": ["z", 5, "A", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["z", 5, "B", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["w", 50, "A", 2]
+          },
+          {
+            "method": "assess",
+            "args": ["w", 50, "B", 3]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 3]
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 100]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 50, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 50, "X", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 500, "X", 2]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 500, "X", 3]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 500, "X", 4]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", -1]
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 1]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", -1]
+          },
+          {
+            "method": "addCheck",
+            "args": ["Velocity", 1]
+          },
+          {
+            "method": "addCheck",
+            "args": ["", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 0]
+          },
+          {
+            "method": "block",
+            "args": [""]
+          },
+          {
+            "method": "assess",
+            "args": ["", 1, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 0, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", -5, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 1]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "Y", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 2]
+          },
+          {
+            "method": "decisions",
+            "args": ["Allow"]
+          },
+          {
+            "method": "decisions",
+            "args": [""]
+          },
+          {
+            "method": "decisions",
+            "args": ["pass"]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 1000000000000]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 10000]
+          },
+          {
+            "method": "block",
+            "args": ["x"]
+          },
+          {
+            "method": "block",
+            "args": ["x"]
+          },
+          {
+            "method": "assess",
+            "args": ["x", 1, "X", 1000000000000]
+          },
+          {
+            "method": "assess",
+            "args": ["y", 1000000000000, "X", 1000000000000]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 2]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 20000]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 100, "DE", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 30000, "US", 100]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 100, "FR", 200]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 100, "DE", 300]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 100, "US", 70000]
+          },
+          {
+            "method": "assess",
+            "args": ["cy", 100, "UK", 70001]
+          },
+          {
+            "method": "assess",
+            "args": ["cy", 25000, "UK", 70002]
+          },
+          {
+            "method": "block",
+            "args": ["cy"]
+          },
+          {
+            "method": "assess",
+            "args": ["cy", 100, "UK", 200000]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 25000, "DE", 200001]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 100, "FR", 200002]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "skipFor",
+        "params": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "check",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["blocklist", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 100]
+          },
+          {
+            "method": "block",
+            "args": ["vip"]
+          },
+          {
+            "method": "assess",
+            "args": ["vip", 500, "X", 0]
+          },
+          {
+            "method": "skipFor",
+            "args": ["vip", "blocklist"]
+          },
+          {
+            "method": "assess",
+            "args": ["vip", 500, "X", 1]
+          },
+          {
+            "method": "skipFor",
+            "args": ["vip", "amount"]
+          },
+          {
+            "method": "assess",
+            "args": ["vip", 500, "X", 2]
+          },
+          {
+            "method": "skipFor",
+            "args": ["vip", "amount"]
+          },
+          {
+            "method": "assess",
+            "args": ["other", 500, "X", 3]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "skipFor",
+            "args": ["ann", "country"]
+          },
+          {
+            "method": "skipFor",
+            "args": ["ann", "velocity"]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 1, "A", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["ann", 1, "B", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 1, "A", 2]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 1, "B", 70000]
+          },
+          {
+            "method": "skipFor",
+            "args": ["bob", "velocity"]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 1, "A", 70001]
+          },
+          {
+            "method": "assess",
+            "args": ["bob", 1, "B", 200000]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 1]
+          },
+          {
+            "method": "addCheck",
+            "args": ["velocity", 2]
+          },
+          {
+            "method": "skipFor",
+            "args": ["a", "Velocity"]
+          },
+          {
+            "method": "skipFor",
+            "args": ["", "velocity"]
+          },
+          {
+            "method": "skipFor",
+            "args": ["a", ""]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 1]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 2]
+          },
+          {
+            "method": "skipFor",
+            "args": ["a", "velocity"]
+          },
+          {
+            "method": "assess",
+            "args": ["a", 1, "X", 3]
+          },
+          {
+            "method": "skipFor",
+            "args": ["A", "blocklist"]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addCheck",
+            "args": ["amount", 10]
+          },
+          {
+            "method": "addCheck",
+            "args": ["country", 0]
+          },
+          {
+            "method": "assess",
+            "args": ["t", 5, "X", 0]
+          },
+          {
+            "method": "skipFor",
+            "args": ["t", "amount"]
+          },
+          {
+            "method": "assess",
+            "args": ["t", 50, "Y", 1]
+          },
+          {
+            "method": "skipFor",
+            "args": ["t", "country"]
+          },
+          {
+            "method": "assess",
+            "args": ["t", 50, "Y", 2]
+          },
+          {
+            "method": "assess",
+            "args": ["t", 50, "Z", 3]
+          },
+          {
+            "method": "assess",
+            "args": ["u", 50, "Z", 4]
+          },
+          {
+            "method": "decisions",
+            "args": ["allow"]
+          },
+          {
+            "method": "decisions",
+            "args": ["review"]
+          },
+          {
+            "method": "decisions",
+            "args": ["block"]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1490 @@
+{
+  "slug": "manifest-visitors",
+  "title": "Manifest checks",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["visitor-pattern"],
+  "interface": {
+    "class": "ManifestSet",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addResource",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "fields",
+            "type": "map<string,int>"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "runVisitor",
+        "params": [
+          {
+            "name": "visitor",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "kinds",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "web",
+              {
+                "replicas": 1,
+                "memory": 512
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "web",
+              {
+                "port": 80
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "env",
+              {
+                "entries": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "web",
+              {
+                "replicas": 3
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "kinds",
+            "args": []
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "api",
+              {
+                "replicas": 3,
+                "cpu": 250,
+                "memory": 256
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "api",
+              {
+                "port": 443,
+                "public": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "api",
+              {
+                "entries": 4,
+                "secrets": 1
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          },
+          {
+            "method": "runVisitor",
+            "args": ["audit"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "cpu": 100
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "b",
+              {
+                "replicas": 2
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "c",
+              {
+                "replicas": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d",
+              {
+                "replicas": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "e",
+              {
+                "replicas": 2,
+                "cpu": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "f",
+              {
+                "entries": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "g",
+              {
+                "entries": 0,
+                "secrets": 0
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 2,
+                "cpu": 100
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "b",
+              {
+                "replicas": 3,
+                "memory": 7
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "c",
+              {
+                "replicas": 0,
+                "cpu": 5,
+                "memory": 5
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d",
+              {
+                "replicas": 4,
+                "cpu": 3,
+                "memory": 2
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "e",
+              {
+                "port": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "f",
+              {
+                "port": 2,
+                "public": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "g",
+              {
+                "port": 3,
+                "public": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "h",
+              {
+                "entries": 9,
+                "secrets": 9
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "big",
+              {
+                "replicas": 1000000,
+                "cpu": 1000000,
+                "memory": 1000000
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "big2",
+              {
+                "replicas": 1000000,
+                "cpu": 999999,
+                "memory": 1000000
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "z",
+              {
+                "port": 65535
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "y",
+              {
+                "entries": 1000000
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "x",
+              {
+                "replicas": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "a",
+              {
+                "port": 1
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "x",
+              {
+                "port": 80
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "x",
+              {
+                "port": 81
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "X",
+              {
+                "port": 82
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "x",
+              {
+                "replicas": 2,
+                "cpu": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "x",
+              {
+                "entries": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "x",
+              {
+                "entries": 2
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "x",
+              {
+                "replicas": 1
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "kinds",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 1
+              }
+            ]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d",
+              {
+                "replicas": 2,
+                "cpu": 1
+              }
+            ]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": 1
+              }
+            ]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": 1
+              }
+            ]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d",
+              {
+                "replicas": 2,
+                "cpu": 1
+              }
+            ]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "Deployment",
+              "a",
+              {
+                "replicas": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": ["pod", "a", {}]
+          },
+          {
+            "method": "addResource",
+            "args": ["", "a", {}]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "",
+              {
+                "replicas": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": ["deployment", "a", {}]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "cpu": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": -1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1000001
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "cpu": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "memory": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "cpu": 1000001
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "memory": 1000001
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "privileged": 2
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "privileged": -1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "port": 80
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "Cpu": 1
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 9
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": ["service", "s", {}]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 65536
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 80,
+                "public": 2
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 80,
+                "public": -1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 80,
+                "entries": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": ["configmap", "c", {}]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": -1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": 1000001
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": 1,
+                "secrets": -1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": 1,
+                "secrets": 1000001
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": 1,
+                "replicas": 1
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["Lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": [""]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["securityAudit"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 0,
+                "cpu": 1,
+                "memory": 1,
+                "privileged": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "b",
+              {
+                "replicas": 1000000,
+                "cpu": 1000000,
+                "memory": 1000000,
+                "privileged": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "c",
+              {
+                "port": 1,
+                "public": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "d",
+              {
+                "port": 65535,
+                "public": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "e",
+              {
+                "entries": 0,
+                "secrets": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "f",
+              {
+                "entries": 1000000,
+                "secrets": 1000000
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "g",
+              {
+                "replicas": 600000,
+                "cpu": 600000,
+                "memory": 600000
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d1",
+              {
+                "replicas": 1,
+                "cpu": 100,
+                "memory": 64
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d2",
+              {
+                "replicas": 2,
+                "memory": 64
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d3",
+              {
+                "replicas": 0,
+                "cpu": 300,
+                "memory": 64
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d4",
+              {
+                "replicas": 1,
+                "memory": 64
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d5",
+              {
+                "replicas": 2,
+                "cpu": 500,
+                "memory": 64
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d6",
+              {
+                "replicas": 0,
+                "memory": 64
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s0",
+              {
+                "port": 8000,
+                "public": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s1",
+              {
+                "port": 8001,
+                "public": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s2",
+              {
+                "port": 8002,
+                "public": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c0",
+              {
+                "entries": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c1",
+              {
+                "entries": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c2",
+              {
+                "entries": 2
+              }
+            ]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "securityAudit",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "securityAudit",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "a",
+              {
+                "replicas": 1,
+                "privileged": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "b",
+              {
+                "replicas": 1,
+                "privileged": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "c",
+              {
+                "port": 443,
+                "public": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "d",
+              {
+                "port": 80
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "e",
+              {
+                "entries": 3,
+                "secrets": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "f",
+              {
+                "entries": 3,
+                "secrets": 0
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "g",
+              {
+                "replicas": 1
+              }
+            ]
+          },
+          {
+            "method": "securityAudit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "x",
+              {
+                "entries": 1,
+                "secrets": 2
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "x",
+              {
+                "port": 80,
+                "public": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "x",
+              {
+                "replicas": 2,
+                "cpu": 1,
+                "privileged": 1
+              }
+            ]
+          },
+          {
+            "method": "securityAudit",
+            "args": []
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "securityAudit",
+            "args": []
+          },
+          {
+            "method": "runVisitor",
+            "args": ["securityAudit"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "service",
+              "s",
+              {
+                "port": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "deployment",
+              "d",
+              {
+                "replicas": 2,
+                "cpu": 1
+              }
+            ]
+          },
+          {
+            "method": "addResource",
+            "args": [
+              "configmap",
+              "c",
+              {
+                "entries": 2
+              }
+            ]
+          },
+          {
+            "method": "securityAudit",
+            "args": []
+          },
+          {
+            "method": "runVisitor",
+            "args": ["inventory"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["lint"]
+          },
+          {
+            "method": "runVisitor",
+            "args": ["cost"]
+          },
+          {
+            "method": "kinds",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

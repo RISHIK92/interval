@@ -1,0 +1,938 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": [
+          "deployment/web: single replica",
+          "deployment/web: no cpu limit"
+        ]
+      },
+      {
+        "call": 3,
+        "value": ["deployment/web 512", "total 512"]
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": [
+          "deployment/web replicas=1",
+          "service/web port=80",
+          "configmap/env entries=0"
+        ]
+      },
+      {
+        "call": 8,
+        "value": [
+          "deployment/web: single replica",
+          "deployment/web: no cpu limit",
+          "configmap/env: empty"
+        ]
+      },
+      {
+        "call": 9,
+        "value": [
+          "deployment/web 512",
+          "service/web 0",
+          "configmap/env 0",
+          "total 512"
+        ]
+      },
+      {
+        "call": 10,
+        "value": ["configmap", "deployment", "service"]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["total 0"]
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": [
+          "deployment/api replicas=3",
+          "service/api port=443",
+          "configmap/api entries=4"
+        ]
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": [
+          "deployment/api 1518",
+          "service/api 20",
+          "configmap/api 0",
+          "total 1538"
+        ]
+      },
+      {
+        "call": 10,
+        "value": ["configmap", "deployment", "service"]
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown visitor"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": [
+          "deployment/a: single replica",
+          "deployment/b: no cpu limit",
+          "deployment/c: no cpu limit",
+          "deployment/d: single replica",
+          "deployment/d: no cpu limit",
+          "configmap/g: empty"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": [
+          "deployment/a 200",
+          "deployment/b 21",
+          "deployment/c 0",
+          "deployment/d 20",
+          "service/e 0",
+          "service/f 20",
+          "service/g 0",
+          "configmap/h 0",
+          "total 261"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": [
+          "deployment/big 2000000000000",
+          "deployment/big2 1999999000000",
+          "total 3999999000000"
+        ]
+      },
+      {
+        "call": 4,
+        "value": [
+          "deployment/big replicas=1000000",
+          "deployment/big2 replicas=1000000"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": [
+          "service/z port=65535",
+          "configmap/y entries=1000000",
+          "deployment/x replicas=0",
+          "service/a port=1"
+        ]
+      },
+      {
+        "call": 6,
+        "value": ["configmap", "deployment", "service"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": [
+          "service/x port=80",
+          "service/X port=82",
+          "deployment/x replicas=2",
+          "configmap/x entries=1"
+        ]
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": [
+          "service/x 0",
+          "service/X 0",
+          "deployment/x 2",
+          "configmap/x 0",
+          "total 2"
+        ]
+      },
+      {
+        "call": 11,
+        "value": ["configmap", "deployment", "service"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": ["service"]
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": ["deployment", "service"]
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["configmap", "deployment", "service"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": ["configmap"]
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["configmap", "deployment"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown kind or empty name"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown kind or empty name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown kind or empty name"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown kind or empty name"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: missing field"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: missing field"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: unknown field"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: unknown field"
+      },
+      {
+        "call": 17,
+        "value": []
+      },
+      {
+        "call": 18,
+        "value": []
+      },
+      {
+        "call": 19,
+        "value": ["total 0"]
+      },
+      {
+        "call": 20,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "error": "ValueError: missing field"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown field"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: missing field"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: value out of range"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: unknown field"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: unknown visitor"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: unknown visitor"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: unknown visitor"
+      },
+      {
+        "call": 17,
+        "value": ["service/s port=9"]
+      },
+      {
+        "call": 18,
+        "value": []
+      },
+      {
+        "call": 19,
+        "value": ["service/s 0", "total 0"]
+      },
+      {
+        "call": 20,
+        "value": ["service"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": [
+          "deployment/a replicas=0",
+          "deployment/b replicas=1000000",
+          "service/c port=1",
+          "service/d port=65535",
+          "configmap/e entries=0",
+          "configmap/f entries=1000000",
+          "deployment/g replicas=600000"
+        ]
+      },
+      {
+        "call": 9,
+        "value": ["configmap/e: empty"]
+      },
+      {
+        "call": 10,
+        "value": [
+          "deployment/a 0",
+          "deployment/b 2000000000000",
+          "service/c 0",
+          "service/d 20",
+          "configmap/e 0",
+          "configmap/f 0",
+          "deployment/g 720000000000",
+          "total 2720000000020"
+        ]
+      },
+      {
+        "call": 11,
+        "value": ["configmap", "deployment", "service"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": [
+          "deployment/d1 replicas=1",
+          "deployment/d2 replicas=2",
+          "deployment/d3 replicas=0",
+          "deployment/d4 replicas=1",
+          "deployment/d5 replicas=2",
+          "deployment/d6 replicas=0",
+          "service/s0 port=8000",
+          "service/s1 port=8001",
+          "service/s2 port=8002",
+          "configmap/c0 entries=0",
+          "configmap/c1 entries=1",
+          "configmap/c2 entries=2"
+        ]
+      },
+      {
+        "call": 14,
+        "value": [
+          "deployment/d1: single replica",
+          "deployment/d2: no cpu limit",
+          "deployment/d4: single replica",
+          "deployment/d4: no cpu limit",
+          "deployment/d6: no cpu limit",
+          "configmap/c0: empty"
+        ]
+      },
+      {
+        "call": 15,
+        "value": [
+          "deployment/d1 164",
+          "deployment/d2 128",
+          "deployment/d3 0",
+          "deployment/d4 64",
+          "deployment/d5 1128",
+          "deployment/d6 0",
+          "service/s0 0",
+          "service/s1 20",
+          "service/s2 0",
+          "configmap/c0 0",
+          "configmap/c1 0",
+          "configmap/c2 0",
+          "total 1504"
+        ]
+      },
+      {
+        "call": 16,
+        "value": ["configmap", "deployment", "service"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": [
+          "deployment/a: privileged",
+          "service/c: public",
+          "configmap/e: plain-text secrets"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": [
+          "configmap/x: plain-text secrets",
+          "service/x: public",
+          "deployment/x: privileged"
+        ]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": [
+          "configmap/x: plain-text secrets",
+          "service/x: public",
+          "deployment/x: privileged"
+        ]
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown visitor"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": [
+          "service/s port=1",
+          "deployment/d replicas=2",
+          "configmap/c entries=2"
+        ]
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["service/s 0", "deployment/d 2", "configmap/c 0", "total 2"]
+      },
+      {
+        "call": 8,
+        "value": ["configmap", "deployment", "service"]
+      }
+    ]
+  }
+]

@@ -1,0 +1,1024 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": "T1"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "T2"
+      },
+      {
+        "call": 7,
+        "value": ["web:c1", "api:c2"]
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "T2"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "T1"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": ["ops:c3"]
+      },
+      {
+        "call": 11,
+        "value": false
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "error": "ValueError: unknown train"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": ["a:x"]
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown role"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: the change has boarded"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": "T1"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": ["b:y"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "T1"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["a:x", "b:y"]
+      },
+      {
+        "call": 8,
+        "value": "T2"
+      },
+      {
+        "call": 9,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "T1"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["a:x", "b:y"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "T2"
+      },
+      {
+        "call": 5,
+        "value": "T2"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "T2"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "T3"
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": ["a:2", "b:3", "c:4"]
+      },
+      {
+        "call": 14,
+        "value": ["a:1"]
+      },
+      {
+        "call": 15,
+        "value": "T3"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": "T1"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "T2"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "T3"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "T1"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": ["c:4"]
+      },
+      {
+        "call": 16,
+        "value": ["a:1", "d:5"]
+      },
+      {
+        "call": 17,
+        "value": ["b:3"]
+      },
+      {
+        "call": 18,
+        "value": "T4"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "T2"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "T1"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "T1"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": ["d:4"]
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": ["b:2"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": "T1"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: the change has boarded"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["b:x"]
+      },
+      {
+        "call": 9,
+        "error": "ValueError: the change has boarded"
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": "T2"
+      },
+      {
+        "call": 12,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: the change has boarded"
+      },
+      {
+        "call": 3,
+        "value": "T1"
+      },
+      {
+        "call": 4,
+        "value": "T1"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["web:fix", "api:Fix", "Web:FIX"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: empty name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 5,
+        "value": "T1"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown role"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown role"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown role"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: unknown train"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: empty change"
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": ["a:x"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": "T1"
+      },
+      {
+        "call": 3,
+        "value": "T1"
+      },
+      {
+        "call": 4,
+        "value": "T1"
+      },
+      {
+        "call": 5,
+        "value": "T1"
+      },
+      {
+        "call": 6,
+        "value": "T1"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "T2"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": ["t9:c9"]
+      },
+      {
+        "call": 15,
+        "value": ["t0:c0", "t1:c1", "t0:c3", "t1:c4", "t2:c5"]
+      },
+      {
+        "call": 16,
+        "value": false
+      },
+      {
+        "call": 17,
+        "value": "T3"
+      },
+      {
+        "call": 18,
+        "value": []
+      },
+      {
+        "call": 19,
+        "value": true
+      },
+      {
+        "call": 20,
+        "value": true
+      },
+      {
+        "call": 21,
+        "value": ["t9:c10"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": "T1"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "T2"
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": ["api:c2"]
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": ["web:c1"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": "T2"
+      },
+      {
+        "call": 3,
+        "value": "T1"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "T3"
+      },
+      {
+        "call": 6,
+        "value": ["a:x"]
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not aboard a regular train"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not aboard a regular train"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not aboard a regular train"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not aboard a regular train"
+      },
+      {
+        "call": 12,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": "T1"
+      },
+      {
+        "call": 3,
+        "value": "T2"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": "T1"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": ["b:y", "a:x"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "T1"
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "T2"
+      },
+      {
+        "call": 5,
+        "value": "T3"
+      },
+      {
+        "call": 6,
+        "value": "T1"
+      },
+      {
+        "call": 7,
+        "value": "T1"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": ["c:3", "d:4"]
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": ["a:1"]
+      },
+      {
+        "call": 13,
+        "value": []
+      }
+    ]
+  }
+]

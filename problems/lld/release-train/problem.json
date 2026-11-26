@@ -1,0 +1,1078 @@
+{
+  "slug": "release-train",
+  "title": "Release train",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["mediator-pattern"],
+  "interface": {
+    "class": "ReleaseTrain",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "board",
+        "params": [
+          {
+            "name": "team",
+            "type": "string"
+          },
+          {
+            "name": "change",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "signOff",
+        "params": [
+          {
+            "name": "role",
+            "type": "string"
+          },
+          {
+            "name": "train",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "pull",
+        "params": [
+          {
+            "name": "change",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "depart",
+        "params": [
+          {
+            "name": "train",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["web", "c1"]
+          },
+          {
+            "method": "board",
+            "args": ["api", "c2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["web", "c3"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["web", "c1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["api", "c2"]
+          },
+          {
+            "method": "pull",
+            "args": ["c1"]
+          },
+          {
+            "method": "board",
+            "args": ["ops", "c3"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "pull",
+            "args": ["c1"]
+          },
+          {
+            "method": "pull",
+            "args": ["c3"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T9"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["QA", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "pull",
+            "args": ["x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "board",
+            "args": ["c", "z"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "3"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "board",
+            "args": ["c", "4"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T2"]
+          },
+          {
+            "method": "board",
+            "args": ["d", "5"]
+          },
+          {
+            "method": "depart",
+            "args": ["T3"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "board",
+            "args": ["e", "6"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "board",
+            "args": ["a", "2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "3"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T2"]
+          },
+          {
+            "method": "board",
+            "args": ["c", "4"]
+          },
+          {
+            "method": "pull",
+            "args": ["2"]
+          },
+          {
+            "method": "board",
+            "args": ["d", "5"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T3"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T3"]
+          },
+          {
+            "method": "depart",
+            "args": ["T3"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "board",
+            "args": ["e", "6"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "pull",
+            "args": ["1"]
+          },
+          {
+            "method": "board",
+            "args": ["c", "3"]
+          },
+          {
+            "method": "pull",
+            "args": ["3"]
+          },
+          {
+            "method": "board",
+            "args": ["d", "4"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "pull",
+            "args": ["x"]
+          },
+          {
+            "method": "pull",
+            "args": ["x"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "x"]
+          },
+          {
+            "method": "board",
+            "args": ["c", "x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "pull",
+            "args": ["x"]
+          },
+          {
+            "method": "board",
+            "args": ["a", "y"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["web", "fix"]
+          },
+          {
+            "method": "board",
+            "args": ["api", "fix"]
+          },
+          {
+            "method": "board",
+            "args": ["api", "Fix"]
+          },
+          {
+            "method": "board",
+            "args": ["Web", "FIX"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["", "x"]
+          },
+          {
+            "method": "board",
+            "args": ["a", ""]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["QA", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["ops", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "t1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T0"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "1"]
+          },
+          {
+            "method": "depart",
+            "args": [""]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "pull",
+            "args": [""]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["t0", "c0"]
+          },
+          {
+            "method": "board",
+            "args": ["t1", "c1"]
+          },
+          {
+            "method": "board",
+            "args": ["t2", "c2"]
+          },
+          {
+            "method": "board",
+            "args": ["t0", "c3"]
+          },
+          {
+            "method": "board",
+            "args": ["t1", "c4"]
+          },
+          {
+            "method": "board",
+            "args": ["t2", "c5"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "pull",
+            "args": ["c2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["t9", "c9"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "pull",
+            "args": ["c4"]
+          },
+          {
+            "method": "board",
+            "args": ["t9", "c10"]
+          },
+          {
+            "method": "depart",
+            "args": ["T3"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T3"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T3"]
+          },
+          {
+            "method": "depart",
+            "args": ["T3"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "hotfix",
+        "params": [
+          {
+            "name": "change",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["web", "c1"]
+          },
+          {
+            "method": "board",
+            "args": ["api", "c2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["c2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["x"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T2"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["y"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T3"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["x"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["y"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["nope"]
+          },
+          {
+            "method": "hotfix",
+            "args": [""]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["x"]
+          },
+          {
+            "method": "pull",
+            "args": ["x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T2"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          },
+          {
+            "method": "board",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "board",
+            "args": ["a", "1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "board",
+            "args": ["b", "2"]
+          },
+          {
+            "method": "hotfix",
+            "args": ["1"]
+          },
+          {
+            "method": "board",
+            "args": ["c", "3"]
+          },
+          {
+            "method": "board",
+            "args": ["d", "4"]
+          },
+          {
+            "method": "signOff",
+            "args": ["qa", "T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T1"]
+          },
+          {
+            "method": "depart",
+            "args": ["T1"]
+          },
+          {
+            "method": "signOff",
+            "args": ["security", "T3"]
+          },
+          {
+            "method": "depart",
+            "args": ["T3"]
+          },
+          {
+            "method": "depart",
+            "args": ["T2"]
+          }
+        ]
+      }
+    ]
+  }
+}

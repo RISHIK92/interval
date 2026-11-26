@@ -1,0 +1,1218 @@
+{
+  "slug": "infra-snapshots",
+  "title": "Infra state snapshots",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["memento-pattern"],
+  "interface": {
+    "class": "InfraState",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "apply",
+        "params": [
+          {
+            "name": "resource",
+            "type": "string"
+          },
+          {
+            "name": "attrs",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "destroy",
+        "params": [
+          {
+            "name": "resource",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "snapshot",
+        "params": [
+          {
+            "name": "label",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "restore",
+        "params": [
+          {
+            "name": "snapshotId",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "diffSince",
+        "params": [
+          {
+            "name": "snapshotId",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": [
+              "vm",
+              {
+                "size": "s"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["before"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "vm",
+              {
+                "size": "m",
+                "disk": "ssd"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": ["db", {}]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "destroy",
+            "args": ["db"]
+          },
+          {
+            "method": "destroy",
+            "args": ["vm"]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": [
+              "lb",
+              {
+                "port": "80"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "lb",
+              {
+                "port": "443"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["b"]
+          },
+          {
+            "method": "destroy",
+            "args": ["lb"]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [3]
+          },
+          {
+            "method": "restore",
+            "args": [3]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "b": "1",
+                "a": "1",
+                "c": "1"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["s"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "a": "1",
+                "b": "2",
+                "d": "1"
+              }
+            ]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "a": "1",
+                "b": "1",
+                "c": "1"
+              }
+            ]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "apply",
+            "args": ["r", {}]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "c": "1",
+                "b": "1",
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "A": "1",
+                "a": "1",
+                "b": "1",
+                "c": "1"
+              }
+            ]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["b", {}]
+          },
+          {
+            "method": "apply",
+            "args": ["Z", {}]
+          },
+          {
+            "method": "apply",
+            "args": ["a", {}]
+          },
+          {
+            "method": "apply",
+            "args": ["_x", {}]
+          },
+          {
+            "method": "snapshot",
+            "args": ["s"]
+          },
+          {
+            "method": "destroy",
+            "args": ["a"]
+          },
+          {
+            "method": "apply",
+            "args": ["B", {}]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "b",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": ["aa", {}]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "Z",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": ["0", {}]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": [
+              "x",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["s"]
+          },
+          {
+            "method": "destroy",
+            "args": ["x"]
+          },
+          {
+            "method": "destroy",
+            "args": ["x"]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "x",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "x",
+              {
+                "k": "w"
+              }
+            ]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "destroy",
+            "args": ["y"]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": [
+              "a",
+              {
+                "k": "1"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "b",
+              {
+                "k": "1"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["one"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "a",
+              {
+                "k": "2"
+              }
+            ]
+          },
+          {
+            "method": "destroy",
+            "args": ["b"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "c",
+              {
+                "k": "1"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["two"]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "a",
+              {
+                "k": "3"
+              }
+            ]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshot",
+            "args": ["empty"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "a",
+              {
+                "k": "1"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["full"]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "restore",
+            "args": [0]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "snapshot",
+            "args": ["s"]
+          },
+          {
+            "method": "restore",
+            "args": [0]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [-1]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [0]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": [
+              "a",
+              {
+                "k": "1"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["x"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "a",
+              {
+                "k": "2"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["y"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "a",
+              {
+                "k": "3"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["x"]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [3]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [3]
+          },
+          {
+            "method": "snapshot",
+            "args": ["X"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["y"]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [4]
+          },
+          {
+            "method": "restore",
+            "args": [5]
+          },
+          {
+            "method": "diffSince",
+            "args": [4]
+          },
+          {
+            "method": "diffSince",
+            "args": [5]
+          },
+          {
+            "method": "snapshot",
+            "args": ["z"]
+          },
+          {
+            "method": "apply",
+            "args": ["b", {}]
+          },
+          {
+            "method": "diffSince",
+            "args": [6]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["", {}]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "": "v"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "k": ""
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "k": "v",
+                "j": ""
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "k": "v"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": [""]
+          },
+          {
+            "method": "snapshot",
+            "args": ["s"]
+          },
+          {
+            "method": "destroy",
+            "args": [""]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r",
+              {
+                "k": "w",
+                "": "x"
+              }
+            ]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "destroy",
+            "args": ["R"]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r0",
+              {
+                "n": "0"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r1",
+              {
+                "n": "1"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r2",
+              {
+                "n": "2"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r3",
+              {
+                "n": "3"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r4",
+              {
+                "n": "4"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r5",
+              {
+                "n": "5"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["base"]
+          },
+          {
+            "method": "destroy",
+            "args": ["r0"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r1",
+              {
+                "n": "9"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r6",
+              {
+                "n": "6"
+              }
+            ]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "r2",
+              {
+                "n": "2",
+                "extra": "y"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["mid"]
+          },
+          {
+            "method": "destroy",
+            "args": ["r6"]
+          },
+          {
+            "method": "apply",
+            "args": ["r3", {}]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [1]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "prune",
+        "params": [
+          {
+            "name": "keep",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["b"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["c"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["d"]
+          },
+          {
+            "method": "prune",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [3]
+          },
+          {
+            "method": "restore",
+            "args": [4]
+          },
+          {
+            "method": "prune",
+            "args": [5]
+          },
+          {
+            "method": "prune",
+            "args": [2]
+          },
+          {
+            "method": "prune",
+            "args": [0]
+          },
+          {
+            "method": "restore",
+            "args": [3]
+          },
+          {
+            "method": "restore",
+            "args": [4]
+          },
+          {
+            "method": "snapshot",
+            "args": ["e"]
+          },
+          {
+            "method": "restore",
+            "args": [5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "prune",
+            "args": [0]
+          },
+          {
+            "method": "prune",
+            "args": [3]
+          },
+          {
+            "method": "prune",
+            "args": [-1]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "x",
+              {
+                "k": "1"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "apply",
+            "args": [
+              "x",
+              {
+                "k": "2"
+              }
+            ]
+          },
+          {
+            "method": "snapshot",
+            "args": ["b"]
+          },
+          {
+            "method": "prune",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [1]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "diffSince",
+            "args": [2]
+          },
+          {
+            "method": "prune",
+            "args": [-2]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "prune",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "apply",
+            "args": ["x", {}]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["b"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["c"]
+          },
+          {
+            "method": "prune",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [2]
+          },
+          {
+            "method": "restore",
+            "args": [3]
+          },
+          {
+            "method": "restore",
+            "args": [4]
+          },
+          {
+            "method": "diffSince",
+            "args": [4]
+          },
+          {
+            "method": "prune",
+            "args": [1]
+          },
+          {
+            "method": "restore",
+            "args": [3]
+          },
+          {
+            "method": "restore",
+            "args": [4]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1063 @@
+{
+  "slug": "alert-expr",
+  "title": "Alert expressions",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["interpreter-pattern"],
+  "interface": {
+    "class": "AlertExpr",
+    "constructor": {
+      "params": [
+        {
+          "name": "expression",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "evaluate",
+        "params": [
+          {
+            "name": "metrics",
+            "type": "map<string,int>"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "variables",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "depth",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "evaluations",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["cpu > 90 and not (region == 3 or mem.free < 512)"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu": 50
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu": 95,
+                "region": 3
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu": 95,
+                "region": 4,
+                "mem.free": 600
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu": 95
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a>1 or b<=-2"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1,
+                "b": -2
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1,
+                "b": -1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [{}]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              "a > 5 and b >= 5 and c < 5 and d <= 5 and e == -5 and f != 0"
+            ]
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 5,
+                "c": 4,
+                "d": 5,
+                "e": -5,
+                "f": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 5,
+                "b": 5,
+                "c": 4,
+                "d": 5,
+                "e": -5,
+                "f": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 4,
+                "c": 4,
+                "d": 5,
+                "e": -5,
+                "f": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 6,
+                "c": 5,
+                "d": 5,
+                "e": -5,
+                "f": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 5,
+                "c": 4,
+                "d": 6,
+                "e": -5,
+                "f": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 5,
+                "c": -9,
+                "d": 4,
+                "e": -4,
+                "f": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 5,
+                "c": 4,
+                "d": 5,
+                "e": 5,
+                "f": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 5,
+                "c": 4,
+                "d": 5,
+                "e": -5,
+                "f": 0
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 5,
+                "c": 4,
+                "d": 5,
+                "e": -5,
+                "f": -1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 6,
+                "b": 5,
+                "c": 4,
+                "d": 5,
+                "e": -5
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["not up == 1 and not not not a > 0"]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "up": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "up": 0
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [{}]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "Up": 1,
+                "a": 0
+              }
+            ]
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a > 0 and b > 0 and c > 0"]
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [{}]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1,
+                "b": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1,
+                "b": 1,
+                "c": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a > 0 or b > 0 or c > 0"]
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "b": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "c": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [{}]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a > 0 or b > 0 and c > 0"]
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "b": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "b": 1,
+                "c": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "c": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["((a > 0 or b > 0)) and c > 0"]
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "b": 1,
+                "c": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [{}]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a>1 and(b>1 or c>1) and not(d>1 or not e>1)"]
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 2,
+                "b": 2,
+                "e": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 2,
+                "c": 2,
+                "d": 2,
+                "e": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 2,
+                "b": 2,
+                "e": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "a": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [
+              "Cpu>1 or cpu.p99>1 or c_1>1 or AND>1 or Or>1 or cpu>2 or n1.x_ < -999999999999999 or n1.x_ == 007"
+            ]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "Cpu": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu": 3
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "n1.x_": -1000000000000000
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "n1.x_": -999999999999999
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "n1.x_": 7
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu.p99": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["x > y"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["x > 1000000000000000"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["(x > 1 <"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["and > 1"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["x = 5"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["x > 1)"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "rewrite",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "replacement",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["cpu > 90 and not (region == 3 or mem.free < 512)"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["cpu", "cpu.max"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu": 95
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "cpu.max": 95
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "rewrite",
+            "args": ["region", "mem.free"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "rewrite",
+            "args": ["region", "x"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["cpu", "y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["a>1 or a<=-0 or (b != 007)"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["a", "A"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["b", "b"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["A", "z.9_"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "z_9": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "z.9_": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["x > 1"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["x", ""]
+          },
+          {
+            "method": "rewrite",
+            "args": ["x", "and"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["x", "9x"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["x", "x y"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["x", "x>1"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["", "y"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["X", "y"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["x", "AND"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["AND", "not.x"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "x": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "not.x": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["not not (p == 1 and q == 2)"]
+          },
+          {
+            "method": "rewrite",
+            "args": ["q", "p"]
+          },
+          {
+            "method": "variables",
+            "args": []
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "p": 1
+              }
+            ]
+          },
+          {
+            "method": "evaluate",
+            "args": [
+              {
+                "p": 2
+              }
+            ]
+          },
+          {
+            "method": "evaluations",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

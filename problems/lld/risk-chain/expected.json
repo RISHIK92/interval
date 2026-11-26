@@ -1,0 +1,1120 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "allow"
+      },
+      {
+        "call": 6,
+        "value": "block"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "block"
+      },
+      {
+        "call": 9,
+        "value": "allow"
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "allow"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "review"
+      },
+      {
+        "call": 4,
+        "value": "allow"
+      },
+      {
+        "call": 5,
+        "value": "review"
+      },
+      {
+        "call": 6,
+        "value": "allow"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown check"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: param out of range"
+      },
+      {
+        "call": 9,
+        "value": 3
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "allow"
+      },
+      {
+        "call": 3,
+        "value": "block"
+      },
+      {
+        "call": 4,
+        "value": "allow"
+      },
+      {
+        "call": 5,
+        "value": "block"
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "block"
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "allow"
+      },
+      {
+        "call": 3,
+        "value": "review"
+      },
+      {
+        "call": 4,
+        "value": "review"
+      },
+      {
+        "call": 5,
+        "value": "allow"
+      },
+      {
+        "call": 6,
+        "value": "allow"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "allow"
+      },
+      {
+        "call": 9,
+        "value": 4
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "allow"
+      },
+      {
+        "call": 3,
+        "value": "allow"
+      },
+      {
+        "call": 4,
+        "value": "allow"
+      },
+      {
+        "call": 5,
+        "value": "review"
+      },
+      {
+        "call": 6,
+        "value": "review"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "review"
+      },
+      {
+        "call": 9,
+        "value": "review"
+      },
+      {
+        "call": 10,
+        "value": "review"
+      },
+      {
+        "call": 11,
+        "value": "allow"
+      },
+      {
+        "call": 12,
+        "value": 4
+      },
+      {
+        "call": 13,
+        "value": 6
+      },
+      {
+        "call": 14,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "allow"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "block"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "allow"
+      },
+      {
+        "call": 7,
+        "value": "allow"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "block"
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "allow"
+      },
+      {
+        "call": 3,
+        "value": "review"
+      },
+      {
+        "call": 4,
+        "value": "allow"
+      },
+      {
+        "call": 5,
+        "value": "allow"
+      },
+      {
+        "call": 6,
+        "value": "review"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": 3
+      },
+      {
+        "call": 10,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "allow"
+      },
+      {
+        "call": 2,
+        "value": "allow"
+      },
+      {
+        "call": 3,
+        "value": "allow"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "review"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "allow"
+      },
+      {
+        "call": 9,
+        "value": 4
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "block"
+      },
+      {
+        "call": 6,
+        "value": "block"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "allow"
+      },
+      {
+        "call": 9,
+        "value": "review"
+      },
+      {
+        "call": 10,
+        "value": "block"
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "block"
+      },
+      {
+        "call": 6,
+        "value": "review"
+      },
+      {
+        "call": 7,
+        "value": "block"
+      },
+      {
+        "call": 8,
+        "value": "review"
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "allow"
+      },
+      {
+        "call": 5,
+        "value": "review"
+      },
+      {
+        "call": 6,
+        "value": "block"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "review"
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: param out of range"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: param out of range"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: param out of range"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: param out of range"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: unknown check"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown check"
+      },
+      {
+        "call": 7,
+        "value": "allow"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: empty customer"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: bad payment"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: bad payment"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: bad payment"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: bad payment"
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": "review"
+      },
+      {
+        "call": 16,
+        "value": "review"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: unknown verdict"
+      },
+      {
+        "call": 18,
+        "error": "ValueError: unknown verdict"
+      },
+      {
+        "call": 19,
+        "error": "ValueError: unknown verdict"
+      },
+      {
+        "call": 20,
+        "value": 1
+      },
+      {
+        "call": 21,
+        "value": 2
+      },
+      {
+        "call": 22,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "block"
+      },
+      {
+        "call": 7,
+        "value": "allow"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "allow"
+      },
+      {
+        "call": 6,
+        "value": "block"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "review"
+      },
+      {
+        "call": 9,
+        "value": "allow"
+      },
+      {
+        "call": 10,
+        "value": "allow"
+      },
+      {
+        "call": 11,
+        "value": "block"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "block"
+      },
+      {
+        "call": 14,
+        "value": "block"
+      },
+      {
+        "call": 15,
+        "value": "review"
+      },
+      {
+        "call": 16,
+        "value": 3
+      },
+      {
+        "call": 17,
+        "value": 3
+      },
+      {
+        "call": 18,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "block"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "block"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "allow"
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": "block"
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "allow"
+      },
+      {
+        "call": 6,
+        "value": "allow"
+      },
+      {
+        "call": 7,
+        "value": "allow"
+      },
+      {
+        "call": 8,
+        "value": "review"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "allow"
+      },
+      {
+        "call": 11,
+        "value": "review"
+      },
+      {
+        "call": 12,
+        "value": 4
+      },
+      {
+        "call": 13,
+        "value": 2
+      },
+      {
+        "call": 14,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: bad skip"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: bad skip"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: bad skip"
+      },
+      {
+        "call": 6,
+        "value": "allow"
+      },
+      {
+        "call": 7,
+        "value": "review"
+      },
+      {
+        "call": 8,
+        "value": "review"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "allow"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "value": 2
+      },
+      {
+        "call": 14,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "allow"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "review"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "allow"
+      },
+      {
+        "call": 8,
+        "value": "allow"
+      },
+      {
+        "call": 9,
+        "value": "block"
+      },
+      {
+        "call": 10,
+        "value": 3
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": 1
+      }
+    ]
+  }
+]
