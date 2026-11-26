@@ -1,0 +1,1083 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": "paused:2"
+      },
+      {
+        "call": 5,
+        "value": "none"
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["1000:created:2", "2000:paused:500", "2500:upgraded:3"]
+      },
+      {
+        "call": 9,
+        "value": "active:3"
+      },
+      {
+        "call": 10,
+        "value": "paused:2"
+      },
+      {
+        "call": 11,
+        "value": "active:2"
+      },
+      {
+        "call": 12,
+        "value": 8
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "cancelled:4"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": "active:4"
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": "active:2"
+      },
+      {
+        "call": 12,
+        "value": 1
+      },
+      {
+        "call": 13,
+        "value": "active:1"
+      },
+      {
+        "call": 14,
+        "value": 2
+      },
+      {
+        "call": 15,
+        "value": [
+          "0:created:1",
+          "10:upgraded:2",
+          "20:upgraded:3",
+          "30:upgraded:4",
+          "40:cancelled:0"
+        ]
+      },
+      {
+        "call": 16,
+        "value": []
+      },
+      {
+        "call": 17,
+        "value": "none"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": false
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": false
+      },
+      {
+        "call": 16,
+        "value": false
+      },
+      {
+        "call": 17,
+        "value": false
+      },
+      {
+        "call": 18,
+        "value": false
+      },
+      {
+        "call": 19,
+        "value": [
+          "1:created:3",
+          "4:upgraded:4",
+          "5:paused:10",
+          "14:cancelled:0"
+        ]
+      },
+      {
+        "call": 20,
+        "value": "paused:4"
+      },
+      {
+        "call": 21,
+        "value": "cancelled:4"
+      },
+      {
+        "call": 22,
+        "value": "cancelled:4"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "paused:1"
+      },
+      {
+        "call": 4,
+        "value": "active:1"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "cancelled:2"
+      },
+      {
+        "call": 12,
+        "value": "paused:2"
+      },
+      {
+        "call": 13,
+        "value": "cancelled:2"
+      },
+      {
+        "call": 14,
+        "value": "paused:1"
+      },
+      {
+        "call": 15,
+        "value": "paused:1"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: time runs forward, up to 10^12"
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: an unknown command, an empty sub or a bad arg"
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": ["0:created:100", "5:paused:1000000000"]
+      },
+      {
+        "call": 16,
+        "value": "paused:100"
+      },
+      {
+        "call": 17,
+        "value": "active:100"
+      },
+      {
+        "call": 18,
+        "error": "ValueError: an empty sub"
+      },
+      {
+        "call": 19,
+        "error": "ValueError: an empty sub"
+      },
+      {
+        "call": 20,
+        "error": "ValueError: a time runs from 0 to 10^12"
+      },
+      {
+        "call": 21,
+        "error": "ValueError: a time runs from 0 to 10^12"
+      },
+      {
+        "call": 22,
+        "value": "active:100"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "error": "ValueError: time runs forward, up to 10^12"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "error": "ValueError: time runs forward, up to 10^12"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "error": "ValueError: time runs forward, up to 10^12"
+      },
+      {
+        "call": 8,
+        "value": ["1:created:1"]
+      },
+      {
+        "call": 9,
+        "value": ["1000000000000:created:1", "1000000000000:upgraded:2"]
+      },
+      {
+        "call": 10,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": "active:2"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": "none"
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": "active:1"
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": "paused:2"
+      },
+      {
+        "call": 12,
+        "value": 4
+      },
+      {
+        "call": 13,
+        "value": "cancelled:3"
+      },
+      {
+        "call": 14,
+        "value": 9
+      },
+      {
+        "call": 15,
+        "value": "cancelled:3"
+      },
+      {
+        "call": 16,
+        "value": 14
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "active:10"
+      },
+      {
+        "call": 14,
+        "value": 1
+      },
+      {
+        "call": 15,
+        "value": "active:10"
+      },
+      {
+        "call": 16,
+        "value": 2
+      },
+      {
+        "call": 17,
+        "value": "active:9"
+      },
+      {
+        "call": 18,
+        "value": 2
+      },
+      {
+        "call": 19,
+        "value": "active:7"
+      },
+      {
+        "call": 20,
+        "value": 3
+      },
+      {
+        "call": 21,
+        "value": "active:5"
+      },
+      {
+        "call": 22,
+        "value": 4
+      },
+      {
+        "call": 23,
+        "value": "active:4"
+      },
+      {
+        "call": 24,
+        "value": 4
+      },
+      {
+        "call": 25,
+        "value": "active:3"
+      },
+      {
+        "call": 26,
+        "value": 7
+      },
+      {
+        "call": 27,
+        "value": "active:1"
+      },
+      {
+        "call": 28,
+        "value": 8
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "active:2"
+      },
+      {
+        "call": 7,
+        "value": "cancelled:1"
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": "active:1"
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "active:3"
+      },
+      {
+        "call": 14,
+        "value": 1
+      },
+      {
+        "call": 15,
+        "error": "ValueError: n runs from 1 to 10^4"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: n runs from 1 to 10^4"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: n runs from 1 to 10^4"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "active:3"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": "paused:3"
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": "none"
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": "active:3"
+      },
+      {
+        "call": 13,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "active:7"
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": "active:6"
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": ["0:created:5", "3:upgraded:6", "4:upgraded:7"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["0:created:1", "1:planChanged:2"]
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": ["0:created:1", "1:planChanged:2", "2:planChanged:3"]
+      },
+      {
+        "call": 7,
+        "value": "active:2"
+      },
+      {
+        "call": 8,
+        "value": "active:3"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["0:created:1", "1:tierSet:2", "2:tierSet:3"]
+      },
+      {
+        "call": 11,
+        "value": "active:3"
+      },
+      {
+        "call": 12,
+        "value": 8
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": ["0:created:1", "1:tierSet:2", "2:tierSet:3", "6:tierSet:4"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a name is never used twice"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a name is never used twice"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not a current name, or a bad new name"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a current name, or a bad new name"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not a current name, or a bad new name"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a current name, or a bad new name"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not a current name, or a bad new name"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not a current name, or a bad new name"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a name is never used twice"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a name is never used twice"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": ["0:Begun2:1"]
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": ["0:Started:1"]
+      },
+      {
+        "call": 16,
+        "value": "active:1"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": ["0:created:1", "1:suspended:5", "9:suspended:5", "10:ended:0"]
+      },
+      {
+        "call": 9,
+        "value": "paused:1"
+      },
+      {
+        "call": 10,
+        "value": "paused:1"
+      },
+      {
+        "call": 11,
+        "value": "cancelled:1"
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "error": "ValueError: a name is never used twice"
+      }
+    ]
+  }
+]

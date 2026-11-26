@@ -1,0 +1,1190 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["count=2 service=api", "count=1 service=web"]
+      },
+      {
+        "call": 8,
+        "value": [
+          "source logs",
+          "where status >= 500",
+          "count service",
+          "sort count desc",
+          "top 3"
+        ]
+      },
+      {
+        "call": 9,
+        "value": [
+          "level=error ms=95 service=web status=500",
+          "level=error ms=340 service=api status=503",
+          "level=error ms=1200 service=api status=502"
+        ]
+      },
+      {
+        "call": 10,
+        "value": [
+          "level=info ms=12 service=api status=200",
+          "level=error ms=340 service=api status=503"
+        ]
+      },
+      {
+        "call": 11,
+        "value": ["source logs", "sort ms asc", "top 7"]
+      },
+      {
+        "call": 12,
+        "value": [
+          "level=error ms=1200 service=api status=502",
+          "level=error ms=340 service=api status=503"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["a=1", "b=2"]
+      },
+      {
+        "call": 5,
+        "value": ["a=1"]
+      },
+      {
+        "call": 6,
+        "value": ["b=2", "a=1"]
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such source'"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an empty part"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: an empty part"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 11,
+        "value": ["source logs", "count a"]
+      },
+      {
+        "call": 12,
+        "error": "ValueError: an empty record"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["n=7"]
+      },
+      {
+        "call": 7,
+        "value": ["n=5", "n=-3", "n=10"]
+      },
+      {
+        "call": 8,
+        "value": ["n=5", "n=-3"]
+      },
+      {
+        "call": 9,
+        "value": ["n=5", "n=-3", "n=7"]
+      },
+      {
+        "call": 10,
+        "value": ["n=10"]
+      },
+      {
+        "call": 11,
+        "value": ["n=10", "n=7"]
+      },
+      {
+        "call": 12,
+        "value": ["other=x"]
+      },
+      {
+        "call": 13,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": ["v=007", "v=7"]
+      },
+      {
+        "call": 11,
+        "value": ["v=100000000"]
+      },
+      {
+        "call": 12,
+        "value": ["v=-10"]
+      },
+      {
+        "call": 13,
+        "value": [
+          "v=-10",
+          "v=-1",
+          "v=-0",
+          "v=0",
+          "v=007",
+          "v=7",
+          "v=100000000",
+          "v=-",
+          "v=0100000000"
+        ]
+      },
+      {
+        "call": 14,
+        "value": [
+          "v=0100000000",
+          "v=-",
+          "v=100000000",
+          "v=007",
+          "v=7",
+          "v=-0",
+          "v=0",
+          "v=-1",
+          "v=-10"
+        ]
+      },
+      {
+        "call": 15,
+        "value": ["v=-0", "v=0"]
+      },
+      {
+        "call": 16,
+        "value": ["v=-10"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": [
+          "v=-5",
+          "v=9",
+          "v=10",
+          "v=999999999",
+          "v=1000000000",
+          "v=B",
+          "v=_",
+          "v=a b",
+          "v=b"
+        ]
+      },
+      {
+        "call": 11,
+        "value": [
+          "v=b",
+          "v=a b",
+          "v=_",
+          "v=B",
+          "v=1000000000",
+          "v=999999999",
+          "v=10",
+          "v=9",
+          "v=-5"
+        ]
+      },
+      {
+        "call": 12,
+        "value": ["v=b", "v=B", "v=a b", "v=1000000000", "v=_"]
+      },
+      {
+        "call": 13,
+        "value": ["v=10", "v=9", "v=-5", "v=999999999"]
+      },
+      {
+        "call": 14,
+        "value": ["v=b", "v=B", "v=a b", "v=_"]
+      },
+      {
+        "call": 15,
+        "value": ["v=-5"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": [
+          "id=c k=1",
+          "id=g k=1",
+          "id=a k=2",
+          "id=d k=2",
+          "id=e k=02",
+          "id=b",
+          "id=f"
+        ]
+      },
+      {
+        "call": 9,
+        "value": [
+          "id=a k=2",
+          "id=d k=2",
+          "id=e k=02",
+          "id=c k=1",
+          "id=g k=1",
+          "id=b",
+          "id=f"
+        ]
+      },
+      {
+        "call": 10,
+        "value": [
+          "id=c k=1",
+          "id=g k=1",
+          "id=a k=2",
+          "id=d k=2",
+          "id=e k=02",
+          "id=b",
+          "id=f"
+        ]
+      },
+      {
+        "call": 11,
+        "value": [
+          "id=g k=1",
+          "id=c k=1",
+          "id=e k=02",
+          "id=d k=2",
+          "id=a k=2",
+          "id=f",
+          "id=b"
+        ]
+      },
+      {
+        "call": 12,
+        "value": [
+          "id=a k=2",
+          "id=b",
+          "id=c k=1",
+          "id=d k=2",
+          "id=e k=02",
+          "id=f",
+          "id=g k=1"
+        ]
+      },
+      {
+        "call": 13,
+        "value": ["id=g k=1", "id=f", "id=e k=02"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [
+          "count=3 host=b",
+          "count=2 host=a",
+          "count=1 host=007",
+          "count=1 host=7"
+        ]
+      },
+      {
+        "call": 10,
+        "value": ["count=2 host=a", "count=3 host=b"]
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 12,
+        "value": ["count=1 z=1", "count=1 z=2"]
+      },
+      {
+        "call": 13,
+        "value": []
+      },
+      {
+        "call": 14,
+        "value": [
+          "count=1 host=007",
+          "count=1 host=7",
+          "count=2 host=a",
+          "count=3 host=b"
+        ]
+      },
+      {
+        "call": 15,
+        "value": ["count=1 host=b"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["i=0"]
+      },
+      {
+        "call": 8,
+        "value": ["i=0", "i=1", "i=2", "i=3"]
+      },
+      {
+        "call": 9,
+        "value": ["i=0", "i=1", "i=2", "i=3", "i=4", "i=5"]
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 14,
+        "value": ["i=0"]
+      },
+      {
+        "call": 15,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 16,
+        "value": ["source logs", "top 4"]
+      },
+      {
+        "call": 17,
+        "value": ["source logs", "top 10000"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["source logs"]
+      },
+      {
+        "call": 2,
+        "value": ["source logs", "where a.b_c != x", "top 3"]
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 4,
+        "value": ["source logs", "sort a asc"]
+      },
+      {
+        "call": 5,
+        "value": ["source logs", "sort a desc"]
+      },
+      {
+        "call": 6,
+        "value": ["source logs", "count A", "sort count asc", "top 12"]
+      },
+      {
+        "call": 7,
+        "value": ["source logs", "where a < -3", "where a <= 3", "where a > b"]
+      },
+      {
+        "call": 8,
+        "value": ["source logs", "where a >= 1", "where a = 1"]
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'no such source'"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not a stage"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 18,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 19,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 20,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 21,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 22,
+        "error": "ValueError: an empty part"
+      },
+      {
+        "call": 23,
+        "error": "ValueError: an empty part"
+      },
+      {
+        "call": 24,
+        "error": "ValueError: an empty part"
+      },
+      {
+        "call": 25,
+        "error": "ValueError: an empty part"
+      },
+      {
+        "call": 26,
+        "error": "ValueError: too many values to unpack (expected 1)"
+      },
+      {
+        "call": 27,
+        "error": "ValueError: too many values to unpack (expected 1)"
+      },
+      {
+        "call": 28,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 29,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 30,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 31,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 32,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 33,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 34,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 35,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 36,
+        "error": "ValueError: an empty part"
+      },
+      {
+        "call": 37,
+        "error": "ValueError: an empty part"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an empty value"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: an empty value"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": ["A.b_9=x = y | z a==1", "a=1"]
+      },
+      {
+        "call": 10,
+        "value": ["a=1"]
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": ["A.b_9=x = y | z a==1", "a=1"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "level=warn ms=20 service=web status=404",
+          "level=info ms=12 service=api status=200"
+        ]
+      },
+      {
+        "call": 8,
+        "value": [
+          "count=1 status=200",
+          "count=1 status=502",
+          "count=1 status=503"
+        ]
+      },
+      {
+        "call": 9,
+        "value": ["count=2 level=info", "count=3 level=error"]
+      },
+      {
+        "call": 10,
+        "value": ["level=warn ms=20 service=web status=404"]
+      },
+      {
+        "call": 11,
+        "value": [
+          "level=info ms=12 service=api status=200",
+          "level=error ms=340 service=api status=503",
+          "level=error ms=95 service=web status=500"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": [
+          "level=error ms=340 service=api status=503",
+          "level=error ms=95 service=web status=500"
+        ]
+      },
+      {
+        "call": 9,
+        "value": ["source logs", "where level = error", "top 2"]
+      },
+      {
+        "call": 10,
+        "value": [
+          "level=error ms=340 service=api status=503",
+          "level=error ms=95 service=web status=500",
+          "level=error ms=1200 service=api status=502"
+        ]
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": [
+          "level=error ms=1 service=cdn",
+          "level=error ms=95 service=web status=500",
+          "level=error ms=340 service=api status=503",
+          "level=error ms=1200 service=api status=502"
+        ]
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": [
+          "level=error ms=1200 service=api status=502",
+          "level=error ms=340 service=api status=503"
+        ]
+      },
+      {
+        "call": 15,
+        "value": [
+          "source logs",
+          "where level = error",
+          "where ms >= 300",
+          "sort ms desc",
+          "count service"
+        ]
+      },
+      {
+        "call": 16,
+        "value": ["count=2 service=api"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: that source exists"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: that source exists"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'no such source'"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a stage"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a name is letters, digits, _ and ."
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": ["a=1"]
+      },
+      {
+        "call": 12,
+        "error": "KeyError: 'no such source'"
+      },
+      {
+        "call": 13,
+        "value": ["source logs", "top 1", "sort a asc"]
+      },
+      {
+        "call": 14,
+        "value": ["a=1"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": ["count=2 k=x", "count=1 k=y"]
+      },
+      {
+        "call": 7,
+        "value": ["count=2 k=x", "count=1 k=y"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": ["count=2 k=x"]
+      },
+      {
+        "call": 10,
+        "value": ["source logs", "count k", "where count = 2"]
+      },
+      {
+        "call": 11,
+        "error": "KeyError: 'no such source'"
+      }
+    ]
+  }
+]

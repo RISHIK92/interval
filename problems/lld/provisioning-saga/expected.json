@@ -1,0 +1,1194 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "compensated"
+      },
+      {
+        "call": 3,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 4,
+        "value": "compensated"
+      },
+      {
+        "call": 5,
+        "value": "completed"
+      },
+      {
+        "call": 6,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 7,
+        "value": "completed"
+      },
+      {
+        "call": 8,
+        "value": "completed"
+      },
+      {
+        "call": 9,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "completed"
+      },
+      {
+        "call": 2,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "compensated"
+      },
+      {
+        "call": 5,
+        "value": "compensated"
+      },
+      {
+        "call": 6,
+        "value": ["fail:create-user"]
+      },
+      {
+        "call": 7,
+        "value": "compensated"
+      },
+      {
+        "call": 8,
+        "value": "completed"
+      },
+      {
+        "call": 9,
+        "value": [
+          "fail:create-user",
+          "fail:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 10,
+        "value": "completed"
+      },
+      {
+        "call": 11,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 12,
+        "value": "completed"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "compensated"
+      },
+      {
+        "call": 3,
+        "value": ["fail:create-user"]
+      },
+      {
+        "call": 4,
+        "value": "compensated"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "compensated"
+      },
+      {
+        "call": 7,
+        "value": ["do:create-user", "fail:create-repo", "undo:create-user"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "compensated"
+      },
+      {
+        "call": 10,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 11,
+        "value": "compensated"
+      },
+      {
+        "call": 12,
+        "value": "completed"
+      },
+      {
+        "call": 13,
+        "value": "completed"
+      },
+      {
+        "call": 14,
+        "value": "completed"
+      },
+      {
+        "call": 15,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 16,
+        "value": "completed"
+      },
+      {
+        "call": 17,
+        "value": "completed"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "compensated"
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": "compensated"
+      },
+      {
+        "call": 5,
+        "value": "completed"
+      },
+      {
+        "call": 6,
+        "value": "completed"
+      },
+      {
+        "call": 7,
+        "value": [
+          "do:create-user",
+          "fail:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "fail:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 8,
+        "value": [
+          "do:create-user",
+          "fail:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 9,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 10,
+        "value": "compensated"
+      },
+      {
+        "call": 11,
+        "value": "completed"
+      },
+      {
+        "call": 12,
+        "value": "completed"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": "completed"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "completed"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "compensated"
+      },
+      {
+        "call": 10,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 11,
+        "error": "ValueError: times runs from 0 to 1000"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: times runs from 0 to 1000"
+      },
+      {
+        "call": 13,
+        "error": "KeyError: 'no such step'"
+      },
+      {
+        "call": 14,
+        "error": "KeyError: 'no such step'"
+      },
+      {
+        "call": 15,
+        "error": "KeyError: 'no such step'"
+      },
+      {
+        "call": 16,
+        "value": "compensated"
+      },
+      {
+        "call": 17,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "compensated"
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": "compensated"
+      },
+      {
+        "call": 5,
+        "value": "compensated"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "compensated"
+      },
+      {
+        "call": 8,
+        "value": "completed"
+      },
+      {
+        "call": 9,
+        "value": [
+          "fail:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 10,
+        "value": "compensated"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "completed"
+      },
+      {
+        "call": 2,
+        "value": "completed"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "completed"
+      },
+      {
+        "call": 5,
+        "value": "completed"
+      },
+      {
+        "call": 6,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 7,
+        "value": "completed"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "completed"
+      },
+      {
+        "call": 10,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'no such account'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'no such account'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'no such account'"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: an empty account"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'no such account'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'no such account'"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such account'"
+      },
+      {
+        "call": 8,
+        "value": "completed"
+      },
+      {
+        "call": 9,
+        "value": "completed"
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'no such account'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "compensated"
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": "completed"
+      },
+      {
+        "call": 5,
+        "value": "completed"
+      },
+      {
+        "call": 6,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 7,
+        "value": "completed"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": ["do:create-user", "fail:create-repo", "undo:create-user"]
+      },
+      {
+        "call": 5,
+        "value": "compensated"
+      },
+      {
+        "call": 6,
+        "value": [
+          "do:create-user",
+          "fail:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 7,
+        "value": "compensated"
+      },
+      {
+        "call": 8,
+        "value": "completed"
+      },
+      {
+        "call": 9,
+        "value": [
+          "do:create-user",
+          "fail:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "compensated"
+      },
+      {
+        "call": 6,
+        "value": "compensated"
+      },
+      {
+        "call": 7,
+        "value": "compensated"
+      },
+      {
+        "call": 8,
+        "value": "compensated"
+      },
+      {
+        "call": 9,
+        "value": "completed"
+      },
+      {
+        "call": 10,
+        "value": [
+          "fail:create-user",
+          "do:create-user",
+          "fail:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 11,
+        "value": "completed"
+      },
+      {
+        "call": 12,
+        "value": "completed"
+      },
+      {
+        "call": 13,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": ["do:create-user", "fail:create-repo", "undo:create-user"]
+      },
+      {
+        "call": 5,
+        "value": "compensated"
+      },
+      {
+        "call": 6,
+        "value": "compensated"
+      },
+      {
+        "call": 7,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 8,
+        "value": "compensated"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "pending"
+      },
+      {
+        "call": 4,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome"
+        ]
+      },
+      {
+        "call": 5,
+        "value": "pending"
+      },
+      {
+        "call": 6,
+        "value": "pending"
+      },
+      {
+        "call": 7,
+        "value": "pending"
+      },
+      {
+        "call": 8,
+        "value": "completed"
+      },
+      {
+        "call": 9,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "fail:send-welcome",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 10,
+        "value": "completed"
+      },
+      {
+        "call": 11,
+        "value": "completed"
+      },
+      {
+        "call": 12,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "fail:send-welcome",
+          "do:send-welcome"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 5,
+        "value": "compensated"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "compensated"
+      },
+      {
+        "call": 8,
+        "value": ["do:create-user", "fail:create-repo", "undo:create-user"]
+      },
+      {
+        "call": 9,
+        "value": "completed"
+      },
+      {
+        "call": 10,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "pending"
+      },
+      {
+        "call": 4,
+        "value": "pending"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "compensated"
+      },
+      {
+        "call": 8,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "fail:grant-access",
+          "fail:grant-access",
+          "undo:create-repo",
+          "undo:create-user"
+        ]
+      },
+      {
+        "call": 9,
+        "value": "compensated"
+      },
+      {
+        "call": 10,
+        "value": "completed"
+      },
+      {
+        "call": 11,
+        "value": "completed"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "pending"
+      },
+      {
+        "call": 5,
+        "value": "pending"
+      },
+      {
+        "call": 6,
+        "value": "completed"
+      },
+      {
+        "call": 7,
+        "value": [
+          "do:create-user",
+          "fail:create-repo",
+          "do:create-repo",
+          "fail:grant-access",
+          "do:grant-access",
+          "do:send-welcome"
+        ]
+      },
+      {
+        "call": 8,
+        "value": "completed"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'no such step'"
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'no such step'"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": "pending"
+      },
+      {
+        "call": 13,
+        "value": ["do:create-user", "fail:create-repo"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "compensated"
+      },
+      {
+        "call": 3,
+        "value": "compensated"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "pending"
+      },
+      {
+        "call": 7,
+        "value": "pending"
+      },
+      {
+        "call": 8,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome"
+        ]
+      },
+      {
+        "call": 9,
+        "value": "completed"
+      },
+      {
+        "call": 10,
+        "value": [
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "undo:grant-access",
+          "undo:create-repo",
+          "undo:create-user",
+          "do:create-user",
+          "do:create-repo",
+          "do:grant-access",
+          "fail:send-welcome",
+          "do:send-welcome"
+        ]
+      }
+    ]
+  }
+]

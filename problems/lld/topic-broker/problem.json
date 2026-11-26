@@ -1,0 +1,1656 @@
+{
+  "slug": "topic-broker",
+  "title": "Topic broker",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": [
+    "observer-pattern",
+    "mediator-pattern",
+    "consumer-groups",
+    "at-least-once-delivery",
+    "dead-letter-queues"
+  ],
+  "interface": {
+    "class": "Broker",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "publishMsg",
+        "params": [
+          {
+            "name": "topic",
+            "type": "string"
+          },
+          {
+            "name": "payload",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "subscribeGroup",
+        "params": [
+          {
+            "name": "group",
+            "type": "string"
+          },
+          {
+            "name": "topic",
+            "type": "string"
+          },
+          {
+            "name": "consumer",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "poll",
+        "params": [
+          {
+            "name": "group",
+            "type": "string"
+          },
+          {
+            "name": "consumer",
+            "type": "string"
+          },
+          {
+            "name": "max",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "ack",
+        "params": [
+          {
+            "name": "group",
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "nack",
+        "params": [
+          {
+            "name": "group",
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "deadLetters",
+        "params": [
+          {
+            "name": "group",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["billing", "orders", "w1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["orders", "o-1"]
+          },
+          {
+            "method": "poll",
+            "args": ["billing", "w1", 10]
+          },
+          {
+            "method": "nack",
+            "args": ["billing", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["billing", "w1", 10]
+          },
+          {
+            "method": "ack",
+            "args": ["billing", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["billing", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["billing", "w1", 10]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["orders", "o-2"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["audit", "orders", "a1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["orders", "o-3"]
+          },
+          {
+            "method": "poll",
+            "args": ["audit", "a1", 5]
+          },
+          {
+            "method": "poll",
+            "args": ["billing", "w1", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c1"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c2"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m0"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m2"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m3"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c1", 2]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c2", 3]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c1", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 3]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c2", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c1", 5]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c1", 5]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c2", 5]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 9]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "publishMsg",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["a", "y"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["b", "z"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["a", "w"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["", "x"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["a", ""]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["A", "x"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["", "a", "c"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "", "c"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "a", ""]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "old"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "new"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "u", "d"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "d"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "d", 5]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["h", "fresh", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["fresh", "f0"]
+          },
+          {
+            "method": "poll",
+            "args": ["h", "c", 1]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "0"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "2"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "3"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "4"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "5"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "6"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "7"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "8"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "9"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "10"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "11"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "12"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "13"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "14"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "15"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "16"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "17"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "18"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "19"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "20"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "21"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "22"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "23"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "24"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "25"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "26"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "27"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "28"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "29"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "30"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "31"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "32"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "33"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "34"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "35"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "36"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "37"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "38"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "39"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "40"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "41"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "42"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "43"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "44"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "45"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "46"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "47"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "48"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "49"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "50"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "51"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "52"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "53"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "54"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "55"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "56"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "57"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "58"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "59"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "60"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "61"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "62"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "63"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "64"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "65"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "66"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "67"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "68"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "69"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "70"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "71"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "72"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "73"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "74"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "75"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "76"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "77"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "78"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "79"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "80"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "81"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "82"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "83"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "84"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "85"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "86"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "87"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "88"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "89"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "90"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "91"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "92"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "93"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "94"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "95"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "96"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "97"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "98"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "99"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "100"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "101"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "102"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "103"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "104"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "x", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "C", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 101]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", -1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 100]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 100]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 100]
+          },
+          {
+            "method": "poll",
+            "args": ["nope", "c", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 2]
+          },
+          {
+            "method": "ack",
+            "args": ["g", -1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", -1]
+          },
+          {
+            "method": "ack",
+            "args": ["x", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "p0"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "p1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "p2"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "p3"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "p4"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "p5"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 4]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 3]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 2]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 4]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 3]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 10]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 2]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 2]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 2]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 2]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "x"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g1", "t", "c"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g2", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m"]
+          },
+          {
+            "method": "poll",
+            "args": ["g1", "c", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g2", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g1", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["g1", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g1", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g1", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g1", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g1", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g1"]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g2"]
+          },
+          {
+            "method": "ack",
+            "args": ["g2", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g2", "c", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["g1", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["a", "x", "c"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["b", "y", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["x", "1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["y", "2"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["x", "3"]
+          },
+          {
+            "method": "poll",
+            "args": ["a", "c", 5]
+          },
+          {
+            "method": "poll",
+            "args": ["b", "c", 5]
+          },
+          {
+            "method": "ack",
+            "args": ["a", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["b", 1]
+          },
+          {
+            "method": "ack",
+            "args": ["b", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["a", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["a", "c", 5]
+          },
+          {
+            "method": "poll",
+            "args": ["b", "c", 5]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "replayFrom",
+        "params": [
+          {
+            "name": "group",
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "early"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m2"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m3"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "m4"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 2]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 2]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 10]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 2]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 0]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 3]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 10]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 99]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", -1]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["nope", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "b"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "c"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          },
+          {
+            "method": "ack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 1]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 0]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "0"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "1"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "2"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["h", "t", "c"]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 1]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 5]
+          },
+          {
+            "method": "poll",
+            "args": ["h", "c", 5]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 1]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "subscribeGroup",
+            "args": ["g", "t", "c"]
+          },
+          {
+            "method": "publishMsg",
+            "args": ["t", "a"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "replayFrom",
+            "args": ["g", 0]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          },
+          {
+            "method": "nack",
+            "args": ["g", 0]
+          },
+          {
+            "method": "deadLetters",
+            "args": ["g"]
+          },
+          {
+            "method": "poll",
+            "args": ["g", "c", 1]
+          }
+        ]
+      }
+    ]
+  }
+}

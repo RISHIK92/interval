@@ -1,0 +1,1228 @@
+{
+  "slug": "shared-undo",
+  "title": "Collaborative undo",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["command-pattern", "memento-pattern"],
+  "interface": {
+    "class": "SharedDoc",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "edit",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "val",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "undo",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "redo",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "value",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "history",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["ann", "port", "80"]
+          },
+          {
+            "method": "edit",
+            "args": ["bo", "host", "a"]
+          },
+          {
+            "method": "undo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "value",
+            "args": ["host"]
+          },
+          {
+            "method": "history",
+            "args": ["port"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "undo",
+            "args": ["bo"]
+          },
+          {
+            "method": "value",
+            "args": ["host"]
+          },
+          {
+            "method": "history",
+            "args": ["host"]
+          },
+          {
+            "method": "undo",
+            "args": ["bo"]
+          },
+          {
+            "method": "redo",
+            "args": ["bo"]
+          },
+          {
+            "method": "redo",
+            "args": ["bo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["ann", "port", "80"]
+          },
+          {
+            "method": "edit",
+            "args": ["bo", "port", "81"]
+          },
+          {
+            "method": "undo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "undo",
+            "args": ["bo"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "undo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "history",
+            "args": ["port"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "redo",
+            "args": ["bo"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "undo",
+            "args": ["ann"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          },
+          {
+            "method": "edit",
+            "args": ["ann", "k", "1"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "undo",
+            "args": ["ann"]
+          },
+          {
+            "method": "undo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "x", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "x", "2"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "y", "3"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "x", "4"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["y"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["y"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "history",
+            "args": ["x"]
+          },
+          {
+            "method": "history",
+            "args": ["y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "j", "2"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "z", "3"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["b"]
+          },
+          {
+            "method": "value",
+            "args": ["j"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "j", "x"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "j", "y"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "2"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "1"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "0"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "j", "x"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "redo",
+            "args": ["b"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "2"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k1", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k2", "2"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k2", "x"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k1"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "0"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "2"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "2"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "3"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "j", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "j", "2"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "value",
+            "args": ["j"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["", "k", "v"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "", "v"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", ""]
+          },
+          {
+            "method": "edit",
+            "args": ["a:b", "k", "v"]
+          },
+          {
+            "method": "undo",
+            "args": [""]
+          },
+          {
+            "method": "redo",
+            "args": [""]
+          },
+          {
+            "method": "undo",
+            "args": ["a:b"]
+          },
+          {
+            "method": "redo",
+            "args": ["x:"]
+          },
+          {
+            "method": "value",
+            "args": [""]
+          },
+          {
+            "method": "history",
+            "args": [""]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "v:w"]
+          },
+          {
+            "method": "edit",
+            "args": ["A", "K", " "]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "value",
+            "args": ["K"]
+          },
+          {
+            "method": "history",
+            "args": ["K"]
+          },
+          {
+            "method": "undo",
+            "args": ["A"]
+          },
+          {
+            "method": "history",
+            "args": ["K"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "x", "a1"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "y", "b1"]
+          },
+          {
+            "method": "edit",
+            "args": ["c", "x", "c1"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "y", "a2"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["c"]
+          },
+          {
+            "method": "undo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "redo",
+            "args": ["c"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "x", "b2"]
+          },
+          {
+            "method": "undo",
+            "args": ["c"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "undo",
+            "args": ["c"]
+          },
+          {
+            "method": "value",
+            "args": ["x"]
+          },
+          {
+            "method": "value",
+            "args": ["y"]
+          },
+          {
+            "method": "history",
+            "args": ["x"]
+          },
+          {
+            "method": "history",
+            "args": ["y"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "undoForce",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["ann", "port", "80"]
+          },
+          {
+            "method": "edit",
+            "args": ["bo", "port", "81"]
+          },
+          {
+            "method": "undo",
+            "args": ["ann"]
+          },
+          {
+            "method": "undoForce",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "history",
+            "args": ["port"]
+          },
+          {
+            "method": "undo",
+            "args": ["bo"]
+          },
+          {
+            "method": "undoForce",
+            "args": ["bo"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "redo",
+            "args": ["ann"]
+          },
+          {
+            "method": "value",
+            "args": ["port"]
+          },
+          {
+            "method": "history",
+            "args": ["port"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "undoForce",
+            "args": ["a"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "undoForce",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undoForce",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          },
+          {
+            "method": "undoForce",
+            "args": [""]
+          },
+          {
+            "method": "undoForce",
+            "args": ["a:"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "2"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "3"]
+          },
+          {
+            "method": "undoForce",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undoForce",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "0"]
+          },
+          {
+            "method": "edit",
+            "args": ["a", "k", "1"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "2"]
+          },
+          {
+            "method": "undoForce",
+            "args": ["a"]
+          },
+          {
+            "method": "edit",
+            "args": ["b", "k", "3"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "undo",
+            "args": ["b"]
+          },
+          {
+            "method": "redo",
+            "args": ["a"]
+          },
+          {
+            "method": "value",
+            "args": ["k"]
+          },
+          {
+            "method": "history",
+            "args": ["k"]
+          }
+        ]
+      }
+    ]
+  }
+}

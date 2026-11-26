@@ -1,0 +1,992 @@
+{
+  "slug": "provisioning-saga",
+  "title": "Account provisioning saga",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["saga-pattern", "command-pattern", "state-pattern"],
+  "interface": {
+    "class": "ProvisioningSaga",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "failStep",
+        "params": [
+          {
+            "name": "step",
+            "type": "string"
+          },
+          {
+            "name": "times",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "start",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "retry",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "trail",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "status",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "start",
+            "args": ["ann"]
+          },
+          {
+            "method": "trail",
+            "args": ["ann"]
+          },
+          {
+            "method": "status",
+            "args": ["ann"]
+          },
+          {
+            "method": "retry",
+            "args": ["ann"]
+          },
+          {
+            "method": "trail",
+            "args": ["ann"]
+          },
+          {
+            "method": "status",
+            "args": ["ann"]
+          },
+          {
+            "method": "retry",
+            "args": ["ann"]
+          },
+          {
+            "method": "trail",
+            "args": ["ann"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "start",
+            "args": ["bo"]
+          },
+          {
+            "method": "trail",
+            "args": ["bo"]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-user", 2]
+          },
+          {
+            "method": "start",
+            "args": ["cy"]
+          },
+          {
+            "method": "start",
+            "args": ["cy"]
+          },
+          {
+            "method": "trail",
+            "args": ["cy"]
+          },
+          {
+            "method": "retry",
+            "args": ["cy"]
+          },
+          {
+            "method": "retry",
+            "args": ["cy"]
+          },
+          {
+            "method": "trail",
+            "args": ["cy"]
+          },
+          {
+            "method": "start",
+            "args": ["bo"]
+          },
+          {
+            "method": "trail",
+            "args": ["bo"]
+          },
+          {
+            "method": "status",
+            "args": ["cy"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["create-user", 1]
+          },
+          {
+            "method": "start",
+            "args": ["a"]
+          },
+          {
+            "method": "trail",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 1]
+          },
+          {
+            "method": "start",
+            "args": ["b"]
+          },
+          {
+            "method": "trail",
+            "args": ["b"]
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 1]
+          },
+          {
+            "method": "start",
+            "args": ["c"]
+          },
+          {
+            "method": "trail",
+            "args": ["c"]
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "retry",
+            "args": ["b"]
+          },
+          {
+            "method": "retry",
+            "args": ["c"]
+          },
+          {
+            "method": "trail",
+            "args": ["c"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 3]
+          },
+          {
+            "method": "start",
+            "args": ["x"]
+          },
+          {
+            "method": "start",
+            "args": ["y"]
+          },
+          {
+            "method": "retry",
+            "args": ["x"]
+          },
+          {
+            "method": "start",
+            "args": ["z"]
+          },
+          {
+            "method": "retry",
+            "args": ["y"]
+          },
+          {
+            "method": "trail",
+            "args": ["x"]
+          },
+          {
+            "method": "trail",
+            "args": ["y"]
+          },
+          {
+            "method": "trail",
+            "args": ["z"]
+          },
+          {
+            "method": "status",
+            "args": ["x"]
+          },
+          {
+            "method": "status",
+            "args": ["y"]
+          },
+          {
+            "method": "status",
+            "args": ["z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 5]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "start",
+            "args": ["p"]
+          },
+          {
+            "method": "retry",
+            "args": ["p"]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 4]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 0]
+          },
+          {
+            "method": "start",
+            "args": ["q"]
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 1000]
+          },
+          {
+            "method": "start",
+            "args": ["r"]
+          },
+          {
+            "method": "trail",
+            "args": ["r"]
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 1001]
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", -1]
+          },
+          {
+            "method": "failStep",
+            "args": ["Create-user", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["deploy", 1]
+          },
+          {
+            "method": "start",
+            "args": ["s"]
+          },
+          {
+            "method": "trail",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["create-user", 1000]
+          },
+          {
+            "method": "start",
+            "args": ["a0"]
+          },
+          {
+            "method": "start",
+            "args": ["a1"]
+          },
+          {
+            "method": "start",
+            "args": ["a2"]
+          },
+          {
+            "method": "retry",
+            "args": ["a0"]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-user", 1]
+          },
+          {
+            "method": "retry",
+            "args": ["a0"]
+          },
+          {
+            "method": "retry",
+            "args": ["a1"]
+          },
+          {
+            "method": "trail",
+            "args": ["a1"]
+          },
+          {
+            "method": "status",
+            "args": ["a2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "start",
+            "args": ["m"]
+          },
+          {
+            "method": "start",
+            "args": ["m"]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-user", 1]
+          },
+          {
+            "method": "start",
+            "args": ["m"]
+          },
+          {
+            "method": "retry",
+            "args": ["m"]
+          },
+          {
+            "method": "trail",
+            "args": ["m"]
+          },
+          {
+            "method": "status",
+            "args": ["m"]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-user", 0]
+          },
+          {
+            "method": "start",
+            "args": ["M"]
+          },
+          {
+            "method": "trail",
+            "args": ["M"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "retry",
+            "args": ["ghost"]
+          },
+          {
+            "method": "trail",
+            "args": ["ghost"]
+          },
+          {
+            "method": "status",
+            "args": ["ghost"]
+          },
+          {
+            "method": "start",
+            "args": [""]
+          },
+          {
+            "method": "retry",
+            "args": [""]
+          },
+          {
+            "method": "trail",
+            "args": [""]
+          },
+          {
+            "method": "status",
+            "args": [""]
+          },
+          {
+            "method": "start",
+            "args": ["ghost"]
+          },
+          {
+            "method": "status",
+            "args": ["ghost"]
+          },
+          {
+            "method": "status",
+            "args": ["Ghost"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 2]
+          },
+          {
+            "method": "start",
+            "args": ["w"]
+          },
+          {
+            "method": "retry",
+            "args": ["w"]
+          },
+          {
+            "method": "retry",
+            "args": ["w"]
+          },
+          {
+            "method": "retry",
+            "args": ["w"]
+          },
+          {
+            "method": "trail",
+            "args": ["w"]
+          },
+          {
+            "method": "status",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 1]
+          },
+          {
+            "method": "start",
+            "args": ["k"]
+          },
+          {
+            "method": "trail",
+            "args": ["k"]
+          },
+          {
+            "method": "retry",
+            "args": ["k"]
+          },
+          {
+            "method": "trail",
+            "args": ["k"]
+          },
+          {
+            "method": "status",
+            "args": ["k"]
+          },
+          {
+            "method": "retry",
+            "args": ["k"]
+          },
+          {
+            "method": "trail",
+            "args": ["k"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["create-user", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 1]
+          },
+          {
+            "method": "start",
+            "args": ["t"]
+          },
+          {
+            "method": "retry",
+            "args": ["t"]
+          },
+          {
+            "method": "retry",
+            "args": ["t"]
+          },
+          {
+            "method": "retry",
+            "args": ["t"]
+          },
+          {
+            "method": "retry",
+            "args": ["t"]
+          },
+          {
+            "method": "trail",
+            "args": ["t"]
+          },
+          {
+            "method": "status",
+            "args": ["t"]
+          },
+          {
+            "method": "start",
+            "args": ["u"]
+          },
+          {
+            "method": "trail",
+            "args": ["u"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 1]
+          },
+          {
+            "method": "start",
+            "args": ["v"]
+          },
+          {
+            "method": "trail",
+            "args": ["v"]
+          },
+          {
+            "method": "status",
+            "args": ["v"]
+          },
+          {
+            "method": "start",
+            "args": ["w"]
+          },
+          {
+            "method": "trail",
+            "args": ["w"]
+          },
+          {
+            "method": "status",
+            "args": ["w"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "pivot",
+        "params": [
+          {
+            "name": "step",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "pivot",
+            "args": ["grant-access"]
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 2]
+          },
+          {
+            "method": "start",
+            "args": ["ann"]
+          },
+          {
+            "method": "trail",
+            "args": ["ann"]
+          },
+          {
+            "method": "status",
+            "args": ["ann"]
+          },
+          {
+            "method": "retry",
+            "args": ["ann"]
+          },
+          {
+            "method": "status",
+            "args": ["ann"]
+          },
+          {
+            "method": "retry",
+            "args": ["ann"]
+          },
+          {
+            "method": "trail",
+            "args": ["ann"]
+          },
+          {
+            "method": "status",
+            "args": ["ann"]
+          },
+          {
+            "method": "retry",
+            "args": ["ann"]
+          },
+          {
+            "method": "trail",
+            "args": ["ann"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "pivot",
+            "args": ["grant-access"]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "start",
+            "args": ["a"]
+          },
+          {
+            "method": "trail",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 1]
+          },
+          {
+            "method": "start",
+            "args": ["b"]
+          },
+          {
+            "method": "trail",
+            "args": ["b"]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "trail",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "pivot",
+            "args": ["create-repo"]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "start",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "pivot",
+            "args": ["send-welcome"]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "trail",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "pivot",
+            "args": ["create-user"]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 1]
+          },
+          {
+            "method": "failStep",
+            "args": ["grant-access", 1]
+          },
+          {
+            "method": "start",
+            "args": ["a"]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "trail",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "pivot",
+            "args": ["nope"]
+          },
+          {
+            "method": "pivot",
+            "args": [""]
+          },
+          {
+            "method": "failStep",
+            "args": ["create-repo", 1]
+          },
+          {
+            "method": "start",
+            "args": ["b"]
+          },
+          {
+            "method": "trail",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 1]
+          },
+          {
+            "method": "start",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "pivot",
+            "args": ["create-user"]
+          },
+          {
+            "method": "failStep",
+            "args": ["send-welcome", 1]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "trail",
+            "args": ["a"]
+          },
+          {
+            "method": "retry",
+            "args": ["a"]
+          },
+          {
+            "method": "trail",
+            "args": ["a"]
+          }
+        ]
+      }
+    ]
+  }
+}

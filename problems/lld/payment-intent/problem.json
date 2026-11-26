@@ -1,0 +1,1055 @@
+{
+  "slug": "payment-intent",
+  "title": "Payment intent",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["state-pattern", "finite-state-machines", "idempotency"],
+  "interface": {
+    "class": "PaymentIntent",
+    "constructor": {
+      "params": [
+        {
+          "name": "amountCents",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "confirm",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "settle",
+        "params": [
+          {
+            "name": "succeeded",
+            "type": "bool"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "capture",
+        "params": [
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "refund",
+        "params": [
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "status",
+        "params": [],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "capture",
+            "args": [600]
+          },
+          {
+            "method": "refund",
+            "args": [200]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "refund",
+            "args": [500]
+          },
+          {
+            "method": "refund",
+            "args": [400]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [100]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [500]
+          },
+          {
+            "method": "capture",
+            "args": [100]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [0]
+          },
+          {
+            "method": "refund",
+            "args": [-5]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [50]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [50]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [1000000001]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [101]
+          },
+          {
+            "method": "capture",
+            "args": [100]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "refund",
+            "args": [100]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [40]
+          },
+          {
+            "method": "capture",
+            "args": [61]
+          },
+          {
+            "method": "capture",
+            "args": [60]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [101]
+          },
+          {
+            "method": "refund",
+            "args": [99]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [98]
+          },
+          {
+            "method": "capture",
+            "args": [2]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [2]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [300]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "capture",
+            "args": [10]
+          },
+          {
+            "method": "refund",
+            "args": [11]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "refund",
+            "args": [10]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [5]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [300]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [100]
+          },
+          {
+            "method": "refund",
+            "args": [30]
+          },
+          {
+            "method": "refund",
+            "args": [30]
+          },
+          {
+            "method": "refund",
+            "args": [41]
+          },
+          {
+            "method": "refund",
+            "args": [40]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000000]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [1000000000]
+          },
+          {
+            "method": "refund",
+            "args": [1000000000]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [1000000001]
+          },
+          {
+            "method": "refund",
+            "args": [1000000001]
+          },
+          {
+            "method": "refund",
+            "args": [0]
+          },
+          {
+            "method": "capture",
+            "args": [0]
+          },
+          {
+            "method": "capture",
+            "args": [-1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000001]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000000]
+          },
+          {
+            "method": "capture",
+            "args": [1000000000]
+          },
+          {
+            "method": "capture",
+            "args": [1000000001]
+          },
+          {
+            "method": "refund",
+            "args": [1000000001]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "capture",
+            "args": [1000000001]
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [1000000001]
+          },
+          {
+            "method": "capture",
+            "args": [999999999]
+          },
+          {
+            "method": "capture",
+            "args": [2]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [11]
+          },
+          {
+            "method": "capture",
+            "args": [0]
+          },
+          {
+            "method": "capture",
+            "args": [10]
+          },
+          {
+            "method": "refund",
+            "args": [11]
+          },
+          {
+            "method": "refund",
+            "args": [0]
+          },
+          {
+            "method": "refund",
+            "args": [10]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "dispute",
+        "params": [
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [500]
+          },
+          {
+            "method": "refund",
+            "args": [100]
+          },
+          {
+            "method": "dispute",
+            "args": [401]
+          },
+          {
+            "method": "dispute",
+            "args": [400]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [300]
+          },
+          {
+            "method": "dispute",
+            "args": [300]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [300]
+          },
+          {
+            "method": "dispute",
+            "args": [301]
+          },
+          {
+            "method": "dispute",
+            "args": [0]
+          },
+          {
+            "method": "dispute",
+            "args": [1000000001]
+          },
+          {
+            "method": "refund",
+            "args": [300]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "capture",
+            "args": [1]
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [false]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "dispute",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000000]
+          },
+          {
+            "method": "confirm",
+            "args": []
+          },
+          {
+            "method": "settle",
+            "args": [true]
+          },
+          {
+            "method": "capture",
+            "args": [1000000000]
+          },
+          {
+            "method": "refund",
+            "args": [999999999]
+          },
+          {
+            "method": "dispute",
+            "args": [2]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          },
+          {
+            "method": "status",
+            "args": []
+          },
+          {
+            "method": "refund",
+            "args": [1]
+          },
+          {
+            "method": "dispute",
+            "args": [1]
+          }
+        ]
+      }
+    ]
+  }
+}

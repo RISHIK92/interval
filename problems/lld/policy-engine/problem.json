@@ -1,0 +1,1042 @@
+{
+  "slug": "policy-engine",
+  "title": "Access policy engine",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": [
+    "interpreter-pattern",
+    "chain-of-responsibility-pattern",
+    "rbac"
+  ],
+  "interface": {
+    "class": "PolicyEngine",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addPolicy",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "text",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "removePolicy",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "decide",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "roles",
+            "type": "list<string>"
+          },
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "resource",
+            "type": "string"
+          },
+          {
+            "name": "hour",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p1", "allow dev * repo/{user}/*"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p2", "deny * push repo/*/main"]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", ["dev"], "push", "repo/ann/x", 12]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", ["dev"], "push", "repo/ann/main", 12]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", ["dev"], "push", "repo/bo/x", 12]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", [], "read", "repo/ann/x", 12]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p1", "deny * * *"]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["p2"]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["p2"]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", ["dev"], "push", "repo/ann/main", 12]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["deploy", "allow deployer deploy svc/* during 9-17"]
+          },
+          {
+            "method": "decide",
+            "args": ["cy", ["deployer"], "deploy", "svc/api", 9]
+          },
+          {
+            "method": "decide",
+            "args": ["cy", ["deployer"], "deploy", "svc/api", 16]
+          },
+          {
+            "method": "decide",
+            "args": ["cy", ["deployer"], "deploy", "svc/api", 17]
+          },
+          {
+            "method": "decide",
+            "args": ["cy", ["deployer"], "deploy", "svc/api", 8]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["freeze", "deny * deploy * during 16-24"]
+          },
+          {
+            "method": "decide",
+            "args": ["cy", ["deployer"], "deploy", "svc/api", 16]
+          },
+          {
+            "method": "decide",
+            "args": ["cy", ["deployer"], "deploy", "svc/api", 15]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["bad", "allow x y"]
+          },
+          {
+            "method": "decide",
+            "args": ["cy", ["deployer"], "deploy", "svc/api", 24]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["a", "allow admin * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["b", "allow * read docs/*"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["c", "allow ops restart *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["admin"], "x", "y", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["Admin"], "x", "y", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "read", "docs/1", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "Read", "docs/1", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["dev", "ops"], "restart", "db", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["dev", "ops"], "restarts", "db", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["dev"], "restart", "db", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["ops", "admin"], "restart", "db", 23]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["z", "allow * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["y", "allow * * *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "a", "r", 1]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["x", "deny * * r"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["w", "deny * a *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "a", "r", 1]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "a", "q", 1]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "b", "r", 1]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "b", "q", 1]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["x"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "b", "r", 1]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["z"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "b", "q", 1]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["z", "allow * * *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "b", "q", 1]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["y"]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["z"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "b", "q", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p", "allow * * a*c"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "ac", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "abc", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "a/b/c", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "abcd", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "xac", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "a", 0]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["p"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["q", "allow * * *x*y*"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "xy", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "axby", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "yx", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "xyx", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "x", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "y", 0]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["q"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["r", "allow * * logs/**/z"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "logs//z", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "logs/a/b/z", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "logs/z", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["e", "allow * * exact.path?"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "exact.path?", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "exact.path", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "exact.pathX", 0]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["s", "allow * * **"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "anything", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["h", "allow * * home/{user}"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["t", "allow * * tmp/{user}/{user}"]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", [], "x", "home/ann", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", [], "x", "home/bo", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["an*", [], "x", "home/ann", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["an*", [], "x", "home/an*", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", [], "x", "home/ann/", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["a", [], "x", "tmp/a/a", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["a", [], "x", "tmp/a/b", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["Ann", [], "x", "home/ann", 0]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["u", "allow * * {user}*"]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", [], "x", "annex", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", [], "x", "anne", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", [], "x", "an", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", ""]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "permit * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "Allow * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * x{y"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * x}"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * {User}"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * {user"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 9-"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during -9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 9-9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 10-9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 0-25"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 001-2"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * from 9-17"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during a-b"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 1-2-3"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during 9-17 x"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["ok", "allow * * * during +1-2"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", ""]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "permit * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "Allow * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * x{y"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * x}"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * {User}"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * {user"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 9-"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during -9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 9-9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 10-9"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 0-25"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 001-2"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * from 9-17"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during a-b"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 1-2-3"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during 9-17 x"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "allow * * * during +1-2"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["new", "  deny   x   y   z  "]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["", "allow * * *"]
+          },
+          {
+            "method": "removePolicy",
+            "args": [""]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["nope"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["x"], "y", "z", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["a", "allow * * * during 0-1"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["b", "allow * * * during 23-24"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["c", "allow * * * during 05-07"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["d", "allow * * * during 0-24"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 1]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 4]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 5]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 6]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 7]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 22]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 23]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["d"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 1]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 7]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 23]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["a", "allow * * *"]
+          },
+          {
+            "method": "decide",
+            "args": ["", [], "x", "r", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [""], "x", "r", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["a", ""], "x", "r", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "", "r", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", -1]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 24]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 23]
+          },
+          {
+            "method": "decide",
+            "args": ["u", ["*"], "x", "r", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p", "deny * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["P", "allow * * *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["p"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p", "allow * * *"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["P", "deny * * *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["q", "deny * * r"]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p2", "deny * * *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "removePolicy",
+            "args": ["q"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["q", "deny * * *"]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "simulate",
+        "params": [
+          {
+            "name": "text",
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "roles",
+            "type": "list<string>"
+          },
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "resource",
+            "type": "string"
+          },
+          {
+            "name": "hour",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["p1", "allow dev * repo/*"]
+          },
+          {
+            "method": "simulate",
+            "args": [
+              "deny * push repo/*/main",
+              "ann",
+              ["dev"],
+              "push",
+              "repo/a/main",
+              3
+            ]
+          },
+          {
+            "method": "simulate",
+            "args": [
+              "deny * push repo/*/main",
+              "ann",
+              ["dev"],
+              "push",
+              "repo/a/dev",
+              3
+            ]
+          },
+          {
+            "method": "decide",
+            "args": ["ann", ["dev"], "push", "repo/a/main", 3]
+          },
+          {
+            "method": "simulate",
+            "args": ["allow ops * *", "ann", ["ops"], "x", "y", 3]
+          },
+          {
+            "method": "simulate",
+            "args": ["allow dev * *", "ann", ["dev"], "x", "repo/q", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "simulate",
+            "args": ["allow * * *", "u", [], "x", "r", 0]
+          },
+          {
+            "method": "simulate",
+            "args": ["bad", "u", [], "x", "r", 0]
+          },
+          {
+            "method": "simulate",
+            "args": ["allow * * *", "u", [], "x", "r", 24]
+          },
+          {
+            "method": "simulate",
+            "args": ["allow * * * during 1-2", "u", [], "x", "r", 0]
+          },
+          {
+            "method": "decide",
+            "args": ["u", [], "x", "r", 0]
+          },
+          {
+            "method": "addPolicy",
+            "args": ["(new)", "deny * * *"]
+          },
+          {
+            "method": "simulate",
+            "args": ["allow * * *", "u", [], "x", "r", 0]
+          },
+          {
+            "method": "simulate",
+            "args": ["deny * * *", "u", [], "x", "r", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPolicy",
+            "args": ["d", "deny * x * during 0-12"]
+          },
+          {
+            "method": "simulate",
+            "args": ["deny * x *", "u", [], "x", "r", 5]
+          },
+          {
+            "method": "simulate",
+            "args": ["deny * x *", "u", [], "x", "r", 12]
+          },
+          {
+            "method": "simulate",
+            "args": ["allow * * home/{user}", "me", [], "x", "home/me", 12]
+          },
+          {
+            "method": "decide",
+            "args": ["me", [], "x", "home/me", 12]
+          }
+        ]
+      }
+    ]
+  }
+}

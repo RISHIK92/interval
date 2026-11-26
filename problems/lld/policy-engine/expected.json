@@ -1,0 +1,942 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "allow:p1"
+      },
+      {
+        "call": 4,
+        "value": "deny:p2"
+      },
+      {
+        "call": 5,
+        "value": "no-match"
+      },
+      {
+        "call": 6,
+        "value": "no-match"
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": "allow:p1"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "allow:deploy"
+      },
+      {
+        "call": 3,
+        "value": "allow:deploy"
+      },
+      {
+        "call": 4,
+        "value": "no-match"
+      },
+      {
+        "call": 5,
+        "value": "no-match"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "deny:freeze"
+      },
+      {
+        "call": 8,
+        "value": "allow:deploy"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: an hour runs from 0 to 23"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "allow:a"
+      },
+      {
+        "call": 5,
+        "value": "no-match"
+      },
+      {
+        "call": 6,
+        "value": "allow:b"
+      },
+      {
+        "call": 7,
+        "value": "no-match"
+      },
+      {
+        "call": 8,
+        "value": "allow:c"
+      },
+      {
+        "call": 9,
+        "value": "no-match"
+      },
+      {
+        "call": 10,
+        "value": "no-match"
+      },
+      {
+        "call": 11,
+        "value": "allow:a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "allow:z"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "deny:x"
+      },
+      {
+        "call": 7,
+        "value": "deny:w"
+      },
+      {
+        "call": 8,
+        "value": "deny:x"
+      },
+      {
+        "call": 9,
+        "value": "allow:z"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "allow:z"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "allow:y"
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": "allow:y"
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": "no-match"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "allow:p"
+      },
+      {
+        "call": 3,
+        "value": "allow:p"
+      },
+      {
+        "call": 4,
+        "value": "allow:p"
+      },
+      {
+        "call": 5,
+        "value": "no-match"
+      },
+      {
+        "call": 6,
+        "value": "no-match"
+      },
+      {
+        "call": 7,
+        "value": "no-match"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": "allow:q"
+      },
+      {
+        "call": 11,
+        "value": "allow:q"
+      },
+      {
+        "call": 12,
+        "value": "no-match"
+      },
+      {
+        "call": 13,
+        "value": "allow:q"
+      },
+      {
+        "call": 14,
+        "value": "no-match"
+      },
+      {
+        "call": 15,
+        "value": "no-match"
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": "allow:r"
+      },
+      {
+        "call": 19,
+        "value": "allow:r"
+      },
+      {
+        "call": 20,
+        "value": "no-match"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "allow:e"
+      },
+      {
+        "call": 3,
+        "value": "no-match"
+      },
+      {
+        "call": 4,
+        "value": "no-match"
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": "allow:s"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "allow:h"
+      },
+      {
+        "call": 4,
+        "value": "no-match"
+      },
+      {
+        "call": 5,
+        "value": "no-match"
+      },
+      {
+        "call": 6,
+        "value": "allow:h"
+      },
+      {
+        "call": 7,
+        "value": "no-match"
+      },
+      {
+        "call": 8,
+        "value": "allow:t"
+      },
+      {
+        "call": 9,
+        "value": "no-match"
+      },
+      {
+        "call": 10,
+        "value": "no-match"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": "allow:u"
+      },
+      {
+        "call": 13,
+        "value": "allow:u"
+      },
+      {
+        "call": 14,
+        "value": "no-match"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: during from-to"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: hours run forward, up to 24"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: hours run forward, up to 24"
+      },
+      {
+        "call": 17,
+        "error": "ValueError: hours run forward, up to 24"
+      },
+      {
+        "call": 18,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 19,
+        "error": "ValueError: during from-to"
+      },
+      {
+        "call": 20,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 21,
+        "error": "ValueError: during from-to"
+      },
+      {
+        "call": 22,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 23,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 24,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 25,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 26,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 27,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 28,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 29,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 30,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 31,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 32,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 33,
+        "error": "ValueError: a brace outside {user}"
+      },
+      {
+        "call": 34,
+        "error": "ValueError: during from-to"
+      },
+      {
+        "call": 35,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 36,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 37,
+        "error": "ValueError: hours run forward, up to 24"
+      },
+      {
+        "call": 38,
+        "error": "ValueError: hours run forward, up to 24"
+      },
+      {
+        "call": 39,
+        "error": "ValueError: hours run forward, up to 24"
+      },
+      {
+        "call": 40,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 41,
+        "error": "ValueError: during from-to"
+      },
+      {
+        "call": 42,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 43,
+        "error": "ValueError: during from-to"
+      },
+      {
+        "call": 44,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 45,
+        "error": "ValueError: an hour is one or two digits"
+      },
+      {
+        "call": 46,
+        "value": true
+      },
+      {
+        "call": 47,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 48,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 49,
+        "value": false
+      },
+      {
+        "call": 50,
+        "value": "deny:new"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "allow:a"
+      },
+      {
+        "call": 6,
+        "value": "allow:d"
+      },
+      {
+        "call": 7,
+        "value": "allow:d"
+      },
+      {
+        "call": 8,
+        "value": "allow:c"
+      },
+      {
+        "call": 9,
+        "value": "allow:c"
+      },
+      {
+        "call": 10,
+        "value": "allow:d"
+      },
+      {
+        "call": 11,
+        "value": "allow:d"
+      },
+      {
+        "call": 12,
+        "value": "allow:b"
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": "allow:a"
+      },
+      {
+        "call": 15,
+        "value": "no-match"
+      },
+      {
+        "call": 16,
+        "value": "no-match"
+      },
+      {
+        "call": 17,
+        "value": "allow:b"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: an hour runs from 0 to 23"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an hour runs from 0 to 23"
+      },
+      {
+        "call": 9,
+        "value": "allow:a"
+      },
+      {
+        "call": 10,
+        "value": "allow:a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "deny:p"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "allow:P"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "allow:P"
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "deny:q"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": "deny:p2"
+      },
+      {
+        "call": 14,
+        "value": true
+      },
+      {
+        "call": 15,
+        "value": "deny:p2"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "deny:(new)"
+      },
+      {
+        "call": 3,
+        "value": "allow:p1"
+      },
+      {
+        "call": 4,
+        "value": "allow:p1"
+      },
+      {
+        "call": 5,
+        "value": "allow:(new)"
+      },
+      {
+        "call": 6,
+        "value": "allow:p1"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "allow:(new)"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: effect role action resource [during from-to]"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an hour runs from 0 to 23"
+      },
+      {
+        "call": 4,
+        "value": "no-match"
+      },
+      {
+        "call": 5,
+        "value": "no-match"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "deny:(new)"
+      },
+      {
+        "call": 8,
+        "value": "deny:(new)"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": "deny:d"
+      },
+      {
+        "call": 3,
+        "value": "deny:(new)"
+      },
+      {
+        "call": 4,
+        "value": "allow:(new)"
+      },
+      {
+        "call": 5,
+        "value": "no-match"
+      }
+    ]
+  }
+]

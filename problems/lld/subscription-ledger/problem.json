@@ -1,0 +1,1147 @@
+{
+  "slug": "subscription-ledger",
+  "title": "Event-sourced subscriptions",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["event-sourcing", "command-pattern", "memento-pattern"],
+  "interface": {
+    "class": "SubscriptionLedger",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "handle",
+        "params": [
+          {
+            "name": "command",
+            "type": "string"
+          },
+          {
+            "name": "sub",
+            "type": "string"
+          },
+          {
+            "name": "arg",
+            "type": "int"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "events",
+        "params": [
+          {
+            "name": "sub",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "stateAt",
+        "params": [
+          {
+            "name": "sub",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "snapshotEvery",
+        "params": [
+          {
+            "name": "n",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "replays",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["create", "acme", 2, 1000]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "acme", 500, 2000]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "acme", 3, 2400]
+          },
+          {
+            "method": "stateAt",
+            "args": ["acme", 2499]
+          },
+          {
+            "method": "stateAt",
+            "args": ["acme", 999]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "acme", 3, 2500]
+          },
+          {
+            "method": "events",
+            "args": ["acme"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["acme", 2500]
+          },
+          {
+            "method": "stateAt",
+            "args": ["acme", 2000]
+          },
+          {
+            "method": "stateAt",
+            "args": ["acme", 1999]
+          },
+          {
+            "method": "replays",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [2]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "s", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "s", 2, 10]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "s", 3, 20]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "s", 4, 30]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "s", 0, 40]
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 40]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 35]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 15]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 5]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "events",
+            "args": ["s"]
+          },
+          {
+            "method": "events",
+            "args": ["nobody"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["nobody", 5]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 2, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "a", 5, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "a", 0, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 3, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 4, 2]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 3, 3]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 2, 3]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 0, 3]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 1, 3]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 4, 4]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "a", 10, 5]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "a", 10, 6]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 5, 14]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "a", 0, 14]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "a", 0, 15]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 1, 16]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 9, 16]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "a", 1, 16]
+          },
+          {
+            "method": "events",
+            "args": ["a"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 13]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 14]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 15]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["create", "p", 1, 100]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "p", 1, 100]
+          },
+          {
+            "method": "stateAt",
+            "args": ["p", 100]
+          },
+          {
+            "method": "stateAt",
+            "args": ["p", 101]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "p", 50, 101]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "p", 50, 120]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "p", 2, 150]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "p", 2, 151]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "p", 5, 151]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "p", 0, 152]
+          },
+          {
+            "method": "stateAt",
+            "args": ["p", 152]
+          },
+          {
+            "method": "stateAt",
+            "args": ["p", 151]
+          },
+          {
+            "method": "stateAt",
+            "args": ["p", 155]
+          },
+          {
+            "method": "stateAt",
+            "args": ["p", 150]
+          },
+          {
+            "method": "stateAt",
+            "args": ["p", 149]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["Create", "a", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["renew", "a", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 0, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 101, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 100, -1]
+          },
+          {
+            "method": "events",
+            "args": ["a"]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 100, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 101, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "a", 0, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "a", 1000000001, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "a", 1, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "a", -1, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "a", 1000000000, 5]
+          },
+          {
+            "method": "events",
+            "args": ["a"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 1000000004]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 1000000005]
+          },
+          {
+            "method": "events",
+            "args": [""]
+          },
+          {
+            "method": "stateAt",
+            "args": ["", 1]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", -1]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 1000000000001]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 1000000000000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 1, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "b", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "b", 1, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "c", 1, 1000000000000]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "d", 1, 1000000000001]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "c", 2, 1000000000000]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "d", 1, 999999999999]
+          },
+          {
+            "method": "events",
+            "args": ["b"]
+          },
+          {
+            "method": "events",
+            "args": ["c"]
+          },
+          {
+            "method": "events",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["create", "z", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "z", 2, 0]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["z", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["create", "x", 1, 10]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "x", 2, 20]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "x", 5, 30]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "x", 3, 40]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "x", 0, 50]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["x", 9]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["x", 10]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["x", 32]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["x", 50]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["x", 1000000000000]
+          },
+          {
+            "method": "replays",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["create", "y", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 2, 10]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 3, 20]
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [2]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 4, 30]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 5, 40]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 6, 50]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 7, 60]
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [3]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 8, 70]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 9, 80]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "y", 10, 90]
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 95]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 90]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 89]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 60]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 45]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 30]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 29]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["y", 0]
+          },
+          {
+            "method": "replays",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [1]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "b", 1, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 2, 2]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "b", 0, 3]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 5]
+          },
+          {
+            "method": "stateAt",
+            "args": ["b", 5]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["b", 2]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [10000]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 3, 4]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 9]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [0]
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [10001]
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [2]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "s", 1, 7]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "s", 2, 7]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "s", 3, 7]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "s", 3, 8]
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 7]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 8]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 6]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 11]
+          },
+          {
+            "method": "replays",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [2]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "r", 5, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "r", 4, 1]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "r", 5, 2]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "r", 6, 3]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "r", 7, 4]
+          },
+          {
+            "method": "stateAt",
+            "args": ["r", 4]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "stateAt",
+            "args": ["r", 3]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "events",
+            "args": ["r"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "upcast",
+        "params": [
+          {
+            "name": "eventName",
+            "type": "string"
+          },
+          {
+            "name": "newName",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["create", "a", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 2, 1]
+          },
+          {
+            "method": "upcast",
+            "args": ["upgraded", "planChanged"]
+          },
+          {
+            "method": "events",
+            "args": ["a"]
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 3, 2]
+          },
+          {
+            "method": "events",
+            "args": ["a"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 1]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 2]
+          },
+          {
+            "method": "upcast",
+            "args": ["planChanged", "tierSet"]
+          },
+          {
+            "method": "events",
+            "args": ["a"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["a", 5]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "handle",
+            "args": ["upgrade", "a", 4, 6]
+          },
+          {
+            "method": "events",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "upcast",
+            "args": ["upgraded", "upgraded"]
+          },
+          {
+            "method": "upcast",
+            "args": ["created", "upgraded"]
+          },
+          {
+            "method": "upcast",
+            "args": ["nope", "x"]
+          },
+          {
+            "method": "upcast",
+            "args": ["Created", "x"]
+          },
+          {
+            "method": "upcast",
+            "args": ["created", ""]
+          },
+          {
+            "method": "upcast",
+            "args": ["created", "a-b"]
+          },
+          {
+            "method": "upcast",
+            "args": ["created", "a b"]
+          },
+          {
+            "method": "upcast",
+            "args": ["created", "Begun2"]
+          },
+          {
+            "method": "upcast",
+            "args": ["created", "again"]
+          },
+          {
+            "method": "upcast",
+            "args": ["Begun2", "created"]
+          },
+          {
+            "method": "upcast",
+            "args": ["Begun2", "cancelled"]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "s", 1, 0]
+          },
+          {
+            "method": "events",
+            "args": ["s"]
+          },
+          {
+            "method": "upcast",
+            "args": ["Begun2", "Started"]
+          },
+          {
+            "method": "events",
+            "args": ["s"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "snapshotEvery",
+            "args": [1]
+          },
+          {
+            "method": "handle",
+            "args": ["create", "s", 1, 0]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "s", 5, 1]
+          },
+          {
+            "method": "upcast",
+            "args": ["paused", "suspended"]
+          },
+          {
+            "method": "handle",
+            "args": ["pause", "s", 5, 9]
+          },
+          {
+            "method": "upcast",
+            "args": ["cancelled", "ended"]
+          },
+          {
+            "method": "handle",
+            "args": ["cancel", "s", 0, 10]
+          },
+          {
+            "method": "events",
+            "args": ["s"]
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 3]
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 9]
+          },
+          {
+            "method": "stateAt",
+            "args": ["s", 10]
+          },
+          {
+            "method": "replays",
+            "args": []
+          },
+          {
+            "method": "upcast",
+            "args": ["suspended", "paused"]
+          }
+        ]
+      }
+    ]
+  }
+}

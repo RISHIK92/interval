@@ -1,0 +1,1478 @@
+{
+  "slug": "log-query",
+  "title": "Log query language",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "behavioural",
+  "concepts": ["interpreter-pattern", "visitor-pattern", "structured-logging"],
+  "interface": {
+    "class": "LogQuery",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "ingest",
+        "params": [
+          {
+            "name": "fields",
+            "type": "map<string,string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "run",
+        "params": [
+          {
+            "name": "query",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "explainQuery",
+        "params": [
+          {
+            "name": "query",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "200",
+                "ms": "12",
+                "level": "info"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "503",
+                "ms": "340",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "web",
+                "status": "500",
+                "ms": "95",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "db",
+                "status": "200",
+                "ms": "7",
+                "level": "info"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "502",
+                "ms": "1200",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "web",
+                "status": "404",
+                "ms": "20",
+                "level": "warn"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": [
+              "logs | where status >= 500 | count service | sort count desc | top 3"
+            ]
+          },
+          {
+            "method": "explainQuery",
+            "args": [
+              "logs | where status >= 500 | count service | sort count desc | top 3"
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where level = error | sort ms"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 2"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs|sort ms|top 007"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where ms > 100 | sort ms desc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "run",
+            "args": ["logs"]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "b": "2"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where a = 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort b"]
+          },
+          {
+            "method": "run",
+            "args": ["events"]
+          },
+          {
+            "method": "run",
+            "args": [""]
+          },
+          {
+            "method": "run",
+            "args": ["logs |"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | grep a"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | count a"]
+          },
+          {
+            "method": "ingest",
+            "args": [{}]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "n": "5"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "n": "-3"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "n": "10"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "n": "7"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "other": "x"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where n = 7"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where n != 7"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where n < 7"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where n <= 7"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where n > 7"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where n >= 7"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where other != y"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where nope != 1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "007"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "7"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "-1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "-10"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "0100000000"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "100000000"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "-"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "-0"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "0"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v = 7"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v = 100000000"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v = -10"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort v"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort v desc"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v = 0"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v < -1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "b"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "B"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "10"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "9"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "a b"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "-5"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "1000000000"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "_"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "v": "999999999"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort v"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort v desc"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v > 999999999"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v < 1000000000"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v >= B"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where v <= -5"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "2",
+                "id": "a"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "id": "b"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "1",
+                "id": "c"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "2",
+                "id": "d"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "02",
+                "id": "e"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "id": "f"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "1",
+                "id": "g"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort k"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort k desc"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort k asc"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort id desc | sort k"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort zz"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort id desc | top 3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "host": "b",
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "host": "a",
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "host": "b",
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "host": "007",
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "host": "7",
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "host": "b",
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "host": "a",
+                "z": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "z": "2"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count host"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count host | where count >= 2 | sort count"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count host | count count"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count z | count z"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count nope"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count host | sort host"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count host | top 1 | count host"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "i": "0"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "i": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "i": "2"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "i": "3"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "i": "4"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "i": "5"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 00004"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 10000"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 010000"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 10001"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 0"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top -1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 2 | top 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top x"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | top 00004"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | top 10000"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["  logs   |  where  a.b_c   !=   x   |top 3"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | where a = x|y"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | sort a"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | sort a desc"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | count A | sort count | top 12"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | where a < -3 | where a <= 3 | where a > b"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | where a >= 1 | where a = 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["Logs"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | Where a = 1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where a == 1"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | where a == 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where a = 1 2"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | where a = 1 2"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where a ="]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | where a ="]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | count"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count a b"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | count a b"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | sort"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort a up"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | sort a up"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort a asc desc"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | sort a asc desc"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | top"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 1 2"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | top 1 2"]
+          },
+          {
+            "method": "run",
+            "args": ["logs || top 1"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs || top 1"]
+          },
+          {
+            "method": "run",
+            "args": ["| logs"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["| logs"]
+          },
+          {
+            "method": "run",
+            "args": ["logs logs"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs logs"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where a-b = 1"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | where a-b = 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count a:b"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | count a:b"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort a/b"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | sort a/b"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count count"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["logs | count count"]
+          },
+          {
+            "method": "run",
+            "args": [" "]
+          },
+          {
+            "method": "explainQuery",
+            "args": [" "]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a-b": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "": "1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a": ""
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a": "x",
+                "b": ""
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a b": "1"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs"]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "A.b_9": "x = y | z",
+                "a": "=1"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where a = 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where A.b_9 = x"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort a desc"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "200",
+                "ms": "12",
+                "level": "info"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "503",
+                "ms": "340",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "web",
+                "status": "500",
+                "ms": "95",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "db",
+                "status": "200",
+                "ms": "7",
+                "level": "info"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "502",
+                "ms": "1200",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "web",
+                "status": "404",
+                "ms": "20",
+                "level": "warn"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["logs | sort ms desc | where level != error | top 2"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where service = api | sort status | count status"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | count level | sort level desc | where count > 1"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | where status < 500 | where status >= 300"]
+          },
+          {
+            "method": "run",
+            "args": ["logs | top 3 | sort service"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "saveView",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "query",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "200",
+                "ms": "12",
+                "level": "info"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "503",
+                "ms": "340",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "web",
+                "status": "500",
+                "ms": "95",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "db",
+                "status": "200",
+                "ms": "7",
+                "level": "info"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "api",
+                "status": "502",
+                "ms": "1200",
+                "level": "error"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "web",
+                "status": "404",
+                "ms": "20",
+                "level": "warn"
+              }
+            ]
+          },
+          {
+            "method": "saveView",
+            "args": ["errors", "logs | where level = error"]
+          },
+          {
+            "method": "run",
+            "args": ["errors | top 2"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["errors | top 2"]
+          },
+          {
+            "method": "run",
+            "args": ["errors"]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "service": "cdn",
+                "level": "error",
+                "ms": "1"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["errors | sort ms"]
+          },
+          {
+            "method": "saveView",
+            "args": ["slow", "errors | where ms >= 300 | sort ms desc"]
+          },
+          {
+            "method": "run",
+            "args": ["slow"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["slow | count service"]
+          },
+          {
+            "method": "run",
+            "args": ["slow | count service"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "a": "1"
+              }
+            ]
+          },
+          {
+            "method": "saveView",
+            "args": ["v", "logs"]
+          },
+          {
+            "method": "saveView",
+            "args": ["v", "logs"]
+          },
+          {
+            "method": "saveView",
+            "args": ["logs", "logs"]
+          },
+          {
+            "method": "saveView",
+            "args": ["w", "nope"]
+          },
+          {
+            "method": "saveView",
+            "args": ["w", "v | bad"]
+          },
+          {
+            "method": "saveView",
+            "args": ["", "logs"]
+          },
+          {
+            "method": "saveView",
+            "args": ["a b", "logs"]
+          },
+          {
+            "method": "saveView",
+            "args": ["x-y", "logs"]
+          },
+          {
+            "method": "saveView",
+            "args": ["V", "v | top 1"]
+          },
+          {
+            "method": "run",
+            "args": ["V"]
+          },
+          {
+            "method": "run",
+            "args": ["w"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["V | sort a"]
+          },
+          {
+            "method": "run",
+            "args": ["v | where a = 1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "saveView",
+            "args": ["c", "logs | count k"]
+          },
+          {
+            "method": "run",
+            "args": ["c"]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "x"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "x"
+              }
+            ]
+          },
+          {
+            "method": "ingest",
+            "args": [
+              {
+                "k": "y"
+              }
+            ]
+          },
+          {
+            "method": "run",
+            "args": ["c"]
+          },
+          {
+            "method": "run",
+            "args": ["c | sort count desc"]
+          },
+          {
+            "method": "saveView",
+            "args": ["d", "c | where count = 2"]
+          },
+          {
+            "method": "run",
+            "args": ["d"]
+          },
+          {
+            "method": "explainQuery",
+            "args": ["d"]
+          },
+          {
+            "method": "run",
+            "args": ["D"]
+          }
+        ]
+      }
+    ]
+  }
+}
