@@ -165,7 +165,8 @@ test("the switch flips to creating an account in place", async () => {
   });
   // An old invite link's code stays in the address.
   expect(replaceState).toHaveBeenCalledWith(null, "", "/join?code=ABCDE-FGHJK");
-  expect(text()).toContain("/v1/users");
+  // The card names the real route the form posts to.
+  expect(text()).toContain("POST/join");
   await type("name", "Ada Lovelace");
   expect(text()).toContain("hello, Ada");
   await type("email", "ada@example.test");

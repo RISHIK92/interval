@@ -424,7 +424,8 @@ export function RequestAuth({
                 <span className="rounded-[7px] bg-go/15 px-2 py-[3px] text-xs font-bold text-go-text">
                   POST
                 </span>
-                {signup ? "/v1/users" : "/v1/session"}
+                {/* Where the browser really posts: a server action goes to its page. */}
+                {signup ? createPath : "/sign-in"}
               </span>
               <div
                 role="group"
