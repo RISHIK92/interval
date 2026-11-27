@@ -6196,3 +6196,29 @@ The owner said to continue building overnight with recommended answers, switchin
     - the switch is a pair of pressed buttons rather than radios;
     - the show-password label;
     - submit waits for hydration.
+
+## 2026-11-27: ADR-0058 stage A, articles expand (owner: remove moments and time chips)
+
+- **Owner's instruction and answers (2026-11-27):**
+  - Remove moments, schema included, and the break-length chips.
+  - Articles have only "continue reading" and "completed".
+  - Each article has one quiz, always available.
+  - Model output is never deleted; it's combined per article.
+- **Docs:** ADR-0058 (PROPOSED) and C-40.
+- **Plan:** expand, then switch, then contract.
+- **Stage A:** `20261127300000_articles_expand.sql`. It adds article-level homes, backfills them and keeps them filled with triggers, and drops nothing:
+  - **Questions:** `question.content_item_id` and `article_ordinal`, with slots renumbered in moment order.
+  - **Drafting, batch and path tables:** `content_item_id`.
+  - **Embeddings:** `item_embedding.embedding`, the mean of the moments' vectors.
+  - **Tagging:** per-moment probabilities and decisions are copied per article under model `moments:<model>`, so today's rollup and `eval-tagging` are unaffected.
+  - **Opens:** `user_article_opened`, from opened and finished moments.
+  - **Explainer citations:** now carry `content_item_id`.
+- **Results on `interval_mac`:** nothing was lost.
+  - 1022 of 1024 questions are linked to their article; the other two have no moment.
+  - 524 articles have a mean vector.
+  - The probabilities are kept at their maximum per article.
+- **Tests:** 12 new migration tests, covering up and down and every trigger. Python: 1724 passed. Web: 1987 passed.
+- **Local test database:** the tests now run against `interval_test` on the walk Postgres. Port 5432 belongs to another project's Postgres, which is why the DB suites had been failing locally.
+- **Next:**
+  - **Stage B:** switch workers, web, mobile, CLI and VS Code to articles. Stop segmentation first. Add the HNSW index.
+  - **Stage C:** fold the `moments:` rows, section overrides and notes into the article. Change `quiz_attempt.moment_id`'s cascade first, then drop the moment tables.

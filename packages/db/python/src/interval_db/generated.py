@@ -919,6 +919,7 @@ class ItemEmbedding(TypedDict):
     content_item_id: int
     model: str
     embedded_at: datetime
+    embedding: str | None
 
 
 class ItemFeedback(TypedDict):
@@ -1136,6 +1137,7 @@ class PathSession(TypedDict):
     section_id: int
     ordinal: int
     moment_id: int
+    content_item_id: int | None
 
 
 class Plan(TypedDict):
@@ -1263,6 +1265,8 @@ class Question(TypedDict):
     source_title: str | None
     validator_estimate: float | None
     stem_rewrite_tried_at: datetime | None
+    content_item_id: int | None
+    article_ordinal: int | None
 
 
 class QuestionBatch(TypedDict):
@@ -1283,6 +1287,7 @@ class QuestionBatchItem(TypedDict):
     content_hash: str | None
     result: str | None
     kind: QuestionKind
+    content_item_id: int | None
 
 
 class QuestionConcept(TypedDict):
@@ -1294,11 +1299,13 @@ class QuestionDrafting(TypedDict):
     moment_id: int
     attempt: int
     retry_at: datetime
+    content_item_id: int | None
 
 
 class QuestionEstimateDrafted(TypedDict):
     moment_id: int
     content_hash: str
+    content_item_id: int | None
 
 
 class QuestionFlag(TypedDict):
@@ -1557,6 +1564,12 @@ class UserArticleFinished(TypedDict):
     finished_at: datetime
 
 
+class UserArticleOpened(TypedDict):
+    user_id: str
+    content_item_id: int
+    opened_at: datetime
+
+
 class UserAvoidedConcept(TypedDict):
     user_id: str | None
     slug: str | None
@@ -1689,6 +1702,7 @@ class UserPathSession(TypedDict):
     section_id: int
     ordinal: int
     moment_id: int
+    content_item_id: int | None
 
 
 class UserPreferences(TypedDict):

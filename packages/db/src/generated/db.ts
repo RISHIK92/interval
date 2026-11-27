@@ -925,6 +925,7 @@ export interface ItemDecision {
 export interface ItemEmbedding {
   content_item_id: Int8;
   embedded_at: Generated<Timestamp>;
+  embedding: string | null;
   model: string;
 }
 
@@ -1140,6 +1141,7 @@ export interface PathSectionConcept {
 }
 
 export interface PathSession {
+  content_item_id: Int8 | null;
   moment_id: Int8;
   ordinal: number;
   section_id: Int8;
@@ -1245,10 +1247,12 @@ export interface PushSubscription {
 export interface Question {
   answer: number | null;
   answer_count: Generated<number>;
+  article_ordinal: number | null;
   book_chapter_id: Int8 | null;
   calibrated_at: Timestamp | null;
   citation: string;
   content_hash: string | null;
+  content_item_id: Int8 | null;
   correct: number | null;
   correct_count: Generated<number>;
   created_at: Generated<Timestamp>;
@@ -1285,6 +1289,7 @@ export interface QuestionBatch {
 export interface QuestionBatchItem {
   batch_id: string;
   content_hash: string | null;
+  content_item_id: Int8 | null;
   custom_id: string;
   kind: Generated<QuestionKind>;
   moment_id: Int8 | null;
@@ -1299,12 +1304,14 @@ export interface QuestionConcept {
 
 export interface QuestionDrafting {
   attempt: number;
+  content_item_id: Int8 | null;
   moment_id: Int8;
   retry_at: Timestamp;
 }
 
 export interface QuestionEstimateDrafted {
   content_hash: string;
+  content_item_id: Int8 | null;
   moment_id: Int8;
 }
 
@@ -1564,6 +1571,12 @@ export interface UserArticleFinished {
   user_id: string;
 }
 
+export interface UserArticleOpened {
+  content_item_id: Int8;
+  opened_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface UserAvoidedConcept {
   name: string | null;
   slug: string | null;
@@ -1692,6 +1705,7 @@ export interface UserPathSection {
 }
 
 export interface UserPathSession {
+  content_item_id: Int8 | null;
   moment_id: Int8;
   ordinal: number;
   section_id: Int8;
@@ -1873,6 +1887,7 @@ export interface DB {
   unclaimed_dependency: UnclaimedDependency;
   university: University;
   user_article_finished: UserArticleFinished;
+  user_article_opened: UserArticleOpened;
   user_avoided_concept: UserAvoidedConcept;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
