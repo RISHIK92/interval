@@ -66,6 +66,7 @@ describe("createAccount", () => {
       ok: true,
       setCookies: ["session=abc"],
       actor: ACTOR,
+      email: "ada@example.test",
     });
     expect(d.redeem).not.toHaveBeenCalled();
     expect(d.create).toHaveBeenCalledWith(null, made, headers);

@@ -535,6 +535,26 @@ class StemCandidate:
 
 
 @dataclass(frozen=True)
+class CommunityDraft:
+    """Q-P7-05: a community question waiting for the second model's check, with its
+    section and author (whose AI budget the check spends, OPS-4)."""
+
+    moment_id: int
+    draft: QuestionDraft
+    # None once the author has left (owner, 2026-11-27): the global budget pays.
+    author_user_id: str | None
+
+
+# Why a community question was rejected before the model's check: its quote isn't the
+# section's words, or it refers to its source (the stand-alone rule).
+type CommunityRejection = Literal["not_quoted", "not_stand_alone"]
+
+# Q-P7-05: a check that agrees with the key sends the question to the owner's queue
+# ("review"), never live; one that doesn't rejects it.
+type CommunityVerdict = Literal["review", "rejected"]
+
+
+@dataclass(frozen=True)
 class QuestionTarget:
     """A moment questions may be drafted for (Q-P2-09): not a duplicate's, its source
     allows full text and moments (ING-2), and it has live concepts (an admin's
@@ -663,7 +683,7 @@ class Questions(Protocol):
 
     def drafted_hash(self, moment_id: int) -> str | None:
         """The content hash the moment's multiple-choice questions were drafted from;
-        None if none."""
+        None if none. Community questions (Q-P7-05) were drafted from nothing."""
         ...
 
     def estimate_drafted_hash(self, moment_id: int) -> str | None:
@@ -682,8 +702,9 @@ class Questions(Protocol):
         difficulty: Difficulty | None,
     ) -> list[int]:
         """These, pending, starting at `difficulty`, each tagged with the concepts
-        (slugs), in place of the moment's current multiple-choice questions, which are
-        retired, not deleted; clears the moment's retry state. Their ids, in order."""
+        (slugs), in place of the moment's current drafted multiple-choice questions,
+        which are retired, not deleted (its community questions stay, Q-P7-05); clears
+        the moment's retry state. Their ids, in order."""
         ...
 
     def save_estimate(
@@ -713,8 +734,9 @@ class Questions(Protocol):
 
     # P2-W8-S02 (Q-1): the blind validator.
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
-        """A multiple-choice question still waiting for its verdict, with its moment;
-        None once validated, retired, or gone."""
+        """A drafted multiple-choice question still waiting for its verdict, with its
+        moment; None once validated, retired, or gone, and for a community question
+        (`pending_community`)."""
         ...
 
     def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
@@ -722,19 +744,39 @@ class Questions(Protocol):
         ...
 
     def pending_ids(self, moment_id: int) -> list[int]:
-        """The moment's multiple-choice questions still waiting for a verdict
-        (re-queued by a backfill, so none waits forever)."""
+        """The moment's multiple-choice questions, community ones included, still
+        waiting for a verdict (re-queued by a backfill, so none waits forever)."""
         ...
 
     def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
         """Live when the validator's answer is the key, rejected when not, keeping
-        the answer; false (nothing changed) unless the question was pending."""
+        the answer; false (nothing changed) unless a drafted question was pending."""
+        ...
+
+    # Q-P7-05: community questions, checked by the same blind validator.
+    def pending_community(self, question_id: int) -> CommunityDraft | None:
+        """A community question still waiting for the check; None once checked,
+        retired, or gone, and for any other question."""
+        ...
+
+    def reject_community(self, question_id: int, because: CommunityRejection) -> bool:
+        """Rejected with no model's answer, saying why for its author; false unless
+        it was waiting for the check."""
+        ...
+
+    def record_community_verdict(
+        self, question_id: int, model: str, answer: int
+    ) -> CommunityVerdict | None:
+        """Keeps the validator's answer. Agreeing with the key, the question stays
+        pending and is queued for the owner (reason 'community'); otherwise it is
+        rejected, because of the check. None (nothing changed) unless it was waiting
+        for the check."""
         ...
 
     # Owner, 2026-11-23: stems rewritten to stand alone (`rewrite-stems`).
     def stem_candidates(self) -> list[StemCandidate]:
-        """Every live question of the public bank (not a book's), multiple-choice and
-        estimate, oldest first."""
+        """Every live drafted or hand-written question of the public bank (not a
+        book's, not a player's: Q-P7-05), multiple-choice and estimate, oldest first."""
         ...
 
     def mark_stem_tried(self, question_id: int) -> None:
@@ -794,13 +836,15 @@ class Questions(Protocol):
 
     def queue_spot_checks(self, since: datetime, share: float) -> tuple[int, int]:
         """Q-2: queue for review a random `share` (rounded up) of the live questions
-        created since `since`, less those already sampled from that window, plus every
-        flagged question not yet queued; (sampled, flagged) counts."""
+        created since `since` (not community ones: the owner approved each, Q-P7-05),
+        less those already sampled from that window, plus every flagged question not
+        yet queued; (sampled, flagged) counts."""
         ...
 
     # P2-W8-S05 (Q-P2-13): question batches.
     def pending_questions(self) -> list[tuple[int, QuestionKind]]:
-        """Every question waiting for its verdict, with its kind, oldest first."""
+        """Every drafted question waiting for its verdict, with its kind, oldest first.
+        Community questions are checked one at a time, on their author's budget."""
         ...
 
     def record_batch(

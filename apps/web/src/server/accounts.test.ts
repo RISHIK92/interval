@@ -1,5 +1,15 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { requestReset, resetPassword, signIn, signUp } from "./accounts";
+import { memoryRateLimits } from "./adapters/valkey-rate-limits";
+import {
+  requestReset,
+  mailVerificationOnSignUp,
+  requestVerification,
+  resetPassword,
+  signIn,
+  signUp,
+  VERIFY_LINKS_PER_HOUR,
+  VERIFY_MAIL_TRIES,
+} from "./accounts";
 import type { Accounts, SignUpResult } from "./ports";
 
 // Account logic on a fake port (ADR-0012); Better Auth itself is tested in
@@ -36,6 +46,12 @@ function fake(
       Promise.resolve(opts.reset ?? true),
     ),
     setPassword: vi.fn<Accounts["setPassword"]>(() => Promise.resolve(true)),
+    requestVerification: vi.fn<Accounts["requestVerification"]>(() =>
+      Promise.resolve(),
+    ),
+    emailStatus: vi.fn<Accounts["emailStatus"]>(() =>
+      Promise.resolve({ email: "ada@example.test", verified: false }),
+    ),
   };
   return port satisfies Accounts;
 }
@@ -51,7 +67,10 @@ const valid = {
 describe("signUp", () => {
   test("passes trimmed, lower-cased input to the port", async () => {
     const port = fake();
-    expect(await signUp(port, headers, valid)).toEqual({ ok: true });
+    expect(await signUp(port, headers, valid)).toEqual({
+      ok: true,
+      email: "ada@example.test",
+    });
     expect(port.signUp).toHaveBeenCalledWith(headers, {
       name: "Ada",
       email: "ada@example.test",
@@ -88,9 +107,9 @@ describe("signUp", () => {
 
   test("a password of exactly 8 or 128 characters is accepted", async () => {
     for (const password of ["12345678", "x".repeat(128)]) {
-      expect(await signUp(fake(), headers, { ...valid, password })).toEqual({
-        ok: true,
-      });
+      expect((await signUp(fake(), headers, { ...valid, password })).ok).toBe(
+        true,
+      );
     }
   });
 
@@ -148,6 +167,98 @@ describe("signIn", () => {
       });
     }
     expect(port.signIn).not.toHaveBeenCalled();
+  });
+});
+
+// Q-P7-05 (owner, 2026-11-27): a link on sign-up, and Profile's button for the rest.
+describe("email verification", () => {
+  test("sign-up itself sends nothing: it hands back the normalised email", async () => {
+    const port = fake();
+    expect(await signUp(port, headers, valid)).toEqual({
+      ok: true,
+      email: "ada@example.test",
+    });
+    expect(port.requestVerification).not.toHaveBeenCalled();
+  });
+
+  test("after sign-up the link is mailed and recorded; a failure is tried again", async () => {
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const port = fake();
+    const events = { emit: vi.fn() };
+    const wait = vi.fn(() => Promise.resolve());
+    const context = { ...ACCOUNT, sessionId: "v1" };
+    port.requestVerification.mockRejectedValueOnce(new Error("mail down"));
+    expect(
+      await mailVerificationOnSignUp(
+        { accounts: port, events, wait },
+        "ada@example.test",
+        context,
+      ),
+    ).toBe(true);
+    expect(port.requestVerification).toHaveBeenCalledTimes(2);
+    expect(wait).toHaveBeenCalledOnce();
+    expect(events.emit).toHaveBeenCalledExactlyOnceWith(
+      "email_verification_sent",
+      { trigger: "sign_up" },
+      context,
+    );
+  });
+
+  test("after the last try the failure is logged for its metric, never thrown", async () => {
+    const written: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      written.push(String(chunk));
+      return true;
+    });
+    const port = fake();
+    port.requestVerification.mockRejectedValue(new Error("mail down"));
+    const events = { emit: vi.fn() };
+    expect(
+      await mailVerificationOnSignUp(
+        { accounts: port, events, wait: () => Promise.resolve() },
+        "ada@example.test",
+        { ...ACCOUNT, sessionId: "v1" },
+      ),
+    ).toBe(false);
+    expect(port.requestVerification).toHaveBeenCalledTimes(VERIFY_MAIL_TRIES);
+    expect(events.emit).not.toHaveBeenCalled();
+    expect(written.join("")).toContain(
+      '"msg":"account: verification mail failed"',
+    );
+  });
+
+  test("a refused sign-up mails nothing", async () => {
+    const port = fake({ signUp: { ok: false, reason: "email_taken" } });
+    await signUp(port, headers, valid);
+    expect(port.requestVerification).not.toHaveBeenCalled();
+  });
+
+  test("Profile's button sends a link, at most VERIFY_LINKS_PER_HOUR an hour", async () => {
+    const port = fake();
+    const deps = { accounts: port, limits: memoryRateLimits() };
+    for (let n = 0; n < VERIFY_LINKS_PER_HOUR; n += 1)
+      expect(await requestVerification(deps, "a1")).toBe("sent");
+    expect(await requestVerification(deps, "a1")).toBe("too_many");
+    expect(port.requestVerification).toHaveBeenCalledTimes(
+      VERIFY_LINKS_PER_HOUR,
+    );
+    expect(port.requestVerification).toHaveBeenCalledWith("ada@example.test");
+  });
+
+  test("a verified or missing account sends nothing; a failed mail is said", async () => {
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const port = fake();
+    const deps = { accounts: port, limits: memoryRateLimits() };
+    port.emailStatus.mockResolvedValueOnce({
+      email: "ada@example.test",
+      verified: true,
+    });
+    expect(await requestVerification(deps, "a1")).toBe("verified");
+    port.emailStatus.mockResolvedValueOnce(null);
+    expect(await requestVerification(deps, "a1")).toBe("no_account");
+    expect(port.requestVerification).not.toHaveBeenCalled();
+    port.requestVerification.mockRejectedValueOnce(new Error("mail down"));
+    expect(await requestVerification(deps, "a1")).toBe("failed");
   });
 });
 

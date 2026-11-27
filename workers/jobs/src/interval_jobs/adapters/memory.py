@@ -52,6 +52,9 @@ from interval_jobs.ports import (
     Caption,
     ChapterForCheckpoint,
     CheckpointFacts,
+    CommunityDraft,
+    CommunityRejection,
+    CommunityVerdict,
     ConceptCoverage,
     ConceptGraph,
     ConceptSeed,
@@ -718,7 +721,12 @@ class InMemoryUsers:
 # The migration's seed: capabilities the beta plan limits (a database trigger refuses
 # granting these; the fake mirrors it).
 LIMITED_CAPABILITIES: frozenset[Capability] = frozenset(
-    {"ai.notes.daily", "ai.budget.daily_cents", "explore.ask.daily"}
+    {
+        "ai.notes.daily",
+        "ai.budget.daily_cents",
+        "explore.ask.daily",
+        "questions.submit.daily",
+    }
 )
 
 
@@ -1474,9 +1482,10 @@ class StoredQuestion:
     ordinal: int
     draft: QuestionDraft | EstimateDraft
     concepts: tuple[str, ...]
-    model: str
-    prompt_version: int
-    content_hash: str
+    # None for a community question (Q-P7-05): no model drafted it.
+    model: str | None
+    prompt_version: int | None
+    content_hash: str | None
     status: str = "pending"
     validator_model: str | None = None
     validator_answer: int | None = None
@@ -1485,6 +1494,11 @@ class StoredQuestion:
     calibrated_at: datetime | None = None
     validator_estimate: float | None = None
     stem_tried_at: datetime | None = None
+    # Q-P7-05: a player wrote it (submission_key in Postgres, kept when the author
+    # leaves and `author` is cleared), and why it was rejected, if it was.
+    community: bool = False
+    author: str | None = None
+    rejected_because: str | None = None
 
     @property
     def kind(self) -> QuestionKind:
@@ -1578,6 +1592,7 @@ class InMemoryQuestions:
                 if q.moment_id == moment_id
                 and q.status != "retired"
                 and q.kind == "choice"
+                and not q.community
             ),
             None,
         )
@@ -1596,7 +1611,7 @@ class InMemoryQuestions:
         difficulty: Difficulty | None,
     ) -> list[int]:
         for q in self.rows:
-            if q.moment_id == moment_id and q.kind == "choice":
+            if q.moment_id == moment_id and q.kind == "choice" and not q.community:
                 q.status = "retired"
         self.clear_retry(moment_id)
         ids: list[int] = []
@@ -1654,7 +1669,12 @@ class InMemoryQuestions:
 
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
         q = next((q for q in self.rows if q.id == question_id), None)
-        if q is None or q.status != "pending" or not isinstance(q.draft, QuestionDraft):
+        if (
+            q is None
+            or q.status != "pending"
+            or not isinstance(q.draft, QuestionDraft)
+            or q.community
+        ):
             return None
         return q.moment_id, q.draft
 
@@ -1668,23 +1688,88 @@ class InMemoryQuestions:
         return [
             q.id
             for q in sorted(self.rows, key=lambda q: q.ordinal)
-            if q.moment_id == moment_id and q.status == "pending" and q.kind == "choice"
+            if q.moment_id == moment_id
+            and q.status == "pending"
+            and q.kind == "choice"
+            and q.validated_at is None
         ]
 
     def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
-        q = next((q for q in self.rows if q.id == question_id), None)
-        if q is None or q.status != "pending" or not isinstance(q.draft, QuestionDraft):
+        if self.pending(question_id) is None:
             return False
+        q = next(q for q in self.rows if q.id == question_id)
+        assert isinstance(q.draft, QuestionDraft)  # pending() checked it
         q.status = "live" if answer == q.draft.correct else "rejected"
         q.validator_model, q.validator_answer = model, answer
         q.validated_at = datetime.now(UTC)
         return True
 
+    def add_community(
+        self,
+        moment_id: int,
+        draft: QuestionDraft,
+        concepts: Sequence[str],
+        author: str,
+    ) -> int:
+        """Q-P7-05: a player's question, pending, as the web app saves it."""
+        ordinal = sum(q.moment_id == moment_id and q.community for q in self.rows)
+        self.rows.append(
+            StoredQuestion(
+                self._next_id,
+                moment_id,
+                ordinal,
+                draft,
+                tuple(concepts),
+                None,
+                None,
+                None,
+                community=True,
+                author=author,
+            )
+        )
+        self._next_id += 1
+        return self._next_id - 1
+
+    def pending_community(self, question_id: int) -> CommunityDraft | None:
+        q = next((q for q in self.rows if q.id == question_id), None)
+        if (
+            q is None
+            or not q.community
+            or q.status != "pending"
+            or q.validated_at is not None
+            or not isinstance(q.draft, QuestionDraft)
+        ):
+            return None
+        return CommunityDraft(q.moment_id, q.draft, q.author)
+
+    def reject_community(self, question_id: int, because: CommunityRejection) -> bool:
+        if self.pending_community(question_id) is None:
+            return False
+        q = next(q for q in self.rows if q.id == question_id)
+        q.status, q.rejected_because = "rejected", because
+        return True
+
+    def record_community_verdict(
+        self, question_id: int, model: str, answer: int
+    ) -> CommunityVerdict | None:
+        found = self.pending_community(question_id)
+        if found is None:
+            return None
+        q = next(q for q in self.rows if q.id == question_id)
+        q.validator_model, q.validator_answer = model, answer
+        q.validated_at = datetime.now(UTC)
+        if answer != found.draft.correct:
+            q.status, q.rejected_because = "rejected", "check"
+            return "rejected"
+        if not any(qid == question_id and not done for qid, _, done in self.reviews):
+            self.reviews.append((question_id, "community", False))
+        return "review"
+
     def stem_candidates(self) -> list[StemCandidate]:
         return [
             StemCandidate(q.id, q.moment_id, q.draft, q.stem_tried_at)
             for q in sorted(self.rows, key=lambda q: q.id)
-            if q.status == "live"
+            if q.status == "live" and not q.community
         ]
 
     def mark_stem_tried(self, question_id: int) -> None:
@@ -1786,6 +1871,7 @@ class InMemoryQuestions:
             if q.validated_at is not None
             and q.validated_at >= since
             and q.status != "rejected"
+            and not q.community
         ]
         sampled_ids = {qid for qid, reason, _ in self.reviews if reason == "sample"}
         open_ids = {qid for qid, _, decided in self.reviews if not decided}
@@ -1805,7 +1891,11 @@ class InMemoryQuestions:
         return len(sampled), len(flagged)
 
     def pending_questions(self) -> list[tuple[int, QuestionKind]]:
-        return [(q.id, q.kind) for q in self.rows if q.status == "pending"]
+        return [
+            (q.id, q.kind)
+            for q in self.rows
+            if q.status == "pending" and not q.community
+        ]
 
     def record_batch(
         self,
@@ -1998,7 +2088,7 @@ class InMemoryPaths:
         live = {
             q.moment_id
             for q in self._questions.rows
-            if q.status == "live" and q.kind == "choice"
+            if q.status == "live" and q.kind == "choice" and not q.community
         }
         return [
             SessionCandidate(moment_id, concepts, source, frameable, moment_id in live)

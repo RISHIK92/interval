@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   agentHook,
   books,
+  communityQuestions,
   entitlements,
   events,
   feedback,
@@ -29,6 +30,7 @@ import { outHref, readHref } from "../server/outbound";
 import { parseReading, READING_COOKIE } from "../server/reading";
 import { BIGINT_ID, type FeedCard, quizKey } from "../server/ports";
 import { visitId } from "../server/visits";
+import { writeOffer } from "../server/community";
 import { signOutAction } from "./actions";
 import { AgentBanner } from "./AgentBanner";
 import { AlsoFits, breakMinutes } from "./AlsoFits";
@@ -43,6 +45,7 @@ import { Greeting } from "./Greeting";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
 import { UndoNotInterested } from "./UndoNotInterested";
+import { WriteQuestionLink } from "./WriteQuestionLink";
 import { MomentCard } from "./MomentCard";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
 import { BookCard } from "./BookCard";
@@ -158,6 +161,16 @@ export default async function HomePage({
       : (await progress().describe(finished.itemId, finished.momentId)) === null
         ? undefined
         : await progress().nextMoment(finished.itemId, finished.momentId);
+  // Q-P7-05: the section just finished may get a question from this player.
+  const offer =
+    finished === null || finished.momentId === null || next === undefined
+      ? null
+      : await writeOffer(
+          { community: communityQuestions(), entitlements: entitlements() },
+          actor.userId,
+          finished.momentId,
+          new Date(),
+        );
   // Back from the in-app reader (ADR-0018): ask about what it showed. Ids only, in the
   // reading cookie's form; a finish of ids that name nothing writes nothing.
   const ask = parseReading(
@@ -431,6 +444,17 @@ export default async function HomePage({
           Test yourself · 60s
         </StartQuiz>
       ) : null}
+      {offer === null ||
+      finished === null ||
+      finished.momentId === null ? null : (
+        <p className="mb-4">
+          <WriteQuestionLink
+            offer={offer}
+            momentId={finished.momentId}
+            className="font-semibold text-select"
+          />
+        </p>
+      )}
       <ContinueReading cards={continuing} chip={chip} />
       {undoable === null ? null : (
         <UndoNotInterested itemId={undoable} chip={chip} />

@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
   Books,
+  CommunityQuestions,
   FeedCard,
   FeedReader,
   Listening,
@@ -57,7 +58,15 @@ vi.mock("../server/container", () => ({
   paths: () => ({ next: pathNext }),
   books: () => ({ nextSession }),
   listening: () => ({ fitting }),
+  communityQuestions: () => ({ section, allowance }),
 }));
+// Q-P7-05: no section to write about unless a test says so.
+const section = vi.fn<CommunityQuestions["section"]>(() =>
+  Promise.resolve(null),
+);
+const allowance = vi.fn<CommunityQuestions["allowance"]>(() =>
+  Promise.resolve({ verified: true, used: 0 }),
+);
 const fitting = vi.fn<Listening["fitting"]>(() => Promise.resolve(null));
 const nextSession = vi.fn<Books["nextSession"]>(() => Promise.resolve(null));
 const pathNext = vi.fn<Paths["next"]>(() => Promise.resolve(null));
@@ -531,6 +540,44 @@ test("after a section is finished the next one is offered, or the end is said", 
   expect(await render({ finished: "10.1" })).toContain(
     "That was the last section.",
   );
+  describe_.mockReset();
+  describe_.mockResolvedValue(null);
+});
+
+// Q-P7-05 (owner, 2026-11-27): the end of a section offers a question to write, to a
+// verified account; an unverified one is sent to Profile to verify.
+test("the end of a section offers Write a question, or Verify your email", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([]));
+  describe_.mockResolvedValue({
+    articleTitle: "Consensus in practice",
+    sectionTitle: "Why consensus",
+  });
+  expect(await render({ finished: "10.1" })).not.toContain("Write a question");
+  section.mockResolvedValue({
+    momentId: "1",
+    title: "Why consensus",
+    articleTitle: "Consensus in practice",
+  });
+  expect(await render({ finished: "10.1" })).toContain(
+    '<a href="/questions/new?moment=1" class="font-semibold text-select">Write a question</a>',
+  );
+  expect(section).toHaveBeenCalledWith(user.userId, "1");
+  allowance.mockResolvedValueOnce({ verified: false, used: 0 });
+  const unverified = await render({ finished: "10.1" });
+  expect(unverified).toContain('href="/profile#verify"');
+  expect(unverified).toContain("Verify your email to write questions");
+  expect(unverified).not.toContain("/questions/new");
+  // OPS-3: a plan without questions.submit offers neither.
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "questions.submit"),
+  );
+  const unplanned = await render({ finished: "10.1" });
+  expect(unplanned).not.toContain("/questions/new");
+  expect(unplanned).not.toContain("/profile#verify");
+  can.mockImplementation(() => Promise.resolve(true));
+  section.mockReset();
+  section.mockResolvedValue(null);
   describe_.mockReset();
   describe_.mockResolvedValue(null);
 });

@@ -18,6 +18,9 @@ const port = {
   requestReset: vi.fn<Accounts["requestReset"]>(() => Promise.resolve()),
   resetPassword: vi.fn<Accounts["resetPassword"]>(),
   setPassword: vi.fn<Accounts["setPassword"]>(() => Promise.resolve(true)),
+  requestVerification: vi.fn<Accounts["requestVerification"]>(() =>
+    Promise.resolve(),
+  ),
 };
 // The request's own headers: empty (not local) unless a test sets them.
 const request = { headers: new Headers() };
@@ -80,6 +83,13 @@ const redirect = vi.fn((url: string) => {
   throw new Error(`redirect:${url}`);
 });
 vi.mock("next/navigation", () => ({ redirect }));
+// Q-P7-05: Next's `after`, held so a test sees the mail waits for the response.
+const afterResponse: (() => Promise<unknown>)[] = [];
+vi.mock("next/server", () => ({
+  after: (task: () => Promise<unknown>) => {
+    afterResponse.push(task);
+  },
+}));
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -164,6 +174,10 @@ describe("sign-up", () => {
         sessionId: "visit-9",
       },
     );
+    // Q-P7-05: the verification link goes after the response.
+    expect(port.requestVerification).not.toHaveBeenCalled();
+    await afterResponse.pop()?.();
+    expect(port.requestVerification).toHaveBeenCalledWith("ada@example.test");
     emit.mockClear();
     port.signUp.mockResolvedValueOnce({ ok: false, reason: "email_taken" });
     expect(await signUpAction(null, form(fields))).toEqual({

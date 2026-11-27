@@ -92,6 +92,8 @@ from interval_jobs.ports import (
     AskPassage,
     AskRequest,
     AskResult,
+    CommunityDraft,
+    CommunityRejection,
     ConceptGraph,
     Delivery,
     EventSink,
@@ -114,10 +116,13 @@ from interval_jobs.ports import (
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.questions import (
     QuestionReplyError,
+    community_validation_prompt,
     content_hash,
     parse_answer,
     parse_reply,
     prompt,
+    question_refers_to_source,
+    quotes_passage,
     shuffled,
     validation_prompt,
 )
@@ -1239,9 +1244,15 @@ class Pipeline:
     def _validate_stage(self, message: BaseModel, delivery: Delivery) -> None:
         """Q-1: answer a pending question blind; live if it matches the key, else
         rejected (P2-W8-S02). A decided or retired question is skipped, so a
-        repeated delivery changes nothing."""
+        repeated delivery changes nothing. A community question is checked apart
+        (Q-P7-05)."""
         assert isinstance(message, ValidateQuestion)
         question_id, job = message.question_id, self._questions
+        with self._unit() as services:
+            community = services.store.questions.pending_community(question_id)
+        if community is not None:
+            self._check_community(message, community)
+            return
         if job is None or job.model.startswith(BATCH_PREFIX):
             log.info("pipeline: sync questions are off", question_id=question_id)
             return
@@ -1294,6 +1305,90 @@ class Pipeline:
             )
         else:
             log.info("questions: decided or retired meanwhile", question_id=question_id)
+
+    def _check_community(
+        self, message: ValidateQuestion, community: CommunityDraft
+    ) -> None:
+        """Q-P7-05: the same blind check on a player's question, on the player's AI
+        budget (OPS-4), one call at a time even when drafting is batched (as
+        rewrite-stems). Agreeing with the key sends it to the owner's queue, never
+        live; disagreeing rejects it, and the owner never sees it."""
+        question_id, job = message.question_id, self._questions
+        if job is None:
+            # LOAD-5: it waits, pending, for a worker with QUESTIONS_MODEL; said.
+            log.warn(
+                "questions: community check waits for a model", question_id=question_id
+            )
+            return
+        with self._unit() as services:
+            target = services.store.questions.target(community.moment_id)
+            text = moment_text(services.store, target)
+        if not text:
+            # As a drafted question: its section lost its rights or tags meanwhile
+            # (ING-2); left pending, and a later backfill re-queues it.
+            log.warn(
+                "questions: community question waits, its moment isn't a target",
+                question_id=question_id,
+            )
+            return
+        # The drafting rules, before any model call (OPS-4: the author's budget): a
+        # question shown on its own must not refer to its source (owner, 2026-11-23,
+        # 2026-11-27), and its quote must be the section's own words (AI-3).
+        draft = community.draft
+        because: CommunityRejection | None = None
+        if question_refers_to_source(draft.stem, draft.options):
+            because = "not_stand_alone"
+        elif not quotes_passage(draft.citation, text):
+            because = "not_quoted"
+        if because is not None:
+            with self._unit() as services:
+                services.store.questions.reject_community(question_id, because)
+            log.info(
+                "questions: community question checked",
+                question_id=question_id,
+                verdict=f"rejected, {because}",
+            )
+            return
+        model = job.model.removeprefix(BATCH_PREFIX)
+        messages, order = community_validation_prompt(text, community.draft)
+        try:
+            with job.gateway() as gateway:
+                answered = gateway.complete(
+                    feature="questions",
+                    user_id=community.author_user_id,
+                    model=model,
+                    messages=messages,
+                )
+            if isinstance(answered, OverBudget):
+                # OPS-4, LOAD-5: never dropped. It waits, pending, and is tried again
+                # like a model error; this line and the gateway's "ai: over budget"
+                # (the OverBudget metric) say so.
+                log.warn(
+                    "questions: community check over budget",
+                    question_id=question_id,
+                    scope=answered.scope,
+                )
+                raise ModelError(f"the {answered.scope} AI budget is spent")
+            answer = parse_answer(answered.text)
+        except (ModelError, QuestionReplyError) as error:
+            self._retry_question_call(
+                "validate_question",
+                {"question_id": question_id},
+                f"validate-{question_id}",
+                message.attempt + 1,
+                message.broken,
+                error,
+            )
+            return
+        with self._unit() as services:
+            verdict = services.store.questions.record_community_verdict(
+                question_id, model, order[answer]
+            )
+        log.info(
+            "questions: community question checked",
+            question_id=question_id,
+            verdict=verdict or "checked meanwhile",
+        )
 
     def _tag_if_needed(self, store: Store, item_id: int) -> list[Next]:
         if self._tagging is None or not store.tags.needs_tagging(

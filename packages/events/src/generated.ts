@@ -23,6 +23,7 @@ export const EVENT_NAMES = [
   "concept_missed",
   "continue_clicked",
   "country_changed",
+  "email_verification_sent",
   "estimate_answered",
   "explainer_finished",
   "explainer_started",
@@ -57,6 +58,7 @@ export const EVENT_NAMES = [
   "push_setting_changed",
   "pwa_installed",
   "question_flagged",
+  "question_submitted",
   "quiz_answered",
   "quiz_finished",
   "quiz_started",
@@ -93,6 +95,7 @@ export const EVENT_VERSIONS = {
   concept_missed: 1,
   continue_clicked: 1,
   country_changed: 1,
+  email_verification_sent: 1,
   estimate_answered: 1,
   explainer_finished: 1,
   explainer_started: 1,
@@ -127,6 +130,7 @@ export const EVENT_VERSIONS = {
   push_setting_changed: 2,
   pwa_installed: 1,
   question_flagged: 1,
+  question_submitted: 1,
   quiz_answered: 1,
   quiz_finished: 1,
   quiz_started: 2,
@@ -248,6 +252,9 @@ export const propsSchemas = {
   }),
   continue_clicked: z.strictObject({}),
   country_changed: z.strictObject({ action: z.enum(["set", "removed"]) }),
+  email_verification_sent: z.strictObject({
+    trigger: z.enum(["sign_up", "profile"]),
+  }),
   estimate_answered: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -372,6 +379,12 @@ export const propsSchemas = {
   question_flagged: z.strictObject({
     question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     reason: z.enum(["wrong_key", "unclear", "not_in_section", "other"]),
+  }),
+  question_submitted: z.strictObject({
+    question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    moment_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    limited: z.boolean(),
+    remaining_today: z.number().int().nonnegative(),
   }),
   quiz_answered: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -585,6 +598,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   }),
   z.strictObject({
     ...base,
+    name: z.literal("email_verification_sent"),
+    version: z.literal(1),
+    props: propsSchemas.email_verification_sent,
+  }),
+  z.strictObject({
+    ...base,
     name: z.literal("estimate_answered"),
     version: z.literal(1),
     props: propsSchemas.estimate_answered,
@@ -786,6 +805,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("question_flagged"),
     version: z.literal(1),
     props: propsSchemas.question_flagged,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("question_submitted"),
+    version: z.literal(1),
+    props: propsSchemas.question_submitted,
   }),
   z.strictObject({
     ...base,

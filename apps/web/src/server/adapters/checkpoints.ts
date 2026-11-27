@@ -39,7 +39,8 @@ export const everSkipped = (
 
 // A section's checkpoint questions: live ones whose rights allow them (Q-1, ING-2),
 // from its own readings (tier 0, in reading order), then on its live concepts (tier
-// 1); a question in both is in its first tier.
+// 1); a question in both is in its first tier. Never a community question: they serve
+// in practice only (Q-P7-05).
 export const checkpointQuestions = (userId: string, section: Ref) => sql`
   select distinct on (id) id, tier, ro, qo from (
     select q.id, 0 as tier, ps.ordinal as ro, q.ordinal as qo
@@ -48,7 +49,7 @@ export const checkpointQuestions = (userId: string, section: Ref) => sql`
     join content_item ci on ci.id = m.content_item_id
     join source so on so.id = ci.source_id
     join question q on q.moment_id = m.id and q.status = 'live'
-      and q.kind = 'choice'
+      and q.kind = 'choice' and q.submission_key is null
     where ${ALLOWED}
     union all
     select q.id, 1, 0, 0
@@ -56,7 +57,7 @@ export const checkpointQuestions = (userId: string, section: Ref) => sql`
     join concept c on c.id = pc.concept_id and c.retired_at is null
     join question_concept qc on qc.concept_id = pc.concept_id
     join question q on q.id = qc.question_id and q.status = 'live'
-      and q.kind = 'choice'
+      and q.kind = 'choice' and q.submission_key is null
     join moment m on m.id = q.moment_id
     join content_item ci on ci.id = m.content_item_id
     join source so on so.id = ci.source_id

@@ -2,8 +2,9 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { env } from "../../env";
-import { createAccount } from "../../server/accounts";
+import { createAccount, mailVerificationOnSignUp } from "../../server/accounts";
 import { clientIp } from "../../server/clientIp";
 import {
   accounts,
@@ -37,6 +38,15 @@ export async function join(
   );
   if (!result.ok) return { message: result.message };
   const visit = await startVisit(result.actor);
-  events().emit("signup_completed", {}, { ...result.actor, sessionId: visit });
+  const context = { ...result.actor, sessionId: visit };
+  events().emit("signup_completed", {}, context);
+  // Q-P7-05: the verification mail goes after the response; sign-up never waits.
+  after(() =>
+    mailVerificationOnSignUp(
+      { accounts: accounts(), events: events() },
+      result.email,
+      context,
+    ),
+  );
   redirect("/onboarding");
 }

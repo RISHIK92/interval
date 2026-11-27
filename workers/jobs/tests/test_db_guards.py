@@ -275,6 +275,8 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
         ("play.live", None),
         ("play.sprint", None),
         ("push.notify", None),  # ADR-0036
+        ("questions.submit", None),  # Q-P7-05
+        ("questions.submit.daily", 3),
     ]
 
 
@@ -315,6 +317,8 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
         ("play.live", None),
         ("play.sprint", None),
         ("push.notify", None),  # ADR-0036
+        ("questions.submit", None),  # Q-P7-05
+        ("questions.submit.daily", 3),
     ]
 
 

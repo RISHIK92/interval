@@ -611,3 +611,79 @@ test("passwords are stored hashed and never written to the log", async () => {
     expect(log).not.toContain(secret);
   }
 });
+
+// Q-P7-05 (owner, 2026-11-27): Better Auth's own signed link verifies the email; sign-in
+// never asks for it.
+function verifyLink(): string {
+  const match = /(http:\/\/localhost:3100\/api\/auth\/verify-email\?\S+)/.exec(
+    sent.at(-1)?.text ?? "",
+  );
+  if (match?.[1] === undefined)
+    throw new Error("no verification link in the mail");
+  return match[1];
+}
+
+test("a verification link sets email_verified once and lands on Profile", async () => {
+  const account = await newAccount();
+  expect(await port.emailStatus(account.userId)).toEqual({
+    email: account.email,
+    verified: false,
+  });
+  // Unverified, sign-in works as before.
+  expect(await signedIn(account.email, PASSWORD)).not.toBeNull();
+  sent.length = 0;
+  await port.requestVerification(account.email);
+  expect(sent).toHaveLength(1);
+  expect(sent[0]?.to).toBe(account.email);
+  expect(sent[0]?.subject).toBe("Verify your Interval email");
+  const link = verifyLink();
+  const landed = await auth.handler(new Request(link));
+  expect(landed.status).toBe(302);
+  expect(landed.headers.get("location")).toBe("/profile?saved=email-verified");
+  expect(await port.emailStatus(account.userId)).toEqual({
+    email: account.email,
+    verified: true,
+  });
+  // Already verified: nothing more is sent, and the caller can't tell.
+  sent.length = 0;
+  await port.requestVerification(account.email);
+  await port.requestVerification("nobody@testacct.example.test");
+  expect(sent).toEqual([]);
+});
+
+test("a made-up verification link changes nothing and says so on Profile", async () => {
+  const account = await newAccount();
+  const landed = await auth.handler(
+    new Request(
+      `http://localhost:3100/api/auth/verify-email?token=made-up&callbackURL=${encodeURIComponent("/profile?saved=email-verified")}`,
+    ),
+  );
+  expect(landed.status).toBe(302);
+  expect(landed.headers.get("location")).toMatch(
+    /^\/profile\?saved=email-verified&error=/,
+  );
+  expect((await port.emailStatus(account.userId))?.verified).toBe(false);
+});
+
+test("a guest has no email status", async () => {
+  const guest = await newGuest();
+  expect(await port.emailStatus(guest.userId)).toBeNull();
+});
+
+// Q-P7-05: only the server sends links (Profile's button has a per-account limit).
+test("Better Auth's own send-verification endpoint is closed", async () => {
+  const account = await newAccount();
+  sent.length = 0;
+  const response = await auth.handler(
+    new Request("http://localhost:3100/api/auth/send-verification-email", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3100",
+      },
+      body: JSON.stringify({ email: account.email }),
+    }),
+  );
+  expect(response.status).toBe(404);
+  expect(sent).toEqual([]);
+});

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { pushEnv } from "../../env";
 import {
+  accounts,
   agentHook,
   entitlements,
   feedback,
@@ -51,6 +52,7 @@ import {
   unfollowAction,
   unhideSourceAction,
   updatePreferencesAction,
+  verifyEmailAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +81,27 @@ const NOTICES: Record<string, string> = {
     "You're hidden from people search. Anyone with your exact username can still follow you.",
   "github-off":
     "GitHub disconnected; what Interval read from it is deleted. Uninstall Interval on GitHub to revoke its access.",
+  "email-verified": "Your email is verified. You can write questions now.",
+};
+// Q-P7-05: what "Verify your email" did.
+const VERIFY_OUTCOMES: Record<string, { text: string; problem: boolean }> = {
+  sent: {
+    text: "Link sent. Open it from your inbox within a day.",
+    problem: false,
+  },
+  verified: { text: "Your email is already verified.", problem: false },
+  too_many: {
+    text: "You've asked for 3 links in the last hour. Try again later.",
+    problem: true,
+  },
+  failed: {
+    text: "The email couldn't be sent. Try again later.",
+    problem: true,
+  },
+  no_account: {
+    text: "There's no account email to verify.",
+    problem: true,
+  },
 };
 // P2-W12-S01: the GitHub callback's outcomes.
 const GITHUB_PROBLEMS: Record<string, string> = {
@@ -107,6 +130,9 @@ export default async function ProfilePage(props: {
     uq?: string;
     pq?: string;
     friend?: string;
+    verify?: string;
+    // Better Auth's, on a verification link that expired or isn't valid.
+    error?: string;
   }>;
 }) {
   const actor = await sessionReader().current(await headers());
@@ -126,6 +152,8 @@ export default async function ProfilePage(props: {
     uq,
     pq,
     friend,
+    verify,
+    error: linkError,
   } = await props.searchParams;
   // Usernames are 20 characters at most.
   const people = (pq ?? "").trim().toLowerCase().slice(0, 20);
@@ -144,6 +172,7 @@ export default async function ProfilePage(props: {
     pushGranted,
     savedPush,
     topics,
+    email,
   ] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
@@ -161,6 +190,7 @@ export default async function ProfilePage(props: {
     entitlements().can(actor.userId, "push.notify"),
     pushSettings().get(actor.userId),
     offeredTopics(feedReader()),
+    accounts().emailStatus(actor.userId),
   ]);
   // ADR-0045 (Profile, web): the header's league, on a plan with leagues.
   const league = (await entitlements().can(actor.userId, "play.league"))
@@ -235,7 +265,9 @@ export default async function ProfilePage(props: {
           </p>
         </div>
       </div>
-      {saved !== undefined && Object.hasOwn(NOTICES, saved) ? (
+      {saved !== undefined &&
+      Object.hasOwn(NOTICES, saved) &&
+      linkError === undefined ? (
         <Card className="px-5 py-3 lg:col-span-2">
           <p role="status">{NOTICES[saved]}</p>
         </Card>
@@ -293,6 +325,20 @@ export default async function ProfilePage(props: {
         >
           Settings
         </h2>
+        {email === null ? null : (
+          <Setting icon="email">
+            <EmailSection
+              email={email.email}
+              verified={email.verified}
+              outcome={
+                verify !== undefined && Object.hasOwn(VERIFY_OUTCOMES, verify)
+                  ? (VERIFY_OUTCOMES[verify] ?? null)
+                  : null
+              }
+              badLink={linkError !== undefined}
+            />
+          </Setting>
+        )}
         <Setting icon="github">
           <GitHubSection offered={offered} connection={connection} />
         </Setting>
@@ -494,6 +540,10 @@ export default async function ProfilePage(props: {
 // One setting on wide screens: a hairline row with its mark beside the section, as in the
 // web design; a card on phones.
 const SETTING_ICONS = {
+  email: {
+    tint: "bg-(--databases-tint) text-(--databases-line)",
+    path: <path d="M3 6h18v12H3zM3 6l9 7 9-7" />,
+  },
   agent: {
     tint: "bg-live/10 text-live",
     path: <path d="M3 4h18v12H3zM8 20h8M12 16v4" />,
@@ -849,6 +899,53 @@ function Repositories({ connection }: { connection: GitHubConnection }) {
 
 // P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02): optional, for country boards; set or
 // changed once a month, removed at any time.
+// Q-P7-05 (owner, 2026-11-27): verification gates only writing community questions;
+// a link goes out on sign-up, and this sends another.
+function EmailSection({
+  email,
+  verified,
+  outcome,
+  badLink,
+}: {
+  email: string;
+  verified: boolean;
+  outcome: { text: string; problem: boolean } | null;
+  badLink: boolean;
+}) {
+  return (
+    <section id="verify" aria-label="Email" className="scroll-mt-6">
+      <h2 className="text-section">Email</h2>
+      <p className="mt-1 break-all text-ink-muted">
+        {email} · {verified ? "Verified" : "Not verified"}
+      </p>
+      {badLink && !verified ? (
+        <p role="alert" className="mt-2 text-wrong">
+          That verification link has expired or isn&apos;t valid. Send a new
+          one.
+        </p>
+      ) : null}
+      {outcome === null ? null : (
+        <p
+          role={outcome.problem ? "alert" : "status"}
+          className={`mt-2 ${outcome.problem ? "text-wrong" : ""}`}
+        >
+          {outcome.text}
+        </p>
+      )}
+      {verified ? null : (
+        <form action={verifyEmailAction} className="mt-3">
+          <p className="mb-3 text-ink-muted">
+            Verify your email to write questions for other players.
+          </p>
+          <Button type="submit" variant="secondary">
+            Verify your email
+          </Button>
+        </form>
+      )}
+    </section>
+  );
+}
+
 function CountrySection({
   country,
   changeableFrom,

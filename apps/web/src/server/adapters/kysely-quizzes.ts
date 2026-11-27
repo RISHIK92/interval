@@ -49,10 +49,12 @@ const notServedThisWeek = (userId: string) => sql`
 
 // Live questions in moments their source's rights allow (Q-1, ING-2), as `q` and `m`.
 // Multiple choice only: an estimate is answered with a number (P3-W13-S03). Live
-// matches draw from the same (P3-W15-S03, kysely-matches.ts).
+// matches draw from the same (P3-W15-S03, kysely-matches.ts). Never a community
+// question (Q-P7-05): until its practice-only paths come (W51), it serves nowhere.
 export const LIVE = sql`
   question q
   join moment m on m.id = q.moment_id and q.kind = 'choice'
+   and q.submission_key is null
   join content_item ci on ci.id = m.content_item_id
   join source s on s.id = ci.source_id
    and s.moments_enabled

@@ -97,6 +97,9 @@ export function kyselyAdminQuestions(db: Kysely<DB>): AdminQuestions {
           set decision = ${decision}::review_decision, decided_by = ${by},
               decided_at = now()
           where question_id = ${questionId} and decision is null
+            -- A community question's review is Approve or Reject (Q-P7-05), never
+            -- Keep or Retire.
+            and reason <> 'community'
           returning question_id
         )
         update question q

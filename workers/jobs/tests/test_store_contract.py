@@ -288,6 +288,8 @@ class MemoryProbe:
 
     def question_writers(self, question_id: int) -> tuple[str, int, str | None]:
         q = next(q for q in self.s.questions.rows if q.id == question_id)
+        # A drafted question's; only a community one (Q-P7-05) has no model.
+        assert q.model is not None and q.prompt_version is not None
         return q.model, q.prompt_version, q.validator_model
 
     def override_level(self, item_id: int, heading: str, level: str) -> None:

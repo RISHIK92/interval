@@ -56,6 +56,9 @@ from interval_jobs.ports import (
     Caption,
     ChapterForCheckpoint,
     CheckpointFacts,
+    CommunityDraft,
+    CommunityRejection,
+    CommunityVerdict,
     ConceptCoverage,
     ConceptCycleError,
     ConceptEdge,
@@ -2013,8 +2016,9 @@ class PostgresQuestions:
 
     def drafted_hash(self, moment_id: int) -> str | None:
         row = self._conn.execute(
-            "select content_hash from question "
-            "where moment_id = %s and kind = 'choice' and status <> 'retired' limit 1",
+            "select content_hash from question where moment_id = %s "
+            "and kind = 'choice' and status <> 'retired' and submission_key is null "
+            "limit 1",
             (moment_id,),
         ).fetchone()
         return None if row is None else str(row[0])
@@ -2037,8 +2041,8 @@ class PostgresQuestions:
         difficulty: Difficulty | None,
     ) -> list[int]:
         self._conn.execute(
-            "update question set status = 'retired' "
-            "where moment_id = %s and kind = 'choice' and status <> 'retired'",
+            "update question set status = 'retired' where moment_id = %s "
+            "and kind = 'choice' and status <> 'retired' and submission_key is null",
             (moment_id,),
         )
         self.clear_retry(moment_id)
@@ -2154,7 +2158,8 @@ class PostgresQuestions:
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
         row = self._conn.execute(
             "select moment_id, stem, options, correct, citation from question "
-            "where id = %s and status = 'pending' and kind = 'choice'",
+            "where id = %s and status = 'pending' and kind = 'choice' "
+            "and submission_key is null",
             (question_id,),
         ).fetchone()
         if row is None:
@@ -2181,7 +2186,7 @@ class PostgresQuestions:
     def pending_ids(self, moment_id: int) -> list[int]:
         rows = self._conn.execute(
             "select id from question where moment_id = %s and status = 'pending' "
-            "and kind = 'choice' order by ordinal",
+            "and kind = 'choice' and validated_at is null order by ordinal",
             (moment_id,),
         ).fetchall()
         return [int(r[0]) for r in rows]
@@ -2196,17 +2201,76 @@ class PostgresQuestions:
               validator_answer = %(answer)s,
               validated_at = now()
             where id = %(id)s and status = 'pending' and kind = 'choice'
+              and submission_key is null
             returning id
             """,
             {"id": question_id, "model": model, "answer": answer},
         ).fetchone()
         return row is not None
 
+    def pending_community(self, question_id: int) -> CommunityDraft | None:
+        row = self._conn.execute(
+            "select moment_id, stem, options, correct, citation, author_user_id "
+            "from question where id = %s and status = 'pending' "
+            "and submission_key is not null and validated_at is null",
+            (question_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        moment_id, stem, options, correct, citation, author = row
+        return CommunityDraft(
+            int(moment_id),
+            QuestionDraft(
+                str(stem), tuple(str(o) for o in options), int(correct), str(citation)
+            ),
+            None if author is None else str(author),
+        )
+
+    def reject_community(self, question_id: int, because: CommunityRejection) -> bool:
+        row = self._conn.execute(
+            "update question set status = 'rejected', rejected_because = %s "
+            "where id = %s and status = 'pending' and submission_key is not null "
+            "and validated_at is null returning id",
+            (because, question_id),
+        ).fetchone()
+        return row is not None
+
+    def record_community_verdict(
+        self, question_id: int, model: str, answer: int
+    ) -> CommunityVerdict | None:
+        # One statement: the verdict and the owner's review together, or neither.
+        row = self._conn.execute(
+            """
+            with checked as (
+              update question set
+                status = case when correct = %(answer)s then 'pending' else 'rejected'
+                  end::question_status,
+                rejected_because = case when correct <> %(answer)s then 'check' end,
+                validator_model = %(model)s,
+                validator_answer = %(answer)s,
+                validated_at = now()
+              where id = %(id)s and status = 'pending' and submission_key is not null
+                and validated_at is null
+              returning id, status
+            ), queued as (
+              insert into question_review (question_id, reason)
+              select id, 'community' from checked where status = 'pending'
+              on conflict (question_id) where decision is null do nothing
+            )
+            select status from checked
+            """,
+            {"id": question_id, "model": model, "answer": answer},
+        ).fetchone()
+        if row is None:
+            return None
+        return "review" if row[0] == "pending" else "rejected"
+
     def stem_candidates(self) -> list[StemCandidate]:
         rows = self._conn.execute(
             "select id, kind, moment_id, stem, options, correct, answer, unit, "
             "citation, stem_rewrite_tried_at from question "
-            "where status = 'live' and moment_id is not null order by id"
+            "where status = 'live' and moment_id is not null "
+            "and submission_key is null order by id"
         ).fetchall()
         found: list[StemCandidate] = []
         for (
@@ -2395,6 +2459,7 @@ class PostgresQuestions:
                        else created_at end) >= %(since)s
                 and status <> 'rejected'
                 and book_chapter_id is null
+                and submission_key is null
             ), taken as (
               select count(distinct r.question_id) as n from question_review r
               join window_q w on w.id = r.question_id where r.reason = 'sample'
@@ -2433,7 +2498,7 @@ class PostgresQuestions:
     def pending_questions(self) -> list[tuple[int, QuestionKind]]:
         rows = self._conn.execute(
             "select id, kind from question where status = 'pending' "
-            "order by created_at, id"
+            "and submission_key is null order by created_at, id"
         ).fetchall()
         return [(int(r[0]), cast(QuestionKind, r[1])) for r in rows]
 
@@ -2691,7 +2756,7 @@ class PostgresPaths:
                    -- a checkpoint asks multiple choice only (P3-W13-S03b)
                    exists (select 1 from question q
                            where q.moment_id = a.moment_id and q.status = 'live'
-                             and q.kind = 'choice')
+                             and q.kind = 'choice' and q.submission_key is null)
             from allowed a
             where a.moment_id in (
               select moment_id from allowed where slug = any(%s)

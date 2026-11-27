@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { SlowBar } from "./ReaderFrame";
 import type {
   Actor,
+  CommunityQuestions,
   Listening,
   Notes,
   OutboundLinks,
@@ -23,7 +24,19 @@ const recordOpen = vi.fn<Progress["recordOpen"]>(() => Promise.resolve());
 const countExploreOpen = vi.fn<Progress["countExploreOpen"]>(() =>
   Promise.resolve(),
 );
+// Q-P7-05: no section to write about unless a test says so.
+const section = vi.fn<CommunityQuestions["section"]>(() =>
+  Promise.resolve(null),
+);
+const allowance = vi.fn<CommunityQuestions["allowance"]>(() =>
+  Promise.resolve({ verified: true, used: 0 }),
+);
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../server/container", () => ({
+  communityQuestions: () => ({ section, allowance }),
+  entitlements: () => ({ can }),
   sessionReader: () => ({ current }),
   outboundLinks: () => ({ reader }),
   progress: () => ({ recordOpen, countExploreOpen }),
@@ -284,6 +297,36 @@ test("with live questions, Test me starts a sprint on the section shown", async 
     /<form[^>]*>(?:(?!<\/form>)[^])*name="momentId" value="9"(?:(?!<\/form>)[^])*Test me/,
   );
   expect(html).toContain('name="chip" value="3-8"');
+});
+
+// Q-P7-05 (owner, 2026-11-27): a section shown may get a question; the article alone
+// never does.
+test("a section offers Write a question, or Verify your email, below the row", async () => {
+  current.mockResolvedValue(user);
+  reader.mockResolvedValue(page);
+  expect(await render(card)).not.toContain("/questions/new");
+  section.mockResolvedValue({
+    momentId: "9",
+    title: "Raft",
+    articleTitle: "Consensus in practice",
+  });
+  expect(await render(card)).toContain(
+    '<a href="/questions/new?moment=9" class="font-semibold text-select">Write a question</a>',
+  );
+  expect(section).toHaveBeenCalledWith(user.userId, "9");
+  allowance.mockResolvedValueOnce({ verified: false, used: 0 });
+  expect(await render(card)).toContain(
+    '<a href="/profile#verify" class="font-semibold text-select">Verify your email to write questions</a>',
+  );
+  section.mockClear();
+  reader.mockResolvedValue({
+    ...page,
+    link: { url: "https://pub.test/post", linkType: "article" },
+    sectionTitle: null,
+  });
+  expect(await render(card)).not.toContain("/questions/new");
+  expect(section).not.toHaveBeenCalled();
+  section.mockResolvedValue(null);
 });
 
 // P4-W23-S01 (owner, 2026-11-10): Listen, once a concept of the section is voiced.

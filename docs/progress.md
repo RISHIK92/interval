@@ -6159,3 +6159,43 @@ The owner said to continue building overnight with recommended answers, switchin
   - The reviewer's should-fix items are fixed (the Retry-After cap, keeping a 429's wait through a restart or a click), and so are its nits.
 - **Not run:** the in-editor test (`pnpm --filter @interval/vscode test:host`). m6 lacks the GTK libraries VS Code needs, and the owner chose to run it on the Mac. The broken VS Code download in `apps/vscode/.vscode-test` (gitignored) is waiting for the owner to delete it.
 - **Community questions (W50–51):** the owner answered Q-P7-05 and its follow-ups (docs/questions/phase-7.md), so it is next. Weeks 48–49 (the desktop app) wait for the owner's Electron-or-Tauri decision.
+
+## 2026-11-27: Phase 7 Week 50: community questions, first half (submission, check, moderation)
+
+- **Owner's answers (2026-11-27; Q-P7-05 and follow-ups in docs/questions/phase-7.md):**
+  - **Who submits:** accounts with a verified email, 3 a day.
+  - **Check:** the second model checks first, then the owner reviews.
+  - **Where:** practice only.
+  - **Credit:** anonymous.
+  - **Reputation:** the simple score.
+  - **A question lives on** a section the player opened.
+  - **Ratings:** 👍/👎.
+  - **Email verification** is built for this.
+  - **An author who leaves** leaves their questions behind, with no author.
+  - **The stand-alone rule** rejects automatically.
+  - **The verification mail** is sent in the background.
+- **Database:**
+  - `question.author_user_id` (ON DELETE SET NULL) and `submission_key`, the LOAD-5 key and the community marker;
+  - community questions are numbered on their own, apart from drafted ones;
+  - capabilities `questions.submit` and `questions.submit.daily` (3 on the beta plan);
+  - review reason `community`, decisions `approve` and `reject`, and `rejected_because`.
+- **Web:**
+  - **Email verification:** a link sent after sign-up, in the background with retries, and a "Verify your email" button on Profile, at most 3 an hour.
+  - **`/questions/new?moment=`:** stem, 4 answers, the key and a quote, with the count left today and "Your questions on this section" with each one's state and the reason for a rejection.
+  - **"Write a question"** at the end of a section on Home and in the reader.
+  - **`/admin/community`:** Approve or Reject.
+- **Worker:**
+  - the quote and stand-alone rules reject before any model call;
+  - the validator runs on the author's budget (OPS-4);
+  - when it agrees, the question waits in the owner's queue, never live; when it disagrees, the question is rejected;
+  - over budget, it waits and retries (log + metric).
+- **Serving:** community questions are excluded from every serving path until W51, with a test for each.
+- **Events:** `question_submitted` and `email_verification_sent`, ids and counts only.
+- **Checks:**
+  - web tsc, lint and format are clean; the touched suites pass, 505 tests on the walk DB;
+  - worker ruff, pyright and pytest pass (414);
+  - infra tests pass;
+  - migrations go down and up.
+  - `interval_mac` is migrated.
+- **Not checked:** real mail, real model calls, and a walk-through in the browser.
+- **Next (W51):** serve approved community questions in practice only (Test 60s and reviews), 👍/👎 after answering, and reputation.

@@ -313,6 +313,39 @@ test("it asks 5: the section's own readings first, never a source its rights for
   });
 });
 
+// Q-P7-05 (owner, 2026-11-27): community questions serve in practice only (Test 60s
+// and reviews), never a checkpoint: not on the section's reading, not on its concepts.
+test("a live community question is never in a checkpoint", async () => {
+  await inRollback(async (trx, { userId, first, m1, concept }) => {
+    for (const [ordinal, momentId] of [m1, m1].entries()) {
+      const row = await trx
+        .insertInto("question")
+        .values({
+          moment_id: momentId,
+          ordinal,
+          stem: `community-${String(ordinal)}`,
+          options: ["right", "w1", "w2", "w3"],
+          correct: 0,
+          citation: "a b c",
+          status: "live",
+          author_user_id: userId,
+          submission_key: `k${String(ordinal)}`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("question_concept")
+        .values({ question_id: row.id, concept_id: concept.c1 })
+        .execute();
+    }
+    await finish(trx, userId, m1);
+    const started = await kyselyQuizzes(trx).startCheckpoint(userId, first);
+    const stems = await take(trx, userId, started?.attemptId ?? "", () => true);
+    expect(stems).toHaveLength(5);
+    expect(stems.some((s) => s.startsWith("community"))).toBe(false);
+  });
+});
+
 test("4 of 5 passes: its concepts practiced, misses due now, the next section open", async () => {
   await inRollback(
     async (trx, { userId, pathId, first, second, m1, concept }) => {

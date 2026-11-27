@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
+  accounts,
   agentHook,
   events,
   feedback,
@@ -17,10 +18,12 @@ import {
   follows,
   playerUniversities,
   preferences,
+  rateLimits,
   sessionReader,
   usernames,
   entitlements,
 } from "../../server/container";
+import { requestVerification } from "../../server/accounts";
 import { COUNTRY_CODES } from "../../server/countries";
 import { queueRecompute } from "../../server/recompute";
 import {
@@ -302,4 +305,21 @@ export async function revokeAgentDeviceAction(form: FormData): Promise<void> {
   const device = z.uuid().safeParse(textField(form, "device"));
   if (device.success) await agentHook().revoke(userId, device.data);
   revalidatePath("/profile");
+}
+
+// Q-P7-05: "Verify your email" mails a link (at most VERIFY_LINKS_PER_HOUR an hour);
+// the page says what happened.
+export async function verifyEmailAction(): Promise<void> {
+  const found = await account();
+  const sent = await requestVerification(
+    { accounts: accounts(), limits: rateLimits() },
+    found.userId,
+  );
+  if (sent === "sent")
+    events().emit(
+      "email_verification_sent",
+      { trigger: "profile" },
+      await context(found),
+    );
+  redirect(`/profile?verify=${sent}#verify`);
 }

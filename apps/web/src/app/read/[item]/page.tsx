@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { z } from "zod";
 import { CHIPS } from "../../../server/chips";
+import { writeOffer } from "../../../server/community";
 import {
+  communityQuestions,
+  entitlements,
   listening,
   notes,
   outboundLinks,
@@ -20,6 +23,7 @@ import { finishAction } from "../../finish/actions";
 import { ListenButton } from "../../listen/ListenButton";
 import { NoteBox } from "../../NoteBox";
 import { StartQuiz, ZAP } from "../../quiz/StartQuiz";
+import { WriteQuestionLink } from "../../WriteQuestionLink";
 import { ReaderFrame } from "./ReaderFrame";
 
 export const dynamic = "force-dynamic";
@@ -145,6 +149,17 @@ export default async function ReadPage({
   ).has(quizKey(item, reached));
   // P4-W23-S01: Listen, once a concept here has a voiced explainer.
   const voiced = (await listening().voiced(item, reached)).length > 0;
+  // Q-P7-05: a section shown (its open just counted) may get a question from this
+  // player; the article alone never does.
+  const offer =
+    reached === null
+      ? null
+      : await writeOffer(
+          { community: communityQuestions(), entitlements: entitlements() },
+          actor.userId,
+          reached,
+          new Date(),
+        );
   const here = readHref({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
@@ -298,6 +313,16 @@ export default async function ReadPage({
             )}
           </div>
         </div>
+        {/* Below the row: the phone's row has no room for another button. */}
+        {offer === null || reached === null ? null : (
+          <p className="text-right text-sm">
+            <WriteQuestionLink
+              offer={offer}
+              momentId={reached}
+              className="font-semibold text-select"
+            />
+          </p>
+        )}
         <NoteBox
           on={{ itemId: item, momentId: reached }}
           about={title}

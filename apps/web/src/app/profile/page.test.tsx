@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type {
+  Accounts,
   AgentHook,
   Actor,
   Feedback,
@@ -57,7 +58,12 @@ vi.mock("../../env", async (importOriginal) => ({
 const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
   () => Promise.resolve(true),
 );
+// Q-P7-05: the account's email, unverified unless a test says so.
+const emailStatus = vi.fn<Accounts["emailStatus"]>(() =>
+  Promise.resolve({ email: "ada@example.test", verified: false }),
+);
 vi.mock("../../server/container", () => ({
+  accounts: () => ({ emailStatus }),
   entitlements: () => ({ can }),
   pushSettings: () => ({ get: pushGet }),
   agentHook: () => ({ devices: agentDevices }),
@@ -250,6 +256,7 @@ test("the sections come in the phone order", async () => {
   );
   expect(headings.filter((h) => h !== "Settings")).toEqual([
     "Your goals",
+    "Email",
     "GitHub",
     "Country",
     "Friends",
@@ -262,6 +269,35 @@ test("the sections come in the phone order", async () => {
     "Inferred from your feedback",
     "Your concepts",
   ]);
+});
+
+// Q-P7-05 (owner, 2026-11-27): the email and whether it's verified; "Verify your email"
+// until it is, and what the button or a link did, in fixed words.
+test("Email: Verify your email until it's verified, and what the link did", async () => {
+  current.mockResolvedValue(user);
+  get.mockResolvedValue(preferences);
+  const unverified = await page();
+  expect(unverified).toContain("ada@example.test · Not verified");
+  expect(unverified).toMatch(/<button[^>]*>Verify your email<\/button>/);
+  expect(await page({ verify: "sent" })).toContain(
+    "Link sent. Open it from your inbox within a day.",
+  );
+  expect(await page({ verify: "too_many" })).toContain(
+    "You&#x27;ve asked for 3 links in the last hour. Try again later.",
+  );
+  expect(await page({ verify: "<b>made up</b>" })).not.toContain("made up");
+  // Better Auth's redirect on a bad link: the notice it carries isn't shown.
+  const bad = await page({ saved: "email-verified", error: "TOKEN_EXPIRED" });
+  expect(bad).toContain("That verification link has expired");
+  expect(bad).not.toContain("Your email is verified.");
+  emailStatus.mockResolvedValue({ email: "ada@example.test", verified: true });
+  const verified = await page({ saved: "email-verified" });
+  expect(verified).toContain("ada@example.test · Verified");
+  expect(verified).toContain(
+    "Your email is verified. You can write questions now.",
+  );
+  expect(verified).not.toMatch(/<button[^>]*>Verify your email<\/button>/);
+  emailStatus.mockResolvedValue({ email: "ada@example.test", verified: false });
 });
 
 // Q-P2-04, P2-W7-S02: what reading has explored, by topic (§3.1 learner state).

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Emitter, EventContext } from "./events";
 import { redeemInvite } from "./invites";
 import { log } from "./log";
 import {
@@ -29,6 +30,10 @@ const BAD_TOKEN = "That reset link is invalid or has expired.";
 const NO_ACCOUNT = "No account with that email.";
 const TOO_MANY_ACCOUNTS =
   "Too many new accounts from this network. Try again in an hour.";
+
+// Q-P7-05: Profile's "Verify your email" sends at most this many links an hour per
+// account (Valkey, as sign-ups), so the button can't flood an inbox.
+export const VERIFY_LINKS_PER_HOUR = 3;
 
 // ADR-0056: with no invite code to spend, the network's sign-ups are the throttle on
 // new accounts. If the limit can't be read (Valkey down), sign-up fails rather than run
@@ -66,6 +71,55 @@ async function redeemIfGiven(
   return null;
 }
 
+// Q-P7-05 (owner, 2026-11-27): a new account is mailed a verification link after its
+// response has gone (the caller runs this in Next's `after`), so sign-up never waits on
+// mail. A failed send is tried again; the last failure is logged as "account:
+// verification mail failed", a metric. Profile can always send another.
+export const VERIFY_MAIL_TRIES = 3;
+const VERIFY_RETRY_MS = 2000;
+const pause = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+export async function mailVerificationOnSignUp(
+  deps: {
+    accounts: Pick<Accounts, "requestVerification">;
+    events: Pick<Emitter, "emit">;
+    wait?: (ms: number) => Promise<void>;
+  },
+  email: string,
+  context: EventContext,
+): Promise<boolean> {
+  const wait = deps.wait ?? pause;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await deps.accounts.requestVerification(email);
+      deps.events.emit(
+        "email_verification_sent",
+        { trigger: "sign_up" },
+        context,
+      );
+      return true;
+    } catch (error) {
+      if (attempt >= VERIFY_MAIL_TRIES) {
+        log.error("account: verification mail failed", {
+          userId: context.userId,
+          attempts: attempt,
+          error,
+        });
+        return false;
+      }
+      log.warn("account: verification mail retrying", {
+        userId: context.userId,
+        attempt,
+        error,
+      });
+      await wait(VERIFY_RETRY_MS * attempt);
+    }
+  }
+}
+
 // Account first (ADR-0016, owner 2026-10-26): the account in one form, open to anyone
 // (ADR-0056). Details are checked before the network's limit or a code is touched; a
 // code's use is given back when the account can't be made.
@@ -79,7 +133,13 @@ export async function createAccount(
   headers: Headers,
   ip: string,
 ): Promise<
-  | { ok: true; setCookies: string[]; actor: Actor }
+  | {
+      ok: true;
+      setCookies: string[];
+      actor: Actor;
+      // Normalised: where the verification link goes.
+      email: string;
+    }
   | { ok: false; message: string }
 > {
   const parsedName = name.safeParse(raw.name);
@@ -128,7 +188,10 @@ export async function createAccount(
       await releaseUse(deps.codes, redemption.inviteCodeId);
     return refused(SIGN_UP_REFUSED.email_taken);
   }
-  return result;
+  return {
+    ...result,
+    email: parsedEmail.data,
+  };
 }
 
 // A Play guest (ADR-0029) becomes an account in place, keeping its user id.
@@ -136,7 +199,7 @@ export async function signUp(
   accounts: Accounts,
   headers: Headers,
   raw: { name: string; email: string; password: string },
-): Promise<FormResult> {
+): Promise<{ ok: true; email: string } | { ok: false; message: string }> {
   const parsedName = name.safeParse(raw.name);
   if (!parsedName.success) return refused(BAD_NAME);
   const parsedEmail = email.safeParse(raw.email);
@@ -147,7 +210,40 @@ export async function signUp(
     email: parsedEmail.data,
     password: raw.password,
   });
-  return result.ok ? { ok: true } : refused(SIGN_UP_REFUSED[result.reason]);
+  if (!result.ok) return refused(SIGN_UP_REFUSED[result.reason]);
+  return {
+    ok: true,
+    email: parsedEmail.data,
+  };
+}
+
+// Q-P7-05: Profile's "Verify your email" for an account made before verification
+// existed, or whose link expired. A mail that fails is logged and said.
+export async function requestVerification(
+  deps: {
+    accounts: Pick<Accounts, "emailStatus" | "requestVerification">;
+    limits: RateLimits;
+  },
+  userId: string,
+): Promise<"sent" | "verified" | "too_many" | "failed" | "no_account"> {
+  const status = await deps.accounts.emailStatus(userId);
+  if (status === null) return "no_account";
+  if (status.verified) return "verified";
+  if (
+    !(await deps.limits.allow(
+      `verify-email:${userId}`,
+      VERIFY_LINKS_PER_HOUR,
+      60 * 60,
+    ))
+  )
+    return "too_many";
+  try {
+    await deps.accounts.requestVerification(status.email);
+  } catch (error) {
+    log.error("account: verification mail failed", { userId, error });
+    return "failed";
+  }
+  return "sent";
 }
 
 // Malformed input gets the wrong-password message, so it reveals nothing either.
