@@ -5,6 +5,7 @@ Ports have no read methods that only tests need; each store gets a test-side pro
 inspects its state (internal fields for the fake, SQL for Postgres).
 """
 
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
@@ -65,6 +66,10 @@ from interval_jobs.ports import (
 
 def email_of(user_id: str) -> str:
     return f"{user_id}@contract.example.test"
+
+
+# reset_concepts: tries of its truncate, each giving up after a short lock timeout.
+TRUNCATE_TRIES = 10
 
 
 class Probe(Protocol):
@@ -666,7 +671,25 @@ class PostgresProbe:
     def reset_concepts(self) -> None:
         # A local database may hold the real graph; the test's transaction rolls this
         # back. Truncate skips the never-deleted row trigger.
-        self.conn.execute("truncate concept_edge, graph_version, concept cascade")
+        # The truncate takes exclusive locks on concept and every table that references
+        # it, one at a time, while the web suites read those tables in the same database
+        # (CI runs them together): each side could end up waiting on the other. A lock
+        # timeout under Postgres's 1 s deadlock check makes this side give up first,
+        # release what it took (the savepoint) and try again; a reader is never the
+        # deadlock's victim.
+        for attempt in range(TRUNCATE_TRIES):
+            try:
+                with self.conn.transaction():
+                    self.conn.execute("set local lock_timeout = '500ms'")
+                    self.conn.execute(
+                        "truncate concept_edge, graph_version, concept cascade"
+                    )
+                    self.conn.execute("set local lock_timeout = 0")
+                return
+            except psycopg.errors.LockNotAvailable:
+                if attempt == TRUNCATE_TRIES - 1:
+                    raise
+                time.sleep(0.2 * (attempt + 1))
 
     def oversized(self, item_id: int) -> list[bool]:
         rows = self.conn.execute(
