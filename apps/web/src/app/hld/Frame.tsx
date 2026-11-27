@@ -6,20 +6,22 @@ import Link from "next/link";
 // or the code, the selection or the tests). The pages place their parts into it; on a
 // phone it's the single column it was.
 
+// Owner (2026-11-27): on a desktop the battle screens fill the window edge to edge (no
+// margin, border or width cap); the middle column takes the extra width.
 const FRAME_BASE =
-  "mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-12 lg:my-10 lg:grid lg:w-[calc(100%-80px)] lg:max-w-[1200px] lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,17.5rem)] lg:gap-0 lg:overflow-hidden lg:rounded-3xl lg:border lg:border-hairline lg:p-0";
+  "mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-12 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_minmax(0,19rem)] lg:gap-0 lg:overflow-hidden lg:p-0";
 
-export const FRAME = `${FRAME_BASE} lg:min-h-[700px] lg:grid-rows-[auto_auto_1fr]`;
+export const FRAME = `${FRAME_BASE} lg:min-h-dvh lg:grid-rows-[auto_auto_1fr]`;
 
 // The HLD canvas's frame fits the window, as the design does: the palette under the
 // canvas and the submission at the foot of the right column stay in view, and each
 // column scrolls on its own.
-export const CANVAS_FRAME = `${FRAME_BASE} lg:h-[calc(100dvh-80px)] lg:min-h-[640px] lg:grid-rows-[auto_auto_minmax(0,1fr)]`;
+export const CANVAS_FRAME = `${FRAME_BASE} lg:h-dvh lg:min-h-[640px] lg:grid-rows-[auto_auto_minmax(0,1fr)]`;
 
 // The same frame for watching a match or its replay: the header row, then the designs
 // side by side.
 export const VIEW_FRAME =
-  "mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-12 lg:my-10 lg:w-[calc(100%-80px)] lg:max-w-[1200px] lg:gap-0 lg:overflow-hidden lg:rounded-3xl lg:border lg:border-hairline lg:p-0";
+  "mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-12 lg:min-h-dvh lg:max-w-none lg:gap-0 lg:overflow-hidden lg:p-0";
 
 export const HEADER =
   "lg:col-span-3 lg:flex lg:flex-wrap lg:items-center lg:gap-3.5 lg:border-b lg:border-hairline lg:px-5 lg:py-3.5";
