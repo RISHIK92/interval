@@ -376,8 +376,12 @@ export interface Quizzes {
     userId: string,
   ): Promise<{ conceptId: string; name: string; daysSince: number | null }[]>;
   // A review session over them, untimed; the running one if there is one; null when
-  // nothing is due.
-  startReview(userId: string): Promise<{
+  // nothing is due. `limit`: only the first that many, most overdue first (ADR-0044's
+  // review sized to the break); the rest stay due.
+  startReview(
+    userId: string,
+    limit?: number,
+  ): Promise<{
     attemptId: string;
     concepts: number;
     firstTime: boolean;
@@ -2168,9 +2172,22 @@ export interface Listening {
   // Approved, voiced explainers of what the reader shows: the section's concepts, or the
   // article's when no section was reached. By concept name.
   voiced(itemId: string, momentId: string | null): Promise<string[]>;
+  // ADR-0044's "Also fits" explainer: along `cards` in order (a section's concepts, or
+  // an article's), the first concept with an approved, voiced explainer this user
+  // hasn't finished and that lasts at most `maxSeconds`; by name within a card.
+  fitting(
+    userId: string,
+    cards: { itemId: string; momentId: string | null }[],
+    maxSeconds: number,
+  ): Promise<{
+    explainerId: string;
+    concept: string;
+    durationSeconds: number;
+  } | null>;
   queue(userId: string): Promise<ListenResponse>;
-  // Appended in order; ones already queued stay where they are.
-  add(userId: string, explainerIds: string[]): Promise<void>;
+  // Appended in order; ones already queued stay where they are. Returns the given ids
+  // that are approved and voiced (queued now or before), in the given order.
+  add(userId: string, explainerIds: string[]): Promise<string[]>;
   remove(userId: string, explainerId: string): Promise<boolean>;
   // null: no voiced explainer by that id. new: no unfinished listen was under way.
   start(

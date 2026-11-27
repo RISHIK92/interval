@@ -6,10 +6,21 @@ import type { Actor } from "../../../server/ports";
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const queue = vi.fn();
 const voiced = vi.fn<() => Promise<string[]>>();
-const add = vi.fn();
+const add = vi.fn<(userId: string, ids: string[]) => Promise<string[]>>(
+  (_userId, ids) => Promise.resolve(ids),
+);
+const emit = vi.fn();
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   listening: () => ({ queue, voiced, add }),
+  events: () => ({ emit }),
+}));
+vi.mock("next/headers", () => ({
+  cookies: () =>
+    Promise.resolve({
+      get: (name: string) =>
+        name === "iv_visit" ? { name, value: "visit-1.1790000000" } : undefined,
+    }),
 }));
 vi.mock("../../../env", () => ({
   env: () => ({
@@ -94,4 +105,33 @@ test("no session, a guest, another site or a bad body: refused", async () => {
   expect((await call("POST", { itemId: "x" })).status).toBe(400);
   expect(queue).not.toHaveBeenCalled();
   expect(voiced).not.toHaveBeenCalled();
+});
+
+// ADR-0044: an "Also fits" card queues its one explainer and is recorded as the grid's.
+test("Also fits queues one explainer, recorded with its place; one not voiced is 404", async () => {
+  current.mockResolvedValue(account);
+  const alsoFits = { position: 3, chip: "3-8" };
+  const got = await call("POST", { explainerId: "7", alsoFits });
+  expect(got.status).toBe(201);
+  expect(await got.json()).toEqual({ first: "7" });
+  expect(add).toHaveBeenCalledWith("u1", ["7"]);
+  expect(voiced).not.toHaveBeenCalled();
+  expect(emit).toHaveBeenCalledWith(
+    "also_fits_opened",
+    { kind: "explainer", position: 3, chip: "3-8" },
+    { ...account, sessionId: "visit-1" },
+  );
+  emit.mockClear();
+  add.mockResolvedValueOnce([]);
+  expect((await call("POST", { explainerId: "8", alsoFits })).status).toBe(404);
+  expect(emit).not.toHaveBeenCalled();
+  expect(
+    (
+      await call("POST", {
+        explainerId: "7",
+        alsoFits: { position: 4, chip: "3-8" },
+      })
+    ).status,
+  ).toBe(400);
+  expect((await call("POST", { explainerId: "7" })).status).toBe(400);
 });

@@ -328,3 +328,58 @@ test("captions as the worker stored them", async () => {
     expect((await store.queue(user)).queue[0]?.captions).toEqual(stored);
   });
 });
+
+// ADR-0044: what add accepted, so "Also fits" can tell a voiced explainer from a
+// forged id; one queued before still counts.
+test("add returns the voiced ones it was given, queued now or before", async () => {
+  await inRollback(async (trx, { user, x }) => {
+    const store = kyselyListening(trx);
+    expect(await store.add(user, [x.raft, x.draft, x.paxos])).toEqual([
+      x.raft,
+      x.paxos,
+    ]);
+    expect(await store.add(user, [x.paxos])).toEqual([x.paxos]);
+    expect(await store.add(user, [x.draft])).toEqual([]);
+    expect(await store.add(user, [])).toEqual([]);
+  });
+});
+
+// ADR-0044: the "Also fits" explainer: along the cards in order, voiced, unfinished,
+// within the break.
+test("fitting: the first card's voiced concept that fits and isn't finished", async () => {
+  await inRollback(async (trx, { user, item, moment, x }) => {
+    const store = kyselyListening(trx);
+    const section = { itemId: item, momentId: moment };
+    const article = { itemId: item, momentId: null };
+    // The section's raft and paxos are voiced (draft isn't): by name, Paxos first.
+    expect(await store.fitting(user, [section], 90)).toEqual({
+      explainerId: x.paxos,
+      concept: expect.stringMatching(/^Paxos /) as string,
+      durationSeconds: 90,
+    });
+    // Cards keep their order: the article's own quorum comes first.
+    expect(
+      (await store.fitting(user, [article, section], 90))?.explainerId,
+    ).toBe(x.quorum);
+    // Too long for the break, or no cards: nothing.
+    expect(await store.fitting(user, [section], 89)).toBeNull();
+    expect(await store.fitting(user, [], 900)).toBeNull();
+    // A finished one is left out; one only started isn't.
+    expect(await store.start(user, x.paxos)).not.toBeNull();
+    expect((await store.fitting(user, [section], 90))?.explainerId).toBe(
+      x.paxos,
+    );
+    await store.finish(user, x.paxos);
+    expect((await store.fitting(user, [section], 90))?.explainerId).toBe(
+      x.raft,
+    );
+    // A section named under another article tags nothing.
+    expect(
+      await store.fitting(
+        user,
+        [{ itemId: "999999999999", momentId: moment }],
+        90,
+      ),
+    ).toBeNull();
+  });
+});

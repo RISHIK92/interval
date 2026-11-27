@@ -108,6 +108,53 @@ export function kyselyListening(db: Kysely<DB>): Listening {
         .execute();
       return rows.map((r) => r.id);
     },
+    fitting: async (userId, cards, maxSeconds) => {
+      if (cards.length === 0) return null;
+      const { rows } = await sql<{
+        id: string;
+        concept: string;
+        duration: string;
+      }>`
+        with card (item_id, moment_id, n) as (
+          select * from unnest(
+            ${cards.map((c) => c.itemId)}::bigint[],
+            ${cards.map((c) => c.momentId)}::bigint[]
+          ) with ordinality
+        ),
+        tagged as (
+          select card.n, mc.concept_id
+          from card
+          join moment m on m.id = card.moment_id and m.content_item_id = card.item_id
+          join moment_concept mc on mc.moment_id = m.id
+          union all
+          select card.n, ic.concept_id
+          from card
+          join item_concept ic on ic.content_item_id = card.item_id
+          where card.moment_id is null
+        )
+        select x.id, c.name as concept, a.duration_seconds as duration
+        from tagged t
+        join concept_explainer x on x.concept_id = t.concept_id and x.status = 'approved'
+        join explainer_audio a on a.explainer_id = x.id
+        join concept c on c.id = x.concept_id
+        where a.duration_seconds <= ${maxSeconds}
+          and not exists (
+            select 1 from explainer_listen l
+            where l.user_id = ${userId} and l.explainer_id = x.id
+              and l.finished_at is not null
+          )
+        order by t.n, c.name, x.id
+        limit 1
+      `.execute(db);
+      const found = rows[0];
+      return found === undefined
+        ? null
+        : {
+            explainerId: found.id,
+            concept: found.concept,
+            durationSeconds: Number(found.duration),
+          };
+    },
     queue: async (userId) => {
       const queued = await voicedExplainers(db)
         .innerJoin("listen_queue as q", (j) =>
@@ -197,17 +244,25 @@ export function kyselyListening(db: Kysely<DB>): Listening {
       };
     },
     add: async (userId, explainerIds) => {
-      if (explainerIds.length === 0) return;
+      if (explainerIds.length === 0) return [];
       // One statement: the given order kept by microseconds after now, after anything
       // queued before.
-      await sql`
-        insert into listen_queue (user_id, explainer_id, added_at)
-        select ${userId}, x.id, clock_timestamp() + given.n * interval '1 microsecond'
-        from unnest(${explainerIds}::bigint[]) with ordinality as given (id, n)
-        join concept_explainer x on x.id = given.id and x.status = 'approved'
-        join explainer_audio a on a.explainer_id = x.id
-        on conflict (user_id, explainer_id) do nothing
+      const { rows } = await sql<{ id: string }>`
+        with voiced as (
+          select x.id, given.n
+          from unnest(${explainerIds}::bigint[]) with ordinality as given (id, n)
+          join concept_explainer x on x.id = given.id and x.status = 'approved'
+          join explainer_audio a on a.explainer_id = x.id
+        ),
+        queued as (
+          insert into listen_queue (user_id, explainer_id, added_at)
+          select ${userId}, id, clock_timestamp() + n * interval '1 microsecond'
+          from voiced
+          on conflict (user_id, explainer_id) do nothing
+        )
+        select id from voiced order by n
       `.execute(db);
+      return rows.map((r) => r.id);
     },
     remove: async (userId, explainerId) => {
       const removed = await db

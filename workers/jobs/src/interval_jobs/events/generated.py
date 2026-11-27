@@ -16,6 +16,7 @@ from pydantic import (
 type EventName = Literal[
     "agent_task_finished",
     "agent_task_started",
+    "also_fits_opened",
     "article_finished",
     "ask_answered",
     "ask_session_started",
@@ -86,6 +87,7 @@ type Source = Literal["web", "jobs", "ios", "android"]
 EVENT_VERSIONS: dict[EventName, int] = {
     "agent_task_finished": 1,
     "agent_task_started": 1,
+    "also_fits_opened": 1,
     "article_finished": 3,
     "ask_answered": 1,
     "ask_session_started": 1,
@@ -163,6 +165,12 @@ class AgentTaskFinishedProps(_Model):
 
 class AgentTaskStartedProps(_Model):
     pass
+
+
+class AlsoFitsOpenedProps(_Model):
+    kind: Literal["daily", "review", "explainer"]
+    position: int = Field(ge=0, strict=True)
+    chip: Literal["1-3", "3-8", "8-15"]
 
 
 class ArticleFinishedProps(_Model):
@@ -549,6 +557,12 @@ class AgentTaskStartedEvent(_EnvelopeBase):
     props: AgentTaskStartedProps
 
 
+class AlsoFitsOpenedEvent(_EnvelopeBase):
+    name: Literal["also_fits_opened"]
+    version: Literal[1]
+    props: AlsoFitsOpenedProps
+
+
 class ArticleFinishedEvent(_EnvelopeBase):
     name: Literal["article_finished"]
     version: Literal[3]
@@ -931,6 +945,7 @@ class UniversityChangedEvent(_EnvelopeBase):
 type Envelope = Annotated[
     AgentTaskFinishedEvent
     | AgentTaskStartedEvent
+    | AlsoFitsOpenedEvent
     | ArticleFinishedEvent
     | AskAnsweredEvent
     | AskSessionStartedEvent

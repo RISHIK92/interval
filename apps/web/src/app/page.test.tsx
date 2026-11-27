@@ -5,6 +5,7 @@ import type {
   Books,
   FeedCard,
   FeedReader,
+  Listening,
   Notes,
   Paths,
   Progress,
@@ -55,7 +56,9 @@ vi.mock("../server/container", () => ({
   quizzes: () => ({ offered, dueReviews, dailyStatus }),
   paths: () => ({ next: pathNext }),
   books: () => ({ nextSession }),
+  listening: () => ({ fitting }),
 }));
+const fitting = vi.fn<Listening["fitting"]>(() => Promise.resolve(null));
 const nextSession = vi.fn<Books["nextSession"]>(() => Promise.resolve(null));
 const pathNext = vi.fn<Paths["next"]>(() => Promise.resolve(null));
 const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
@@ -1045,4 +1048,80 @@ test("a guest is sent to sign up before anything is read", async () => {
   current.mockResolvedValue(guest);
   await expect(render()).rejects.toThrow("redirect:/sign-up");
   expect(getFeed).not.toHaveBeenCalled();
+});
+
+// ADR-0044 (owner, 2026-11-23): on wide screens the challenge and the review move from
+// the sideways feed to "Also fits", with one explainer from the cards after the hero.
+test("Also fits: the challenge, the review sized to the break, and an explainer", async () => {
+  current.mockResolvedValue(user);
+  // An earlier test leaves a plan without the challenge in place.
+  can.mockImplementation(() => Promise.resolve(true));
+  chipCookie = "1-3";
+  getFeed.mockResolvedValue(
+    feedOf([card, { ...card, momentId: "2" }, { ...card, momentId: "3" }]),
+  );
+  dailyStatus.mockResolvedValueOnce({
+    today: "open",
+    streak: { days: 2, freezes: 0 },
+  });
+  dueReviews.mockResolvedValueOnce(
+    Array.from({ length: 10 }, (_, i) => ({
+      conceptId: String(i),
+      name: `C${String(i)}`,
+      daysSince: 1,
+    })),
+  );
+  fitting.mockResolvedValueOnce({
+    explainerId: "7",
+    concept: "Pooling",
+    durationSeconds: 170,
+  });
+  const html = await render();
+  // The hero is the first ranked card: the explainer comes from those after it, and
+  // fits the 1–3 chip.
+  expect(fitting).toHaveBeenLastCalledWith(
+    "u1",
+    [
+      { itemId: "10", momentId: "2" },
+      { itemId: "10", momentId: "3" },
+    ],
+    180,
+  );
+  const grid = html.slice(html.indexOf('aria-labelledby="also-fits"'));
+  const words = text(grid);
+  expect(words).toContain("Also fits in 3 minutes");
+  expect(words).toContain("Review 9 cards");
+  expect(words).toContain("Pooling, explained");
+  expect(words).toContain("Daily challenge");
+  // In the sideways feed they're for phones only.
+  const items = html.slice(0, html.indexOf('aria-labelledby="also-fits"'));
+  const review = items.split("<li").find((li) => li.includes("Review 10"));
+  expect(review).toMatch(/class="[^"]*lg:hidden/);
+  const daily = items
+    .split("<li")
+    .find((li) => li.includes("Start today&#x27;s challenge"));
+  expect(daily).toMatch(/class="[^"]*lg:hidden/);
+});
+
+test("Also fits: a book card is the hero, so every ranked card may give the explainer", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([card]));
+  nextSession.mockResolvedValueOnce({
+    bookId: "b1",
+    bookTitle: "Designing Data Systems",
+    chapterTitle: "One",
+    sessionId: "s1",
+    title: "Replication",
+    minutes: 5,
+    firstPage: 1,
+    lastPage: 9,
+    place: 1,
+    of: 4,
+  });
+  await render();
+  expect(fitting).toHaveBeenLastCalledWith(
+    "u1",
+    [{ itemId: "10", momentId: "1" }],
+    480,
+  );
 });

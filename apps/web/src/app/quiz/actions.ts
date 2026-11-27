@@ -73,13 +73,36 @@ export async function startQuizAction(form: FormData): Promise<void> {
 }
 
 // P3-W13-S02 (§6.3): a solo game from Play (server/quiz-flow.ts).
-async function startGameFromPlay(game: Game): Promise<void> {
+// ADR-0044: a tap in desktop Home's "Also fits" grid names its card's place in the
+// grid and the chip; any other form leaves the field out and records nothing.
+const AlsoFits = z.object({
+  position: z.coerce.number().int().min(1).max(3),
+  chip: z.enum(CHIPS),
+});
+type Context = Awaited<ReturnType<typeof signedIn>>["context"];
+function alsoFitsOpened(
+  form: FormData | undefined,
+  kind: "daily" | "review",
+  context: Context,
+): void {
+  if (form === undefined) return;
+  const parsed = AlsoFits.safeParse({
+    position: textField(form, "alsoFits") || undefined,
+    chip: textField(form, "chip"),
+  });
+  if (parsed.success)
+    events().emit("also_fits_opened", { kind, ...parsed.data }, context);
+}
+
+async function startGameFromPlay(game: Game, form?: FormData): Promise<void> {
   const { context } = await signedIn();
   const started = await startGame(context, game);
   if (started === "forbidden") redirect("/play");
   // Nothing to play: every question asked this week (Q-P3-04), or no daily set
   // today. Play says so.
   if (started === "none") redirect(`/play?${game}=none`);
+  // Counted only once something really opened.
+  if (game === "daily") alsoFitsOpened(form, "daily", context);
   // A game has no feed to return to; the chip only rides along to the quiz pages.
   const chip = parseChip((await cookies()).get(CHIP_COOKIE)?.value) ?? "3-8";
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
@@ -93,21 +116,33 @@ export async function startEstimationAction(): Promise<void> {
   await startGameFromPlay("estimation");
 }
 
-export async function startDailyAction(): Promise<void> {
-  await startGameFromPlay("daily");
+export async function startDailyAction(form?: FormData): Promise<void> {
+  await startGameFromPlay("daily", form);
 }
 
 // P2-W9-S05 (Q-P2-17): a review session over the concepts that have come due.
-const Review = z.object({ chip: z.enum(CHIPS) });
+// ADR-0044: "Also fits" starts only as many as fit the break (`limit`), never more
+// than the due list's one session of 10 (REVIEW_SIZE in kysely-quizzes.ts).
+const Review = z.object({
+  chip: z.enum(CHIPS),
+  limit: z.coerce.number().int().min(1).max(10).optional(),
+});
 
 export async function startReviewAction(form: FormData): Promise<void> {
   const { actor, context } = await signedIn();
-  const parsed = Review.safeParse({ chip: textField(form, "chip") });
+  const parsed = Review.safeParse({
+    chip: textField(form, "chip"),
+    limit: textField(form, "limit") || undefined,
+  });
   if (!parsed.success) redirect("/library");
   await closeLeftOpen(actor.userId, context);
-  const started = await quizzes().startReview(actor.userId);
+  const { limit } = parsed.data;
+  const started = await (limit === undefined
+    ? quizzes().startReview(actor.userId)
+    : quizzes().startReview(actor.userId, limit));
   // Nothing due any more (rated elsewhere meanwhile): the queue shows that.
   if (started === null) redirect("/library");
+  alsoFitsOpened(form, "review", context);
   if (started.firstTime)
     events().emit(
       "quiz_started",

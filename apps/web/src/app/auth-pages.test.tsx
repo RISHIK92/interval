@@ -53,6 +53,7 @@ vi.mock("../server/container", () => ({
   }),
   paths: () => ({ next: () => Promise.resolve(null) }),
   books: () => ({ nextSession: () => Promise.resolve(null) }),
+  listening: () => ({ fitting: () => Promise.resolve(null) }),
   // Onboarded (P1-W4-S01), so the home page renders.
   preferences: () => ({
     get: () =>

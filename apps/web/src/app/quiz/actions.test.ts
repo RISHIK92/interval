@@ -901,3 +901,75 @@ test("the daily challenge's finish is a game_finished with its points", async ()
   );
   expect(record).toHaveBeenCalledExactlyOnceWith("u1", "71", 430);
 });
+
+// ADR-0044: desktop Home's "Also fits" review starts only what fits the break, and a
+// tap in the grid is recorded with its place and chip; other forms record nothing.
+test("an Also fits review starts the cards that fit and is recorded as the grid's", async () => {
+  const { startReviewAction } = await actions();
+  startReview.mockResolvedValue({
+    attemptId: "52",
+    concepts: 3,
+    firstTime: false,
+  });
+  await expect(
+    startReviewAction(form({ chip: "1-3", limit: "3", alsoFits: "2" })),
+  ).rejects.toThrow("redirect:/quiz/52?chip=1-3");
+  expect(startReview).toHaveBeenCalledWith("u1", 3);
+  expect(emit).toHaveBeenCalledWith(
+    "also_fits_opened",
+    { kind: "review", position: 2, chip: "1-3" },
+    context,
+  );
+  emit.mockClear();
+  // A forged place records nothing; a forged size starts nothing.
+  await expect(
+    startReviewAction(form({ chip: "1-3", alsoFits: "9" })),
+  ).rejects.toThrow("redirect:/quiz/52?chip=1-3");
+  expect(emit).not.toHaveBeenCalled();
+  startReview.mockClear();
+  await expect(
+    startReviewAction(form({ chip: "1-3", limit: "0" })),
+  ).rejects.toThrow("redirect:/library");
+  expect(startReview).not.toHaveBeenCalled();
+  // Nothing due any more: nothing opened, nothing counted.
+  startReview.mockResolvedValue(null);
+  await expect(
+    startReviewAction(form({ chip: "1-3", limit: "3", alsoFits: "2" })),
+  ).rejects.toThrow("redirect:/library");
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("an Also fits challenge is recorded as the grid's; Play's own isn't", async () => {
+  const { startDailyAction } = await actions();
+  // Nothing to play today: nothing opened, nothing counted.
+  startDaily.mockResolvedValue(null);
+  await startDailyAction(form({ chip: "3-8", alsoFits: "1" })).catch(
+    () => undefined,
+  );
+  expect(emit).not.toHaveBeenCalledWith(
+    "also_fits_opened",
+    expect.anything(),
+    expect.anything(),
+  );
+  startDaily.mockResolvedValue({
+    attemptId: "81",
+    endsAt: new Date(Date.now() + 60_000),
+    firstTime: false,
+  });
+  await expect(
+    startDailyAction(form({ chip: "3-8", alsoFits: "1" })),
+  ).rejects.toThrow("redirect:/quiz/81");
+  expect(emit).toHaveBeenCalledWith(
+    "also_fits_opened",
+    { kind: "daily", position: 1, chip: "3-8" },
+    context,
+  );
+  emit.mockClear();
+  await startDailyAction(form({})).catch(() => undefined);
+  await startDailyAction().catch(() => undefined);
+  expect(emit).not.toHaveBeenCalledWith(
+    "also_fits_opened",
+    expect.anything(),
+    expect.anything(),
+  );
+});

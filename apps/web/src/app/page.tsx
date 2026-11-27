@@ -9,6 +9,7 @@ import {
   events,
   feedback,
   feedReader,
+  listening,
   notes,
   paths,
   progress,
@@ -30,6 +31,7 @@ import { BIGINT_ID, type FeedCard, quizKey } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { AgentBanner } from "./AgentBanner";
+import { AlsoFits, breakMinutes } from "./AlsoFits";
 import { applyMatchEvidence } from "./play/live/evidence";
 import { requireUsername } from "./username/gate";
 import { ArticleCard } from "./ArticleCard";
@@ -47,6 +49,7 @@ import { BookCard } from "./BookCard";
 import { DailyCard } from "./DailyCard";
 import { PathCard } from "./PathCard";
 import { ReviewCard } from "./ReviewCard";
+import { reviewsFitting } from "./reviewTime";
 import { Card } from "./ui/Card";
 import { Page } from "./ui/Page";
 
@@ -233,6 +236,30 @@ export default async function HomePage({
     playsDaily && daily.today === "open" ? (
       <DailyCard streak={daily.streak} />
     ) : null;
+  // ADR-0044: on wide screens the challenge and the review leave the sideways feed for
+  // "Also fits"; its explainer comes from the feed cards after the hero (the path's or
+  // the book's card when there is one, else the first ranked card).
+  const minutes = breakMinutes(chip);
+  const explainer = await listening().fitting(
+    actor.userId,
+    (pathNext === null && bookNext === null ? cards.slice(1) : cards).map(
+      target,
+    ),
+    minutes * 60,
+  );
+  const alsoFits = (
+    <AlsoFits
+      chip={chip}
+      cards={{
+        daily: dailyCard === null ? null : { streak: daily.streak },
+        review:
+          due.length === 0
+            ? null
+            : { count: reviewsFitting(due.length, minutes) },
+        explainer,
+      }}
+    />
+  );
   const yourNote = (card: FeedCard) =>
     yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;
   const renderCard = (card: FeedCard, index: number) => {
@@ -423,14 +450,17 @@ export default async function HomePage({
               <BookCard next={bookNext} />
             </div>
           )}
-          {dailyCard === null ? null : <div className="mt-4">{dailyCard}</div>}
+          {dailyCard === null ? null : (
+            <div className="mt-4 lg:hidden">{dailyCard}</div>
+          )}
           {/* With no cards to sit behind, the review shows alone (owner,
             2026-10-28, Q-P2-21). */}
           {due.length > 0 ? (
-            <div className="mt-4">
+            <div className="mt-4 lg:hidden">
               <ReviewCard due={due} chip={chip} />
             </div>
           ) : null}
+          {alsoFits}
         </>
       ) : (
         // ADR-0019: one full-size card at a time, sideways; only a sliver of the next
@@ -454,7 +484,7 @@ export default async function HomePage({
             {/* P3-W13-S05: after the path and book; the ranked cards keep their
               positions. */}
             {dailyCard === null ? null : (
-              <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+              <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full lg:hidden">
                 {dailyCard}
               </li>
             )}
@@ -472,7 +502,7 @@ export default async function HomePage({
                 {/* P2-W9-S06 (Q-P2-17): the review takes the second slot; the
                   cards keep their ranked positions. */}
                 {index === 0 && due.length > 0 ? (
-                  <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                  <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full lg:hidden">
                     <ReviewCard due={due} chip={chip} />
                   </li>
                 ) : null}
@@ -481,6 +511,7 @@ export default async function HomePage({
           </ul>
         </FeedRow>
       )}
+      {cards.length === 0 ? null : alsoFits}
     </Page>
   );
 }

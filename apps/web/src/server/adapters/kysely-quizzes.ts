@@ -1592,7 +1592,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       }));
     },
 
-    startReview: async (userId) => {
+    startReview: async (userId, limit) => {
       return inTransaction(db, async (trx) => {
         // One running review per user: a double tap, or coming back, continues it.
         const running = await trx
@@ -1613,7 +1613,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             concepts: running.concepts,
             firstTime: false,
           };
-        const { rows: due } = await dueConcepts(userId).execute(trx);
+        const { rows: all } = await dueConcepts(userId).execute(trx);
+        const due = limit === undefined ? all : all.slice(0, limit);
         if (due.length === 0) return null;
         // A double tap racing this one inserts nothing (one open review per user,
         // an index): it then meets the one that won.

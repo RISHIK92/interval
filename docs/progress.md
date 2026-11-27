@@ -6095,3 +6095,22 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Checks:** a reviewer found the practice repeat-counting bug, now fixed. `pnpm check` passes all 64 tasks.
 - **Not checked in a browser:** the owner stopped the dev server, so the last round has no screenshots. The live LLD/HLD walk is next when the servers can run again.
 - **Software design topic (ADR-0049, option 2; 2026-11-25):** onboarding and Profile hide the topic, rather than showing it as "coming soon" (the ADR's open question), until sources tagged software design have produced reading. A topic the user already saved stays on Profile (PER-1).
+
+## 2026-11-27: "Also fits" on desktop Home (ADR-0044)
+
+- **Owner's answers (2026-11-27):**
+  - On wide screens the challenge and review cards move from the sideways feed into the grid, so nothing shows twice.
+  - The review holds only what fits the break (about 20 s a card) and starts with exactly those cards.
+  - The explainer comes from the cards after the hero.
+  - Play starts the challenge straight away.
+- **Built:**
+  - `AlsoFits` on Home at `lg` and up: the daily challenge, "Review N cards · About M minutes" and "<Concept>, explained · Listen, N min", in that order. With nothing to show, there is no heading.
+  - `Quizzes.startReview(userId, limit?)`, `Listening.fitting` (along the cards in order: voiced, unfinished, within the break), and `Listening.add` now returns the voiced ids.
+  - `POST /api/listen` takes `{explainerId, alsoFits}` and queues just that explainer.
+  - The DB-5 event `also_fits_opened` {kind, position, chip} is recorded only once something really opened.
+  - C-38 in docs/conflicts.md records ADR-0019's amendment for wide screens.
+- **Checks:**
+  - Web unit and DB tests pass against the walk Postgres; the local `.env` database's password doesn't match on m6.
+  - Typecheck and lint are clean, and the reviewer's should-fix items are fixed.
+- **Not fixed:** an explainer queued earlier keeps its place in the queue, so finishing it from the grid may play whatever was queued after it.
+- **Not checked in a browser.**

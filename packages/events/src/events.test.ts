@@ -89,6 +89,8 @@ describe("the event list (Q-P1-20)", () => {
         "ask_submitted",
         "ask_answered",
         "ask_session_started",
+        // ADR-0044 (accepted by the owner, 2026-11-23): the desktop "Also fits" grid.
+        "also_fits_opened",
       ].sort(),
     );
   });

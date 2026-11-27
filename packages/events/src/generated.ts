@@ -4,6 +4,7 @@ import { z } from "zod";
 export const EVENT_NAMES = [
   "agent_task_finished",
   "agent_task_started",
+  "also_fits_opened",
   "article_finished",
   "ask_answered",
   "ask_session_started",
@@ -73,6 +74,7 @@ export type EventName = (typeof EVENT_NAMES)[number];
 export const EVENT_VERSIONS = {
   agent_task_finished: 1,
   agent_task_started: 1,
+  also_fits_opened: 1,
   article_finished: 3,
   ask_answered: 1,
   ask_session_started: 1,
@@ -144,6 +146,11 @@ export const propsSchemas = {
     place_saved: z.boolean(),
   }),
   agent_task_started: z.strictObject({}),
+  also_fits_opened: z.strictObject({
+    kind: z.enum(["daily", "review", "explainer"]),
+    position: z.number().int().nonnegative(),
+    chip: z.enum(["1-3", "3-8", "8-15"]),
+  }),
   article_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done", "auto"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -460,6 +467,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("agent_task_started"),
     version: z.literal(1),
     props: propsSchemas.agent_task_started,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("also_fits_opened"),
+    version: z.literal(1),
+    props: propsSchemas.also_fits_opened,
   }),
   z.strictObject({
     ...base,

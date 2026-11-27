@@ -2778,3 +2778,26 @@ test("two visits at once apply a match once", async () => {
     await db.deleteFrom("invite_code").where("id", "=", code.id).execute();
   }
 });
+
+// ADR-0044: "Also fits" starts a review of only what fits the break, most overdue
+// first; the rest stay due for the next one.
+test("a review with a limit asks only that many, most overdue first", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    await cardFor(trx, userId, "wal", "-1 hour");
+    await cardFor(trx, userId, "raft", "-2 days");
+    const started = await quizzes.startReview(userId, 1);
+    expect(started).toMatchObject({ concepts: 1, firstTime: true });
+    if (started === null) throw new Error("no review");
+    const asked = await trx
+      .selectFrom("quiz_attempt_concept as ac")
+      .innerJoin("concept as c", "c.id", "ac.concept_id")
+      .select("c.name")
+      .where("ac.attempt_id", "=", started.attemptId)
+      .execute();
+    expect(asked.map((a) => a.name)).toEqual(["raft"]);
+    expect((await quizzes.dueReviews(userId)).map((d) => d.name)).toContain(
+      "wal",
+    );
+  });
+});

@@ -321,6 +321,12 @@ Oct 23 is silent on these. They are not adopted unless confirmed.
 - **ADR-0032 (ACCEPTED)**: universities are "picked from a list or typed, unverified".
 - **Built**: the university card shows the name and its rank on the season's universities board, without the "Verified" line (ADR-0045; owner's Q-WD-07 answer).
 
+### C-38 "Also fits" on desktop Home against ADR-0019 (found 2026-11-23, ADR-0044)
+
+- **ADR-0019 (ACCEPTED)**: "every card is full size and shows one at a time. 'Also fits in …' goes away."
+- **ADR-0044 (ACCEPTED, owner's Q-WD-01 answer)**: at `lg` and up, a grid of at most three fixed cards (the daily challenge, a review sized to the break, one explainer) sits under the sideways feed.
+- **Built (2026-11-27)**: ADR-0019 holds below `lg`. At `lg` and up, the challenge and review cards leave the sideways feed for the grid (owner, 2026-11-27), so nothing shows twice. The grid holds no feed cards.
+
 ## Source file notes
 
 These are not disagreements, but they affect the verbatim copies.

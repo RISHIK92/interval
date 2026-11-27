@@ -441,6 +441,15 @@
         "minutes": "count"
       }
     },
+    "also_fits_opened": {
+      "version": 1,
+      "description": "A card in desktop Home's \"Also fits\" grid was opened (ADR-0044): the daily challenge, the review sized to the break, or an explainer. Kept apart from card_opened so the grid's use is measured on its own.",
+      "props": {
+        "kind": ["daily", "review", "explainer"],
+        "position": "count",
+        "chip": ["1-3", "3-8", "8-15"]
+      }
+    },
     "league_placed": {
       "version": 1,
       "description": "A player was put into a weekly league cohort (ADR-0045): on Monday from last week's play, or mid-week by their first points of the week.",
