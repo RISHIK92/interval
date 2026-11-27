@@ -58,3 +58,7 @@ apps/mobile/ios/
 apps/mobile/android/
 apps/mobile/.expo/
 apps/mobile/expo-env.d.ts
+
+# P7-W47: the VS Code extension's package and the VS Code its test host downloads.
+*.vsix
+apps/vscode/.vscode-test/

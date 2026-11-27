@@ -16,7 +16,13 @@ minimumReleaseAge: 20160
 # plain JS without it.
 # @parcel/watcher (via @expo/cli's file watching) ships prebuilt binaries per platform
 # as optional dependencies; its script only builds from source when none fits.
+# @vscode/vsce-sign (via @vscode/vsce, P7-W47) copies its platform's signing binary into
+# place; only signing and verifying a published extension use it, never `vsce package`.
+# esbuild (P7-W47, bundles the VS Code extension) gets its binary from its platform's
+# optional dependency; its script only checks that binary.
 allowBuilds:
+  "@vscode/vsce-sign": false
+  esbuild: false
   "@parcel/watcher": false
   unrs-resolver: false
   msgpackr-extract: false

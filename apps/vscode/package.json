@@ -1,0 +1,88 @@
+{
+  "name": "@interval/vscode",
+  "displayName": "Interval",
+  "description": "Your coding agent's status and a quick session that fits the wait, from Interval.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "interval",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "files": [
+    "dist/extension.js"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "interval.signIn",
+        "title": "Sign in",
+        "category": "Interval"
+      },
+      {
+        "command": "interval.signOut",
+        "title": "Sign out",
+        "category": "Interval"
+      },
+      {
+        "command": "interval.openQuickSession",
+        "title": "Open a quick session",
+        "category": "Interval"
+      }
+    ],
+    "configuration": {
+      "title": "Interval",
+      "properties": {
+        "interval.url": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Your Interval site, for example `https://interval.example`. https only; plain http only for `localhost`, `127.0.0.1` and `::1`."
+        },
+        "interval.chip": {
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "1-3",
+            "3-8",
+            "8-15"
+          ],
+          "enumDescriptions": [
+            "The break length you chose on Interval",
+            "1\u20133 minutes",
+            "3\u20138 minutes",
+            "8\u201315 minutes"
+          ],
+          "description": "The break length the suggestions fit."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "build": "esbuild src/extension.ts --bundle --format=cjs --platform=node --target=node20 --external:vscode --minify --outfile=dist/extension.js",
+    "package": "pnpm build && node scripts/stage.mts && cd dist/vsix && vsce package --no-dependencies --skip-license --allow-missing-repository --out ../../interval.vsix",
+    "test:host": "pnpm build && node scripts/stage.mts && esbuild test-host/suite.ts --bundle --format=cjs --platform=node --target=node20 --external:vscode --outfile=dist/test-host/suite.js && node test-host/run.mts"
+  },
+  "dependencies": {
+    "@interval/api-client": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@interval/config": "workspace:*",
+    "@types/vscode": "1.100.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.1.1",
+    "esbuild": "0.28.2"
+  }
+}

@@ -1,0 +1,3 @@
+# The bundles, and the VS Code the test host downloads (P7-W47); not ours to format.
+dist/
+.vscode-test/

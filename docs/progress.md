@@ -6139,3 +6139,23 @@ The owner said to continue building overnight with recommended answers, switchin
   - The web suite passes 1,974 tests; s3-files needs SeaweedFS, which is stopped.
   - The reviewer's should-fix items are fixed, and so are most of its nits.
 - **Not checked in a real agent:** the installers follow each agent's docs but weren't run inside Claude Code, Codex, Cursor or Gemini.
+
+## 2026-11-27: Phase 7 Week 47: the VS Code extension
+
+- **Owner's answers (2026-11-27):**
+  - dev dependencies: `@types/vscode` 1.100.0, `@vscode/test-electron` 3.1.0, `@vscode/vsce` 4.1.1, and `esbuild` 0.28.2 (approved after it was added);
+  - sign-in by pasting a device token, kept in VS Code's SecretStorage;
+  - the quick session opens in the browser (Q-P7-03).
+- **`apps/vscode` (`@interval/vscode`):**
+  - **Status bar:** shows the agent's state from `GET /api/agent/status`.
+  - **Polling:** every 15 s, only while the window is focused, and it waits out a 429 (Retry-After capped at an hour). A setting change or a click doesn't skip that wait.
+  - **Commands:** "Interval: Sign in", "Sign out" and "Open a quick session". The last is a QuickPick of the 3 suggestions, opening only links on the configured site.
+  - **The site:** https only, or plain http for localhost; redirects aren't followed.
+  - **Titles:** control and format characters are stripped, and codicon syntax is escaped.
+  - **Privacy (§7):** it reads nothing from the editor, workspace or terminal. Its only request is that GET.
+- **Packaging:** `pnpm --filter @interval/vscode package` builds a minified bundle and a ~100 KB `.vsix` (id `interval.interval`; `publisher` is a placeholder for the owner). Publishing is the owner's (ADR-0013).
+- **Checks:**
+  - 36 unit tests, with lint, typecheck and format, all in `pnpm check`.
+  - The reviewer's should-fix items are fixed (the Retry-After cap, keeping a 429's wait through a restart or a click), and so are its nits.
+- **Not run:** the in-editor test (`pnpm --filter @interval/vscode test:host`). m6 lacks the GTK libraries VS Code needs, and the owner chose to run it on the Mac. The broken VS Code download in `apps/vscode/.vscode-test` (gitignored) is waiting for the owner to delete it.
+- **Community questions (W50–51):** the owner answered Q-P7-05 and its follow-ups (docs/questions/phase-7.md), so it is next. Weeks 48–49 (the desktop app) wait for the owner's Electron-or-Tauri decision.

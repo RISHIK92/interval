@@ -108,6 +108,27 @@ minute per device. It returns only:
 
 An opened link counts as an open "via agent".
 
+## VS Code extension
+
+`apps/vscode` shows the same status in VS Code's (or Cursor's) status bar and opens a
+quick session in your browser.
+
+- **Build and install:** `pnpm --filter @interval/vscode package` writes
+  `apps/vscode/interval.vsix`; install it with
+  `code --install-extension apps/vscode/interval.vsix` (or `cursor --install-extension`).
+  Publishing to the Marketplace and Open VSX is the owner's, at deploy time (ADR-0013).
+- **Sign in:** set `interval.url` to your site (https; plain http only for localhost),
+  then run **Interval: Sign in** and paste a device token from Profile → Agent hook.
+  The token is kept in VS Code's secret storage; **Interval: Sign out** removes it.
+- **Settings:** `interval.url`, and `interval.chip` (`1-3`, `3-8` or `8-15`; empty uses
+  your onboarding choice).
+- **What it sends:** only `GET /api/agent/status` with the token, every 15 seconds while
+  the window has focus (longer if Interval asks with a 429). It never reads your code,
+  file names, workspace or terminal, and opens only links on your Interval site.
+- **Test host:** `pnpm --filter @interval/vscode test:host` downloads VS Code and runs
+  the extension in it (on headless Linux, under `xvfb-run -a`). It isn't part of
+  `pnpm check`.
+
 ## What it does
 
 - `interval start` tells Interval a task began. About 45 seconds later, if no

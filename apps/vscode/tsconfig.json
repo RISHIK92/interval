@@ -1,0 +1,7 @@
+{
+  "extends": "@interval/config/tsconfig.base.json",
+  // esbuild bundles the extension and the test-host suite, and @interval/api-client is
+  // TypeScript with extensionless imports, so resolve as a bundler does.
+  "compilerOptions": { "module": "preserve", "moduleResolution": "bundler" },
+  "include": ["src", "test-host", "scripts"]
+}

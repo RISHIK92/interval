@@ -52,6 +52,20 @@ Phase 7 (docs/roadmap/phase-7.md, the plan in docs/roadmap/phase-7-slices.md) is
   - community questions appear in practice quizzes only (not rated battles, the daily challenge or tournaments) until enough ratings come in;
   - reputation rises with approved, well-rated questions and falls with removed ones.
 
+- **Answers (owner, 2026-11-27):**
+  - **Who may submit:** any signed-in account with a verified email, at most 3 submissions a day; guests can't.
+  - **Model check:** the existing second-model check runs first, within the OPS-4 budget, and only what passes reaches the owner's moderation queue.
+  - **Where they appear:** practice quizzes only (Test 60s and reviews). Never rated battles, the daily challenge or tournaments.
+  - **Credit:** none shown; community questions are anonymous.
+  - **Reputation:**
+    - starts at 0, with a floor of 0;
+    - +10 per approved question, +1 per good rating, −15 per question removed after flags;
+    - a rater's weight is 1 + reputation/100, capped at 3.
+  - **Follow-up answers (owner, 2026-11-27):**
+    - **Email verification:** it was never built (`email_verified` is always false), so W50 builds it. A link is sent on sign-up, and Profile gets a "Verify your email" button for existing accounts. Only submitting is gated on it.
+    - **Where a question lives:** it is written at the end of a section the player opened. It cites that section, gets that section's concepts, and is served in that section's Test 60s and in concept reviews.
+    - **Ratings:** after answering a community question in practice, the player sees "Good question?" with 👍 or 👎, one per player and changeable. A 👍 is the "good rating" in the reputation formula. Flag still pulls the question for the owner's review.
+
 ### Q-P7-06 What "institutional features" means (P1)
 
 - Cite: phase-7.md item 5. Nothing else in the docs defines it.
