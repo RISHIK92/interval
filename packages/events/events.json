@@ -147,16 +147,6 @@
         "reason": ["wrong_key", "unclear", "not_in_section", "other"]
       }
     },
-    "question_submitted": {
-      "version": 1,
-      "description": "A player wrote a community question at the end of a section (Q-P7-05): its id, its section's, and whether the plan has a daily limit and, if so, how many of today's submissions are left (0 without one); never its text.",
-      "props": {
-        "question_id": "id",
-        "moment_id": "id",
-        "limited": "boolean",
-        "remaining_today": "count"
-      }
-    },
     "path_started": {
       "version": 1,
       "description": "A user started (or resumed) a topic path, making it their active one (P2-W10-S03, Q-P2-27, Q-P2-28).",
@@ -282,11 +272,6 @@
       "version": 1,
       "description": "An account was made: by joining with an invite code (ADR-0016), or earlier by a guest signing up (S11, dormant).",
       "props": {}
-    },
-    "email_verification_sent": {
-      "version": 1,
-      "description": "A link to verify the account's email was sent (Q-P7-05): on sign-up, or from Profile's \"Verify your email\".",
-      "props": { "trigger": ["sign_up", "profile"] }
     },
     "guest_merged": {
       "version": 1,

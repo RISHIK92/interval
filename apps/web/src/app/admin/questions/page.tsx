@@ -24,8 +24,6 @@ const REASONS: Record<ReviewReason, string> = {
   sample: "Weekly sample",
   anomaly: "Unusual answers",
   daily: "Daily challenge, unreviewed",
-  // Q-P7-05: never listed here; /admin/community approves or rejects these.
-  community: "Community question",
 };
 
 export const dynamic = "force-dynamic";

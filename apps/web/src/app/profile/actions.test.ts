@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { memoryRateLimits } from "../../server/adapters/valkey-rate-limits";
 import type {
-  Accounts,
   AgentHook,
   Actor,
   Feedback,
@@ -34,17 +32,7 @@ vi.mock("next/cache", () => ({ revalidatePath }));
 const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
   () => Promise.resolve(true),
 );
-// Q-P7-05: an unverified account, and one hour's limits for the whole file.
-const emailStatus = vi.fn<Accounts["emailStatus"]>(() =>
-  Promise.resolve({ email: "ada@example.test", verified: false }),
-);
-const requestVerification = vi.fn<Accounts["requestVerification"]>(() =>
-  Promise.resolve(),
-);
-const limits = memoryRateLimits();
 vi.mock("../../server/container", () => ({
-  accounts: () => ({ emailStatus, requestVerification }),
-  rateLimits: () => limits,
   entitlements: () => ({ can }),
   agentHook: () => ({ addDevice, revoke: revokeDevice }),
   sessionReader: () => ({ current }),
@@ -776,31 +764,4 @@ test("without agent.hook, no device is added", async () => {
     message: "The agent hook isn't on your plan.",
   });
   expect(addDevice).not.toHaveBeenCalled();
-});
-
-// Q-P7-05 (owner, 2026-11-27): "Verify your email" sends a link, says so, and records
-// it; a verified account sends nothing.
-test("Verify your email sends a link and says what happened", async () => {
-  const { verifyEmailAction } = await actions();
-  await expect(verifyEmailAction()).rejects.toThrow(
-    "redirect:/profile?verify=sent#verify",
-  );
-  expect(requestVerification).toHaveBeenCalledWith("ada@example.test");
-  expect(emit).toHaveBeenCalledWith(
-    "email_verification_sent",
-    { trigger: "profile" },
-    { ...user, sessionId: "visit-1" },
-  );
-  emit.mockClear();
-  emailStatus.mockResolvedValueOnce({
-    email: "ada@example.test",
-    verified: true,
-  });
-  await expect(verifyEmailAction()).rejects.toThrow(
-    "redirect:/profile?verify=verified#verify",
-  );
-  expect(emit).not.toHaveBeenCalled();
-  current.mockResolvedValue(guest);
-  const { verifyEmailAction: again } = await import("./actions");
-  await expect(again()).rejects.toThrow("redirect:/sign-up");
 });

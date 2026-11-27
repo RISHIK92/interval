@@ -91,10 +91,6 @@ describe("the event list (Q-P1-20)", () => {
         "ask_session_started",
         // ADR-0044 (accepted by the owner, 2026-11-23): the desktop "Also fits" grid.
         "also_fits_opened",
-        // Q-P7-05 (owner, 2026-11-27): community questions, ids and counts only, and
-        // the email verification that gates them.
-        "question_submitted",
-        "email_verification_sent",
       ].sort(),
     );
   });

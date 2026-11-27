@@ -456,19 +456,6 @@ describe("game server (ADR-0033)", () => {
     });
   });
 
-  // Q-P7-05 (LOAD-5): verification mail that failed, after its retries, counted.
-  test("a failed verification mail becomes a CloudWatch metric", () => {
-    template.hasResourceProperties("AWS::Logs::MetricFilter", {
-      FilterPattern: '{ $.msg = "account: verification mail failed" }',
-      MetricTransformations: [
-        Match.objectLike({
-          MetricNamespace: "Interval/Accounts",
-          MetricName: "VerificationMailFailures",
-        }),
-      ],
-    });
-  });
-
   // ADR-0048 (LOAD-5): practice progress the game server couldn't hand over, counted.
   test("practice progress not handed over becomes a CloudWatch metric", () => {
     template.hasResourceProperties("AWS::Logs::MetricFilter", {

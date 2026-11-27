@@ -35,7 +35,6 @@ type EventName = Literal[
     "concept_missed",
     "continue_clicked",
     "country_changed",
-    "email_verification_sent",
     "estimate_answered",
     "explainer_finished",
     "explainer_started",
@@ -70,7 +69,6 @@ type EventName = Literal[
     "push_setting_changed",
     "pwa_installed",
     "question_flagged",
-    "question_submitted",
     "quiz_answered",
     "quiz_finished",
     "quiz_started",
@@ -108,7 +106,6 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "concept_missed": 1,
     "continue_clicked": 1,
     "country_changed": 1,
-    "email_verification_sent": 1,
     "estimate_answered": 1,
     "explainer_finished": 1,
     "explainer_started": 1,
@@ -143,7 +140,6 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "push_setting_changed": 2,
     "pwa_installed": 1,
     "question_flagged": 1,
-    "question_submitted": 1,
     "quiz_answered": 1,
     "quiz_finished": 1,
     "quiz_started": 2,
@@ -287,10 +283,6 @@ class ContinueClickedProps(_Model):
 
 class CountryChangedProps(_Model):
     action: Literal["set", "removed"]
-
-
-class EmailVerificationSentProps(_Model):
-    trigger: Literal["sign_up", "profile"]
 
 
 class EstimateAnsweredProps(_Model):
@@ -459,13 +451,6 @@ class PwaInstalledProps(_Model):
 class QuestionFlaggedProps(_Model):
     question_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     reason: Literal["wrong_key", "unclear", "not_in_section", "other"]
-
-
-class QuestionSubmittedProps(_Model):
-    question_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
-    moment_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
-    limited: StrictBool
-    remaining_today: int = Field(ge=0, strict=True)
 
 
 class QuizAnsweredProps(_Model):
@@ -687,12 +672,6 @@ class CountryChangedEvent(_EnvelopeBase):
     props: CountryChangedProps
 
 
-class EmailVerificationSentEvent(_EnvelopeBase):
-    name: Literal["email_verification_sent"]
-    version: Literal[1]
-    props: EmailVerificationSentProps
-
-
 class EstimateAnsweredEvent(_EnvelopeBase):
     name: Literal["estimate_answered"]
     version: Literal[1]
@@ -897,12 +876,6 @@ class QuestionFlaggedEvent(_EnvelopeBase):
     props: QuestionFlaggedProps
 
 
-class QuestionSubmittedEvent(_EnvelopeBase):
-    name: Literal["question_submitted"]
-    version: Literal[1]
-    props: QuestionSubmittedProps
-
-
 class QuizAnsweredEvent(_EnvelopeBase):
     name: Literal["quiz_answered"]
     version: Literal[1]
@@ -992,7 +965,6 @@ type Envelope = Annotated[
     | ConceptMissedEvent
     | ContinueClickedEvent
     | CountryChangedEvent
-    | EmailVerificationSentEvent
     | EstimateAnsweredEvent
     | ExplainerFinishedEvent
     | ExplainerStartedEvent
@@ -1027,7 +999,6 @@ type Envelope = Annotated[
     | PushSettingChangedEvent
     | PwaInstalledEvent
     | QuestionFlaggedEvent
-    | QuestionSubmittedEvent
     | QuizAnsweredEvent
     | QuizFinishedEvent
     | QuizStartedEvent

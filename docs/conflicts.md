@@ -327,6 +327,12 @@ Oct 23 is silent on these. They are not adopted unless confirmed.
 - **ADR-0044 (ACCEPTED, owner's Q-WD-01 answer)**: at `lg` and up, a grid of at most three fixed cards (the daily challenge, a review sized to the break, one explainer) sits under the sideways feed.
 - **Built (2026-11-27)**: ADR-0019 holds below `lg`. At `lg` and up, the challenge and review cards leave the sideways feed for the grid (owner, 2026-11-27), so nothing shows twice. The grid holds no feed cards.
 
+### C-39 Desktop companion and community questions dropped (2026-11-27, ADR-0057)
+
+- **docs/product.md §2, §6.8, §7:** these sections describe a menubar desktop companion and "Community-submitted (later)" questions.
+- **The owner's instruction (2026-11-27):** delete both. The web app and its PWA cover desktop, and the React Native app covers mobile.
+- **Built:** W50 is reverted and W51 deleted; nothing of the desktop companion was built. ADR-0057 (PROPOSED) records it.
+
 ## Source file notes
 
 These are not disagreements, but they affect the verbatim copies.

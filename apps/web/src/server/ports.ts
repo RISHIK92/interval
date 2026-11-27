@@ -1174,14 +1174,6 @@ export interface Accounts {
   resetPassword(token: string, newPassword: string): Promise<boolean>;
   // ADR-0030, local only: no link. False when no account has a password for it.
   setPassword(email: string, newPassword: string): Promise<boolean>;
-  // Q-P7-05: mails a link that verifies the account's email (Better Auth's own,
-  // signed); throws when the mail can't be sent. Sends nothing to an unknown or
-  // already verified email, and says the same.
-  requestVerification(email: string): Promise<void>;
-  // The account's email and whether it is verified; null for a guest or no account.
-  emailStatus(
-    userId: string,
-  ): Promise<{ email: string; verified: boolean } | null>;
 }
 
 // DB-5: where events go. Returns the records it could not deliver, for one retry.
@@ -1363,100 +1355,6 @@ export interface AdminQuestions {
   decide(
     questionId: string,
     decision: ReviewDecision,
-    by: string,
-  ): Promise<boolean>;
-}
-
-// Q-P7-05 (owner, 2026-11-27, §6.8): a question a player writes at the end of a
-// section they opened, as AI questions are made: a stem, 4 options, the key and a
-// short quote from the section. It's checked by the second model, then by the owner,
-// and only then live; anonymous to players.
-export const COMMUNITY_OPTIONS = 4;
-export type CommunitySection = {
-  momentId: string;
-  title: string;
-  articleTitle: string;
-};
-export type CommunityDraft = {
-  momentId: string;
-  stem: string;
-  options: string[];
-  correct: number;
-  citation: string;
-  idempotencyKey: string;
-};
-export interface CommunityQuestions {
-  // Whether the account's email is verified, and how many questions it has submitted
-  // since `since`.
-  allowance(
-    userId: string,
-    since: Date,
-  ): Promise<{ verified: boolean; used: number }>;
-  // A section the user opened whose question the second model can check: its source
-  // allows full text with moments on (ING-2), it isn't a duplicate's, and it teaches
-  // a live concept. Null otherwise.
-  section(userId: string, momentId: string): Promise<CommunitySection | null>;
-  // Saved pending, by the user, on the section's live concepts. LOAD-5: the same key is
-  // the same question, whatever today's count says now. `used`: submitted since
-  // `since`, this one included. "daily_limit" at `limit` (null: no limit);
-  // "no_section" when the section isn't one `section` returns.
-  submit(
-    userId: string,
-    draft: CommunityDraft,
-    quota: { since: Date; limit: number | null },
-  ): Promise<
-    | { id: string; created: boolean; used: number }
-    | "daily_limit"
-    | "no_section"
-  >;
-  // The user's own questions on this section, newest first, with where each stands
-  // (owner, 2026-11-27: a rejection says why, so the player can rewrite it).
-  mine(userId: string, momentId: string): Promise<CommunityOwn[]>;
-  // Its check couldn't be queued: the question goes, so the user may submit again.
-  drop(id: string): Promise<void>;
-}
-// Why one was rejected: its quote isn't the section's words, it refers to its source
-// (the stand-alone rule; both checked by the worker before any model call), the second
-// model chose another answer, or the owner rejected it.
-export const COMMUNITY_REJECTIONS = [
-  "not_quoted",
-  "not_stand_alone",
-  "check",
-  "owner",
-] as const;
-export type CommunityState =
-  "checking" | "reviewing" | "live" | (typeof COMMUNITY_REJECTIONS)[number];
-export type CommunityOwn = {
-  questionId: string;
-  stem: string;
-  state: CommunityState;
-};
-
-// The owner's moderation queue for community questions (Q-P7-05): those the second
-// model agreed with. Approve makes one live; Reject rejects it. The author's username is
-// shown to the admin only.
-export type CommunityDecision = "approve" | "reject";
-export type CommunityReview = {
-  questionId: string;
-  stem: string;
-  options: string[];
-  correct: number;
-  validatorAnswer: number;
-  citation: string;
-  articleTitle: string;
-  sectionTitle: string;
-  link: string;
-  // Null when the author has no username yet, or has left (owner, 2026-11-27).
-  author: string | null;
-  submittedAt: Date;
-};
-export interface AdminCommunity {
-  // Undecided, the oldest first.
-  open(): Promise<CommunityReview[]>;
-  // False when there was no undecided review of that community question.
-  decide(
-    questionId: string,
-    decision: CommunityDecision,
     by: string,
   ): Promise<boolean>;
 }

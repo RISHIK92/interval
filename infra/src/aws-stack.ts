@@ -410,17 +410,6 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
-    // Q-P7-05 (LOAD-5): a verification link that couldn't be mailed, after its retries
-    // on sign-up or from Profile's button.
-    logGroup.addMetricFilter("VerificationMailFailures", {
-      filterPattern: logs.FilterPattern.stringValue(
-        "$.msg",
-        "=",
-        "account: verification mail failed",
-      ),
-      metricNamespace: "Interval/Accounts",
-      metricName: "VerificationMailFailures",
-    });
     // P6-W42 (Q-P6-06, LOAD-5): an HLD match scored without the rubric, because a
     // player's AI judgement was missing.
     logGroup.addMetricFilter("HldScoredWithoutRubric", {

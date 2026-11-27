@@ -41,12 +41,6 @@ const timestamps = {
   updatedAt: "updated_at",
 } as const;
 
-// Q-P7-05: where a verification link lands, signed in or not; Better Auth adds
-// `&error=` when the link is expired or invalid.
-export const VERIFIED_PATH = "/profile?saved=email-verified";
-// A day, so a link sent on sign-up still works the next morning.
-const VERIFY_SECONDS = DAY_SECONDS;
-
 // The paths the native app calls (P4-W19-S03).
 const APP_PATHS = new Set(["/sign-in/email", "/sign-out", "/get-session"]);
 
@@ -60,9 +54,8 @@ export function createAuth(opts: {
     secret: opts.secret,
     baseURL: opts.baseURL,
     database: { db: opts.db, type: "postgres" },
-    // ADR-0004, owner choices 2026-10-25: 8 to 128 characters, a reset link valid for an
-    // hour that signs out every other session. Q-P7-05 (owner, 2026-11-27) adds email
-    // verification below; sign-in never asks for it.
+    // ADR-0004, owner choices 2026-10-25: 8 to 128 characters, no email verification
+    // in Phase 1, a reset link valid for an hour that signs out every other session.
     emailAndPassword: {
       enabled: true,
       // Accounts are made only at /join (Accounts.create, ADR-0016), which applies the
@@ -85,18 +78,6 @@ export function createAuth(opts: {
         } catch (error) {
           log.error("account: reset mail failed", { userId: user.id, error });
         }
-      },
-    },
-    // Q-P7-05: the signed link Better Auth makes (nothing stored) sets email_verified.
-    // Only writing community questions needs it; requireEmailVerification stays off.
-    emailVerification: {
-      expiresIn: VERIFY_SECONDS,
-      sendVerificationEmail: async ({ user, url }) => {
-        await opts.mailer.send({
-          to: user.email,
-          subject: "Verify your Interval email",
-          text: `Open this link within a day to verify your email:\n${url}\n\nIf you didn't make an Interval account, ignore this email.`,
-        });
       },
     },
     user: {
@@ -174,9 +155,7 @@ export function createAuth(opts: {
         ? ["interval://"]
         : [],
     // The Expo plugin's OAuth proxy redirects anywhere; there's no social sign-in to proxy.
-    // Q-P7-05: verification mail goes out only from the server (sign-up, and Profile's
-    // button with its per-account limit), never from the public endpoint.
-    disabledPaths: ["/expo-authorization-proxy", "/send-verification-email"],
+    disabledPaths: ["/expo-authorization-proxy"],
     // On everywhere, tests included (Better Auth skips it when NODE_ENV is test), so the
     // origin rules are tested as they run.
     advanced: { disableOriginCheck: false },
@@ -476,24 +455,6 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
           .execute();
         return true;
       });
-    },
-    // No session: Better Auth then answers the same for an unknown or verified email
-    // (sending nothing) and for one it mailed, and throws when the mail fails.
-    requestVerification: async (email) => {
-      await auth.api.sendVerificationEmail({
-        body: { email, callbackURL: VERIFIED_PATH },
-      });
-    },
-    emailStatus: async (userId) => {
-      const row = await db
-        .selectFrom("app_user")
-        .select(["email", "email_verified"])
-        .where("id", "=", userId)
-        .where("is_anonymous", "=", false)
-        .executeTakeFirst();
-      return row === undefined
-        ? null
-        : { email: row.email, verified: row.email_verified };
     },
     resetPassword: async (token, newPassword) => {
       try {

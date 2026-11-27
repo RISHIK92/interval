@@ -38,13 +38,20 @@ Order: the shared read API comes first, so the extension and the desktop app con
   - a VSIX build, run locally under the extension test host.
 - Publishing to the VS Code Marketplace and Open VSX is the owner's (ADR-0013: nothing ships until all phases are built).
 
-## Weeks 48–49: the desktop companion
+## Weeks 48–49: the desktop companion (removed)
+
+- **Removed (owner, 2026-11-27; ADR-0057):** "current web and desktop pwa is enough (rn for mobile)". The web app and its PWA cover desktop, and the React Native app covers mobile. The plan below is kept for the record only.
 
 - IDs: §7; Part IV item 6; Q: Q-P7-04. **Blocked:** it needs a PROPOSED ADR (Electron or Tauri) and the owner's decision. The owner chose to decide this later.
 - Goal (as §7 says): a menubar window with time-fitted suggestions and agent status, reading Week 46's API, and a notification when a wait starts (the same 45-second rule as the hook's nudge, so it isn't implemented twice).
 - Tauri adds Rust, a fourth language that ARCH-2 doesn't list. Electron stays in TS but ships a much larger app. The ADR lays out this trade-off. Builds are unsigned and run locally until deploy time.
 
-## Weeks 50–51: community-submitted questions
+## Weeks 50–51: community-submitted questions (removed)
+
+- **Removed (owner, 2026-11-27; ADR-0057):**
+  - W50 was built (`3dc84e6`) and then reverted, with its migrations rolled back locally.
+  - W51 was built and deleted uncommitted.
+  - The plan below is kept for the record only.
 
 - IDs: §6.8; OPS-3 and OPS-4 if a model checks submissions; Q: Q-P7-05.
 - Goal (as §6.8 says):

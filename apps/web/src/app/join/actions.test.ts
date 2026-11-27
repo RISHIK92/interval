@@ -14,23 +14,13 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const redeem = vi.fn<(code: string) => Promise<Redemption>>();
 const release = vi.fn(() => Promise.resolve());
 const create = vi.fn<Accounts["create"]>();
-const requestVerification = vi.fn<Accounts["requestVerification"]>(() =>
-  Promise.resolve(),
-);
-// Q-P7-05: Next's `after`, held so a test sees the work happens after the response.
-const afterResponse: (() => Promise<unknown>)[] = [];
-vi.mock("next/server", () => ({
-  after: (task: () => Promise<unknown>) => {
-    afterResponse.push(task);
-  },
-}));
 const codes: InviteCodes = { redeem, release };
 const emit = vi.fn();
 const allow = vi.fn<RateLimits["allow"]>(() => Promise.resolve(true));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   inviteCodes: () => codes,
-  accounts: () => ({ create, requestVerification }),
+  accounts: () => ({ create }),
   rateLimits: () => ({ allow }),
   events: () => ({ emit }),
 }));
@@ -46,7 +36,6 @@ vi.mock("next/navigation", () => ({ redirect }));
 
 afterEach(() => {
   vi.clearAllMocks();
-  afterResponse.length = 0;
 });
 
 const FIELDS: Record<string, string> = {
@@ -101,16 +90,6 @@ test("with no code, the account is made with no group, a visit starts and onboar
     ["session_started", {}, { ...account, sessionId: visitId }],
     ["signup_completed", {}, { ...account, sessionId: visitId }],
   ]);
-  // Q-P7-05 (owner, 2026-11-27): the verification mail waits for the response.
-  expect(requestVerification).not.toHaveBeenCalled();
-  expect(afterResponse).toHaveLength(1);
-  await afterResponse[0]?.();
-  expect(requestVerification).toHaveBeenCalledWith("ada@example.test");
-  expect(emit).toHaveBeenLastCalledWith(
-    "email_verification_sent",
-    { trigger: "sign_up" },
-    { ...account, sessionId: visitId },
-  );
 });
 
 test("a code from an old invite link still sets the group", async () => {

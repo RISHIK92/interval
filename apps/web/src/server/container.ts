@@ -30,10 +30,6 @@ import { kyselyExplore } from "./adapters/kysely-explore";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
-import {
-  kyselyAdminCommunity,
-  kyselyCommunityQuestions,
-} from "./adapters/kysely-community-questions";
 import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
@@ -136,8 +132,6 @@ import type {
   AdminPaths,
   AdminReview,
   AdminQuestions,
-  AdminCommunity,
-  CommunityQuestions,
   AdminSources,
   RankingInspection,
   DatabasePing,
@@ -244,15 +238,6 @@ export function quizzes(): Quizzes {
 
 export function adminQuestions(): AdminQuestions {
   return kyselyAdminQuestions(db());
-}
-
-// Q-P7-05: community questions, and the owner's queue for them.
-export function communityQuestions(): CommunityQuestions {
-  return kyselyCommunityQuestions(db());
-}
-
-export function adminCommunity(): AdminCommunity {
-  return kyselyAdminCommunity(db());
 }
 
 // P3-W13-S05 (ADR-0031): the daily challenge's sets, reviewed by the owner.

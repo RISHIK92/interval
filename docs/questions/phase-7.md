@@ -33,11 +33,15 @@ Phase 7 (docs/roadmap/phase-7.md, the plan in docs/roadmap/phase-7-slices.md) is
 
 ### Q-P7-04 The desktop technology (P0 for W48, needs an ADR)
 
+- **Closed (owner, 2026-11-27; ADR-0057):** removed from scope.
+
 - Cite: blueprint Part IV item 6; ARCH-2's languages (TS, Python, Go).
 - **Options:** Electron (TS, larger app); Tauri (smaller, but adds Rust); a Go menubar app (no new language, but no shared UI with the web app).
 - **Recommendation:** no recommendation until the ADR's measurements are in: the app size, memory at idle, and how much of the web UI each option reuses. The owner chose to decide later. If the date matters more than size, Electron is the default, since it stays in TS.
 
 ### Q-P7-05 Community questions (P0 for W50)
+
+- **Closed (owner, 2026-11-27; ADR-0057):** removed from scope.
 
 - Cite: §6.8.
 - Questions for the owner:

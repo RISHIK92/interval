@@ -25,7 +25,7 @@ export type BookStatus = "failed" | "ocr" | "processing" | "ready";
 
 export type BreakLength = "1-3" | "3-8" | "8-15";
 
-export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "explore.ask" | "explore.ask.daily" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.hld" | "play.league" | "play.live" | "play.sprint" | "push.notify" | "questions.submit" | "questions.submit.daily";
+export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "explore.ask" | "explore.ask.daily" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.hld" | "play.league" | "play.live" | "play.sprint" | "push.notify";
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
@@ -79,9 +79,9 @@ export type QuestionKind = "choice" | "estimate";
 
 export type QuestionStatus = "flagged" | "live" | "pending" | "rejected" | "retired";
 
-export type ReviewDecision = "approve" | "keep" | "reject" | "retire";
+export type ReviewDecision = "keep" | "retire";
 
-export type ReviewReason = "anomaly" | "community" | "daily" | "flagged" | "sample";
+export type ReviewReason = "anomaly" | "daily" | "flagged" | "sample";
 
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
@@ -1245,7 +1245,6 @@ export interface PushSubscription {
 export interface Question {
   answer: number | null;
   answer_count: Generated<number>;
-  author_user_id: string | null;
   book_chapter_id: Int8 | null;
   calibrated_at: Timestamp | null;
   citation: string;
@@ -1261,13 +1260,11 @@ export interface Question {
   options: string[] | null;
   ordinal: number;
   prompt_version: number | null;
-  rejected_because: string | null;
   source_title: string | null;
   source_url: string | null;
   status: Generated<QuestionStatus>;
   stem: string;
   stem_rewrite_tried_at: Timestamp | null;
-  submission_key: string | null;
   unit: string | null;
   validated_at: Timestamp | null;
   validator_answer: number | null;
