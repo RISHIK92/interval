@@ -192,6 +192,16 @@ function Answer({
   );
 }
 
+// A v4 UUID from getRandomValues: crypto.randomUUID exists only in secure contexts, so a
+// page served over plain http (a LAN or Tailscale address in development) has none.
+function newKey(): string {
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = ((b[6] ?? 0) & 0x0f) | 0x40;
+  b[8] = ((b[8] ?? 0) & 0x3f) | 0x80;
+  const hex = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function AskBox({
   canAsk,
   query,
@@ -208,7 +218,7 @@ export function AskBox({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // LOAD-5: one key per question as composed; a retry after a failure reuses it.
-  const [key, setKey] = useState(() => crypto.randomUUID());
+  const [key, setKey] = useState(() => newKey());
   const [polls, setPolls] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const pending = thread !== null && thread.answer === null;
@@ -286,7 +296,7 @@ export function AskBox({
       setText("");
       setChip(null);
       setFollowUpOf(null);
-      setKey(crypto.randomUUID());
+      setKey(newKey());
     } catch (e: unknown) {
       console.error("explore: question not asked", e);
       setError("Couldn’t ask that. Try again.");
@@ -342,7 +352,7 @@ export function AskBox({
             value={text}
             onChange={(e) => {
               setText(e.target.value);
-              setKey(crypto.randomUUID()); // a changed question is a new one
+              setKey(newKey()); // a changed question is a new one
               // A chip holds only while its template starts the box.
               const held = CHIPS.find((c) => c.chip === chip);
               if (
@@ -393,7 +403,7 @@ export function AskBox({
                 onClick={() => {
                   setChip(c.chip);
                   setText(c.prefill);
-                  setKey(crypto.randomUUID()); // a changed question is a new one
+                  setKey(newKey()); // a changed question is a new one
                   input.current?.focus();
                 }}
                 className={`inline-flex h-9 items-center rounded-full border-[1.5px] px-3.5 text-sm font-medium ${chip === c.chip ? "border-ink text-ink" : "border-hairline text-ink-soft"}`}
@@ -419,7 +429,7 @@ export function AskBox({
           thread={thread}
           onFollowUp={() => {
             setFollowUpOf(thread.id);
-            setKey(crypto.randomUUID()); // a changed question is a new one
+            setKey(newKey()); // a changed question is a new one
             input.current?.focus();
           }}
           onDelete={() => void remove()}

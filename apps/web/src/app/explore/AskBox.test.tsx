@@ -18,6 +18,12 @@ afterEach(() => {
 
 const ID = "11111111-1111-4111-8111-111111111111";
 
+// getRandomValues filled with one byte: a known key (the box makes a v4 UUID from it).
+const randomBytes = (byte: number) => ({
+  getRandomValues: (a: Uint8Array) => a.fill(byte),
+});
+const KEY_1 = "01010101-0101-4101-8101-010101010101";
+
 function mount() {
   const host = document.createElement("div");
   document.body.append(host);
@@ -69,7 +75,7 @@ test("asking queues the question, then shows the answer once written", async () 
     .mockResolvedValueOnce(Response.json(answered))
     .mockResolvedValueOnce(Response.json({ id: "x" }, { status: 202 }));
   vi.stubGlobal("fetch", fetch);
-  vi.stubGlobal("crypto", { randomUUID: () => "key-1" });
+  vi.stubGlobal("crypto", randomBytes(1));
   const host = mount();
   const input = host.querySelector("input");
   if (input === null) throw new Error("no box");
@@ -89,7 +95,7 @@ test("asking queues the question, then shows the answer once written", async () 
   expect(sent(init)).toEqual({
     text: "Explain like I’m new: sharding",
     chip: "explain_new",
-    idempotencyKey: "key-1",
+    idempotencyKey: KEY_1,
     followUpOf: null,
   });
   expect(host.textContent).toContain("Looking through your library…");
@@ -129,7 +135,7 @@ test("a refusal says why, and nothing waits", async () => {
       ),
     ),
   );
-  vi.stubGlobal("crypto", { randomUUID: () => "key-2" });
+  vi.stubGlobal("crypto", randomBytes(2));
   const host = mount();
   const input = host.querySelector("input");
   if (input === null) throw new Error("no box");
@@ -153,7 +159,9 @@ test("a failed request is said, and the retry reuses the question's key", async 
     .mockResolvedValueOnce(Response.json({ id: ID }, { status: 202 }));
   vi.stubGlobal("fetch", fetch);
   let n = 0;
-  vi.stubGlobal("crypto", { randomUUID: () => `key-${String(++n)}` });
+  vi.stubGlobal("crypto", {
+    getRandomValues: (a: Uint8Array) => a.fill(++n),
+  });
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   const host = mount();
   const input = host.querySelector("input");
@@ -171,4 +179,29 @@ test("a failed request is said, and the retry reuses the question's key", async 
     (c) => (sent(c[1]) as { idempotencyKey: string }).idempotencyKey,
   );
   expect(keys[0]).toBe(keys[1]);
+});
+
+// A page on plain http (the site over a LAN or Tailscale address in development) isn't a
+// secure context, so browsers leave crypto.randomUUID out; the box must still mount and
+// send a v4-shaped key.
+test("Ask works where crypto.randomUUID is missing (plain http)", async () => {
+  // Only getRandomValues, as on a plain-http page.
+  vi.stubGlobal("crypto", randomBytes(7));
+  const fetch = vi
+    .fn<(url: string, init?: RequestInit) => Promise<Response>>()
+    .mockResolvedValue(Response.json({ id: ID }, { status: 202 }));
+  vi.stubGlobal("fetch", fetch);
+  const host = mount();
+  const input = host.querySelector("input");
+  if (input === null) throw new Error("no box");
+  act(() => {
+    type(input, "What is a quorum?");
+  });
+  await act(async () => {
+    button(host, "Ask")?.click();
+    await Promise.resolve();
+  });
+  expect(sent(fetch.mock.calls[0]?.[1])).toMatchObject({
+    idempotencyKey: "07070707-0707-4707-8707-070707070707",
+  });
 });
