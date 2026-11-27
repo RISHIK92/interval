@@ -19,3 +19,7 @@ export function sameSitePath(value: string, fallback: string): string {
     ? `${url.pathname}${url.search}`
     : fallback;
 }
+
+// The sign-in and create-account forms (RequestAuth): a refusal, or the page to open
+// once the request has landed.
+export type AuthState = { message: string } | { next: string } | null;

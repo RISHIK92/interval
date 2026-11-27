@@ -1,10 +1,9 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sessionReader } from "../../server/container";
-import { AuthForm } from "../AuthForm";
+import { signInAction } from "../sign-in/actions";
+import { RequestAuth } from "../RequestAuth";
 import { signUpAction } from "./actions";
-import { CARD, Standalone, TITLE } from "../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -15,36 +14,11 @@ export default async function SignUpPage() {
   if (actor === null) redirect("/join");
   if (!actor.isGuest) redirect("/");
   return (
-    <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
-      <h1 className={`text-display ${TITLE}`}>Create your account</h1>
-      <p className="mt-2 text-ink-muted">
-        Keep your games and progress, and use all of Interval on any device.
-      </p>
-      <AuthForm
-        action={signUpAction}
-        submit="Create account"
-        fields={[
-          { name: "name", label: "Name", type: "text", autoComplete: "name" },
-          {
-            name: "email",
-            label: "Email",
-            type: "email",
-            autoComplete: "email",
-          },
-          {
-            name: "password",
-            label: "Password (8 to 128 characters)",
-            type: "password",
-            autoComplete: "new-password",
-          },
-        ]}
-      />
-      <p className="mt-6">
-        Already have an account?{" "}
-        <Link href="/sign-in" className="font-semibold underline">
-          Sign in
-        </Link>
-      </p>
-    </Standalone>
+    <RequestAuth
+      initial="signup"
+      signIn={signInAction}
+      create={signUpAction}
+      createPath="/sign-up"
+    />
   );
 }

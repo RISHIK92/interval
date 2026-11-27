@@ -1,16 +1,15 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { signUp } from "../../server/accounts";
 import { accounts, events, sessionReader } from "../../server/container";
 import { visitId } from "../../server/visits";
-import { type FormState, textField } from "../form";
+import { type AuthState, textField } from "../form";
 
 export async function signUpAction(
-  _previous: FormState,
+  _previous: AuthState,
   form: FormData,
-): Promise<FormState> {
+): Promise<AuthState> {
   const requestHeaders = await headers();
   // Read before the upgrade: the guest's row becomes the account (same user id).
   const guest = await sessionReader().current(requestHeaders);
@@ -27,5 +26,5 @@ export async function signUpAction(
       { ...guest, isGuest: false, sessionId: visitId(await cookies()) },
     );
   }
-  redirect("/");
+  return { next: "/" };
 }

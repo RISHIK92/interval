@@ -6171,3 +6171,28 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Same day, separately:**
   - **Explore:** the Ask box no longer crashes over plain http (`98ad5f7`).
   - **LLD and HLD:** the battle screens fill the window on desktop (`96fb6af`).
+
+## 2026-11-27: Sign in and create account as a live request (owner's design trial 3)
+
+- **What:**
+  - `/sign-in`, `/join` and `/sign-up` now share one page, `apps/web/src/app/RequestAuth.tsx`, built from `.orca/drops/Trial 3 · Web · {Sign in,Create account} as a live request` and the owner's phone mockup.
+  - The card is styled as a request (`POST /v1/session` or `POST /v1/users`). A switch flips between sign-in and create account in place, and the address changes to match (an invite `?code=` is kept).
+  - Each valid field lights a node of the diagram and moves the log on. Phones show only the current log line.
+  - On submit a decorative packet travels while the real server action runs.
+- **The actions:** `signInAction`, `signUpAction` and `join` now return `{ next }` (`AuthState`) instead of redirecting. The page shows 200/201 for a second, then opens `/` or `/onboarding`.
+- **Errors:**
+  - A sign-in refusal stops at auth with a 401 and a "Forgot your password?" link.
+  - A refused sign-up shows the server's reason.
+- **Owner choices (2026-11-27):**
+  - Left out: GitHub/Google sign-in, the magic link, the "all systems normal" dot and the Terms/Privacy line, since none exist.
+  - The page moves on by itself after the status.
+  - The whole page follows the app's theme: a dark page with a black card in dark mode, a white page with a white card in light mode.
+  - The packet travels even with reduced motion on.
+- **Removed:** `JoinForm.tsx`. `AuthForm` stays for the password reset pages.
+- **Checks:**
+  - New `RequestAuth.test.tsx`; the auth-page and join tests are updated, including which create action the sign-in page picks for a guest or a newcomer.
+  - Reviewer should-fix items fixed:
+    - no second request during the success pause (the fields are read-only);
+    - the switch is a pair of pressed buttons rather than radios;
+    - the show-password label;
+    - submit waits for hydration.

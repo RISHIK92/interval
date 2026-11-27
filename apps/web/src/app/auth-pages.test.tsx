@@ -150,9 +150,7 @@ describe("sign-up", () => {
     };
     current.mockResolvedValue(guest);
     port.signUp.mockResolvedValueOnce({ ok: true, setCookies: [] });
-    await expect(signUpAction(null, form(fields))).rejects.toThrow(
-      "redirect:/",
-    );
+    expect(await signUpAction(null, form(fields))).toEqual({ next: "/" });
     // The guest's row became the account: same user id, now not a guest.
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "signup_completed",
@@ -194,9 +192,31 @@ describe("sign-in", () => {
   test("a newcomer is sent to create an account, with no invite code", async () => {
     current.mockResolvedValue(null);
     const html = await page();
-    expect(html).toMatch(/href="\/join"[^>]*>Create an account/);
+    // The card's switch creates an account in place.
+    expect(html).toMatch(/aria-pressed="false"[^>]*>.*Create account/);
     expect(html).not.toMatch(/invite|private beta/i);
   });
+
+  // A guest's account is the guest itself (/sign-up); anyone else's is new (/join).
+  test.each([
+    ["a guest", guest, "signUpAction", "/sign-up"],
+    ["a newcomer", null, "join", "/join"],
+  ] as const)(
+    "%s creates the right kind of account from the switch",
+    async (_who, actor, action, path) => {
+      current.mockResolvedValue(actor);
+      const { default: SignInPage } = await import("./sign-in/page");
+      const element = (await SignInPage({
+        searchParams: Promise.resolve({}),
+      })) as ReactElement<{ create: unknown; createPath: string }>;
+      const actions: Record<string, unknown> = {
+        signUpAction: (await import("./sign-up/actions")).signUpAction,
+        join: (await import("./join/actions")).join,
+      };
+      expect(element.props.create).toBe(actions[action]);
+      expect(element.props.createPath).toBe(path);
+    },
+  );
 
   test("after a reset the page says the password changed", async () => {
     current.mockResolvedValue(null);
@@ -212,9 +232,7 @@ describe("sign-in", () => {
       actor: account,
       mergedGuest: false,
     });
-    await expect(signInAction(null, form(fields))).rejects.toThrow(
-      "redirect:/",
-    );
+    expect(await signInAction(null, form(fields))).toEqual({ next: "/" });
     // A sign-in starts a new visit for the user now on this browser.
     const [name, value] = setCookie.mock.calls[0] as [string, string];
     expect(name).toBe("iv_visit");
@@ -242,12 +260,12 @@ describe("guest merge on sign-in (P3-W13-S07)", () => {
       actor: account,
       mergedGuest: true,
     });
-    await expect(
-      signInAction(
+    expect(
+      await signInAction(
         null,
         form({ email: "ada@example.test", password: PASSWORD }),
       ),
-    ).rejects.toThrow("redirect:/");
+    ).toEqual({ next: "/" });
     const [, value] = setCookie.mock.calls[0] as [string, string];
     const context = { ...account, sessionId: value.split(".")[0] };
     expect(emit.mock.calls).toEqual([
@@ -265,12 +283,12 @@ describe("guest merge on sign-in (P3-W13-S07)", () => {
       actor: account,
       mergedGuest: false,
     });
-    await expect(
-      signInAction(
+    expect(
+      await signInAction(
         null,
         form({ email: "ada@example.test", password: PASSWORD }),
       ),
-    ).rejects.toThrow("redirect:/");
+    ).toEqual({ next: "/" });
     expect(invalidate).not.toHaveBeenCalled();
   });
 });

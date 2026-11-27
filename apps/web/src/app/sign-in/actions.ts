@@ -1,16 +1,15 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { signIn } from "../../server/accounts";
 import { accounts, events, leaderboards } from "../../server/container";
-import { type FormState, textField } from "../form";
+import { type AuthState, textField } from "../form";
 import { startVisit } from "../visit";
 
 export async function signInAction(
-  _previous: FormState,
+  _previous: AuthState,
   form: FormData,
-): Promise<FormState> {
+): Promise<AuthState> {
   const result = await signIn(accounts(), await headers(), {
     email: textField(form, "email"),
     password: textField(form, "password"),
@@ -24,5 +23,5 @@ export async function signInAction(
     // P3-W14-S01: the boards rebuild with the guest's games under the account.
     await leaderboards().invalidate(result.actor.userId);
   }
-  redirect("/");
+  return { next: "/" };
 }

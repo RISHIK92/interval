@@ -1,14 +1,16 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sessionReader } from "../../server/container";
-import { AuthForm } from "../AuthForm";
+import { join } from "../join/actions";
+import { RequestAuth } from "../RequestAuth";
+import { signUpAction } from "../sign-up/actions";
 import { signInAction } from "./actions";
-import { CARD, Standalone, TITLE } from "../Standalone";
 
 export const dynamic = "force-dynamic";
 
 // A guest may sign in to an existing account; the guest is kept for the merge (S12).
+// The card's switch creates an account in place: a guest's own (/sign-up), or a new one
+// (/join).
 export default async function SignInPage({
   searchParams,
 }: {
@@ -17,43 +19,14 @@ export default async function SignInPage({
   const actor = await sessionReader().current(await headers());
   if (actor !== null && !actor.isGuest) redirect("/");
   const { reset } = await searchParams;
+  const guest = actor !== null;
   return (
-    <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
-      <h1 className={`text-display ${TITLE}`}>Sign in</h1>
-      {reset === "1" ? (
-        <p role="status" className="mt-2 text-go-text">
-          Your password was changed. Sign in with the new one.
-        </p>
-      ) : null}
-      <AuthForm
-        action={signInAction}
-        submit="Sign in"
-        fields={[
-          {
-            name: "email",
-            label: "Email",
-            type: "email",
-            autoComplete: "email",
-          },
-          {
-            name: "password",
-            label: "Password",
-            type: "password",
-            autoComplete: "current-password",
-          },
-        ]}
-      />
-      <p className="mt-6">
-        <Link href="/forgot-password" className="font-semibold underline">
-          Forgot your password?
-        </Link>
-      </p>
-      <p className="mt-2">
-        New here?{" "}
-        <Link href="/join" className="font-semibold underline">
-          Create an account
-        </Link>
-      </p>
-    </Standalone>
+    <RequestAuth
+      initial="signin"
+      signIn={signInAction}
+      create={guest ? signUpAction : join}
+      createPath={guest ? "/sign-up" : "/join"}
+      reset={reset === "1"}
+    />
   );
 }

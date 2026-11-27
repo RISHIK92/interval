@@ -69,7 +69,7 @@ test("with no code, the account is made with no group, a visit starts and onboar
   current.mockResolvedValue(null);
   const account = { userId: "u9", isGuest: false, betaGroup: null } as const;
   create.mockResolvedValue({ ok: true, setCookies: [], actor: account });
-  await expect(join(form())).rejects.toThrow("redirect:/onboarding");
+  expect(await join(form())).toEqual({ next: "/onboarding" });
   expect(redeem).not.toHaveBeenCalled();
   expect(create).toHaveBeenCalledExactlyOnceWith(
     null,
@@ -106,9 +106,9 @@ test("a code from an old invite link still sets the group", async () => {
     betaGroup: "developer",
   } as const;
   create.mockResolvedValue({ ok: true, setCookies: [], actor: account });
-  await expect(join(form({ ...FIELDS, code: "ABCDE-FGHJK" }))).rejects.toThrow(
-    "redirect:/onboarding",
-  );
+  expect(await join(form({ ...FIELDS, code: "ABCDE-FGHJK" }))).toEqual({
+    next: "/onboarding",
+  });
   expect(redeem).toHaveBeenCalledWith("ABCDE-FGHJK");
   expect(create.mock.calls[0]?.[0]).toEqual(redemption);
 });

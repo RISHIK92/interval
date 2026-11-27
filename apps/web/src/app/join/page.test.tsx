@@ -15,6 +15,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("./actions", () => ({ join: vi.fn() }));
+vi.mock("../sign-in/actions", () => ({ signInAction: vi.fn() }));
 
 afterEach(() => {
   current.mockReset();
