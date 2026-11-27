@@ -36,6 +36,8 @@ const Read = z.object({
   pos: z.coerce.number().int().min(1).max(200).optional(),
   from: z.enum(["continue", "reader", "library", "path"]).optional(),
   path: z.string().regex(BIGINT_ID).optional(),
+  // P7-W46: a card a companion surface suggested, as /out's.
+  via: z.literal("agent").optional(),
 });
 
 const LISTEN = "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z";
@@ -62,17 +64,27 @@ export default async function ReadPage({
   const { item } = await params;
   const parsed = Read.safeParse(await searchParams);
   if (!BIGINT_ID.test(item) || !parsed.success) redirect("/");
-  const { moment, chip, pos, from, path } = parsed.data;
+  const { moment, chip, pos, from, path, via } = parsed.data;
   if ((from === undefined) === (pos === undefined)) redirect("/");
   // A path's reading names its path; nothing else does.
   if ((from === "path") !== (path !== undefined)) redirect("/");
-  const card = pos === undefined ? null : { chip, pos };
-  const origin = card === null ? (from ?? "continue") : { position: card.pos };
+  const card =
+    pos === undefined ? null : { chip, pos, via: via ?? ("feed" as const) };
+  const origin =
+    card === null
+      ? (from ?? "continue")
+      : { position: card.pos, ...(via === undefined ? {} : { via }) };
   const browserHref = outHref({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
     target: "section",
-    ...(typeof origin === "string" ? { from: origin } : { chip, from: origin }),
+    ...(typeof origin === "string"
+      ? { from: origin }
+      : {
+          chip,
+          from: { position: origin.position },
+          ...(origin.via === undefined ? {} : { via: origin.via }),
+        }),
   });
   // Where Next section keeps going from: a path's reading stays one.
   const nextFrom =

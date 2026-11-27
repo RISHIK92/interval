@@ -100,7 +100,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "book_session_finished": 1,
     "book_uploaded": 1,
     "card_impression": 1,
-    "card_opened": 3,
+    "card_opened": 4,
     "checkpoint_finished": 1,
     "checkpoint_started": 1,
     "concept_missed": 1,
@@ -253,6 +253,7 @@ class CardOpenedProps(_Model):
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
     surface: Literal["in_app", "browser"]
+    via: Literal["feed", "agent"]
 
 
 class CheckpointFinishedProps(_Model):
@@ -637,7 +638,7 @@ class CardImpressionEvent(_EnvelopeBase):
 
 class CardOpenedEvent(_EnvelopeBase):
     name: Literal["card_opened"]
-    version: Literal[3]
+    version: Literal[4]
     props: CardOpenedProps
 
 

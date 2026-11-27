@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
 import {
+  AGENT_FINISHED_MS,
   AGENT_PLACE_MS,
   AGENT_TASK_MS,
   type AgentDevice,
@@ -80,17 +81,20 @@ export function kyselyAgentHook(db: Kysely<DB>): AgentHook {
         .execute();
     },
 
-    deviceFor: async (token, now) => {
-      const { rows } = await sql<{
-        id: string;
-        user_id: string;
-        beta_group: BetaGroup | null;
-      }>`
-        update agent_device d set last_used_at = ${now}
-        from app_user u
-        where u.id = d.user_id and d.token_hash = ${hash(token)}
-          and d.revoked_at is null
-        returning d.id, d.user_id, u.beta_group`.execute(db);
+    deviceFor: async (token, now, touch = true) => {
+      const { rows } = await (
+        touch
+          ? sql<{ id: string; user_id: string; beta_group: BetaGroup | null }>`
+            update agent_device d set last_used_at = ${now}
+            from app_user u
+            where u.id = d.user_id and d.token_hash = ${hash(token)}
+              and d.revoked_at is null
+            returning d.id, d.user_id, u.beta_group`
+          : sql<{ id: string; user_id: string; beta_group: BetaGroup | null }>`
+            select d.id, d.user_id, u.beta_group
+            from agent_device d join app_user u on u.id = d.user_id
+            where d.token_hash = ${hash(token)} and d.revoked_at is null`
+      ).execute(db);
       const row = rows[0];
       // Devices are made on Profile, which only accounts have (ADR-0029).
       return row === undefined
@@ -184,6 +188,22 @@ export function kyselyAgentHook(db: Kysely<DB>): AgentHook {
         .orderBy("t.started_at", "desc")
         .executeTakeFirst();
       return row === undefined ? null : { startedAt: row.started_at };
+    },
+
+    finished: async (userId, now) => {
+      const row = await db
+        .selectFrom("agent_task as t")
+        .innerJoin("agent_device as d", "d.id", "t.device_id")
+        .select(["t.started_at", "t.finished_at"])
+        .where("t.user_id", "=", userId)
+        .where("d.revoked_at", "is", null)
+        .orderBy("t.started_at", "desc")
+        .limit(1)
+        .executeTakeFirst();
+      const at = row?.finished_at ?? null;
+      return at === null || at.getTime() <= now.getTime() - AGENT_FINISHED_MS
+        ? null
+        : { finishedAt: at };
     },
 
     place: async (userId, now) => {

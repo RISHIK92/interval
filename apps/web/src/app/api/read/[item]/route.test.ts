@@ -87,7 +87,7 @@ test("a feed card's open: the page, attributed, in the app even if it can't be f
     expect.objectContaining({
       itemId: "5",
       momentId: "9",
-      card: { chip: "3-8", pos: 2 },
+      card: { chip: "3-8", pos: 2, via: "feed" },
       from: undefined,
       surface: "in_app",
     }),

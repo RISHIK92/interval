@@ -87,7 +87,7 @@ export const EVENT_VERSIONS = {
   book_session_finished: 1,
   book_uploaded: 1,
   card_impression: 1,
-  card_opened: 3,
+  card_opened: 4,
   checkpoint_finished: 1,
   checkpoint_started: 1,
   concept_missed: 1,
@@ -226,6 +226,7 @@ export const propsSchemas = {
       .regex(/^[1-9][0-9]{0,18}$/)
       .nullable(),
     surface: z.enum(["in_app", "browser"]),
+    via: z.enum(["feed", "agent"]),
   }),
   checkpoint_finished: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -549,7 +550,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("card_opened"),
-    version: z.literal(3),
+    version: z.literal(4),
     props: propsSchemas.card_opened,
   }),
   z.strictObject({

@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "command": "interval stop --for gemini",
+            "name": "interval-stop",
+            "timeout": 5000,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "command": "interval start --for gemini",
+            "name": "interval-start",
+            "timeout": 5000,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

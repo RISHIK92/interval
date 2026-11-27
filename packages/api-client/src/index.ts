@@ -459,3 +459,29 @@ export const PushPreferencesBody = PushPreferences.extend({
   timeZone: z.string().min(1).max(64),
 });
 export type PushPreferencesBody = z.infer<typeof PushPreferencesBody>;
+
+// P7-W46 (§7; Q-P7-02, owner 2026-11-20 and 2026-11-27): what the companion surfaces
+// (the CLI's `interval status`, the VS Code extension, the desktop app) read with a
+// device token. Only what a hook sent (started, finished) and links into the web app,
+// never content: a suggestion is a title, its minutes and where it opens.
+const AgentTask = z.discriminatedUnion("state", [
+  z.object({
+    state: z.literal("running"),
+    startedAt: z.string(),
+    seconds: z.number().int().nonnegative(),
+  }),
+  // For 10 minutes after the finish (owner, 2026-11-27), then idle.
+  z.object({ state: z.literal("finished"), finishedAt: z.string() }),
+  z.object({ state: z.literal("idle") }),
+]);
+const AgentSuggestion = z.object({
+  title: z.string(),
+  minutes: z.number().int().nullable(),
+  url: z.string(),
+});
+export const AgentStatus = z.object({
+  task: AgentTask,
+  chip: z.enum(CHIPS),
+  suggestions: z.array(AgentSuggestion).max(3),
+});
+export type AgentStatus = z.infer<typeof AgentStatus>;

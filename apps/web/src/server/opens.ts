@@ -30,7 +30,8 @@ export async function countOpen(
     itemId: string;
     momentId: string | undefined;
     link: OutboundLink;
-    card: { chip: Chip; pos: number } | null;
+    // `via`: offered by Home's feed, or by a companion surface (P7-W46).
+    card: { chip: Chip; pos: number; via: "feed" | "agent" } | null;
     from: "continue" | "library" | "reader" | "path" | "explore" | undefined;
     surface: "in_app" | "browser";
   },
@@ -60,6 +61,7 @@ export async function countOpen(
         item_id: itemId,
         moment_id: link.linkType === "article" ? null : (momentId ?? null),
         surface: open.surface,
+        via: card.via,
       },
       context,
     );

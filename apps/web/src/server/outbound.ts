@@ -10,13 +10,15 @@ export function outHref(
     itemId: string;
     momentId?: string;
     target: "section" | "original";
-  } & (
-    | { from: { position: number }; chip: Chip }
-    | {
-        from: "continue" | "library" | "reader" | "path" | "explore";
-        chip?: never;
-      }
-  ),
+  } &
+    // P7-W46: `via` "agent" marks a suggestion a companion surface showed.
+    (
+      | { from: { position: number }; chip: Chip; via?: "agent" }
+      | {
+          from: "continue" | "library" | "reader" | "path" | "explore";
+          chip?: never;
+        }
+    ),
 ): string {
   const query = new URLSearchParams({ item: link.itemId });
   if (link.momentId !== undefined) query.set("moment", link.momentId);
@@ -25,6 +27,7 @@ export function outHref(
   } else {
     query.set("chip", link.chip);
     query.set("pos", String(link.from.position));
+    if (link.via !== undefined) query.set("via", link.via);
   }
   query.set("target", link.target);
   return `/out?${query.toString()}`;
@@ -40,7 +43,11 @@ export function readHref(link: {
   momentId?: string;
   chip: Chip;
   from:
-    { position: number } | { path: string } | "continue" | "reader" | "library";
+    | { position: number; via?: "agent" }
+    | { path: string }
+    | "continue"
+    | "reader"
+    | "library";
 }): string {
   const query = new URLSearchParams();
   if (link.momentId !== undefined) query.set("moment", link.momentId);
@@ -52,6 +59,7 @@ export function readHref(link: {
     query.set("path", link.from.path);
   } else {
     query.set("pos", String(link.from.position));
+    if (link.from.via !== undefined) query.set("via", link.from.via);
   }
   return `/read/${link.itemId}?${query.toString()}`;
 }

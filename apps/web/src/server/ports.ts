@@ -896,6 +896,8 @@ export type AgentDevice = {
 export const MAX_AGENT_DEVICES = 10;
 export const AGENT_TASK_MS = 2 * 3_600_000;
 export const AGENT_PLACE_MS = 24 * 3_600_000;
+// P7-W46 (owner, 2026-11-27): a finished task shows as finished this long, then idle.
+export const AGENT_FINISHED_MS = 10 * 60_000;
 export type AgentFinish =
   { status: "finished"; elapsedMs: number } | { status: "repeat" | "none" };
 export interface AgentHook {
@@ -907,9 +909,12 @@ export interface AgentHook {
   ): Promise<{ device: AgentDevice; token: string } | "full">;
   revoke(userId: string, deviceId: string): Promise<void>;
   // A live device by its token (and marked used now); null for anything else.
+  // P7-W46: `touch` false for a status read, so Profile's "Last used" keeps meaning
+  // the hook itself ran.
   deviceFor(
     token: string,
     now: Date,
+    touch?: boolean,
   ): Promise<{ deviceId: string; actor: Actor } | null>;
   // A repeated key does nothing (LOAD-5); a new start ends the device's running task.
   // The new task's id when it started (P3-W17-S05b nudges it 45 s on).
@@ -926,6 +931,9 @@ export interface AgentHook {
     place: string | null,
   ): Promise<AgentFinish>;
   running(userId: string, now: Date): Promise<{ startedAt: Date } | null>;
+  // P7-W46: the finish of the latest task on a live device, within AGENT_FINISHED_MS;
+  // null while that task still runs.
+  finished(userId: string, now: Date): Promise<{ finishedAt: Date } | null>;
   // Saved within 24 hours and not opened since.
   place(userId: string, now: Date): Promise<string | null>;
   openedPlace(userId: string, path: string, now: Date): Promise<void>;

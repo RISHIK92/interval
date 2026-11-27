@@ -12,6 +12,7 @@ Phase 7 (docs/roadmap/phase-7.md, the plan in docs/roadmap/phase-7-slices.md) is
 - **Recommendation:** (b), limited to agents whose hooks are documented and stable. (c) would need to watch the editor or terminal, and that risks seeing code, which §7 forbids.
 
 - **Answers (owner, 2026-11-20):** (b), all four agents whose hooks are documented: Claude Code (`UserPromptSubmit`/`Stop`), OpenAI Codex (`UserPromptSubmit`/`Stop`), Cursor (`beforeSubmitPrompt`/`stop`; beta, its gaps noted in docs/agent-hook.md) and Gemini CLI (`BeforeAgent`/`AfterAgent`). `interval hook install --agent <name>` writes the user-level config only (never a project's, which could be committed and turn the hook on for others), merged with what's there and kept as a backup; running it twice changes nothing; `interval hook uninstall --agent <name>` removes only Interval's entries.
+- **Answer (owner, 2026-11-27), after checking the docs again:** Gemini CLI's docs say Antigravity CLI replaced it on 18 June 2026 for most users (paid-API and enterprise users keep it). Gemini stays, with that noted. Antigravity CLI gets no installer for now: it has no "prompt submitted" event, and its docs don't say whether a hook can block. Its users run `interval start`/`stop` by hand.
 
 ### Q-P7-02 Does the read API show the suggestions themselves (P0 for W46)
 
@@ -19,6 +20,10 @@ Phase 7 (docs/roadmap/phase-7.md, the plan in docs/roadmap/phase-7-slices.md) is
 - **Recommendation:** yes. It returns the top few items from the user's precomputed feed that fit the expected wait, each linking to the web app. The surfaces render links and never content, so the rights profile (ING-2) still applies only in the web app.
 
 - **Answers (owner, 2026-11-20):** yes, links only: 3 suggestions, picked by the user's break length (the chip chosen at onboarding, or `?chip=` per request, as `/api/feed` does; PER-1), each a link into the web app. The CLI gets `interval status` from the same API.
+- **Answers (owner, 2026-11-27):**
+  - The API is gated by `agent.hook`, with no new capability.
+  - A finished task shows as finished for 10 minutes, then idle.
+  - Each suggestion links straight to its card, opened as Home opens it, and counted as an open from the companion (`card_opened` gains `via`).
 
 ### Q-P7-03 The extension's quick session: browser or webview (P0 for W47)
 

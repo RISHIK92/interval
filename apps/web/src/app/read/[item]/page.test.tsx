@@ -139,6 +139,7 @@ test("a feed card's open is recorded as in_app, with no outbound click", async (
       item_id: "5",
       moment_id: "9",
       surface: "in_app",
+      via: "feed",
     },
     context,
   );
@@ -389,4 +390,21 @@ test("the reader offers a note on the section, empty until one is written", asyn
   expect(html).toContain("Add a note");
   expect(html).toMatch(/<textarea[^>]*name="body"[^>]*><\/textarea>/);
   expect(html).not.toMatch(/<button[^>]*value="delete"/);
+});
+
+// P7-W46 (owner, 2026-11-27): a companion's suggestion opens as a feed card does,
+// counted as offered via the agent; one the frame can't take keeps that on its way out.
+test("a companion's suggestion is an in-app open via the agent", async () => {
+  current.mockResolvedValue(user);
+  reader.mockResolvedValue(page);
+  await render({ ...card, via: "agent" });
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "card_opened",
+    expect.objectContaining({ surface: "in_app", via: "agent", position: 4 }),
+    context,
+  );
+  reader.mockResolvedValue({ ...page, frameable: false });
+  await expect(render({ ...card, via: "agent" })).rejects.toThrow(
+    "redirect:/out?item=5&moment=9&chip=3-8&pos=4&via=agent&target=section",
+  );
 });

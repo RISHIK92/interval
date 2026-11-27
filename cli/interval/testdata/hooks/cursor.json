@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "interval start --for cursor",
+        "timeout": 10
+      }
+    ],
+    "stop": [
+      {
+        "command": "interval stop --for cursor",
+        "timeout": 10
+      }
+    ]
+  },
+  "version": 1
+}

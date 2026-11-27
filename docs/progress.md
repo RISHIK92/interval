@@ -6114,3 +6114,28 @@ The owner said to continue building overnight with recommended answers, switchin
   - Typecheck and lint are clean, and the reviewer's should-fix items are fixed.
 - **Not fixed:** an explainer queued earlier keeps its place in the queue, so finishing it from the grid may play whatever was queued after it.
 - **Not checked in a browser.**
+
+## 2026-11-27: Phase 7 Week 46: agent status API and hook installers
+
+- **Owner's answers (2026-11-27):**
+  - The status API is gated by `agent.hook`.
+  - A finished task shows as finished for 10 minutes.
+  - Suggestions link straight to their cards, counted as opens via the agent.
+  - Gemini CLI stays and Antigravity CLI waits: it has no "prompt sent" event, and its docs don't say whether a hook can block.
+  - Each agent's hook format was checked against its own docs on 2026-11-27.
+- **`GET /api/agent/status`:**
+  - authenticated by the device token, gated by `agent.hook`, limited to 60 a minute per device;
+  - it doesn't touch Profile's "Last used";
+  - it returns the task (running, finished for 10 minutes, or idle) and 3 suggestions from the stored or starter feed, as absolute links: a title, minutes and a URL, never content;
+  - the `AgentStatus` schema is in `@interval/api-client`.
+- **`card_opened` v4:** adds `via` (`feed` or `agent`). `/out` and `/read` accept `via=agent`, and the redirect from `/read` to `/out` keeps it.
+- **CLI:**
+  - `interval hook install|uninstall --agent claude|codex|cursor|gemini` writes user-level files only. It merges into what's there, keeps a backup, leaves a symlink a symlink, and leaves a malformed file untouched. A second run changes nothing. There is one golden file per agent.
+  - `interval start|stop --for <agent>` prints what each agent expects and always exits 0.
+  - `interval status [--chip] [--json]` drops control characters from titles before printing them.
+- **Docs:** docs/agent-hook.md covers each agent's file, events and caveats (Codex's `/hooks` trust step, Cursor's restart, Gemini's narrowed availability).
+- **Checks:**
+  - Go vet and tests pass.
+  - The web suite passes 1,974 tests; s3-files needs SeaweedFS, which is stopped.
+  - The reviewer's should-fix items are fixed, and so are most of its nits.
+- **Not checked in a real agent:** the installers follow each agent's docs but weren't run inside Claude Code, Codex, Cursor or Gemini.

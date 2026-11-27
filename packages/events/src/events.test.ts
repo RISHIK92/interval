@@ -130,8 +130,9 @@ describe("the envelope", () => {
     expect(envelopeSchema.parse(event)).toEqual(event);
   });
 
-  // ADR-0018: an open says where it opened, Interval's reader or the browser.
-  test("card_opened v3 carries its surface", () => {
+  // ADR-0018: an open says where it opened, Interval's reader or the browser; P7-W46
+  // (v4): and whether Home's feed or a companion surface offered it.
+  test("card_opened v4 carries its surface and where it was offered", () => {
     const props = {
       kind: "moment",
       chip: "3-8",
@@ -139,25 +140,44 @@ describe("the envelope", () => {
       item_id: "5",
       moment_id: "9",
     };
-    const event = { ...base, name: "card_opened", version: 3 };
+    const event = { ...base, name: "card_opened", version: 4 };
     for (const surface of ["in_app", "browser"]) {
-      expect(
-        envelopeSchema.safeParse({ ...event, props: { ...props, surface } })
-          .success,
-      ).toBe(true);
+      for (const via of ["feed", "agent"]) {
+        expect(
+          envelopeSchema.safeParse({
+            ...event,
+            props: { ...props, surface, via },
+          }).success,
+        ).toBe(true);
+      }
     }
-    expect(envelopeSchema.safeParse({ ...event, props }).success).toBe(false);
     expect(
       envelopeSchema.safeParse({
         ...event,
-        props: { ...props, surface: "app" },
+        props: { ...props, surface: "browser" },
+      }).success,
+    ).toBe(false);
+    expect(
+      envelopeSchema.safeParse({ ...event, props: { ...props, via: "feed" } })
+        .success,
+    ).toBe(false);
+    expect(
+      envelopeSchema.safeParse({
+        ...event,
+        props: { ...props, surface: "app", via: "feed" },
       }).success,
     ).toBe(false);
     expect(
       envelopeSchema.safeParse({
         ...event,
-        version: 2,
-        props: { ...props, surface: "browser" },
+        props: { ...props, surface: "browser", via: "vscode" },
+      }).success,
+    ).toBe(false);
+    expect(
+      envelopeSchema.safeParse({
+        ...event,
+        version: 3,
+        props: { ...props, surface: "browser", via: "feed" },
       }).success,
     ).toBe(false);
   });

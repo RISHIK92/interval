@@ -69,7 +69,7 @@ const call = async (
 test("started: the device's task begins, once per key, and an event with nothing in it", async () => {
   const response = await call("started", { idempotency_key: "key-12345" });
   expect(await response.json()).toEqual({ status: "started" });
-  expect(deviceFor).toHaveBeenCalledWith(TOKEN, expect.any(Date));
+  expect(deviceFor).toHaveBeenCalledWith(TOKEN, expect.any(Date), true);
   expect(start).toHaveBeenCalledWith("d1", "key-12345", expect.any(Date));
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "agent_task_started",

@@ -92,6 +92,7 @@ describe("each link type lands where it points, attributed", () => {
         item_id: "5",
         moment_id: linkType === "article" ? null : "9",
         surface: "browser", // ADR-0018: /out opens the publisher's page in the browser
+        via: "feed",
       },
       context,
     );
@@ -124,6 +125,7 @@ test("Open original website goes to the page itself, not the section", async () 
       item_id: "5",
       moment_id: null,
       surface: "browser",
+      via: "feed",
     },
     context,
   );
@@ -473,4 +475,34 @@ test("an Explore open of a section records the outbound click only", async () =>
   ]);
   expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
   expect(setCookie).not.toHaveBeenCalled();
+});
+
+// P7-W46 (owner, 2026-11-27): a suggestion a companion surface showed is counted as an
+// open offered there; anything else in `via` is no card at all.
+test("a companion's suggestion is an open via the agent", async () => {
+  current.mockResolvedValue(user);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/p#a",
+    linkType: "anchor",
+  });
+  await open("item=5&moment=9&chip=1-3&pos=2&via=agent&target=section");
+  expect(emit).toHaveBeenCalledWith(
+    "card_opened",
+    {
+      kind: "moment",
+      chip: "1-3",
+      position: 2,
+      item_id: "5",
+      moment_id: "9",
+      surface: "browser",
+      via: "agent",
+    },
+    context,
+  );
+  emit.mockClear();
+  const forged = await open(
+    "item=5&moment=9&chip=1-3&pos=2&via=vscode&target=section",
+  );
+  expect(forged.headers.get("location")).toBe("/");
+  expect(emit).not.toHaveBeenCalled();
 });

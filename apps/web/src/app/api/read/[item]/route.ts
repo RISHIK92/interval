@@ -63,7 +63,11 @@ export async function GET(
     itemId: item,
     momentId: moment,
     link: page.link,
-    card: chip === undefined || pos === undefined ? null : { chip, pos },
+    // The app's own feed: companion links open on the web (P7-W46).
+    card:
+      chip === undefined || pos === undefined
+        ? null
+        : { chip, pos, via: "feed" },
     from:
       query.data.path !== undefined
         ? "path"

@@ -65,6 +65,7 @@ type harness struct {
 	slept   []time.Duration
 	config  string
 	cache   string
+	home    string
 	env     map[string]string
 }
 
@@ -75,12 +76,15 @@ func newHarness(t *testing.T, site string) *harness {
 		stderr: &bytes.Buffer{},
 		config: t.TempDir(),
 		cache:  t.TempDir(),
+		home:   t.TempDir(),
 		env:    map[string]string{"INTERVAL_URL": site, "INTERVAL_TOKEN": testToken},
 	}
 	h.deps = deps{
 		getenv:    func(k string) string { return h.env[k] },
 		configDir: func() (string, error) { return h.config, nil },
 		cacheDir:  func() (string, error) { return h.cache, nil },
+		homeDir:   func() (string, error) { return h.home, nil },
+		now:       func() time.Time { return time.Date(2031, 1, 1, 12, 0, 0, 0, time.UTC) },
 		client:    &http.Client{Timeout: 2 * time.Second},
 		random:    &counter{},
 		sleep:     func(d time.Duration) { h.slept = append(h.slept, d) },

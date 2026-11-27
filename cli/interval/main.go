@@ -21,6 +21,8 @@ func liveDeps() deps {
 		getenv:    os.Getenv,
 		configDir: os.UserConfigDir,
 		cacheDir:  os.UserCacheDir,
+		homeDir:   os.UserHomeDir,
+		now:       time.Now,
 		client: &http.Client{
 			Timeout: sendDeadline,
 			// A redirect could carry the token elsewhere, or to plain http: never followed.

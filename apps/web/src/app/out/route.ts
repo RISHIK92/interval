@@ -25,6 +25,8 @@ const Open = z.object({
   // "explore": a search result, gap or cited source on Explore (ADR-0046), counted as a
   // Library open is.
   from: z.enum(["continue", "library", "reader", "path", "explore"]).optional(),
+  // P7-W46: a feed card a companion surface suggested (its chip and position too).
+  via: z.literal("agent").optional(),
   target: z.enum(["section", "original"]),
 });
 
@@ -42,10 +44,10 @@ export async function GET(request: Request): Promise<Response> {
   const query = new URL(request.url).searchParams;
   const parsed = Open.safeParse(Object.fromEntries(query));
   if (!parsed.success) return home();
-  const { item, moment, chip, pos, from, target } = parsed.data;
+  const { item, moment, chip, pos, from, via, target } = parsed.data;
   const card =
     from === undefined && pos !== undefined && chip !== undefined
-      ? { chip, pos }
+      ? { chip, pos, via: via ?? ("feed" as const) }
       : null;
   if (card === null && (from === undefined || pos !== undefined)) return home();
   const link = await outboundLinks().resolve(

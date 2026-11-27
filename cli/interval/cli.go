@@ -24,6 +24,8 @@ type deps struct {
 	getenv    func(string) string
 	configDir func() (string, error)
 	cacheDir  func() (string, error)
+	homeDir   func() (string, error)
+	now       func() time.Time
 	client    *http.Client
 	random    io.Reader
 	sleep     func(time.Duration)
@@ -43,7 +45,7 @@ const (
 	// All tries together: a hook runs before the agent goes on (Claude Code's
 	// UserPromptSubmit holds the prompt), so an unreachable Interval costs at most this.
 	sendDeadline = 3 * time.Second
-	usage        = "usage: interval start | stop | login <token> | version"
+	usage        = "usage: interval start | stop [--for <agent>] | status [--chip 1-3|3-8|8-15] [--json] | hook install|uninstall --agent <agent> | login <token> | version"
 )
 
 // Exit codes: 0, also when Interval can't be reached (a hook must never break its
@@ -54,10 +56,31 @@ func run(args []string, d deps) int {
 		return 1
 	}
 	switch args[0] {
-	case "start":
-		return send(d, "started")
-	case "stop":
-		return send(d, "finished")
+	case "start", "stop":
+		event := "started"
+		if args[0] == "stop" {
+			event = "finished"
+		}
+		switch {
+		case len(args) == 1:
+			return send(d, event)
+		case len(args) == 3 && args[1] == "--for":
+			// P7-W46: run by an agent's hook, which needs its own answer on stdout and
+			// must never be stopped by Interval: always exit 0, errors on stderr only.
+			out, known := hookOutput(args[2], event)
+			if !known {
+				break
+			}
+			_ = send(d, event)
+			if out != "" {
+				fmt.Fprintln(d.stdout, out)
+			}
+			return 0
+		}
+	case "status":
+		return status(d, args[1:])
+	case "hook":
+		return hook(d, args[1:])
 	case "login":
 		if len(args) != 2 {
 			fmt.Fprintln(d.stderr, "usage: interval login <token>")

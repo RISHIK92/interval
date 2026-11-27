@@ -224,3 +224,45 @@ test("the same key sent twice at once starts once and finishes once", async () =
     await db.deleteFrom("invite_code").where("id", "=", code.id).execute();
   }
 });
+
+// P7-W46 (owner, 2026-11-27): the companion surfaces show a finish for 10 minutes.
+test("finished: the latest task's finish for 10 minutes; not while one runs", async () => {
+  await inRollback(async (trx, user) => {
+    const hook = kyselyAgentHook(trx);
+    expect(await hook.finished(user, at(0))).toBeNull();
+    const added = await hook.addDevice(user, "Laptop");
+    if (added === "full") throw new Error("full");
+    const id = added.device.id;
+    await hook.start(id, "start-key-f", at(0));
+    expect(await hook.finished(user, at(1))).toBeNull();
+    await hook.finish(id, "finish-key-f", at(2), null);
+    expect(await hook.finished(user, at(3))).toEqual({ finishedAt: at(2) });
+    expect(await hook.finished(user, at(11))).toEqual({ finishedAt: at(2) });
+    expect(await hook.finished(user, at(12))).toBeNull();
+    // A new task running hides the last one's finish.
+    await hook.start(id, "start-key-g", at(5));
+    expect(await hook.finished(user, at(6))).toBeNull();
+    await hook.finish(id, "finish-key-g", at(7), null);
+    expect(await hook.finished(user, at(8))).toEqual({ finishedAt: at(7) });
+    // A revoked device's finish stops showing with it.
+    await hook.revoke(user, id);
+    expect(await hook.finished(user, at(8))).toBeNull();
+  });
+});
+
+// P7-W46: a status read finds the device without touching Profile's "Last used".
+test("a lookup without touch leaves last used as it was", async () => {
+  await inRollback(async (trx, user) => {
+    const hook = kyselyAgentHook(trx);
+    const added = await hook.addDevice(user, "Laptop");
+    if (added === "full") throw new Error("full");
+    expect(await hook.deviceFor(added.token, at(1), false)).toMatchObject({
+      deviceId: added.device.id,
+    });
+    expect((await hook.devices(user))[0]?.lastUsedAt).toBeNull();
+    await hook.deviceFor(added.token, at(2));
+    expect((await hook.devices(user))[0]?.lastUsedAt).toEqual(at(2));
+    await hook.revoke(user, added.device.id);
+    expect(await hook.deviceFor(added.token, at(3), false)).toBeNull();
+  });
+});
