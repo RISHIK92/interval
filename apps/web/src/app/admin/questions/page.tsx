@@ -24,6 +24,9 @@ const REASONS: Record<ReviewReason, string> = {
   sample: "Weekly sample",
   anomaly: "Unusual answers",
   daily: "Daily challenge, unreviewed",
+  // ADR-0057: left in the enum by the dropped community questions (Postgres can't drop
+  // a value); no review has it.
+  community: "Community question",
 };
 
 export const dynamic = "force-dynamic";

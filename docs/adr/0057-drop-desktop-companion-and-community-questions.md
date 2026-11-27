@@ -39,7 +39,8 @@ On 2026-11-27 the owner asked, in the session, to delete weeks 50 and 51 and the
 
 ## Consequences
 
-- **Code:** `3dc84e6` (W50) is reverted, and its two migrations were rolled back in both local databases before the revert. W51's uncommitted work is deleted. Email verification goes with W50, since it was built only to gate submissions; `app_user.email_verified` stays, always false, as before W50.
+- **Code:** `3dc84e6` (W50) is reverted, and W51's uncommitted work is deleted. Email verification goes with W50, since it was built only to gate submissions; `app_user.email_verified` stays, always false, as before W50.
+- **Migrations:** merged migrations never change (ADR-0002, checked in CI), so W50's two migrations stay as merged. `20261127200000_remove_community_questions.sql` undoes them going forward. The enum values W50 added (`questions.submit`, `questions.submit.daily`, `community`, `approve` and `reject`) stay unused, because Postgres can't drop an enum value.
 - **Plan:** docs/roadmap/phase-7-slices.md marks weeks 48–51 removed. Q-P7-04 (desktop technology) and Q-P7-05 (community questions) are closed by this ADR.
 - **Product doc:** §2's "Desktop companion" row, §6.8's "Community-submitted (later)" line and §7's "Desktop companion (Phase 7)" line no longer describe planned work once this is accepted. docs/product.md is not edited (CLAUDE.md); docs/conflicts.md records the amendment.
 - **Unchanged:** the agent status API (W46) stays, read by `interval status` and the VS Code extension.

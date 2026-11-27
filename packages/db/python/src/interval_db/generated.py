@@ -52,6 +52,8 @@ type Capability = Literal[
     "explore.ask",
     "explore.ask.daily",
     "play.league",
+    "questions.submit",
+    "questions.submit.daily",
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type DependencyEcosystem = Literal["npm", "pypi", "go"]
@@ -71,8 +73,8 @@ type PathStatus = Literal["draft", "live", "retired"]
 type QuestionBatchKind = Literal["draft", "validate"]
 type QuestionKind = Literal["choice", "estimate"]
 type QuestionStatus = Literal["pending", "live", "rejected", "flagged", "retired"]
-type ReviewDecision = Literal["keep", "retire"]
-type ReviewReason = Literal["sample", "flagged", "anomaly", "daily"]
+type ReviewDecision = Literal["keep", "retire", "approve", "reject"]
+type ReviewReason = Literal["sample", "flagged", "anomaly", "daily", "community"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]

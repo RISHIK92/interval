@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, test, vi } from "vitest";
 import type { BattleMode } from "../../server/ports";
 import { RankedBattles } from "./RankedBattles";
@@ -12,7 +12,13 @@ import { RankedBattles } from "./RankedBattles";
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
 let host: HTMLDivElement;
+let root: Root;
+// Unmounted inside act, so no React work is left to run once jsdom is torn down (CI
+// saw "window is not defined" from the scheduler after this file finished).
 afterEach(() => {
+  act(() => {
+    root.unmount();
+  });
   host.remove();
   vi.unstubAllGlobals();
 });
@@ -24,7 +30,7 @@ function mount(
 ) {
   host = document.createElement("div");
   document.body.append(host);
-  const root = createRoot(host);
+  root = createRoot(host);
   act(() => {
     root.render(
       <RankedBattles
