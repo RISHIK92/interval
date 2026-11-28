@@ -1,8 +1,8 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { Actor } from "../../../../../../server/ports";
 
-// Q-WD-14: a player's poll of their opponents' scenario counts. Only a seated player of
-// an open match is answered, only with counts, and not too often.
+// Q-WD-14, ADR-0060: a player's poll of whether their opponents have submitted. Only a
+// seated player of an open match is answered, never with a pass count, and not too often.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const allow = vi.fn<
   (key: string, limit: number, windowSeconds: number) => Promise<boolean>
@@ -32,18 +32,16 @@ async function get(id = ID) {
   );
 }
 
-test("a seated player gets each opponent's count, and nothing more", async () => {
+test("a seated player gets whether each opponent has submitted, and nothing more", async () => {
   current.mockResolvedValue(ada);
   progress.mockResolvedValue({
-    total: 5,
-    opponents: [{ player: "rsharma", passed: 3 }],
+    opponents: [{ player: "rsharma", submitted: false }],
   });
   const res = await get();
   expect(res.status).toBe(200);
   expect(res.headers.get("cache-control")).toBe("no-store");
   expect(await res.json()).toEqual({
-    total: 5,
-    opponents: [{ player: "rsharma", passed: 3 }],
+    opponents: [{ player: "rsharma", submitted: false }],
   });
   expect(progress).toHaveBeenCalledWith("u1", ID);
 });
@@ -61,7 +59,7 @@ test("signed out 401, not seated 403, an over match 409, a bad id 400", async ()
   expect((await get("not-a-uuid")).status).toBe(400);
 });
 
-test("polling past the limit is refused before anything is simulated", async () => {
+test("polling past the limit is refused before anything is read", async () => {
   current.mockResolvedValue(ada);
   allow.mockResolvedValueOnce(false);
   expect((await get()).status).toBe(429);

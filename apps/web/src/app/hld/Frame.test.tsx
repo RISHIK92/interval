@@ -6,6 +6,7 @@ import { Requirements } from "./Frame";
 test("requirements show what's covered, by what, and the count", () => {
   const html = renderToStaticMarkup(
     <Requirements
+      requirements={["Redirect fast", "Survive a zone outage"]}
       coverage={{
         covered: 1,
         total: 2,
@@ -25,4 +26,18 @@ test("requirements show what's covered, by what, and the count", () => {
     'aria-label="Survive a zone outage: nothing covers this yet"',
   );
   expect(html).toContain("Nothing covers this yet");
+});
+
+// ADR-0060: before a submit the requirements are only listed, with no word of coverage.
+test("before a submit, the requirements are listed with nothing about coverage", () => {
+  const html = renderToStaticMarkup(
+    <Requirements
+      requirements={["Redirect fast", "Survive a zone outage"]}
+      coverage={null}
+    />,
+  );
+  expect(html).toContain("Redirect fast");
+  expect(html).toContain("Survive a zone outage");
+  expect(html).not.toContain("covered");
+  expect(html).not.toContain("Nothing covers this yet");
 });

@@ -86,10 +86,8 @@ export async function submitMatchDesign(
   return done === "not_player" ? "invalid" : done;
 }
 
-// Q-WD-14: the opponents' scenario counts, polled by each player's match page. The
-// counts are remembered in this process: another instance only simulates them again.
-const counts = new Map<string, number>();
-
+// Q-WD-14, ADR-0060: whether each opponent has submitted, polled by each player's
+// match page.
 export async function matchProgress(
   userId: string,
   matchId: string,
@@ -98,7 +96,6 @@ export async function matchProgress(
   if (!id.success) return "not_player";
   return opponentProgress(
     { matches: hldMatches(), now: () => new Date() },
-    counts,
     id.data,
     userId,
   );

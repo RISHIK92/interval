@@ -4,7 +4,6 @@ import {
   connect,
   type Design,
   FAMILIES,
-  simulate,
   starterDesign,
   variant,
 } from "@interval/hld";
@@ -497,50 +496,30 @@ describe("an HLD match", () => {
   });
 });
 
-// Q-WD-14 (owner, 2026-11-23): during a match each player sees how many scenarios each
-// opponent's latest autosave passes, and nothing else of it.
+// Q-WD-14 (owner, 2026-11-23), ADR-0060: during a match each player sees whether each
+// opponent is still building or has submitted, and nothing of their design: no pass
+// count leaves the server before the results.
 describe("opponent progress", () => {
-  const passing = (id: string, design: Design) =>
-    simulate(
-      problemOf(world.rows.get(id)?.match ?? ({} as HldMatch)),
-      design,
-    ).scenarios.filter((s) => s.targetsMet).length;
-  const scenarios = (id: string) =>
-    problemOf(world.rows.get(id)?.match ?? ({} as HldMatch)).scenarios.length;
-
-  test("counts the scenarios each opponent's latest autosave passes, and sends only the count", async () => {
+  test("says each opponent is building until they submit, and sends nothing of the design", async () => {
     const id = await startHldMatch(deps, ["ada", "bob"], "human", {
       unrated: false,
       windowAt: null,
     });
     const design = await sound(id);
     world.rows.get(id)?.versions.set("bob", design);
-    const seen = await opponentProgress(deps, new Map(), id, "ada");
-    expect(seen).toEqual({
-      total: scenarios(id),
-      opponents: [{ player: "bob", passed: passing(id, design) }],
+    expect(await opponentProgress(deps, id, "ada")).toEqual({
+      opponents: [{ player: "bob", submitted: false }],
     });
-    expect(passing(id, design)).toBeGreaterThan(0);
-    // None of the design, its notes or which scenarios: just the counts.
+    expect(await submitDesign(deps, id, "bob", design)).toBe("submitted");
+    const seen = await opponentProgress(deps, id, "ada");
+    expect(seen).toEqual({ opponents: [{ player: "bob", submitted: true }] });
+    // None of the design, its notes, its scenarios or how many it passes.
     const sent = JSON.stringify(seen);
+    expect(sent).not.toMatch(/passed|total|\d/);
     for (const node of design.nodes) expect(sent).not.toContain(node.id);
     for (const s of problemOf(world.rows.get(id)?.match ?? ({} as HldMatch))
       .scenarios)
       expect(sent).not.toContain(s.id);
-  });
-
-  test("an opponent with no autosave yet is counted on the starting design", async () => {
-    const id = await startHldMatch(deps, ["ada", "bob"], "human", {
-      unrated: false,
-      windowAt: null,
-    });
-    const starter = starterDesign(
-      problemOf(world.rows.get(id)?.match ?? ({} as HldMatch)).spec,
-    );
-    expect(await opponentProgress(deps, new Map(), id, "ada")).toEqual({
-      total: scenarios(id),
-      opponents: [{ player: "bob", passed: passing(id, starter) }],
-    });
   });
 
   test("a room shows each of the three opponents, never yourself", async () => {
@@ -549,7 +528,7 @@ describe("opponent progress", () => {
       windowAt: null,
     });
     world.rows.get(id)?.versions.set("cy", await sound(id));
-    const seen = await opponentProgress(deps, new Map(), id, "bob");
+    const seen = await opponentProgress(deps, id, "bob");
     expect(seen).not.toBe("not_player");
     expect(
       typeof seen === "string" ? [] : seen.opponents.map((o) => o.player),
@@ -561,8 +540,7 @@ describe("opponent progress", () => {
       unrated: true,
       windowAt: null,
     });
-    expect(await opponentProgress(deps, new Map(), id, "ada")).toEqual({
-      total: scenarios(id),
+    expect(await opponentProgress(deps, id, "ada")).toEqual({
       opponents: [],
     });
   });
@@ -572,45 +550,12 @@ describe("opponent progress", () => {
       unrated: false,
       windowAt: null,
     });
-    expect(await opponentProgress(deps, new Map(), id, "eve")).toBe(
-      "not_player",
-    );
-    expect(await opponentProgress(deps, new Map(), "nope", "ada")).toBe(
-      "not_player",
-    );
+    expect(await opponentProgress(deps, id, "eve")).toBe("not_player");
+    expect(await opponentProgress(deps, "nope", "ada")).toBe("not_player");
     later(31); // past the deadline, not yet closed by anyone looking
-    expect(await opponentProgress(deps, new Map(), id, "ada")).toBe("closed");
+    expect(await opponentProgress(deps, id, "ada")).toBe("closed");
     await advance(deps, id);
     expect(world.rows.get(id)?.match.closedAt).not.toBeNull();
-    expect(await opponentProgress(deps, new Map(), id, "ada")).toBe("closed");
-  });
-
-  test("a version's count is simulated once, and again only for a newer version", async () => {
-    const id = await startHldMatch(deps, ["ada", "bob"], "human", {
-      unrated: false,
-      windowAt: null,
-    });
-    world.rows.get(id)?.versions.set("bob", await sound(id));
-    let version = 4;
-    const latest = vi.spyOn(world.matches, "latestVersion");
-    latest.mockImplementation((matchId, userId) => {
-      const design = world.rows.get(matchId)?.versions.get(userId);
-      return Promise.resolve(design === undefined ? null : { design, version });
-    });
-    const counts = new Map<string, number>();
-    await opponentProgress(deps, counts, id, "ada");
-    expect(counts.size).toBe(1);
-    // A remembered count is used as it is: poisoned, it shows.
-    for (const key of counts.keys()) counts.set(key, 99);
-    const again = await opponentProgress(deps, counts, id, "ada");
-    expect(typeof again === "string" ? null : again.opponents[0]?.passed).toBe(
-      99,
-    );
-    version = 5;
-    const newer = await opponentProgress(deps, counts, id, "ada");
-    expect(
-      typeof newer === "string" ? null : newer.opponents[0]?.passed,
-    ).not.toBe(99);
-    expect(counts.size).toBe(2);
+    expect(await opponentProgress(deps, id, "ada")).toBe("closed");
   });
 });

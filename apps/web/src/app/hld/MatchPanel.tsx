@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 
 // P6-W42 (§6.4, Q-P6-06): a match's clock and its one submission. Submitting early
 // earns speed points if the design passes the baseline; at the deadline the last
-// autosave is submitted for you. Once the match is over, its results open.
+// autosave is submitted for you. Once the match is over, its results open. ADR-0060:
+// the submission's verdicts show on the canvas once it's in (`onSubmitted`).
 
 const POLL_MS = 5_000;
 const SAID: Record<string, string> = {
@@ -23,12 +24,14 @@ export function MatchPanel({
   submitted: wasSubmitted,
   design,
   ready,
+  onSubmitted,
 }: {
   matchId: string;
   deadline: string;
   submitted: boolean;
   design: Design;
   ready: boolean;
+  onSubmitted: (design: Design) => void;
 }) {
   const router = useRouter();
   // Set once mounted: the server's clock would differ and break hydration (Clock.tsx).
@@ -107,6 +110,8 @@ export function MatchPanel({
               })
               .then((r) => {
                 if (r === "submitted" || r === "already") {
+                  // Already: another tab's submission, which the refresh brings in.
+                  if (r === "submitted") onSubmitted(design);
                   setSubmitted(true);
                   router.refresh(); // the canvas stops saving once submitted
                 } else setSaid(SAID[r] ?? "Couldn't submit.");

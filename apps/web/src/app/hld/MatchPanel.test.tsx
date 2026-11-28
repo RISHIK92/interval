@@ -17,6 +17,7 @@ test("the server renders the panel without a time left", () => {
       submitted={false}
       design={starterDesign("1.0")}
       ready
+      onSubmitted={() => undefined}
     />,
   );
   expect(html).not.toMatch(/\d+:\d\d left/);

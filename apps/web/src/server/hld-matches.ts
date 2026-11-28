@@ -319,21 +319,15 @@ async function score(deps: HldDeps, matchId: string, now: Date): Promise<void> {
   }
 }
 
-// Q-WD-14 (owner, 2026-11-23): each opponent's progress during a match, as the number of
-// scenarios their latest autosave passes in the preview's simulation, of the problem's
-// all. Only the counts leave here: never the design, its notes, or which scenarios.
+// Q-WD-14 (owner, 2026-11-23): each opponent's progress during a match. ADR-0060: only
+// whether they've submitted; how their design scores waits for the results, so nothing
+// of it, not even a pass count, leaves here.
 export type OpponentProgress = {
-  total: number;
-  opponents: { player: string; passed: number }[];
+  opponents: { player: string; submitted: boolean }[];
 };
-
-// Counts remembered per (match, player, version), so polling doesn't re-simulate an
-// unchanged autosave. The oldest goes first past the cap.
-const COUNTS_KEPT = 5_000;
 
 export async function opponentProgress(
   deps: Pick<HldDeps, "matches" | "now">,
-  counts: Map<string, number>,
   matchId: string,
   userId: string,
 ): Promise<OpponentProgress | "not_player" | "closed"> {
@@ -343,33 +337,9 @@ export async function opponentProgress(
   const { match, seats } = found;
   if (match.closedAt !== null || deps.now() >= match.deadlineAt)
     return "closed";
-  const problem = problemOf(match);
-  const opponents = await Promise.all(
-    seats
+  return {
+    opponents: seats
       .filter((s) => s.userId !== userId)
-      .map(async (s) => {
-        const latest = await deps.matches.latestVersion(matchId, s.userId);
-        const key = `${matchId}:${s.userId}:${String(latest?.version ?? 0)}`;
-        let passed = counts.get(key);
-        if (passed === undefined) {
-          // As at the deadline (`advance`): a version that doesn't fit the problem
-          // counts as the starting design.
-          const parsed = Design.safeParse(latest?.design);
-          const design =
-            parsed.success && fitsProblem(parsed.data, problem).length === 0
-              ? parsed.data
-              : starterDesign(problem.spec);
-          passed = simulate(problem, design).scenarios.filter(
-            (r) => r.targetsMet,
-          ).length;
-          if (counts.size >= COUNTS_KEPT) {
-            const oldest = counts.keys().next();
-            if (oldest.done !== true) counts.delete(oldest.value);
-          }
-          counts.set(key, passed);
-        }
-        return { player: s.player, passed };
-      }),
-  );
-  return { total: problem.scenarios.length, opponents };
+      .map((s) => ({ player: s.player, submitted: s.submittedAt !== null })),
+  };
 }

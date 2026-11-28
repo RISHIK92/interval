@@ -6,6 +6,7 @@ import {
   pickProvider,
   POOL,
   practiceProblems,
+  type Scenario,
   type ScenarioResult,
   setRoutes,
   simulate,
@@ -14,7 +15,7 @@ import {
   variant,
 } from "@interval/hld";
 import { expect, test } from "vitest";
-import { risksOf, scenarioLine } from "./Canvas";
+import { injects, risksOf, scenarioLine } from "./Canvas";
 import { nodeRole } from "./flow";
 
 const SHORTENER = (() => {
@@ -247,4 +248,39 @@ test("2.1's kinds and a batch read as their size on a node's face", () => {
     "3 members · 1 zone",
     "1 node · batches of 100",
   ]);
+});
+
+// ADR-0060: before a submit, each scenario says what it puts the design through.
+test("a scenario's line says its load, what fails and for how long", () => {
+  const base: Scenario = {
+    id: "s",
+    name: "S",
+    weight: 1,
+    load: 1,
+    targets: { p99Ms: 100, availability: 0.99 },
+  };
+  expect(injects(base)).toBe("Normal traffic");
+  expect(
+    injects({
+      ...base,
+      load: 1.5,
+      loads: { new_upload: 4 },
+      failure: { scope: "node", kind: "cache" },
+      minutes: 90,
+    }),
+  ).toBe(
+    "1.5× the traffic, 4× the new upload requests, a node of each cache fails, for 90 minutes",
+  );
+  expect(injects({ ...base, failure: { scope: "node", kind: "sql_db" } })).toBe(
+    "Normal traffic, a node of each SQL database fails",
+  );
+  expect(injects({ ...base, load: 3, failure: { scope: "node" } })).toBe(
+    "3× the traffic, a node of every component fails",
+  );
+  expect(injects({ ...base, failure: { scope: "region" } })).toBe(
+    "Normal traffic, a region goes down",
+  );
+  expect(injects({ ...base, failure: { scope: "zone" } })).toBe(
+    "Normal traffic, a zone goes down",
+  );
 });

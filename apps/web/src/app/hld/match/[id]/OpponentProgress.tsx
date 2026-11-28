@@ -4,15 +4,14 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import type { OpponentProgress as Progress } from "../../../../server/hld-matches";
 
-// Q-WD-14 (owner, 2026-11-23): each opponent's progress in the match header, as the
-// design's "RS · 3 of 5 scenarios": how many scenarios their latest autosave passes.
-// Asked every 10 seconds until the match is over; then the last count stays.
+// Q-WD-14 (owner, 2026-11-23): each opponent's progress in the match header. ADR-0060:
+// "RS · building" or "RS · submitted", never how many scenarios their design passes.
+// Asked every 10 seconds until the match is over; then the last answer stays.
 
 const POLL_MS = 10_000;
 
 const Answer = z.object({
-  total: z.int().min(0),
-  opponents: z.array(z.object({ player: z.string(), passed: z.int().min(0) })),
+  opponents: z.array(z.object({ player: z.string(), submitted: z.boolean() })),
 });
 
 // Two letters: the first of a name's first two parts, or its first two letters.
@@ -74,9 +73,7 @@ export function OpponentProgress({
             {initials(o.player)}
           </span>
           <span className="sr-only">{o.player}</span>
-          <span>
-            {` · ${String(o.passed)} of ${String(progress.total)} scenarios`}
-          </span>
+          <span>{o.submitted ? " · submitted" : " · building"}</span>
         </li>
       ))}
     </ul>

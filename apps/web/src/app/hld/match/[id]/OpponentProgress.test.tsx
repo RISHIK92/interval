@@ -5,9 +5,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
 import { OpponentProgress } from "./OpponentProgress";
 
-// Q-WD-14 (owner, 2026-11-23): the design's "RS · 3 of 5 scenarios", a pill per
-// opponent in the match header, read out with the full username, kept up to date by
-// polling every 10 seconds until the match is over.
+// Q-WD-14 (owner, 2026-11-23): a pill per opponent in the match header, read out with
+// the full username, kept up to date by polling every 10 seconds until the match is
+// over. ADR-0060: it says only whether they're building or have submitted, never how
+// many scenarios their design passes.
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -23,18 +24,18 @@ function pills(html: string) {
   return [...host.querySelectorAll("li")];
 }
 
-test("a pill per opponent: initials and the count, the full username read out", () => {
+test("a pill per opponent: initials and building, the full username read out", () => {
   const [pill, ...rest] = pills(
     renderToStaticMarkup(
       <OpponentProgress
         matchId="m1"
-        initial={{ total: 5, opponents: [{ player: "rsharma", passed: 3 }] }}
+        initial={{ opponents: [{ player: "rsharma", submitted: false }] }}
       />,
     ),
   );
   expect(rest).toEqual([]);
   expect(pill?.querySelector('[aria-hidden="true"]')?.textContent).toBe("RS");
-  expect(pill?.textContent).toBe("RSrsharma · 3 of 5 scenarios");
+  expect(pill?.textContent).toBe("RSrsharma · building");
   expect(pill?.querySelector(".sr-only")?.textContent).toBe("rsharma");
 });
 
@@ -44,11 +45,10 @@ test("a room shows all three opponents; initials come from a name's two parts", 
       <OpponentProgress
         matchId="m1"
         initial={{
-          total: 6,
           opponents: [
-            { player: "ada_lovelace", passed: 6 },
-            { player: "Grace Hopper", passed: 0 },
-            { player: "q", passed: 2 },
+            { player: "ada_lovelace", submitted: true },
+            { player: "Grace Hopper", submitted: false },
+            { player: "q", submitted: false },
           ],
         }}
       />,
@@ -58,16 +58,17 @@ test("a room shows all three opponents; initials come from a name's two parts", 
     all.map((p) => p.querySelector('[aria-hidden="true"]')?.textContent),
   ).toEqual(["AL", "GH", "Q"]);
   expect(all.map((p) => p.lastChild?.textContent)).toEqual([
-    " · 6 of 6 scenarios",
-    " · 0 of 6 scenarios",
-    " · 2 of 6 scenarios",
+    " · submitted",
+    " · building",
+    " · building",
   ]);
+  expect(all.map((p) => p.textContent).join("")).not.toMatch(/\d/);
 });
 
 test("solo: no pills at all", () => {
   expect(
     renderToStaticMarkup(
-      <OpponentProgress matchId="m1" initial={{ total: 5, opponents: [] }} />,
+      <OpponentProgress matchId="m1" initial={{ opponents: [] }} />,
     ),
   ).toBe("");
 });
@@ -75,7 +76,7 @@ test("solo: no pills at all", () => {
 test("polls every 10 seconds, politely, and stops once the match is over", async () => {
   vi.useFakeTimers();
   const answers = [
-    Response.json({ total: 5, opponents: [{ player: "rsharma", passed: 4 }] }),
+    Response.json({ opponents: [{ player: "rsharma", submitted: true }] }),
     Response.json({ over: true }, { status: 409 }),
   ];
   const fetch = vi.fn((url: string) => {
@@ -89,18 +90,19 @@ test("polls every 10 seconds, politely, and stops once the match is over", async
     root.render(
       <OpponentProgress
         matchId="m1"
-        initial={{ total: 5, opponents: [{ player: "rsharma", passed: 3 }] }}
+        initial={{ opponents: [{ player: "rsharma", submitted: false }] }}
       />,
     );
   });
   expect(host.querySelector("ul")?.getAttribute("aria-live")).toBe("polite");
+  expect(host.textContent).toContain("rsharma · building");
   await act(() => vi.advanceTimersByTimeAsync(9_999));
   expect(fetch).not.toHaveBeenCalled();
   await act(() => vi.advanceTimersByTimeAsync(1));
-  expect(host.textContent).toContain("4 of 5 scenarios");
-  // Over: the last count stays, and nothing more is asked.
+  expect(host.textContent).toContain("rsharma · submitted");
+  // Over: the last answer stays, and nothing more is asked.
   await act(() => vi.advanceTimersByTimeAsync(10_000));
-  expect(host.textContent).toContain("4 of 5 scenarios");
+  expect(host.textContent).toContain("rsharma · submitted");
   await act(() => vi.advanceTimersByTimeAsync(60_000));
   expect(fetch).toHaveBeenCalledTimes(2);
   act(() => {
@@ -114,9 +116,7 @@ test("a solo match never polls", async () => {
   vi.stubGlobal("fetch", fetch);
   const root = createRoot(document.createElement("div"));
   act(() => {
-    root.render(
-      <OpponentProgress matchId="m1" initial={{ total: 5, opponents: [] }} />,
-    );
+    root.render(<OpponentProgress matchId="m1" initial={{ opponents: [] }} />);
   });
   await act(() => vi.advanceTimersByTimeAsync(60_000));
   expect(fetch).not.toHaveBeenCalled();

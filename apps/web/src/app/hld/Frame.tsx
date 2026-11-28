@@ -54,9 +54,16 @@ export function CloseLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-// Q-WD-15: the problem's requirements as the design covers them, live as it's built.
-// Covered: a green card naming what covers it; not yet: a dashed card saying so.
-export function Requirements({ coverage }: { coverage: Coverage }) {
+// Q-WD-15: the problem's requirements as the design covers them. Covered: a green card
+// naming what covers it; not yet: a dashed card saying so. ADR-0060: coverage is a
+// verdict, so until a submit (`coverage` null) the requirements are only listed.
+export function Requirements({
+  requirements,
+  coverage,
+}: {
+  requirements: readonly string[];
+  coverage: Coverage | null;
+}) {
   return (
     <section
       aria-labelledby="requirements-title"
@@ -67,40 +74,51 @@ export function Requirements({ coverage }: { coverage: Coverage }) {
         className="mb-1 flex items-baseline justify-between gap-2"
       >
         <span className="text-[15px] font-semibold">Requirements</span>
-        <span
-          aria-live="polite"
-          className="text-[13px] font-normal text-ink-muted tabular-nums"
-        >
-          {coverage.covered} of {coverage.total} covered
-        </span>
+        {coverage === null ? null : (
+          <span
+            aria-live="polite"
+            className="text-[13px] font-normal text-ink-muted tabular-nums"
+          >
+            {coverage.covered} of {coverage.total} covered
+          </span>
+        )}
       </h2>
       <ul className="flex flex-col gap-1.5">
-        {coverage.items.map((r) => (
-          <li
-            key={r.text}
-            aria-label={`${r.text}: ${r.covered ? `covered by ${r.by ?? "the design"}` : "nothing covers this yet"}`}
-            className={
-              r.covered
-                ? "rounded-xl bg-[color-mix(in_srgb,var(--go)_14%,var(--page))] px-[11px] py-2 text-go-text lg:py-[9px]"
-                : "rounded-xl border-[1.5px] border-dashed border-(--system-design-line) px-[11px] py-2 text-(--system-design-line) lg:py-[9px]"
-            }
-          >
-            <span
-              aria-hidden="true"
-              className="flex items-start justify-between gap-2 text-sm font-semibold"
-            >
-              {r.text}
-              {r.covered ? (
-                <Mark d="m5 12.5 4.5 4.5L19 7.5" />
-              ) : (
-                <Mark d="M12 3 2 20h20zM12 9v5M12 17h.01" />
-              )}
-            </span>
-            <span aria-hidden="true" className="mt-0.5 block text-xs">
-              {r.covered ? r.by : "Nothing covers this yet"}
-            </span>
-          </li>
-        ))}
+        {coverage === null
+          ? requirements.map((text) => (
+              <li
+                key={text}
+                className="rounded-xl border-[1.5px] border-hairline px-[11px] py-2 text-sm font-semibold lg:py-[9px]"
+              >
+                {text}
+              </li>
+            ))
+          : coverage.items.map((r) => (
+              <li
+                key={r.text}
+                aria-label={`${r.text}: ${r.covered ? `covered by ${r.by ?? "the design"}` : "nothing covers this yet"}`}
+                className={
+                  r.covered
+                    ? "rounded-xl bg-[color-mix(in_srgb,var(--go)_14%,var(--page))] px-[11px] py-2 text-go-text lg:py-[9px]"
+                    : "rounded-xl border-[1.5px] border-dashed border-(--system-design-line) px-[11px] py-2 text-(--system-design-line) lg:py-[9px]"
+                }
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex items-start justify-between gap-2 text-sm font-semibold"
+                >
+                  {r.text}
+                  {r.covered ? (
+                    <Mark d="m5 12.5 4.5 4.5L19 7.5" />
+                  ) : (
+                    <Mark d="M12 3 2 20h20zM12 9v5M12 17h.01" />
+                  )}
+                </span>
+                <span aria-hidden="true" className="mt-0.5 block text-xs">
+                  {r.covered ? r.by : "Nothing covers this yet"}
+                </span>
+              </li>
+            ))}
       </ul>
     </section>
   );

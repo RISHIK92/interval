@@ -1,6 +1,6 @@
 # 0060. HLD verdicts only after submit: requirements and scenarios while building, results on submit
 
-- Status: PROPOSED
+- Status: ACCEPTED (owner, 2026-11-28)
 - Date: 2026-11-28
 - Supersedes: none (amends CANVAS-5's browser preview and ADR-0042's live preview)
 - Superseded by: none
@@ -47,10 +47,14 @@ On 2026-11-28 the owner asked: "current hld flow shows requirements and simulati
 - **While building (practice and matches):** the canvas shows the problem's requirements and its scenarios (names and what each injects), and design errors. No points, no baseline, no scenario marks, no coverage, no hints.
 - **Practice:** a Submit button runs the same engine (CANVAS-5) and shows what passed and what failed, with the hints and coverage. An edit after that hides the verdicts again until the next submit. Nothing is rated or ranked.
 - **Matches:** Submit works as today (ADR-0043: one official submission, scored on the server); the player sees the verdicts after it. Before both have submitted, the opponent strip shows only "submitted" or "building", with no pass counts.
-- **Spectators and replays:** unchanged (see open questions).
+- **Spectators and replays:** unchanged.
+- **The AI coach** ("Get AI feedback", CANVAS-6) stays available while building, including what it says about the baseline (owner, 2026-11-28).
+- **After a match submit** the canvas stays editable; nothing saves, and the verdicts describe the submission. "At risk" marks show only while the drawn design is the submitted one. A reload draws the submitted design (owner, 2026-11-28).
 - CANVAS-5 still holds: the browser runs the engine for the practice result, the server stays the official scorer.
 
 ## Open questions
 
-- Should practice keep a stored history of submits? Default: no, the result is shown and not stored (the design itself still autosaves, ADR-0042).
-- Spectators (`/hld/match/<id>/watch`) see each design's live preview today. Players can't watch their own match, so it doesn't leak to them. Default: unchanged.
+Resolved at acceptance with their defaults:
+
+- Practice submits are not stored; the result is shown only (the design itself still autosaves, ADR-0042).
+- Spectators (`/hld/match/<id>/watch`) keep the live preview. Players can't watch their own match, so it doesn't leak to them.

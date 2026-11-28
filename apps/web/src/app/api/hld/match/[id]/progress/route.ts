@@ -8,8 +8,9 @@ export const dynamic = "force-dynamic";
 // The page asks every 10 seconds; this leaves room for a few tabs and nothing more.
 const PER_MINUTE = 30;
 
-// Q-WD-14 (owner, 2026-11-23): how many scenarios each opponent's latest autosave
-// passes, for a seated player while the match is open. Over, nothing is live (409).
+// Q-WD-14 (owner, 2026-11-23), ADR-0060: whether each opponent has submitted, never how
+// their design scores, for a seated player while the match is open. Over, nothing is
+// live (409).
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },

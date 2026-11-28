@@ -10,6 +10,7 @@ import {
 } from "../../../../server/container";
 import { advance, problemOf } from "../../../../server/hld-matches";
 import { matchProgress } from "../../../../server/hld-match-requests";
+import { log } from "../../../../server/log";
 import { Canvas } from "../../Canvas";
 import { Clock } from "../../Clock";
 import { Cube } from "../../flow";
@@ -21,7 +22,8 @@ import { OpponentProgress } from "./OpponentProgress";
 export const dynamic = "force-dynamic";
 
 // P6-W42 (§6.4, CANVAS-1, Q-P6-06): a match, for its players: the problem, the canvas
-// from the player's last autosave, the clock and the submission. Over, it's the results.
+// from the player's last autosave (or, once submitted, the submission), the clock and the
+// submission. Over, it's the results.
 export default async function HldMatchPage({
   params,
 }: {
@@ -40,8 +42,19 @@ export default async function HldMatchPage({
   const problem = problemOf(found.match);
   const latest = await hldMatches().latestVersion(id.data, actor.userId);
   const parsed = Design.safeParse(latest?.design);
+  // ADR-0060: a submission's verdicts show once it's in. `record` wrote it from a
+  // Design, so one that doesn't parse is a fault: logged (LOAD-5; the AWS stack counts
+  // this line as a metric), and the page still says submitted, with no verdicts.
+  const stored =
+    seat.submittedAt === null ? null : Design.safeParse(seat.design);
+  if (stored?.success === false)
+    log.warn("hld: submitted design unreadable", {
+      matchId: id.data,
+      userId: actor.userId,
+    });
+  const submission = stored?.success === true ? stored.data : null;
   const players = found.seats.length;
-  // Q-WD-14: the opponents' counts from the first paint, so the header doesn't shift.
+  // Q-WD-14: the opponents' progress from the first paint, so the header doesn't shift.
   const progress = await matchProgress(actor.userId, id.data);
   if (progress === "closed") redirect(`/hld/match/${id.data}/result`);
   if (progress === "not_player") notFound();
@@ -80,13 +93,17 @@ export default async function HldMatchPage({
           </>
         }
         problem={problem}
-        initial={parsed.success ? parsed.data : starterDesign(problem.spec)}
+        initial={
+          submission ??
+          (parsed.success ? parsed.data : starterDesign(problem.spec))
+        }
         version={latest?.version ?? 0}
         mode={{
           kind: "match",
           matchId: id.data,
           deadline: found.match.deadlineAt.toISOString(),
           submitted: seat.submittedAt !== null,
+          submission,
         }}
       />
     </main>

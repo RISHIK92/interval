@@ -21,6 +21,7 @@ import {
   type ProviderId,
   providerOffer,
   removeNode,
+  type Scenario,
   type ScenarioResult,
   setRoutes,
   simulate,
@@ -41,14 +42,7 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import {
-  type ReactNode,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Feedback } from "./Feedback";
 import { FIT, FitOnGrow, ZoomControls } from "./FlowControls";
 import { HEADER, Requirements } from "./Frame";
@@ -67,8 +61,11 @@ import { saveDesign } from "./practice/[slug]/actions";
 
 // P6-W39 (CANVAS-1, CANVAS-2, CANVAS-5; Q-P6-03): the HLD canvas. The design is the one
 // state; React Flow draws it, and every edit goes through packages/hld's pure functions.
-// The preview simulation runs here, in the browser, on every valid draft, with hints by
-// rule; the design autosaves about 2 s after the last change.
+// ADR-0060: while the player builds, it shows the problem's requirements and scenarios
+// and the design's errors, and no verdict. A practice submit runs the simulation here, in
+// the browser (CANVAS-5), and shows what passed and failed with the hints and coverage,
+// until the next edit; a match shows its one submission's (ADR-0043). The design
+// autosaves about 2 s after the last change.
 
 const SAVE_AFTER_MS = 2_000;
 // What the palette's drag carries: the kind of component dropped on the canvas.
@@ -88,7 +85,14 @@ type Selection = { node: string } | { from: string; to: string } | null;
 // P6-W42: practice (the AI feedback on request) or a match (its clock and submission).
 type CanvasMode =
   | { kind: "practice"; feedback: FeedbackView | null }
-  | { kind: "match"; matchId: string; deadline: string; submitted: boolean };
+  | {
+      kind: "match";
+      matchId: string;
+      deadline: string;
+      submitted: boolean;
+      // ADR-0060: the design as submitted, null until then or if it can't be read.
+      submission: Design | null;
+    };
 type SaveState = "saved" | "saving" | "waiting" | "stale" | "failed" | "closed";
 
 export function Canvas({
@@ -129,31 +133,33 @@ export function Canvas({
     const own = check(design);
     return own.length > 0 ? own : fitsProblem(design, problem);
   }, [design, problem]);
-  // Dragging changes the design on every frame; the preview follows when React can.
-  const previewed = useDeferredValue(design);
+  const designJson = useMemo(() => JSON.stringify(design), [design]);
+  // ADR-0060: practice's last submit, with its JSON, so an edit since can hide it.
+  const [checked, setChecked] = useState<{
+    json: string;
+    design: Design;
+  } | null>(null);
+  // ADR-0060: a match's submission from this page, shown before the refresh brings it in.
+  const [sent, setSent] = useState<Design | null>(null);
+  const submittedDesign =
+    mode.kind === "match"
+      ? (sent ?? mode.submission)
+      : // Any edit since the submit hides its verdicts until the next one.
+        checked !== null && checked.json === designJson
+        ? checked.design
+        : null;
   const result = useMemo(
     () =>
-      check(previewed).length === 0 &&
-      fitsProblem(previewed, problem).length === 0
-        ? simulate(problem, previewed)
-        : null,
-    [problem, previewed],
+      submittedDesign === null ? null : simulate(problem, submittedDesign),
+    [problem, submittedDesign],
   );
-  // Q-WD-15: what the design covers so far; nothing while it can't be simulated.
+  // Q-WD-15: what the submitted design covers.
   const covered = useMemo(
     () =>
-      result === null
-        ? {
-            covered: 0,
-            total: problem.requirements.length,
-            items: problem.requirements.map((text) => ({
-              text,
-              covered: false,
-              by: null,
-            })),
-          }
-        : coverage(problem, previewed, result),
-    [problem, previewed, result],
+      submittedDesign === null || result === null
+        ? null
+        : coverage(problem, submittedDesign, result),
+    [problem, submittedDesign, result],
   );
   const advice = useMemo(
     () => (result === null ? [] : hints(problem, result)),
@@ -161,7 +167,7 @@ export function Canvas({
   );
 
   useEffect(() => {
-    const json = JSON.stringify(design);
+    const json = designJson;
     if (stale.current || inFlight.current) return;
     if (json === savedJson.current) {
       setSave("saved");
@@ -218,7 +224,7 @@ export function Canvas({
     return () => {
       clearTimeout(timer);
     };
-  }, [design, issues, problem.slug, settled, mode]);
+  }, [design, designJson, issues, problem.slug, settled, mode]);
 
   const retry = () => {
     refusedJson.current = null;
@@ -328,8 +334,13 @@ export function Canvas({
           (e) => e.from === selected.from && e.to === selected.to,
         )
       : undefined;
+  // ADR-0060: a component's risks only while the design is the one submitted; after an
+  // edit (a match's canvas stays editable) they could point at what was changed.
   const risk =
-    node === undefined || result === null
+    node === undefined ||
+    result === null ||
+    submittedDesign === null ||
+    JSON.stringify(submittedDesign) !== designJson
       ? NO_RISK
       : risksOf(problem, result, node);
 
@@ -349,7 +360,7 @@ export function Canvas({
           </button>
         ) : null}
       </header>
-      <Requirements coverage={covered} />
+      <Requirements requirements={problem.requirements} coverage={covered} />
       <section className="flex flex-col gap-2 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:min-w-0 lg:gap-3 lg:overflow-y-auto lg:p-5">
         <div
           className="flex flex-wrap gap-2 lg:order-2 lg:items-center lg:gap-1.5"
@@ -697,6 +708,7 @@ export function Canvas({
               submitted={mode.submitted}
               design={design}
               ready={issues.length === 0}
+              onSubmitted={setSent}
             />
           )}
         </div>
@@ -707,19 +719,25 @@ export function Canvas({
         aria-live="polite"
       >
         <h2 className="text-title lg:mb-1 lg:text-[15px] lg:font-semibold lg:tracking-normal">
-          <span className="lg:hidden">Preview</span>
+          <span className="lg:hidden">Scenarios</span>
           <span className="hidden lg:inline">Simulation scenarios</span>
         </h2>
         {result === null ? (
           <>
             <p className="text-sm text-ink-muted lg:text-[13px]">
-              The preview runs once the design is valid.
+              {mode.kind === "practice"
+                ? "Submit the design to see which of these it passes."
+                : "Your submission is run against these."}
             </p>
-            <ul className="hidden flex-col text-sm text-ink-muted lg:flex">
+            <ul className="flex flex-col gap-1 text-sm lg:gap-0">
               {problem.scenarios.map((s) => (
                 <li key={s.id} className={SCENARIO_ROW}>
-                  {s.name}
-                  <ScenarioIcon state="not-run" />
+                  <span className="min-w-0">
+                    {s.name}
+                    <span className="block text-xs text-ink-muted">
+                      {injects(s)}
+                    </span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -791,9 +809,48 @@ export function Canvas({
             ) : null}
           </>
         )}
+        {mode.kind === "practice" ? (
+          <button
+            type="button"
+            disabled={issues.length > 0}
+            className="mt-2 self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page disabled:opacity-50 lg:mt-3 lg:h-11 lg:self-stretch lg:rounded-xl lg:px-4 lg:text-[15px]"
+            onClick={() => {
+              setChecked({ json: designJson, design });
+            }}
+          >
+            Submit the design
+          </button>
+        ) : null}
       </section>
     </>
   );
+}
+
+// Mid-sentence: "app service", but "SQL database" keeps its caps.
+const lower = (name: string) =>
+  /^[A-Z][A-Z]/.test(name)
+    ? name
+    : name.charAt(0).toLowerCase() + name.slice(1);
+
+// ADR-0060: what a scenario puts the design through, said before any verdict: its load,
+// what fails, for how long.
+export function injects(s: Scenario): string {
+  const said = [
+    s.load === 1 ? "normal traffic" : `${String(s.load)}× the traffic`,
+    ...Object.entries(s.loads ?? {}).map(
+      ([type, x]) => `${String(x)}× the ${words(type).toLowerCase()} requests`,
+    ),
+  ];
+  if (s.failure?.scope === "node")
+    said.push(
+      s.failure.kind === undefined
+        ? "a node of every component fails"
+        : `a node of each ${lower(COMPONENT_NAMES[s.failure.kind])} fails`,
+    );
+  if (s.failure?.scope === "zone") said.push("a zone goes down");
+  if (s.failure?.scope === "region") said.push("a region goes down");
+  if (s.minutes !== undefined) said.push(`for ${String(s.minutes)} minutes`);
+  return capital(said.join(", "));
 }
 
 const FIELD =
@@ -1199,12 +1256,8 @@ function WarnIcon({ label }: { label: string }) {
 const SCENARIO_ROW =
   "lg:flex lg:items-start lg:justify-between lg:gap-2 lg:border-b lg:border-hairline lg:py-[9px] lg:last:border-b-0";
 
-// The design's scenario marks: passed, partly met, failed, not run yet.
-function ScenarioIcon({
-  state,
-}: {
-  state: "passed" | "partly" | "failed" | "not-run";
-}) {
+// A submitted design's scenario marks: passed, partly met, failed.
+function ScenarioIcon({ state }: { state: "passed" | "partly" | "failed" }) {
   const shared = {
     width: 18,
     height: 18,
@@ -1234,16 +1287,10 @@ function ScenarioIcon({
         <path d="M12 3 2 20h20zM12 9v5M12 17h.01" />
       </svg>
     );
-  if (state === "failed")
-    return (
-      <svg {...shared} aria-label="Failed" color="var(--wrong)">
-        <circle cx="12" cy="12" r="9" />
-        <path d="m9 9 6 6M15 9l-6 6" />
-      </svg>
-    );
   return (
-    <svg {...shared} aria-label="Not run yet">
-      <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
+    <svg {...shared} aria-label="Failed" color="var(--wrong)">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m9 9 6 6M15 9l-6 6" />
     </svg>
   );
 }
