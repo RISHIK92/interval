@@ -6284,3 +6284,34 @@ The owner said to continue building overnight with recommended answers, switchin
   - Drop the scratch DB `review_c`; the permission check blocked it.
   - CLAUDE.md still lists `segment-item` and `check-links`.
   - Run `recompute-due` wherever this migration is applied.
+
+## 2026-11-28: ADRs accepted, the pre-deploy check, HLD verdicts after submit
+
+- **Accepted (owner):** ADR-0057, ADR-0058 and ADR-0060. CLAUDE.md follows ADR-0058, at the owner's request (fa6cbf3). The scratch DB `review_c` is dropped.
+- **Feeds rebuilt on `interval_mac`** with no model call (the recompute only reads stored vectors): 4 users at 50 entries each, and 600 starter rows.
+- **Live docs follow ADR-0058** (1964f16): the glossary, wireframes, runbooks, README and overview. Slice plans, questions and conflicts are kept as history.
+- **Drift audit** (`docs/audits/2026-11-28.md`). Fixed:
+  - Explore Ask reads full text and picks a passage body through the one rights matrix (ING-2);
+  - stale moment and desktop-app wording;
+  - 37 dead exports;
+  - the public copy (landing page, store listings, PWA). It no longer claims break sizing, article episodes (AI-1), calendar or build detection, or a book finish date. The owner approved it.
+
+  Still open (for the owner):
+  - ADRs 0028, 0030 and 0039–0043 are PROPOSED but built on;
+  - AWS mode lacks the `*_MODEL`, `VELOX_URL` and `BATTLE_WINDOW_TIME_ZONE` env;
+  - the text-check enums;
+  - the cross-language duplications;
+  - the carried items.
+
+- **ADR-0059 (PROPOSED):** ADR-0058 supersedes ADR-0044 (Also fits).
+- **VM smoke run** (`deploy/compose.prod.yml`, stub secrets, port 8080):
+  - a fresh DB migrated through all 155 migrations;
+  - all eight services were healthy, and every Caddy check passed.
+
+  It found one deploy bug, fixed with a test: the game image didn't build, because its Dockerfile skipped `judge/` (c1b838b). On m6, uv can't finish TLS to PyPI, so the worker image there was built from the uv cache; this is environmental. The owner can remove the `interval-smoke-*` images (about 3.3 GB) and the scratch `smoke/` dir, which needs sudo.
+
+- **ADR-0060 (7048a8b):** HLD verdicts appear only after Submit.
+  - **Practice:** Submit can be repeated, and an edit hides the verdicts again.
+  - **Matches:** the verdicts show after the submit.
+  - **Opponent strip:** building or submitted only.
+  - **AI coach:** stays available while building.
