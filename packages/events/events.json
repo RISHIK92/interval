@@ -422,7 +422,7 @@
     },
     "ask_session_started": {
       "version": 2,
-      "description": "\"Make it a 4-min session\" was opened from an Ask answer (ADR-0046; owner, 2026-11-26): how many cited articles it holds and their real total in minutes; never the question. Version 2 (ADR-0058): moment_count becomes article_count.",
+      "description": "\"Make it a reading session\" (before ADR-0058, \"Make it a 4-min session\") was opened from an Ask answer (ADR-0046; owner, 2026-11-26): how many cited articles it holds and their real total in minutes; never the question. Version 2 (ADR-0058): moment_count becomes article_count.",
       "props": {
         "article_count": "count",
         "minutes": "count"

@@ -434,7 +434,7 @@ export const PushPreferencesBody = PushPreferences.extend({
 export type PushPreferencesBody = z.infer<typeof PushPreferencesBody>;
 
 // P7-W46 (§7; Q-P7-02, owner 2026-11-20 and 2026-11-27): what the companion surfaces
-// (the CLI's `interval status`, the VS Code extension, the desktop app) read with a
+// (the CLI's `interval status` and the VS Code extension; ADR-0057 dropped the desktop app) read with a
 // device token. Only what a hook sent (started, finished) and links into the web app,
 // never content: a suggestion is a title, its minutes and where it opens.
 const AgentTask = z.discriminatedUnion("state", [

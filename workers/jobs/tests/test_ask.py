@@ -397,3 +397,37 @@ def test_a_full_text_articles_passage_is_its_own_text_read_in_the_worker() -> No
     user = llm.prompts[0][1]["content"]
     assert "Partitions split the keys." in user
     assert user.count("Partitions split the keys.") < 200  # MAX_BODY_CHARS, a cost cap
+
+
+def test_full_text_is_never_read_once_rights_drop_below_full_text() -> None:
+    # ING-2: a source lowered to excerpt may still hold full text until the purge runs;
+    # Ask reads it only where the rights matrix allows storing full text.
+    llm = Model([reply(("Shard late.", ["i5"]))])
+    store, pipeline, _, _ = world(llm)
+    source = store.sources.upsert(
+        name="ddia",
+        feed_url="https://ddia.test/f",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    item = store.items.upsert_from_feed(
+        source,
+        FeedEntry(
+            guid="p",
+            link="https://ddia.test/p",
+            title="Partitioning",
+            author=None,
+            published_at=None,
+            updated_at=None,
+            summary=None,
+        ),
+        keep_excerpt=False,
+    )
+    store.items.store_full_text(item, "Stored before the source was lowered. " * 20)
+    store.ask.passages = [
+        replace(EXCERPT, passage=f"i{item}", item_id=item, excerpt="Only the excerpt.")
+    ]
+    run(pipeline)
+    user = llm.prompts[0][1]["content"]
+    assert "Stored before the source was lowered." not in user
+    assert "Only the excerpt." in user

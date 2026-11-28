@@ -503,9 +503,10 @@ class Pipeline:
     def _article_text(store: Store, p: AskPassage) -> str | None:
         # Full text is read here, in the worker, and only for an article of a source
         # whose rights allow it (ING-2); passage_body decides what the model sees.
-        if p.kind != "item" or p.item_id is None:
+        if p.kind != "item" or p.item_id is None or p.rights_profile is None:
             return None
-        if p.rights_profile not in ("full_text_internal", "full_text_display"):
+        # Stored full text exists only where the matrix allows storing it (Q-P1-01).
+        if not allowed(p.rights_profile, "store_full_text"):
             return None
         item = store.tags.input(p.item_id)
         return None if item is None else item.full_text

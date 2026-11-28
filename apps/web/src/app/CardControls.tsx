@@ -9,7 +9,8 @@ const MENU_ITEM =
   "w-full rounded-xl px-3 py-2 text-left hover:bg-well focus-visible:bg-well";
 
 // ADR-0026/0027: how each reason is named when reporting it. Kinds the worker no
-// longer states (topic, level, length) stay for reports made before ADR-0027.
+// longer states stay for older reports: topic and level (before ADR-0027) and length
+// (`time_fit`, before ADR-0058).
 const REASON_LABELS: Record<ReasonKind, string> = {
   explore: "Something new to try",
   topic_match: "Your topics",

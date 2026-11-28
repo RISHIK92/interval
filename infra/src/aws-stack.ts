@@ -283,7 +283,7 @@ export class AwsStack extends Stack {
       [
         "QuizRateQuery",
         "quiz_rate.sql",
-        "Finished moments that lead to a quiz",
+        "Completed articles that lead to a quiz",
       ],
       ["FlagRateQuery", "flag_rate.sql", "Answered questions that get flagged"],
       [

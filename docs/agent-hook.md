@@ -97,7 +97,7 @@ Read while you wait:
   "idle".
 - **`--json`** prints the API's answer as it came.
 
-The VS Code extension and the desktop app read the same API, `GET /api/agent/status`,
+The VS Code extension reads the same API, `GET /api/agent/status`,
 with the same device token. It needs the agent hook in your plan and allows 60 reads a
 minute per device. It returns only:
 

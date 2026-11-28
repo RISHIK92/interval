@@ -16,6 +16,7 @@ from typing import cast
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.ports import AskPassage, AskRequest, AskResult, Message
+from interval_jobs.rights import allowed
 
 PROMPT_VERSION = 2  # 2: articles' passages are "i" ids, never moments' (ADR-0058)
 MAX_WORDS = 120  # ADR-0046
@@ -79,10 +80,12 @@ def passage_body(p: AskPassage, article_text: str | None) -> str:
     (original content, AI-1)."""
     if p.kind == "explainer":
         return p.script or ""
-    if p.rights_profile == "excerpt":
-        return p.excerpt or ""
-    if p.rights_profile in ("full_text_internal", "full_text_display"):
+    if p.rights_profile is None:
+        return ""
+    if allowed(p.rights_profile, "store_full_text"):
         return (article_text or "")[:MAX_BODY_CHARS]
+    if allowed(p.rights_profile, "store_excerpt"):
+        return p.excerpt or ""
     return ""
 
 
