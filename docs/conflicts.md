@@ -337,7 +337,7 @@ Oct 23 is silent on these. They are not adopted unless confirmed.
 
 - **docs/product.md §3.2, §5A; ING-4; glossary Moment and Time budget:** articles are split into 2 to 8 minute moments, and the feed is sized to a break length.
 - **The owner's instruction (2026-11-27):** remove moments (schema included) and the break-length chips. Articles have two states, continue reading and completed, and one quiz each. Model output is combined per article, never deleted.
-- **Built:** in stages under ADR-0058 (PROPOSED).
+- **Resolved:** ADR-0058 ACCEPTED (owner, 2026-11-28); built in three stages (47fdb8e, 08ebc7c, bb382cc).
 
 ## Source file notes
 

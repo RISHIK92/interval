@@ -1,6 +1,6 @@
 # 0058. Articles only: no moments, no time chips, a quiz per article
 
-- Status: PROPOSED
+- Status: ACCEPTED (owner, 2026-11-28)
 - Date: 2026-11-27
 - Supersedes: none (amends docs/product.md §3.2 and §5A, ING-4, and the glossary's Moment and Time budget; see C-40)
 - Superseded by: none
