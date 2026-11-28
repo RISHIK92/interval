@@ -3,7 +3,7 @@
 
 export const SWISS_ROUNDS = 5;
 export const BRACKET_SIZE = 8;
-export const UNIVERSITY_TOP = 5; // §6.4: a university's top 5 members
+const UNIVERSITY_TOP = 5; // §6.4: a university's top 5 members
 
 // One player's Swiss record: each round's result against whom (null: a bye).
 export type Played = {
@@ -75,7 +75,13 @@ export function swissPairings(players: Played[]): {
 // 2 v 7, 3 v 6), 4 the semi-finals (1 v 4, 2 v 3), 2 the final, so the top two seeds
 // can only meet in the final. Fewer than 8 checked in starts it later (Q-P6-07).
 export function bracketSize(players: number): number {
-  return players >= 8 ? 8 : players >= 4 ? 4 : players >= 2 ? 2 : 0;
+  return players >= BRACKET_SIZE
+    ? BRACKET_SIZE
+    : players >= 4
+      ? 4
+      : players >= 2
+        ? 2
+        : 0;
 }
 export function firstBracketRound(seeds: string[]): [string, string][] {
   const s = (n: number) => seeds[n - 1] ?? "";

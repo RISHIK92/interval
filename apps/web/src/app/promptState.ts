@@ -4,13 +4,13 @@
 // ADR-0058: an article, the only thing a card opens.
 export type Opened = { itemId: string };
 
-export type PromptState = {
+type PromptState = {
   open: Opened | null; // the card opened last, not yet asked about
   left: boolean; // the tab was hidden since that open
   prompt: Opened | null; // what the prompt is asking about now
 };
 
-export type PromptEvent =
+type PromptEvent =
   | { type: "opened"; open: Opened }
   | { type: "hidden" }
   | { type: "visible" }

@@ -86,7 +86,7 @@ const OPTION_NAMES: Record<string, string> = {
 
 type Selection = { node: string } | { from: string; to: string } | null;
 // P6-W42: practice (the AI feedback on request) or a match (its clock and submission).
-export type CanvasMode =
+type CanvasMode =
   | { kind: "practice"; feedback: FeedbackView | null }
   | { kind: "match"; matchId: string; deadline: string; submitted: boolean };
 type SaveState = "saved" | "saving" | "waiting" | "stale" | "failed" | "closed";

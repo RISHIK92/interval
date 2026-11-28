@@ -33,7 +33,7 @@ export type ComponentStats = {
 
 // The simulator's own constants: part of the versioned spec, so a change to one is a
 // balance patch with its notes, never a silent change to scores (CANVAS-4).
-export type EngineConstants = {
+type EngineConstants = {
   hoursPerMonth: number;
   cdnContentChangeSeconds: number; // how often cacheable content changes, against a CDN's TTL
   maxCdnHitRate: number;
@@ -89,7 +89,7 @@ export type Features = {
 };
 
 // ADR-0053: where a problem's users are, which sets what each provider charges.
-export type RegionId = "us" | "in";
+type RegionId = "us" | "in";
 export const REGION_NAMES: Record<RegionId, string> = {
   us: "the US",
   in: "India",

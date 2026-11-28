@@ -8,7 +8,7 @@ import { type SpecVersion, specVersion } from "./spec";
 // the browser only wires them up. A draft may be invalid while drawn (zones above
 // nodes, a cycle); `check` says why, and the canvas saves and previews only valid ones.
 
-export type ConfigField =
+type ConfigField =
   | { name: string; label: string; type: "int"; min: number; max: number }
   | {
       name: string;

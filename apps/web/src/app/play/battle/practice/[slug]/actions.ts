@@ -65,7 +65,7 @@ export async function saveCode(
     : { ok: true, version: saved };
 }
 
-export type StartResult =
+type StartResult =
   | { ok: true; matchId: string }
   | {
       ok: false;

@@ -9,7 +9,7 @@ export const FLAG_REASONS = {
   not_in_section: "The article doesn't answer it",
   other: "Something else",
 } as const satisfies Record<FlagReason, string>;
-export type FlagReasonKey = keyof typeof FLAG_REASONS;
+type FlagReasonKey = keyof typeof FLAG_REASONS;
 export const FLAG_REASON_KEYS = Object.keys(FLAG_REASONS) as [
   FlagReasonKey,
   ...FlagReasonKey[],

@@ -8,7 +8,7 @@ import { z } from "zod";
 const Id = z.union([z.number(), z.string()]).transform(String);
 const Cited = z.array(z.object({ content_item_id: Id.optional() }));
 
-export type CitedArticle = { itemId: string; title: string; link: string };
+type CitedArticle = { itemId: string; title: string; link: string };
 
 // Each row's cited articles in citation order, once each, and how many of its
 // citations name no article any more.

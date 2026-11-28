@@ -189,7 +189,7 @@ export function pickProvider(
   };
 }
 
-export type ProviderOffer = {
+type ProviderOffer = {
   region: string; // "India"
   seen: string; // the ISO day its prices were read
   providers: { id: ProviderId; name: string; from: string | null }[];

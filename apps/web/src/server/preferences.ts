@@ -16,9 +16,9 @@ import {
 // break length; one an old form still sends is ignored.
 
 // "topic-unavailable": a topic that isn't offered (ADR-0049), apart from none at all.
-export type OnboardingField = "goal" | "topic" | "topic-unavailable" | "level";
+type OnboardingField = "goal" | "topic" | "topic-unavailable" | "level";
 // `created` is false when the user had already onboarded: nothing was changed.
-export type OnboardingResult =
+type OnboardingResult =
   { ok: true; created: boolean } | { ok: false; field: OnboardingField };
 
 // ADR-0049 (option 2): the topics onboarding and Profile offer, in display order. A

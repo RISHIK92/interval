@@ -22,7 +22,7 @@ export const AskBody = z.object({
 });
 export type AskBody = z.infer<typeof AskBody>;
 
-export type AskRefusal = "daily_limit" | "user_budget" | "global_budget";
+type AskRefusal = "daily_limit" | "user_budget" | "global_budget";
 
 const utcDay = (now: Date) =>
   new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -117,7 +117,7 @@ export async function submitAsk(
 // concept-prerequisite order (one teaching a prerequisite of another's concept comes
 // first; otherwise citation order). ADR-0058 removed sizing reading to a break, so the
 // session is the top SESSION_ARTICLES of that order, not a cut to some minutes.
-export const SESSION_ARTICLES = 3;
+const SESSION_ARTICLES = 3;
 
 export function sessionPlan(
   articles: readonly SessionArticle[],

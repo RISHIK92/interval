@@ -110,7 +110,7 @@ const Message = z.discriminatedUnion("type", [
 ]);
 type BattleMessage = z.infer<typeof Message>;
 type BattleTest = z.infer<typeof Test>;
-export type BattleFailure = z.infer<typeof Failure>;
+type BattleFailure = z.infer<typeof Failure>;
 type BattleLayer = z.infer<typeof Layer>;
 
 function extensionOf(

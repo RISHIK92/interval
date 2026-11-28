@@ -4,7 +4,7 @@ import type { BattleMode } from "../../server/ports";
 // windows share their times but are registered apart (Q-P6-06); POST registers in a
 // battle mode (ADR-0047), DELETE takes it back, and either answers 409 once
 // registration has closed.
-export const WINDOW_API = {
+const WINDOW_API = {
   lld: "/api/battle/window",
   hld: "/api/hld/window",
 } as const;

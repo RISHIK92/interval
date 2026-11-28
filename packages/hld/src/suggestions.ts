@@ -23,7 +23,7 @@ const SuggestionsFile = z.strictObject({
   status: z.literal("PROVISIONAL"),
   suggestions: z.record(z.string(), Suggestion),
 });
-export type CalibrationSuggestion = z.infer<typeof Suggestion>;
+type CalibrationSuggestion = z.infer<typeof Suggestion>;
 
 // Sorted keys at every depth, so the same design always hashes the same.
 const canonical = (value: unknown): string =>

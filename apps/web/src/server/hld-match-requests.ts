@@ -20,7 +20,7 @@ const Version = z
   .min(0)
   .max(MAX_VERSIONS - 1);
 
-export type MatchSaveResult =
+type MatchSaveResult =
   | { ok: true; version: number }
   | {
       ok: false;

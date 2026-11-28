@@ -1,4 +1,5 @@
 import {
+  BRACKET_SIZE,
   bracketSize,
   firstBracketRound,
   nextBracketRound,
@@ -20,7 +21,7 @@ import type { HldPairing, HldTournament, HldTournaments } from "./ports";
 
 export type TournamentDeps = HldDeps & { tournaments: HldTournaments };
 
-const LAST_ROUND = 8; // the final
+const LAST_ROUND = SWISS_ROUNDS + Math.log2(BRACKET_SIZE); // the final
 
 // A pairing's outcome once its match is scored: the winner (null: an exact tie, a draw,
 // or no contest), whether it was contested at all (two designs that served nothing earn
@@ -53,7 +54,7 @@ async function outcome(
   };
 }
 
-export type TournamentView = {
+type TournamentView = {
   tournament: HldTournament;
   standings: TournamentStanding[]; // the Swiss standings
   played: Played[]; // each checked-in player's Swiss record, for the next pairing
@@ -121,7 +122,7 @@ export async function viewTournament(
   };
 }
 
-export type NextRound =
+type NextRound =
   | "started"
   | "finished"
   | "waiting" // the current round's matches aren't all scored

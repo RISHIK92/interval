@@ -9,7 +9,7 @@ import { specVersion } from "./spec";
 // carries (problem.ts's Cover), from the design and its simulation alone: no model, and
 // nothing from the rubric. Shown live in practice and in matches.
 
-export type CoverageItem = {
+type CoverageItem = {
   text: string;
   covered: boolean;
   by: string | null; // what covers it, in words; null when nothing does

@@ -1158,7 +1158,7 @@ export interface AdminReview {
 
 // The admin's list of sources. The seed file owns every setting, including whether a
 // source is polled at all (ADR-0006 C-28); ADR-0058 removed the moments switch.
-export type AdminSource = {
+type AdminSource = {
   id: string;
   name: string;
   rightsProfile: string;
@@ -2171,13 +2171,7 @@ export type PracticeProblem = Pick<
 // autosaved by the page (each save over the version it was made from; null when stale,
 // as HldPracticeDesigns), and their best judged Submit per problem, which the worker
 // keeps from the game server's progress (per-layer counts only, LLDQ-4).
-export const PRACTICE_LAYERS = [
-  "visible",
-  "hidden",
-  "concurrency",
-  "extension",
-] as const;
-export type PracticeLayer = (typeof PRACTICE_LAYERS)[number];
+type PracticeLayer = "visible" | "hidden" | "concurrency" | "extension";
 export type PracticeBest = {
   slug: string;
   points: number;
@@ -2229,7 +2223,7 @@ export interface PracticeSessions {
 // P6-W39 (CANVAS-2, ADR-0042 PROPOSED, Q-P6-03): a player's practice design, autosaved
 // from the canvas. The stored design is returned as it was kept: the caller parses it,
 // since a spec version may have retired since.
-export type SavedDesign = { design: unknown; version: number };
+type SavedDesign = { design: unknown; version: number };
 export interface HldPracticeDesigns {
   load(userId: string, slug: string): Promise<SavedDesign | null>;
   // Saves over version `base` (0: nothing saved yet) and returns the new version; null
@@ -2259,7 +2253,7 @@ export type HldJudgement = {
   appealedAt: Date | null;
   ownerLevels: Levels | null; // replaces the judge's once an appeal is resolved
 };
-export type HldAppeal = HldJudgement & {
+type HldAppeal = HldJudgement & {
   player: string;
   reason: string;
   input: JudgeInput;
@@ -2333,7 +2327,7 @@ export type HldSeat = {
   total: number | null;
   place: number | null;
 };
-export type HldSubmission = {
+type HldSubmission = {
   design: Design;
   simulationPoints: number;
   baselinePassed: boolean;
@@ -2606,7 +2600,7 @@ export type AskThread = {
   } | null;
 };
 
-export type AskSubmit = {
+type AskSubmit = {
   text: string;
   chip: AskChip | null;
   idempotencyKey: string;

@@ -86,7 +86,7 @@ export type NodeResult = {
   // null when it has none it can use.
   provider?: string | null;
 };
-export type TypeResult = {
+type TypeResult = {
   type: string;
   p50Ms: number | null; // null: unbounded, or nothing served
   p99Ms: number | null;

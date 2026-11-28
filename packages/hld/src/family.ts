@@ -806,7 +806,7 @@ export function validSeeds(
 // ADR-0050 §1: a practice family has no battle seeds. The families written before 2.1
 // keep theirs, so a match played before a family moved to practice still rebuilds.
 const SEEDED_PRACTICE = new Set(["1.0", "2.0"]);
-export const battleSeeded = (f: Family) =>
+const battleSeeded = (f: Family) =>
   f.pool === "battle" || SEEDED_PRACTICE.has(familySpec(f));
 
 export function buildPool(families: readonly Family[]): Pool {

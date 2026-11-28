@@ -128,7 +128,7 @@ type LocalCopy = z.infer<typeof LocalCopy>;
 const localKey = (matchId: string, language: string) =>
   `battle:${matchId}:${language}`;
 
-export function localCopy(
+function localCopy(
   read: (key: string) => string | null,
   matchId: string,
   language: string,
@@ -148,7 +148,7 @@ export function localCopy(
 // to the server again (`resend`). Then this tab's copy, then (by the caller) the
 // starter. Unsaved local code is newer than anything this tab saved; another device's
 // later save is the one thing it can overwrite.
-export function restoreBattleCode(
+function restoreBattleCode(
   local: (language: string) => LocalCopy | null,
   autosaved: Record<string, string>,
   languages: string[],

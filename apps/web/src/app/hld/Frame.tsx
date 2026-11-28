@@ -11,8 +11,6 @@ import Link from "next/link";
 const FRAME_BASE =
   "mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-12 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_minmax(0,19rem)] lg:gap-0 lg:overflow-hidden lg:p-0";
 
-export const FRAME = `${FRAME_BASE} lg:min-h-dvh lg:grid-rows-[auto_auto_1fr]`;
-
 // The HLD canvas's frame fits the window, as the design does: the palette under the
 // canvas and the submission at the foot of the right column stay in view, and each
 // column scrolls on its own.

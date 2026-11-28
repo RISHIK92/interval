@@ -6,7 +6,7 @@ import { RUBRIC_POINTS } from "./judge";
 // the deadline earns no speed. If any player's judgement is missing, the rubric is left
 // out for everyone and the rest is scaled to 100, so nobody wins or loses on an outage.
 
-export const SPEED_POINTS = 15;
+const SPEED_POINTS = 15;
 const ALL = SIMULATION_POINTS + RUBRIC_POINTS + SPEED_POINTS;
 
 export function speedPoints(
