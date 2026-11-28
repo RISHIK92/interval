@@ -69,8 +69,6 @@ async function inRollback(
           name: `Explainer source ${tag}`,
           feed_url: `https://${tag}.test/feed`,
           rights_profile: "full_text_internal",
-          moments_enabled: true,
-          moments_seeded: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -87,30 +85,18 @@ async function inRollback(
           .executeTakeFirstOrThrow();
       const raft = await article("Raft");
       const paxos = await article("Paxos");
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: paxos.id,
-          ordinal: 0,
-          title: "Ballots",
-          estimated_minutes: 3,
-          link: `https://${tag}.test/paxos#ballots`,
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
       const explainer = await trx
         .insertInto("concept_explainer")
         .values({
           concept_id: concept.id,
           script: "Consensus keeps replicas agreeing.",
-          // ADR-0058: an article cited twice counts once; a moment-era citation by
-          // its moment's article; one naming nothing any more is left out.
+          // An article cited twice counts once; one naming no article any more (its
+          // article gone before ADR-0058 folded moments into articles) is left out.
           citations: JSON.stringify([
             { content_item_id: Number(raft.id), quote: "a quote" },
             { content_item_id: Number(raft.id), quote: "again" },
-            { moment_id: Number(moment.id), quote: "another" },
-            { moment_id: 999999999999, quote: "gone" },
+            { content_item_id: Number(paxos.id), quote: "another" },
+            { quote: "gone" },
           ]),
           generator_model: "qwen/x",
           prompt_version: 1,

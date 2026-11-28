@@ -10,8 +10,8 @@ import { seedLiveQuestions } from "./live-bank.fixture";
 
 // Test 60s (Q-P2-14, P2-W9-S01): the server serves a sprint over an article's
 // questions (ADR-0058: one quiz per article, "Quiz me"), checks each answer once, and
-// holds the clock. Most questions here are seeded on a moment, as the moment-era bank
-// is: stage A gave each its article, which is how they are read now.
+// holds the clock. The questions are seeded on articles in "slots" standing for the
+// part of the article they were drafted from, each slot its own run of article_ordinal.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) {
   throw new Error("DATABASE_URL is not set; copy .env.example to .env");
@@ -28,10 +28,10 @@ type Seeded = {
   userId: string;
   otherUser: string;
   itemId: string;
-  intro: string;
-  raft: string;
+  intro: Slot;
+  raft: Slot;
   // An article whose source's rights were lowered, its questions kept (ING-2).
-  hidden: { itemId: string; momentId: string };
+  hidden: Slot;
   // stems → question id
   q: Record<string, string>;
 };
@@ -43,18 +43,31 @@ async function source(trx: Transaction<DB>) {
       name: `quiz-${randomUUID()}`,
       feed_url: `https://quiz.example.test/${randomUUID()}.xml`,
       rights_profile: "full_text_internal",
-      moments_seeded: true,
-      moments_enabled: true,
     })
     .returning("id")
     .executeTakeFirstOrThrow();
 }
 
+// Where a seeded question sits: its article, and the part of it the question stands
+// for (the tests name them intro and raft). Each takes the article's next free slot
+// of its kind, in the order seeded, as the worker's writer does.
+type Slot = { itemId: string };
+const at = (
+  slot: Slot,
+  ordinal: number,
+  kind: "choice" | "estimate" = "choice",
+) => ({
+  content_item_id: slot.itemId,
+  article_ordinal: sql<number>`(select coalesce(max(article_ordinal) + 1, 0)
+    from question where content_item_id = ${slot.itemId} and kind = ${kind})`,
+  ordinal,
+});
+
 async function article(
   trx: Transaction<DB>,
   sourceId: string,
-  titles: string[],
-): Promise<{ itemId: string; momentIds: string[] }> {
+  parts: number,
+): Promise<Slot[]> {
   const item = await trx
     .insertInto("content_item")
     .values({
@@ -65,26 +78,12 @@ async function article(
     })
     .returning("id")
     .executeTakeFirstOrThrow();
-  const moments = await trx
-    .insertInto("moment")
-    .values(
-      titles.map((title, ordinal) => ({
-        content_item_id: item.id,
-        ordinal,
-        title,
-        estimated_minutes: 3,
-        link: `https://quiz.example.test/post#${title.toLowerCase()}`,
-        link_type: "anchor" as const,
-      })),
-    )
-    .returning("id")
-    .execute();
-  return { itemId: item.id, momentIds: moments.map((m) => m.id) };
+  return Array.from({ length: parts }, () => ({ itemId: item.id }));
 }
 
 async function question(
   trx: Transaction<DB>,
-  momentId: string,
+  slot: Slot,
   ordinal: number,
   stem: string,
   concepts: string[],
@@ -93,8 +92,7 @@ async function question(
   const row = await trx
     .insertInto("question")
     .values({
-      moment_id: momentId,
-      ordinal,
+      ...at(slot, ordinal),
       stem,
       options: ["right", "w1", "w2", "w3"],
       correct: 0,
@@ -138,14 +136,10 @@ async function inRollback(
         .set({ retired_at: sql<Date>`now()` })
         .where("id", "=", oldConcept.id)
         .execute();
-      const main = await article(trx, on.id, ["Intro", "Raft"]);
-      const other = await article(trx, on.id, ["Elsewhere"]);
-      const hidden = await article(trx, off.id, ["Hidden"]);
-      const [intro, raft] = main.momentIds;
-      const [elsewhere] = other.momentIds;
-      const [hiddenMoment] = hidden.momentIds;
-      if (!intro || !raft || !elsewhere || !hiddenMoment)
-        throw new Error("seed");
+      const [intro, raft] = await article(trx, on.id, 2);
+      const [elsewhere] = await article(trx, on.id, 1);
+      const [hidden] = await article(trx, off.id, 1);
+      if (!intro || !raft || !elsewhere || !hidden) throw new Error("seed");
       const q: Record<string, string> = {};
       // Also on the retired concept: a sprint must not follow it to "only-old".
       q["raft-0"] = await question(trx, raft, 0, "raft-0", [
@@ -176,9 +170,7 @@ async function inRollback(
       q["only-old"] = await question(trx, elsewhere, 2, "only-old", [
         oldConcept.id,
       ]);
-      q["hidden"] = await question(trx, hiddenMoment, 0, "hidden", [
-        raftConcept.id,
-      ]);
+      q["hidden"] = await question(trx, hidden, 0, "hidden", [raftConcept.id]);
       // Lowered after seeding, its purge trigger held back for this transaction so
       // the questions stay: the quiz's own rights filter must keep "hidden" out
       // (ING-2), not the purge.
@@ -215,10 +207,10 @@ async function inRollback(
       await body(trx, {
         userId,
         otherUser: `${userId}-other`,
-        itemId: main.itemId,
+        itemId: intro.itemId,
         intro,
         raft,
-        hidden: { itemId: hidden.itemId, momentId: hiddenMoment },
+        hidden,
         q,
       });
       throw new Rollback();
@@ -226,8 +218,7 @@ async function inRollback(
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-// The article's quiz without its intro's question: raft-0, raft-1, then "elsewhere",
-// the moment-era raft section's sprint these tests were written for (ADR-0058).
+// The article's quiz without its intro's question: raft-0, raft-1, then "elsewhere".
 async function raftOnly(trx: Transaction<DB>, q: Record<string, string>) {
   await trx
     .updateTable("question")
@@ -316,8 +307,8 @@ test("an article's quiz asks at most 5, sampled from all its questions", async (
   });
 });
 
-// ADR-0058: the worker now drafts questions on the article itself, with no moment.
-test("an article's own questions, written with no moment, are quizzed and offered", async () => {
+// ADR-0058: the worker drafts questions on the article itself.
+test("an article's own questions are quizzed and offered", async () => {
   await inRollback(async (trx, { userId }) => {
     const on = await source(trx);
     const item = await trx
@@ -483,18 +474,8 @@ test("an answer is checked and counted once; a resubmit gets the stored result",
 });
 
 test("a start while the quiz runs returns it; a finished one starts afresh", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    // A moment-era sprint on one section is not the article's quiz (ADR-0058).
-    await trx
-      .insertInto("quiz_attempt")
-      .values({
-        user_id: userId,
-        content_item_id: itemId,
-        moment_id: raft,
-        ends_at: sql<Date>`now() + interval '1 minute'`,
-      })
-      .execute();
     const first = await quizzes.start(userId, itemId);
     const again = await quizzes.start(userId, itemId);
     expect(first?.firstTime).toBe(true);
@@ -967,12 +948,12 @@ test("a quiz left running past its clock is rated when the user next starts one"
 // P2-W9-S05 (Q-P2-17): review sessions over the concepts that have come due.
 async function hiddenQuestion(
   trx: Transaction<DB>,
-  momentId: string,
+  hidden: Slot,
 ): Promise<string> {
   const row = await trx
     .selectFrom("question")
     .select("id")
-    .where("moment_id", "=", momentId)
+    .where("content_item_id", "=", hidden.itemId)
     .executeTakeFirstOrThrow();
   return row.id;
 }
@@ -1101,11 +1082,11 @@ test("a due concept with nothing to ask (or only what its rights forbid) waits",
       .returning("id")
       .execute();
     if (!lonely || !forbidden) throw new Error("seed");
-    // Its only question sits in a source whose moments are switched off (ING-2).
+    // Its only question sits in a source whose rights were lowered (ING-2).
     await trx
       .insertInto("question_concept")
       .values({
-        question_id: await hiddenQuestion(trx, hidden.momentId),
+        question_id: await hiddenQuestion(trx, hidden),
         concept_id: forbidden.id,
       })
       .execute();
@@ -1444,7 +1425,6 @@ async function prefer(
       user_id: userId,
       topics: sql`'{distributed-systems}'`,
       level,
-      break_length: "3-8",
       // The local database curates concepts for the other goals; this one has none,
       // so the test's own goal concepts are the only ones.
       goals: sql`'{stay-sharp}'`,
@@ -1729,15 +1709,14 @@ test("a player with no preferences (a guest) and questions without a difficulty 
 // multiple-choice quizzes (Test 60s, reviews, checkpoints, the sprint) never serve one.
 async function estimates(
   trx: Transaction<DB>,
-  momentId: string,
+  slot: Slot,
   conceptId: string,
 ): Promise<string[]> {
   const rows = await trx
     .insertInto("question")
     .values([
       {
-        moment_id: momentId,
-        ordinal: 5,
+        ...at(slot, 5, "estimate"),
         kind: "estimate",
         stem: "drafted estimate",
         answer: 300,
@@ -1896,7 +1875,7 @@ test("an estimation round needs a live estimate; it runs on the clock and a seco
   });
 });
 
-test("a round serves live estimates in allowed moments and hand-written ones, explored concepts first", async () => {
+test("a round serves live estimates in allowed articles and hand-written ones, explored concepts first", async () => {
   await inRollback(async (trx, { userId, q, intro, hidden }) => {
     const wal = await conceptOf(trx, q["intro-0"] ?? "");
     const raft = await conceptOf(trx, q["raft-1"] ?? "");
@@ -1904,12 +1883,11 @@ test("a round serves live estimates in allowed moments and hand-written ones, ex
     await estimates(trx, intro, raft.id);
     await handWritten(trx, wal.id, "explored one", 10);
     await handWritten(trx, raft.id, "retired one", 10, "retired");
-    // An estimate in a moment whose source has moments switched off (ING-2).
+    // An estimate in an article whose source's rights were lowered (ING-2).
     await trx
       .insertInto("question")
       .values({
-        moment_id: hidden.momentId,
-        ordinal: 5,
+        ...at(hidden, 5, "estimate"),
         kind: "estimate",
         stem: "hidden estimate",
         answer: 1,
@@ -1943,7 +1921,7 @@ test("a round serves live estimates in allowed moments and hand-written ones, ex
       "drafted estimate": true,
       "hand-written estimate": false,
     });
-    // P3-W13-S03b: a moment's estimate plays while its source allows moments (ING-2).
+    // P3-W13-S03b: an article's estimate plays while its source allows it (ING-2).
     expect(stems[0]).toBe("explored one");
     expect(stems.slice(1).sort()).toEqual([
       "drafted estimate",
@@ -1993,15 +1971,14 @@ test("an estimate is scored by C-27 once; a resubmission gets the stored result"
 // quote, and only while its source's rights allow it and its link works.
 async function drafted(
   trx: Transaction<DB>,
-  momentId: string,
+  slot: Slot,
   conceptId: string,
   ordinal = 0,
 ): Promise<string> {
   const row = await trx
     .insertInto("question")
     .values({
-      moment_id: momentId,
-      ordinal,
+      ...at(slot, ordinal, "estimate"),
       kind: "estimate",
       stem: "replication lag",
       answer: 40,
@@ -2331,8 +2308,8 @@ test("no daily challenge without a set today a round may serve", async () => {
     await todaysSet(trx, []);
     expect(await quizzes.startDaily(userId)).toBeNull();
     expect((await quizzes.dailyStatus(userId)).today).toBe("none");
-    // Only what rounds may not serve: a pending question, and one whose source
-    // switched moments off (ING-2).
+    // Only what rounds may not serve: a pending question, and one whose source's
+    // rights were lowered (ING-2).
     await todaysSet(trx, [q["pending"] ?? "", q["hidden"] ?? ""]);
     expect(await quizzes.startDaily(userId)).toBeNull();
     expect((await quizzes.dailyStatus(userId)).today).toBe("none");

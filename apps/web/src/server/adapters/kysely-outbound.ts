@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { FEED_CHIP, type OutboundLink, type OutboundLinks } from "../ports";
+import type { OutboundLink, OutboundLinks } from "../ports";
 
 // ADR-0058: a link is always the article's own page, which every rights profile
 // allows (a deep link, never a copy: §3.2).
@@ -44,14 +44,11 @@ export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
         .where("c.id", "=", itemId)
         .executeTakeFirst();
       if (item === undefined) return null;
-      // ADR-0058: the feed's one list of articles until stage C drops the chip.
       const entry = await db
         .selectFrom("user_feed_entry")
         .select("reasons")
         .where("user_id", "=", userId)
-        .where("chip", "=", FEED_CHIP)
         .where("content_item_id", "=", itemId)
-        .where("moment_id", "is", null)
         .where("reasons", "is not", null)
         .executeTakeFirst();
       return {

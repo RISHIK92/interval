@@ -24,7 +24,7 @@ def bank(conn: psycopg.Connection) -> psycopg.Connection:
     return conn
 
 
-def moment(conn: psycopg.Connection, broken: bool = False) -> int:
+def article(conn: psycopg.Connection, broken: bool = False) -> int:
     n = next(_ids)
     source_id = PostgresStore(conn).sources.upsert(
         name=f"daily-{n}",
@@ -32,22 +32,11 @@ def moment(conn: psycopg.Connection, broken: bool = False) -> int:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    conn.execute(
-        "update source set moments_seeded = true, moments_enabled = true where id = %s",
-        (source_id,),
-    )
     row = conn.execute(
         "insert into content_item (source_id, guid, canonical_url, title, "
         "link_broken_at) values (%s, 'g', 'https://daily.example.test/a', 't', "
         "case when %s then now() end) returning id",
         (source_id, broken),
-    ).fetchone()
-    assert row is not None
-    row = conn.execute(
-        "insert into moment (content_item_id, ordinal, title, estimated_minutes, "
-        "link, link_type) values (%s, 0, 't', 1, 'https://daily.example.test/a', "
-        "'page_top') returning id",
-        (row[0],),
     ).fetchone()
     assert row is not None
     return row[0]
@@ -68,20 +57,20 @@ def question(
     conn: psycopg.Connection,
     kind: QuestionKind = "choice",
     concepts: list[int] | None = None,
-    moment_id: int | None = None,
+    item_id: int | None = None,
     difficulty: Difficulty | None = "intermediate",
     status: str = "live",
 ) -> int:
     concepts = [concept(conn)] if concepts is None else concepts
     if kind == "choice":
         row = conn.execute(
-            "insert into question (moment_id, ordinal, stem, options, correct, "
-            "citation, generator_model, prompt_version, content_hash, status, "
-            "difficulty) values (%s, %s, 's', array['a','b','c','d'], 0, 'c', 'g', 1, "
-            "'h', %s, %s) returning id",
-            (moment_id or moment(conn), next(_ids), status, difficulty),
+            "insert into question (content_item_id, article_ordinal, ordinal, stem, "
+            "options, correct, citation, generator_model, prompt_version, "
+            "content_hash, status, difficulty) values (%s, 0, 0, 's', "
+            "array['a','b','c','d'], 0, 'c', 'g', 1, 'h', %s, %s) returning id",
+            (item_id or article(conn), status, difficulty),
         ).fetchone()
-    elif moment_id is None:
+    elif item_id is None:
         row = conn.execute(
             "insert into question (kind, ordinal, stem, answer, unit, citation, "
             "source_url, source_title, status, difficulty) values ('estimate', %s, "
@@ -91,11 +80,12 @@ def question(
         ).fetchone()
     else:
         row = conn.execute(
-            "insert into question (kind, moment_id, ordinal, stem, answer, unit, "
-            "citation, generator_model, prompt_version, content_hash, status, "
-            "difficulty) values ('estimate', %s, 0, 'How many?', 300, 'ms', "
-            "'about 300 ms', 'g', 1, 'h', %s, %s) returning id",
-            (moment_id, status, difficulty),
+            "insert into question (kind, content_item_id, article_ordinal, ordinal, "
+            "stem, answer, unit, citation, generator_model, prompt_version, "
+            "content_hash, status, difficulty) values ('estimate', %s, 0, 0, "
+            "'How many?', 300, 'ms', 'about 300 ms', 'g', 1, 'h', %s, %s) "
+            "returning id",
+            (item_id, status, difficulty),
         ).fetchone()
     assert row is not None
     for concept_id in concepts:
@@ -176,18 +166,18 @@ def test_the_five_test_different_concepts(bank: psycopg.Connection) -> None:
 
 def test_only_questions_rounds_may_serve(bank: psycopg.Connection) -> None:
     allowed = question(bank)
-    # A moment whose source's rights drop is purged with its questions (ING-2, a
+    # An article whose source's rights drop is purged of its questions (ING-2, a
     # trigger), so what's left to leave out is the status and a broken link.
     question(bank, status="flagged")
-    question(bank, "estimate", moment_id=moment(bank, broken=True))
+    question(bank, "estimate", item_id=article(bank, broken=True))
     # A broken link still serves multiple choice, as quizzes' LIVE does.
-    choice_on_broken = question(bank, moment_id=moment(bank, broken=True))
-    estimate_in_moment = question(bank, "estimate", moment_id=moment(bank))
+    choice_on_broken = question(bank, item_id=article(bank, broken=True))
+    estimate_in_article = question(bank, "estimate", item_id=article(bank))
     assert PostgresDailyChallenges(bank).pick(DAY)
     assert {q for _, q, _ in the_set(bank)} == {
         allowed,
         choice_on_broken,
-        estimate_in_moment,
+        estimate_in_article,
     }
 
 

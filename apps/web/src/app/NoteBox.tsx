@@ -1,8 +1,9 @@
+import { noteMax } from "@interval/api-client";
 import { noteAction } from "./notes/actions";
 import { Button } from "./ui/Button";
 
 // A private note (§5I, Q-P2-01) on the article being read (ADR-0058), or (the Library)
-// a note by its own id, which also reaches an earlier section note. A
+// a note by its own id. A
 // small icon at its container's top right (the container is `relative`; owner,
 // 2026-10-27; `at` moves it) opens the text area below; a dot marks an existing note. A disclosure,
 // so it works without script. `about` names what it's on, so a list of them reads
@@ -59,7 +60,7 @@ export function NoteBox({
         <textarea
           name="body"
           aria-label={`Note on ${about}`}
-          maxLength={2000}
+          maxLength={noteMax(note)}
           rows={3}
           defaultValue={note ?? ""}
           className="w-full rounded-2xl border border-hairline bg-page px-4 py-3 text-base text-ink"

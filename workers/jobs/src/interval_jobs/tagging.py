@@ -9,12 +9,12 @@ stage retries.
 What the model reads depends on the rights profile (ING-2): full-text items send their
 stored full text, cut to TOTAL_CHARS, in memory only; excerpt items send their stored
 excerpt; every item sends its title and feed summary. A book chapter's sessions are
-tagged one by one through tagging_decide (moment_texts cuts their text).
+tagged one by one through tagging_decide (session_texts cuts their text).
 """
 
 import json
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import cast, get_args
 
@@ -26,9 +26,9 @@ from interval_jobs.ports import (
     ConceptGraph,
     Message,
     TagInput,
-    TagMoment,
     TagResult,
     Tags,
+    TagSession,
 )
 
 # 2: half the article text per call; 3: decision models tag through a shortlist; 4: a
@@ -38,7 +38,7 @@ from interval_jobs.ports import (
 # and only new ones are asked the new way.
 PROMPT_VERSION = 5
 MAX_CONCEPTS = 5
-MOMENT_CHARS = 4000  # per text asked about (a session, an article's pass): enough
+TEXT_CHARS = 4000  # per text asked about (a session, an article's pass): enough
 # Per call: bounds the cost of a long article, and keeps a call with the full
 # concept list inside free tiers' per-minute token caps (Groq: 8,000; 2026-10-27).
 TOTAL_CHARS = 12000
@@ -59,28 +59,30 @@ def active_concepts(graph: ConceptGraph | None) -> list[str]:
     return [c.slug for c in graph.concepts if not c.retired] if graph else []
 
 
-def moment_texts(full_text: str, moments: list[TagMoment]) -> dict[int, str]:
-    """Each found moment's text, from its heading line to the next found one."""
+def session_texts(full_text: str, sessions: list[TagSession]) -> dict[int, str]:
+    """Each found session's text, from its heading line to the next found one."""
     lines = full_text.splitlines()
     keys = [heading_key(clean_heading(line)) for line in lines]
-    starts: list[tuple[int, int]] = []  # (first body line, moment id)
+    starts: list[tuple[int, int]] = []  # (first body line, session id)
     cursor = 0
-    for moment in sorted(moments, key=lambda m: m.ordinal):
-        if moment.heading is None:
-            starts.append((0, moment.id))
+    for session in sorted(sessions, key=lambda m: m.ordinal):
+        if session.heading is None:
+            starts.append((0, session.id))
             continue
-        wanted = heading_key(moment.heading)
+        wanted = heading_key(session.heading)
         found = next((i for i in range(cursor, len(lines)) if keys[i] == wanted), None)
         if found is None:
-            log.warn("tagging: moment heading not in the text", ordinal=moment.ordinal)
+            log.warn(
+                "tagging: session heading not in the text", ordinal=session.ordinal
+            )
             continue
-        starts.append((found + 1, moment.id))
+        starts.append((found + 1, session.id))
         cursor = found + 1
     texts: dict[int, str] = {}
-    for position, (start, moment_id) in enumerate(starts):
-        # The next moment's text starts after its heading line; stop before it.
+    for position, (start, session_id) in enumerate(starts):
+        # The next session's text starts after its heading line; stop before it.
         end = starts[position + 1][0] - 1 if position + 1 < len(starts) else len(lines)
-        texts[moment_id] = "\n".join(lines[start : max(start, end)]).strip()
+        texts[session_id] = "\n".join(lines[start : max(start, end)]).strip()
     return texts
 
 
@@ -172,4 +174,7 @@ def tag_item(
     )
     if isinstance(result, OverBudget):
         return result
-    return Tagged(_parse(result.text, set(concepts)), result.usage.cost_usd)
+    parsed = _parse(result.text, set(concepts))
+    # ING-2: tags read off the full text go with it in a rights purge.
+    tagged = replace(parsed, from_full_text=bool(item.full_text))
+    return Tagged(tagged, result.usage.cost_usd)

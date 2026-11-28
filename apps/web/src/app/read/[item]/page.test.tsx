@@ -321,24 +321,15 @@ test("the reader offers a note on the article, empty until one is written", asyn
   expect(html).toContain("Add a note");
   expect(html).toMatch(/<textarea[^>]*name="body"[^>]*><\/textarea>/);
   expect(html).not.toMatch(/<button[^>]*value="delete"/);
-  expect(html).not.toContain("Notes on sections");
 });
 
-// ADR-0058: notes written on a section before it stay visible under the article until
-// stage C joins them into its note.
-test("the article's note and earlier section notes are shown", async () => {
+test("the article's note is shown in its box", async () => {
   current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
-  onItems.mockResolvedValueOnce([
-    { itemId: "5", sectionTitle: null, body: "On the whole thing" },
-    { itemId: "5", sectionTitle: "Raft", body: "Terms are epochs" },
-  ]);
+  onItems.mockResolvedValueOnce([{ itemId: "5", body: "On the whole thing" }]);
   const html = await render(card);
   expect(html).toContain("Your note on");
   expect(html).toContain("On the whole thing</textarea>");
-  expect(html).toContain("Notes on sections");
-  expect(html).toContain("Raft");
-  expect(html).toContain("Terms are epochs");
 });
 
 // P7-W46 (owner, 2026-11-27): a companion's suggestion opens as a feed card does,

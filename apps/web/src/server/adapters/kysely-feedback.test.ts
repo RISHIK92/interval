@@ -171,7 +171,6 @@ test("a reset clears More and Less like this and the concept down-rank only", as
       .insertInto("tag_override")
       .values({
         content_item_id: itemId,
-        heading: "",
         difficulty: "beginner",
         concepts: [slug],
         updated_by: "test",

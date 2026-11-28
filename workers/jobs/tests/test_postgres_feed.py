@@ -1,6 +1,5 @@
 """Postgres per-user feeds (CACHE-1, P1-W4-S04): the *_visible views, their gate,
-cascades, and the per-user lock. ADR-0058: one list of articles, stored under one chip
-until stage C drops the column."""
+cascades, and the per-user lock. ADR-0058: one list of articles, with no chips."""
 
 import os
 import threading
@@ -11,7 +10,7 @@ from uuid import uuid4
 import psycopg
 
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import FEED_CHIP, Arm, Breakdown, RankedEntry
+from interval_jobs.ports import Arm, Breakdown, RankedEntry
 
 
 def add_item(
@@ -66,10 +65,9 @@ def give(conn: psycopg.Connection, user_id: str, item_ids: list[int]) -> None:
     )
 
 
-def visible(conn: psycopg.Connection, user_id: str) -> list[tuple[str, str]]:
+def visible(conn: psycopg.Connection, user_id: str) -> list[tuple[str]]:
     return conn.execute(
-        "select article_title, chip::text from user_feed_visible "
-        "where user_id = %s order by rank",
+        "select article_title from user_feed_visible where user_id = %s order by rank",
         (user_id,),
     ).fetchall()
 
@@ -81,48 +79,36 @@ def test_a_user_sees_their_own_feed_in_rank_order(conn: psycopg.Connection) -> N
     me, other = user(conn), user(conn)
     give(conn, me, [two, one])
     give(conn, other, [one])
-    assert visible(conn, me) == [
-        ("Article two", FEED_CHIP),
-        ("Article one", FEED_CHIP),
-    ]
-    assert visible(conn, other) == [("Article one", FEED_CHIP)]
+    assert visible(conn, me) == [("Article two",), ("Article one",)]
+    assert visible(conn, other) == [("Article one",)]
 
 
-def test_a_feed_is_one_list_of_articles_under_the_one_chip(
-    conn: psycopg.Connection,
-) -> None:
+def test_a_recompute_replaces_the_whole_list(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-b")
     item = add_item(conn, src, "whole", datetime(2026, 10, 1, tzinfo=UTC))
+    old = add_item(conn, src, "old", datetime(2026, 9, 1, tzinfo=UTC))
     me = user(conn)
-    # A feed of before ADR-0058: one list per chip, moments among them.
-    for chip in ("1-3", "8-15"):
-        conn.execute(
-            "insert into user_feed_entry (user_id, chip, content_item_id, rank, "
-            "top_signal) values (%s, %s, %s, 1, 'quality')",
-            (me, chip, item),
-        )
+    give(conn, me, [old, item])
     give(conn, me, [item])
     rows = conn.execute(
-        "select chip::text, content_item_id, moment_id from user_feed_entry "
-        "where user_id = %s",
+        "select content_item_id, rank from user_feed_entry where user_id = %s",
         (me,),
     ).fetchall()
-    assert rows == [(FEED_CHIP, item, None)]
+    assert [r[0] for r in rows] == [item]
     store = PostgresStore(conn)
-    conn.execute(
-        "insert into starter_feed_entry (topic, level, chip, content_item_id, rank) "
-        "values ('databases', 'beginner', '8-15', %s, 1)",
-        (item,),
+    store.feed.replace_starter(
+        "databases", "beginner", [RankedEntry(old, "quality", None)]
     )
     store.feed.replace_starter(
         "databases", "beginner", [RankedEntry(item, "quality", None)]
     )
     starter = conn.execute(
-        "select chip::text, moment_id from starter_feed_entry "
-        "where topic = 'databases' and level = 'beginner' and content_item_id = %s",
-        (item,),
+        "select content_item_id from starter_feed_entry "
+        "where topic = 'databases' and level = 'beginner' "
+        "and content_item_id in (%s, %s)",
+        (item, old),
     ).fetchall()
-    assert starter == [(FEED_CHIP, None)]
+    assert starter == [(item,)]
 
 
 def test_two_recomputes_of_one_user_wait_for_each_other(
@@ -180,14 +166,14 @@ def test_an_article_shows_title_and_link_from_any_profile(
     me = user(conn)
     give(conn, me, [listed, counted])
     rows = conn.execute(
-        "select kind, content_item_id, moment_id, section_title, estimated_minutes, "
-        "link from user_feed_visible where user_id = %s order by rank",
+        "select content_item_id, estimated_minutes, link from user_feed_visible "
+        "where user_id = %s order by rank",
         (me,),
     ).fetchall()
     assert rows == [
-        ("article", listed, None, None, None, "https://feed.example.test/listed"),
+        (listed, None, "https://feed.example.test/listed"),
         # 700 words at 230 a minute, rounded up.
-        ("article", counted, None, None, 4, "https://feed.example.test/counted"),
+        (counted, 4, "https://feed.example.test/counted"),
     ]
 
 
@@ -228,9 +214,8 @@ def test_a_cards_reasons_are_stored_and_shown(conn: psycopg.Connection) -> None:
     )
     assert conn.execute(
         "select reasons, difficulty from starter_feed_visible "
-        "where topic = 'databases' and level = 'beginner' and chip = %s "
-        "and content_item_id = %s",
-        (FEED_CHIP, item),
+        "where topic = 'databases' and level = 'beginner' and content_item_id = %s",
+        (item,),
     ).fetchall() == [("Worth a look.", "beginner")]
 
 

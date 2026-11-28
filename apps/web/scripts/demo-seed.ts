@@ -26,7 +26,7 @@ import { Redis } from "ioredis";
 import { type Kysely, sql } from "kysely";
 import { createDb } from "../src/server/adapters/kysely";
 import { valkeyLeaderboards } from "../src/server/adapters/valkey-leaderboards";
-import { FEED_CHIP, GOALS, type ReasonKind, TOPICS } from "../src/server/ports";
+import { GOALS, type ReasonKind, TOPICS } from "../src/server/ports";
 
 const LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"];
 
@@ -125,8 +125,8 @@ const CONCEPTS: { slug: string; name: string; topic: Topic }[] = [
   },
 ];
 
-// Moments need a full-text profile with moments on (the moment_rights trigger); the
-// excerpt source is the most a non-full-text source allows, and gives article cards.
+// Questions need a full-text profile (ING-2); the excerpt source is the most a
+// non-full-text source allows, and gives article cards with no questions.
 const SOURCES = [
   {
     key: "systems",
@@ -597,7 +597,6 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
         user_id: user,
         topics: choice.topics,
         level: choice.level,
-        break_length: FEED_CHIP,
         goals: choice.goals,
         onboarded_at: ago(14 * DAY),
       })
@@ -656,14 +655,11 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
 
   const sourceId = new Map<SourceKey, string>();
   for (const s of SOURCES) {
-    const moments = s.rights === "full_text_internal";
     const values = {
       name: s.name,
       homepage: `https://example.com/demo/${s.key}`,
       feed_url: `https://example.com/demo/${s.key}/feed.xml`,
       rights_profile: s.rights,
-      moments_seeded: moments,
-      moments_enabled: moments,
       topics: [...s.topics],
       quality_score: s.quality,
       // Never polled: example.com has no feed, and the worker shouldn't try.
@@ -679,15 +675,7 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
     count("source");
   }
 
-  type Moment = {
-    id: string;
-    item: Item;
-    itemId: string;
-    ordinal: number;
-    minutes: number;
-  };
   const itemId = new Map<string, string>();
-  const moments: Moment[] = [];
   for (const item of ITEMS) {
     const source = sourceId.get(item.source);
     if (source === undefined) throw new Error(`no source ${item.source}`);
@@ -726,61 +714,49 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
           oc.columns(["content_item_id", "ordinal"]).doUpdateSet(section),
         )
         .execute();
-      const moment = {
-        content_item_id: row.id,
-        ordinal,
-        title: s.heading,
-        estimated_minutes: s.minutes,
-        link: `${linkOf(item)}#${anchor}`,
-        link_type: "anchor" as const,
-      };
-      const m = await db
-        .insertInto("moment")
-        .values(moment)
-        .onConflict((oc) =>
-          oc.columns(["content_item_id", "ordinal"]).doUpdateSet(moment),
-        )
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      await db
-        .insertInto("moment_tagging")
-        .values({ moment_id: m.id, difficulty: item.difficulty })
-        .onConflict((oc) =>
-          oc.column("moment_id").doUpdateSet({ difficulty: item.difficulty }),
-        )
-        .execute();
-      await db
-        .insertInto("moment_concept")
-        .values({ moment_id: m.id, concept_id: concept(s.concept) })
-        .onConflict((oc) => oc.doNothing())
-        .execute();
-      moments.push({
-        id: m.id,
-        item,
-        itemId: row.id,
-        ordinal,
-        minutes: s.minutes,
-      });
-      count("moment");
     }
+    // The article's tags, as the tag stage writes them (ADR-0058: an article is tagged
+    // whole): its sections' concepts. An excerpt has no sections and no tags.
+    if (item.sections.length === 0) continue;
+    const tagging = {
+      content_item_id: row.id,
+      difficulty: item.difficulty,
+      model: MODEL,
+      prompt_version: 1,
+    };
+    await db
+      .insertInto("item_tagging")
+      .values(tagging)
+      .onConflict((oc) => oc.column("content_item_id").doUpdateSet(tagging))
+      .execute();
+    await db
+      .insertInto("item_concept")
+      .values(
+        [...new Set(item.sections.map((s) => s.concept))].map((slug) => ({
+          content_item_id: row.id,
+          concept_id: concept(slug),
+        })),
+      )
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+    count("item_tagging");
   }
   const item = (key: string) => {
     const id = itemId.get(key);
     if (id === undefined) throw new Error(`no demo item ${key}`);
     return id;
   };
-  const momentOf = (key: string, ordinal: number) => {
-    const m = moments.find((x) => x.item.key === key && x.ordinal === ordinal);
-    if (m === undefined)
-      throw new Error(`no demo moment ${key}/${String(ordinal)}`);
-    return m.id;
-  };
 
+  // Each article's questions take its slots in order (question_one_per_article_slot).
   const questionIds: string[] = [];
+  const slots = new Map<string, number>();
   for (const [n, q] of QUESTIONS.entries()) {
+    const slot = slots.get(q.item) ?? 0;
+    slots.set(q.item, slot + 1);
     const values = {
-      moment_id: momentOf(q.item, q.section),
-      ordinal: 0,
+      content_item_id: item(q.item),
+      article_ordinal: slot,
+      ordinal: slot,
       kind: "choice" as const,
       stem: q.stem,
       options: q.options,
@@ -799,8 +775,8 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
       .values(values)
       .onConflict((oc) =>
         oc
-          .columns(["moment_id", "kind", "ordinal"])
-          .where("status", "<>", "retired")
+          .columns(["content_item_id", "kind", "article_ordinal"])
+          .where("content_item_id", "is not", null)
           .doUpdateSet(values),
       )
       .returning("id")
@@ -894,8 +870,8 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
           .values({ section_id: section.id, concept_id: concept(slug) })
           .onConflict((oc) => oc.doNothing())
           .execute();
-      // ADR-0058: a session is an article, once per section; a rerun drops the
-      // sessions an earlier seed made per moment beyond them.
+      // ADR-0058: a session is an article, once per section; a rerun drops any
+      // sessions an earlier seed made beyond them.
       await db
         .deleteFrom("path_session")
         .where("section_id", "=", section.id)
@@ -908,13 +884,12 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
           .values({
             section_id: section.id,
             ordinal: n,
-            moment_id: null,
             content_item_id,
           })
           .onConflict((oc) =>
             oc
               .columns(["section_id", "ordinal"])
-              .doUpdateSet({ moment_id: null, content_item_id }),
+              .doUpdateSet({ content_item_id }),
           )
           .execute();
       }
@@ -925,25 +900,31 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
   // section read and its checkpoint passed, and one reading into the second. ADR-0058:
   // a reading is completed by its article's finish, so the read ones get one too.
   const a = "walk-a";
-  const finished: [string, number, number][] = [
-    ["hash-ring", 0, 2 * DAY],
-    ["l4-l7", 0, 2 * DAY - HOUR],
-    ["cache-invalidation", 0, DAY],
-    ["b-tree", 0, 5 * DAY],
-    ["wal", 0, 4 * DAY],
+  const finished: [string, number][] = [
+    ["hash-ring", 2 * DAY],
+    ["l4-l7", 2 * DAY - HOUR],
+    ["cache-invalidation", DAY],
+    ["b-tree", 5 * DAY],
+    ["wal", 4 * DAY],
   ];
-  for (const [key, m, when] of finished) {
+  for (const [key, when] of finished) {
+    // The hash ring was opened again an hour ago, and is still being read.
+    const last = key === "hash-ring" ? ago(HOUR) : ago(when);
     await db
-      .insertInto("user_moment_finished")
+      .insertInto("user_article_opened")
       .values({
         user_id: a,
-        moment_id: momentOf(key, m),
-        method: "mark_done",
-        finished_at: ago(when),
+        content_item_id: item(key),
+        opened_at: ago(when),
+        last_opened_at: last,
       })
-      .onConflict((oc) => oc.doNothing())
+      .onConflict((oc) =>
+        oc.columns(["user_id", "content_item_id"]).doUpdateSet({
+          last_opened_at: last,
+        }),
+      )
       .execute();
-    count("user_moment_finished");
+    count("user_article_opened");
     if (key === "hash-ring") continue;
     await db
       .insertInto("user_article_finished")
@@ -956,15 +937,6 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
       .onConflict((oc) => oc.doNothing())
       .execute();
   }
-  await db
-    .insertInto("user_moment_opened")
-    .values({
-      user_id: a,
-      moment_id: momentOf("hash-ring", 1),
-      opened_at: ago(HOUR),
-    })
-    .onConflict((oc) => oc.doNothing())
-    .execute();
   await db
     .insertInto("user_article_finished")
     .values({
@@ -987,48 +959,29 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
       .execute();
     count("user_save");
   }
-  const notes: [string, number | null, string][] = [
+  const notes: [string, string][] = [
     [
       "hash-ring",
-      0,
       "Adding one node to mod-N moves almost every key. The ring moves only its neighbour's share.",
     ],
     [
       "b-tree",
-      0,
       "Leaf pages hold keys plus row pointers; inner pages only keys. That's why fan-out is so high.",
     ],
     [
       "vector-clocks",
-      null,
       "Concurrent writes = neither clock dominates. Ask: who merges, client or server?",
     ],
   ];
-  for (const [key, m, body] of notes) {
-    const content_item_id = item(key);
-    const moment_id = m === null ? null : momentOf(key, m);
-    const exists = await db
-      .selectFrom("user_note")
-      .select("id")
-      .where("user_id", "=", a)
-      .where("content_item_id", "=", content_item_id)
-      .where("moment_id", moment_id === null ? "is" : "=", moment_id)
-      .executeTakeFirst();
-    if (exists === undefined)
-      await db
-        .insertInto("user_note")
-        .values({
-          user_id: a,
-          content_item_id,
-          moment_id,
-          section_title:
-            m === null
-              ? null
-              : (ITEMS.find((i) => i.key === key)?.sections[m]?.heading ??
-                null),
-          body,
-        })
-        .execute();
+  // An existing note is the user's own and stays.
+  for (const [key, body] of notes) {
+    await db
+      .insertInto("user_note")
+      .values({ user_id: a, content_item_id: item(key), body })
+      .onConflict((oc) =>
+        oc.columns(["user_id", "content_item_id"]).doNothing(),
+      )
+      .execute();
     count("user_note");
   }
 
@@ -1296,9 +1249,8 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
   }
 
   // The stored feed (CACHE-1) for the onboarded players, built from their stored
-  // choices (PER-1) as the worker writes it: each chip's cards by length on the user's
-  // topics, nearest their level first, the sources taking turns, ranked from 1, every
-  // chip stored whatever the break length (it only picks the chip Home opens on). Each
+  // choices (PER-1) as the worker writes it: one ranked list of whole articles on the
+  // user's topics, nearest their level first, the sources taking turns, ranked from 1. Each
   // card states one reason that holds of that user, in the first-that-holds order of
   // ADR-0027 with wording from workers/jobs/seeds/reasons.yaml.
   const conceptOf = (slug: string) => {
@@ -1311,15 +1263,15 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
     if (s === undefined) throw new Error(`no demo source ${i.source}`);
     return s;
   };
-  // A moment's concept, or a whole article's: its sections' (none on an excerpt).
-  const conceptsOf = (i: Item, ordinal: number | null) =>
-    (ordinal === null ? i.sections : i.sections.slice(ordinal, ordinal + 1))
+  // An article's concepts: its sections' (none on an excerpt).
+  const conceptsOf = (i: Item) =>
+    i.sections
       .map((s) => conceptOf(s.concept))
       .sort((x, y) => x.slug.localeCompare(y.slug));
-  const topicsOf = (i: Item, ordinal: number | null): readonly Topic[] =>
+  const topicsOf = (i: Item): readonly Topic[] =>
     i.sections.length === 0
       ? sourceOf(i).topics
-      : conceptsOf(i, ordinal).map((c) => c.topic);
+      : conceptsOf(i).map((c) => c.topic);
   const LEVELS: Difficulty[] = ["beginner", "intermediate", "advanced"];
   const GOAL_REASON: Partial<
     Record<LearningGoal, (concept: string) => string>
@@ -1355,15 +1307,12 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
   for (const prefs of preferences) {
     const user = prefs.user_id;
     const goalSets = await goalConcepts(user, prefs.goals);
-    const reasonFor = (
-      i: Item,
-      ordinal: number | null,
-    ): { text: string; kind: ReasonKind | null } => {
+    const reasonFor = (i: Item): { text: string; kind: ReasonKind | null } => {
       // A demo concept stands in for the curated concept of its name less "demo-".
       for (const goal of prefs.goals) {
         const line = GOAL_REASON[goal];
         const set = goalSets.get(goal);
-        const hit = conceptsOf(i, ordinal).find((c) =>
+        const hit = conceptsOf(i).find((c) =>
           set?.has(c.slug.replace(/^demo-/, "")),
         );
         if (line !== undefined && hit !== undefined)
@@ -1382,14 +1331,12 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
         };
       return { text: "Worth exploring.", kind: null };
     };
-    const onTopic = (i: Item, ordinal: number | null) =>
-      topicsOf(i, ordinal).some((t) => prefs.topics.includes(t));
+    const onTopic = (i: Item) =>
+      topicsOf(i).some((t) => prefs.topics.includes(t));
     const levelGap = (d: Difficulty) =>
       Math.abs(LEVELS.indexOf(d) - LEVELS.indexOf(prefs.level));
     {
-      // ADR-0058: one ranked list of whole articles, under FEED_CHIP as the worker
-      // stores it until stage C drops the chip column.
-      const pool = ITEMS.filter((i) => onTopic(i, null)).map((i) => ({
+      const pool = ITEMS.filter((i) => onTopic(i)).map((i) => ({
         item: i,
         itemId: item(i.key),
       }));
@@ -1407,19 +1354,16 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
           const next = list[i];
           if (next !== undefined) ordered.push(next);
         }
-      // Replaced whole, as the worker does: a smaller pool leaves no stale ranks, and
-      // the per-chip lists from before ADR-0058 go.
+      // Replaced whole, as the worker does: a smaller pool leaves no stale ranks.
       await db
         .deleteFrom("user_feed_entry")
         .where("user_id", "=", user)
         .execute();
       const rows = ordered.slice(0, FEED_LENGTH).map((card, n) => {
-        const reason = reasonFor(card.item, null);
+        const reason = reasonFor(card.item);
         return {
           user_id: user,
-          chip: FEED_CHIP,
           rank: n + 1,
-          moment_id: null,
           content_item_id: card.itemId,
           // Every card here matched the user's topics.
           top_signal: reason.kind ?? "topic_match",

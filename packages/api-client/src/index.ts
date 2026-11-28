@@ -69,11 +69,6 @@ export const ReaderResponse = z.object({
   saved: z.boolean(),
   state: ArticleState,
   note: z.string().nullable(),
-  // Notes the user wrote on a section before ADR-0058, shown under the article until
-  // stage C joins them into its note.
-  sectionNotes: z.array(
-    z.object({ sectionTitle: z.string(), body: z.string() }),
-  ),
   // Test 60s has a live question on what's shown (P4-W21-S01): its Quiz me.
   testable: z.boolean(),
   // A concept of what's shown has a voiced AI explainer: Listen (P4-W23-S02).
@@ -85,6 +80,12 @@ export const ReaderResponse = z.object({
 export type ReaderResponse = z.infer<typeof ReaderResponse>;
 // As the web's notes (P2-W7-S03).
 export const NOTE_MAX = 2000;
+// The longest body a note may be saved with: NOTE_MAX, or the stored note's own length
+// when that is longer (ADR-0058 joined section notes into one, never cutting them), so
+// an edit never has to shorten what is already there.
+export function noteMax(stored: string | null): number {
+  return Math.max(NOTE_MAX, stored?.length ?? 0);
+}
 
 // P4-W21-S01 (§6.3, Q-P2-14): the solo games, the daily challenge and Test 60s. The
 // server holds the clock and the key: a question comes without its answer.

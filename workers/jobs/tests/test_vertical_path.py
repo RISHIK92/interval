@@ -57,8 +57,7 @@ def test_one_feed_becomes_article_cards_without_source_text(
 
     cards = conn.execute(
         """
-        select kind, chip::text, section_title, section_number, section_count,
-               estimated_minutes, link, article_title, author, source_name
+        select estimated_minutes, link, article_title, author, source_name
         from user_feed_visible where user_id = %s order by rank
         """,
         (user_id,),
@@ -67,17 +66,12 @@ def test_one_feed_becomes_article_cards_without_source_text(
     title = "How our write-ahead log works"
     # One card for the whole article, its length from its stored sections, its link
     # the article's own (no section deep link, ADR-0058).
-    card = ("article", "3-8", None, None, 0, 8, ARTICLE_URL, title, "Alex Author")
+    card = (8, ARTICLE_URL, title, "Alex Author")
     assert cards == [(*card, "seg-test")]
     # An allowlist: any new column (e.g. a summary) must be added here on purpose.
     card_columns = {
         "rank",
-        "kind",
         "content_item_id",
-        "moment_id",
-        "section_title",
-        "section_number",
-        "section_count",
         "estimated_minutes",
         "link",
         "article_title",
@@ -101,9 +95,9 @@ def test_one_feed_becomes_article_cards_without_source_text(
         # metadata only; never in a starter feed.
         (
             "user_feed_visible",
-            {"user_id", "chip", "project_note_text", "project_note_repositories"},
+            {"user_id", "project_note_text", "project_note_repositories"},
         ),
-        ("starter_feed_visible", {"topic", "level", "chip"}),
+        ("starter_feed_visible", {"topic", "level"}),
     ):
         columns = {
             row[0]

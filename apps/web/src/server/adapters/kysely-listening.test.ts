@@ -24,8 +24,7 @@ type Seeded = {
   item: string;
   // Explainers by concept: raft, paxos and quorum voiced and approved on the article;
   // draft approved but not voiced; leases voiced, reached from raft by an edge only.
-  // ADR-0058: each cites the article itself, and a moment-era citation (moment_id
-  // only) of a second article's section.
+  // Each cites the article itself, a second article, and one gone (no article).
   x: Record<"raft" | "paxos" | "quorum" | "draft" | "leases", string>;
   c: Record<"raft" | "paxos" | "quorum" | "draft" | "leases", string>;
 };
@@ -63,9 +62,6 @@ async function inRollback(
           name: `Listen source ${tag}`,
           feed_url: `https://${tag}.test/feed`,
           rights_profile: "full_text_internal",
-          // The moment-era section below needs moments on, as it had them then.
-          moments_enabled: true,
-          moments_seeded: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -86,18 +82,6 @@ async function inRollback(
           guid: `${tag}-older`,
           canonical_url: `https://${tag}.test/older`,
           title: "Older",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: older.id,
-          ordinal: 0,
-          title: "Elections",
-          estimated_minutes: 3,
-          link: `https://${tag}.test/older#elections`,
-          link_type: "anchor",
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -122,8 +106,8 @@ async function inRollback(
             script: `About ${name}.`,
             citations: JSON.stringify([
               { content_item_id: Number(item.id), quote: "q" },
-              { moment_id: Number(moment.id), quote: "older" },
-              { moment_id: 999999999999, quote: "gone" },
+              { content_item_id: Number(older.id), quote: "older" },
+              { quote: "gone" },
             ]),
             generator_model: "m",
             prompt_version: 1,
@@ -187,7 +171,6 @@ test("voiced: the article's concepts, approved with audio only", async () => {
       .insertInto("tag_override")
       .values({
         content_item_id: item,
-        heading: "",
         difficulty: "beginner",
         concepts: [raft.slug],
         updated_by: "admin",
@@ -246,8 +229,7 @@ test("the queue keeps its order, adds once, and lists sources and positions", as
       src: `/media/explainers/${c.raft}/${x.raft}/r/index.m3u8`,
       durationSeconds: 90,
       positionSeconds: 0,
-      // ADR-0058: each cited article once, linked to its page; a moment-era
-      // citation by its moment's article; one naming nothing left out.
+      // Each cited article once, linked to its page; one naming nothing left out.
       sources: [
         {
           title: "Raft",

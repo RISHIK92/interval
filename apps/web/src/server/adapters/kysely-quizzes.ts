@@ -47,8 +47,7 @@ const notServedThisWeek = (userId: string) => sql`
   )`;
 
 // Live questions in articles their source's rights allow (Q-1, ING-2), as `q` and `ci`.
-// ADR-0058: a question's home is its article (question.content_item_id, moment-era
-// questions included), so the per-source moments switch no longer gates it.
+// ADR-0058: a question's home is its article (question.content_item_id).
 // Multiple choice only: an estimate is answered with a number (P3-W13-S03). Live
 // matches draw from the same (P3-W15-S03, kysely-matches.ts).
 export const LIVE = sql`
@@ -810,8 +809,6 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .select(["id", sql<Date>`ends_at`.as("ends_at")])
         .where("user_id", "=", userId)
         .where("content_item_id", "=", itemId)
-        // ADR-0058: one quiz per article; a moment-era attempt was on one section.
-        .where("moment_id", "is", null)
         .where("finished_at", "is", null)
         .where(sql<boolean>`ends_at > now()`)
         .orderBy("started_at", "desc")
@@ -1005,7 +1002,6 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       // order; then (an article with fewer) live questions on the same (live)
       // concepts at random; never one already served in this attempt. A second
       // request racing this one serves nothing (one open question per attempt).
-      // A moment-era attempt still running keeps to its section's questions.
       // shortcut: order by random() over every related question; fine for a few
       // thousand questions, sample (tablesample or a precomputed list) past that.
       await sql`
@@ -1015,7 +1011,6 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
                  md5(a.id::text || ':' || q.id::text) as draw
           from ${LIVE}, a
           where q.status = 'live' and q.content_item_id = a.content_item_id
-            and (a.moment_id is null or q.moment_id = a.moment_id)
         ),
         sampled as (
           select id, 0 as tier, article_ordinal as ao, 0::float8 as r from own

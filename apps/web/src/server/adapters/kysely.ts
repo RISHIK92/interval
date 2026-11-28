@@ -3,7 +3,6 @@ import { Kysely, PostgresDialect, sql, type Selectable } from "kysely";
 import pg from "pg";
 import { log } from "../log";
 import {
-  FEED_CHIP,
   isReasonKind,
   isTopic,
   type DatabasePing,
@@ -45,7 +44,7 @@ export function kyselyPing(db: Kysely<DB>): DatabasePing {
 // View columns are nullable in the generated types; a null here means a broken view, so
 // the row is dropped and only its id and the missing column names are logged.
 // The card columns, as both feed views name them (no summary or text, §3.2, ING-2).
-// ADR-0058: an article's; the views' moment columns are no longer read.
+// ADR-0058: always a whole article.
 const CARD_COLUMNS = [
   "content_item_id",
   "estimated_minutes",
@@ -172,15 +171,12 @@ function notFinishedBy(userId: string, itemColumn: string) {
 export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
   return {
     read: async (userId, limit) => {
-      // The state row says "computed"; the left join brings the cards, if any. ADR-0058:
-      // one list until stage C drops the chip column, and only its article entries.
+      // The state row says "computed"; the left join brings the cards, if any.
       const rows = await db
         .selectFrom("user_feed_state as s")
         .leftJoin("user_feed_visible as v", (join) =>
           join
             .onRef("v.user_id", "=", "s.user_id")
-            .on("v.chip", "=", FEED_CHIP)
-            .on("v.moment_id", "is", null)
             .on(keptFor(userId, "v.content_item_id"))
             .on(notFinishedBy(userId, "v.content_item_id")),
         )
@@ -213,9 +209,6 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .where(notFinishedBy(userId, "starter_feed_visible.content_item_id"))
         .where("topic", "=", topic)
         .where("level", "=", level)
-        // ADR-0058: one list until stage C drops the chip column.
-        .where("chip", "=", FEED_CHIP)
-        .where("moment_id", "is", null)
         .orderBy("rank")
         .limit(limit)
         .execute();
@@ -228,10 +221,7 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .innerJoin("source as s", "s.id", "ci.source_id")
         // ADR-0049: the source itself is tagged with the topic, and its rights let it
         // be read (ING-2); a concept tag on another topic's source doesn't count.
-        // ADR-0058: the moments switch no longer gates it; only the rights do.
         .where(sql<boolean>`v.topic = any(s.topics)`)
-        .where("v.chip", "=", FEED_CHIP)
-        .where("v.moment_id", "is", null)
         .where("s.rights_profile", "in", [
           "full_text_internal",
           "full_text_display",

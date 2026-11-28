@@ -249,22 +249,24 @@ test("disconnect clears reasons that name the user's repositories", async () => 
       })
       .returning("id")
       .executeTakeFirstOrThrow();
-    const item = await trx
+    const [item, other] = await trx
       .insertInto("content_item")
-      .values({
-        source_id: source.id,
-        guid: "g",
-        canonical_url: `https://gh-${me.slice(0, 8)}.example.test/p`,
-        title: "T",
-      })
+      .values(
+        ["p", "q"].map((path) => ({
+          source_id: source.id,
+          guid: path,
+          canonical_url: `https://gh-${me.slice(0, 8)}.example.test/${path}`,
+          title: "T",
+        })),
+      )
       .returning("id")
-      .executeTakeFirstOrThrow();
+      .execute();
+    if (item === undefined || other === undefined) throw new Error("seed");
     await trx
       .insertInto("user_feed_entry")
       .values([
         {
           user_id: me,
-          chip: "3-8",
           content_item_id: item.id,
           rank: 1,
           top_signal: "project_match",
@@ -273,9 +275,8 @@ test("disconnect clears reasons that name the user's repositories", async () => 
         },
         {
           user_id: me,
-          chip: "1-3",
-          content_item_id: item.id,
-          rank: 1,
+          content_item_id: other.id,
+          rank: 2,
           top_signal: "topic_match",
           reasons: "Worth a look.",
           reason_kinds: ["topic_match"],
@@ -285,13 +286,13 @@ test("disconnect clears reasons that name the user's repositories", async () => 
     expect(await github.disconnect(me)).toBe(true);
     const left = await trx
       .selectFrom("user_feed_entry")
-      .select(["chip", "reasons"])
+      .select(["rank", "reasons"])
       .where("user_id", "=", me)
-      .orderBy("chip")
+      .orderBy("rank")
       .execute();
     expect(left).toEqual([
-      { chip: "1-3", reasons: "Worth a look." },
-      { chip: "3-8", reasons: null },
+      { rank: 1, reasons: null },
+      { rank: 2, reasons: "Worth a look." },
     ]);
   });
 });

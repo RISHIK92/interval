@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { FEED_CHIP, GOALS, type PreferencesStore, TOPICS } from "../ports";
+import { GOALS, type PreferencesStore, TOPICS } from "../ports";
 
 // Postgres adapter (ADR-0012) for the explicit preferences (PER-1, P1-W4-S01).
 export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
@@ -59,8 +59,6 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
           goals: preferences.goals,
           topics: preferences.topics,
           level: preferences.level,
-          // ADR-0058: one list until stage C drops the chip column; nothing reads it.
-          break_length: FEED_CHIP,
         })
         .onConflict((oc) => oc.column("user_id").doNothing())
         .returning("user_id")

@@ -2,11 +2,7 @@ import type { DB } from "@interval/db";
 import type { Kysely } from "kysely";
 import { z } from "zod";
 import { log } from "../log";
-import {
-  FEED_CHIP,
-  type RankingInspection,
-  type ScoreBreakdown,
-} from "../ports";
+import { type RankingInspection, type ScoreBreakdown } from "../ports";
 
 // Postgres adapter (ADR-0012) for ranking inspection (P1-W6-S01). Titles come from the
 // feed's visible view, so they follow the same rights gate the feed does (ING-2).
@@ -41,7 +37,6 @@ export function kyselyRanking(db: Kysely<DB>): RankingInspection {
         .innerJoin("user_feed_entry as e", (join) =>
           join
             .onRef("e.user_id", "=", "v.user_id")
-            .onRef("e.chip", "=", "v.chip")
             .onRef("e.rank", "=", "v.rank"),
         )
         .select([
@@ -54,9 +49,6 @@ export function kyselyRanking(db: Kysely<DB>): RankingInspection {
           "e.score_parts",
         ])
         .where("v.user_id", "=", userId)
-        // ADR-0058: one list until stage C drops the chip column, articles only.
-        .where("v.chip", "=", FEED_CHIP)
-        .where("v.moment_id", "is", null)
         .orderBy("v.rank")
         .execute();
       return rows.map((row) => ({

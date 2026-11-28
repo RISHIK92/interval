@@ -1,4 +1,4 @@
-"""The tagging shortlist (2026-10-27): before a decision model is asked, each moment
+"""The tagging shortlist (2026-10-27): before a decision model is asked, each text
 gets 15-25 candidate concepts from its embedding, alias and name hits in its text, and
 the article's title-and-summary embedding. A concept left out can never be tagged."""
 
@@ -58,7 +58,7 @@ def test_recall_is_the_share_of_labelled_concepts_the_shortlists_kept() -> None:
 
 
 def test_many_text_hits_keep_the_nearest_not_the_first_in_the_file() -> None:
-    # Every concept named in the text: the cap keeps the ones nearest the moment.
+    # Every concept named in the text: the cap keeps the ones nearest the text.
     text = "WAL, Raft, Paxos and caching all appear here."
     got = shortlist(
         [0, 0, 0.2, 1.0, 0], None, text, VECTORS, GRAPH, size=2, prior_size=0

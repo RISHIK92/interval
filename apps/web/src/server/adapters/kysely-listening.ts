@@ -80,7 +80,7 @@ export function kyselyListening(db: Kysely<DB>): Listening {
         .where(
           sql<boolean>`c.slug = any(coalesce(
             (select o.concepts from tag_override o
-             where o.content_item_id = ${itemId} and o.heading = ''),
+             where o.content_item_id = ${itemId}),
             array(select c2.slug from item_concept ic
                   join concept c2 on c2.id = ic.concept_id
                   where ic.content_item_id = ${itemId})

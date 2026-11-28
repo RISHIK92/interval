@@ -43,8 +43,7 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
           sql<number>`(select count(*)::int from path_section s
             where s.path_id = p.id)`.as("sections"),
           // Readings and minutes as a reader would get them (ADR-0058: articles),
-          // each article once per section: two moments of one article became two
-          // sessions of it, which the worker dedupes; this holds if one slips by.
+          // each article once per section, should one ever be in a section twice.
           sql<number>`(select count(*)::int from (
             select distinct s.id as section, ci.id as item from path_section s
             join path_session ps on ps.section_id = s.id
@@ -484,7 +483,7 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
             .onConflict((oc) =>
               oc
                 .columns(["user_id", "section_id", "ordinal"])
-                .doUpdateSet({ content_item_id: itemId, moment_id: null }),
+                .doUpdateSet({ content_item_id: itemId }),
             )
             .execute();
         return pathId;

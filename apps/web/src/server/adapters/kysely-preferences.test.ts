@@ -68,15 +68,8 @@ test("onboarding's choices are kept once; a second create changes nothing", asyn
     ).toBe(false);
     const stored = await store.get(userId);
     expect(stored).toMatchObject(first);
-    // ADR-0058: no break length is asked or read back; the NOT NULL column holds the
-    // one feed's chip until stage C drops it.
+    // ADR-0058: no break length is asked or read back.
     expect(stored).not.toHaveProperty("breakLength");
-    const row = await trx
-      .selectFrom("user_preferences")
-      .select("break_length")
-      .where("user_id", "=", userId)
-      .executeTakeFirstOrThrow();
-    expect(row.break_length).toBe("3-8");
     // When onboarding saved them: the home page waits for a first feed only just after.
     expect(stored?.onboardedAt).toBeInstanceOf(Date);
   });

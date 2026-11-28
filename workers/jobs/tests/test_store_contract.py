@@ -30,7 +30,6 @@ from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.irt import Answer
 from interval_jobs.ports import (
-    FEED_CHIP,
     LEARNING_GOALS,
     AiLedger,
     Arm,
@@ -61,6 +60,7 @@ from interval_jobs.ports import (
     UserPreferences,
     Validators,
 )
+from interval_jobs.tagging_rollup import rollup
 
 
 def email_of(user_id: str) -> str:
@@ -80,7 +80,7 @@ class Probe(Protocol):
     ) -> list[tuple[str | None, str | None, int, int | None]]: ...
     def item_tags(self, item_id: int) -> Tags | None: ...
     def feed_state(self, user_id: str) -> datetime | None: ...
-    # ADR-0058: one list of articles per feed, stored under FEED_CHIP.
+    # ADR-0058: one list of articles per feed.
     def feed_entries(self, user_id: str) -> list[int]: ...
     def starter_ids(self, topic: str, level: Difficulty) -> list[int]: ...
     def age_sessions(self, user_id: str, days: int) -> None: ...
@@ -109,9 +109,11 @@ class Probe(Protocol):
     def finish(self, user_id: str, item_id: int) -> None: ...
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
     def flag_question(self, question_id: int) -> None: ...
-    # ADR-0058 stage A: a pending question drafted for one of the article's moments,
-    # moved to the article (DRAFT); its id.
+    # ADR-0058: a pending question drafted for one of the article's moments, folded
+    # into the article (from_moments, DRAFT); its id.
     def carry_over_question(self, item_id: int) -> int: ...
+    # ADR-0058: an estimate drafted for one of the article's moments, folded in.
+    def carry_over_estimate(self, item_id: int) -> None: ...
     def question_ids(self, item_id: int) -> list[int]: ...
     # The article's multiple-choice slots (article_ordinal), retired ones too.
     def question_slots(self, item_id: int) -> list[int]: ...
@@ -231,10 +233,13 @@ class MemoryProbe:
             "m",
             1,
             "moment-hash",
-            moment_id=77,
+            from_moments=True,
         )
         questions.rows.append(question)
         return question.id
+
+    def carry_over_estimate(self, item_id: int) -> None:
+        self.s.questions.estimates_from_moments.add(item_id)
 
     def question_ids(self, item_id: int) -> list[int]:
         return sorted(q.id for q in self.s.questions.rows if q.item_id == item_id)
@@ -446,12 +451,12 @@ class PostgresProbe:
     def override_level(self, item_id: int, level: str) -> None:
         # The admin page's whole-article row: the level, and the concepts it keeps.
         self.conn.execute(
-            "insert into tag_override (content_item_id, heading, difficulty, "
+            "insert into tag_override (content_item_id, difficulty, "
             "concepts, updated_by) "
-            "select %s, '', %s, coalesce(array_agg(c.slug), '{}'), 'contract-test' "
+            "select %s, %s, coalesce(array_agg(c.slug), '{}'), 'contract-test' "
             "from item_concept ic join concept c on c.id = ic.concept_id "
             "where ic.content_item_id = %s "
-            "on conflict (content_item_id, heading) do update "
+            "on conflict (content_item_id) do update "
             "set difficulty = excluded.difficulty",
             (item_id, level, item_id),
         )
@@ -461,10 +466,8 @@ class PostgresProbe:
     ) -> None:
         # At least one goal, as the database requires (ADR-0015).
         self.conn.execute(
-            # break_length: the web's column, until stage C drops it (ADR-0058).
-            "insert into user_preferences "
-            "(user_id, topics, level, break_length, goals) "
-            "values (%s, %s::topic[], 'beginner', '3-8', %s::learning_goal[])",
+            "insert into user_preferences (user_id, topics, level, goals) "
+            "values (%s, %s::topic[], 'beginner', %s::learning_goal[])",
             (user_id, topics, goals or ["stay-sharp"]),
         )
 
@@ -520,8 +523,8 @@ class PostgresProbe:
 
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None:
         self.conn.execute(
-            "insert into tag_override (content_item_id, heading, difficulty, concepts, "
-            "updated_by) values (%s, '', 'beginner', %s, 'contract-test')",
+            "insert into tag_override (content_item_id, difficulty, concepts, "
+            "updated_by) values (%s, 'beginner', %s, 'contract-test')",
             (item_id, slugs),
         )
 
@@ -538,11 +541,9 @@ class PostgresProbe:
             """
             with attempt as (
               insert into quiz_attempt
-                (user_id, content_item_id, moment_id, started_at, ends_at, finished_at,
-                 review)
+                (user_id, content_item_id, started_at, ends_at, finished_at, review)
               select %(user)s,
                      case when %(review)s then null else q.content_item_id end,
-                     null,
                      now() - interval '2 minutes',
                      case when %(review)s then null
                           else now() - interval '1 minute' end,
@@ -640,33 +641,34 @@ class PostgresProbe:
         return str(row[0]), int(row[1]), None if row[2] is None else str(row[2])
 
     def carry_over_question(self, item_id: int) -> int:
-        # A moment, as the moment-era worker wrote it (its source allowed moments),
-        # and its question; stage A's trigger gives the question its article.
-        self.conn.execute(
-            "update source set moments_seeded = true, moments_enabled = true "
-            "where id = (select source_id from content_item where id = %s)",
-            (item_id,),
-        )
-        moment = self.conn.execute(
-            "insert into moment (content_item_id, ordinal, title, estimated_minutes, "
-            "link, link_type) values (%s, 0, 'Lag', 1, %s, 'page_top') returning id",
-            (item_id, f"https://contract.example.test/{item_id}"),
-        ).fetchone()
-        assert moment is not None
+        # A question the moment-era worker drafted for one of its moments, as stage C
+        # folded it into the article: the article's next slot, marked from_moments.
         row = self.conn.execute(
-            "insert into question (moment_id, ordinal, stem, options, correct, "
-            "citation, generator_model, prompt_version, content_hash) "
-            "values (%s, 0, %s, %s, %s, %s, 'm', 1, 'moment-hash') returning id",
+            "insert into question (content_item_id, article_ordinal, ordinal, stem, "
+            "options, correct, citation, generator_model, prompt_version, "
+            "content_hash, from_moments) "
+            "select %s, n, n, %s, %s, %s, %s, 'm', 1, 'moment-hash', true from ("
+            "select coalesce(max(article_ordinal) + 1, 0) as n from question "
+            "where content_item_id = %s and kind = 'choice') s returning id",
             (
-                moment[0],
+                item_id,
                 DRAFT.stem,
                 list(DRAFT.options),
                 DRAFT.correct,
                 DRAFT.citation,
+                item_id,
             ),
         ).fetchone()
         assert row is not None
         return int(row[0])
+
+    def carry_over_estimate(self, item_id: int) -> None:
+        self.conn.execute(
+            "insert into question_estimate_drafted "
+            "(content_item_id, content_hash, from_moments) "
+            "values (%s, 'moment-hash', true)",
+            (item_id,),
+        )
 
     def question_ids(self, item_id: int) -> list[int]:
         rows = self.conn.execute(
@@ -729,17 +731,16 @@ class PostgresProbe:
     def feed_entries(self, user_id: str) -> list[int]:
         rows = self.conn.execute(
             "select content_item_id from user_feed_entry "
-            "where user_id = %s and chip = %s and moment_id is null order by rank",
-            (user_id, FEED_CHIP),
+            "where user_id = %s order by rank",
+            (user_id,),
         ).fetchall()
         return [int(r[0]) for r in rows]
 
     def starter_ids(self, topic: str, level: Difficulty) -> list[int]:
         rows = self.conn.execute(
             "select content_item_id from starter_feed_entry where topic = %s "
-            "and level = %s::difficulty and chip = %s::break_length "
-            "and moment_id is null order by rank",
-            (topic, level, FEED_CHIP),
+            "and level = %s::difficulty order by rank",
+            (topic, level),
         ).fetchall()
         return [int(r[0]) for r in rows]
 
@@ -905,6 +906,34 @@ def test_lowering_full_text_purges_text_and_what_was_made_from_it(
     assert s.embeddings.missing(item, "voyage-3.5") is False  # no text yet
     s.items.store_full_text(item, "body")
     assert s.embeddings.missing(item, "voyage-3.5") is True
+
+
+# ING-2, ADR-0058: tagging answers asked about the full text, and the tags rolled up
+# from them, go with it; the title pass's answers and tags read off no full text stay.
+def test_lowering_full_text_purges_the_tagging_read_off_it(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    sid = source(s)
+    item = s.items.upsert_from_feed(sid, entry("tagpurge"), keep_excerpt=False)
+    other = s.items.upsert_from_feed(sid, entry("tagkept"), keep_excerpt=False)
+    s.items.store_full_text(item, "body")
+    whole, title = {"cg-lag": 0.9}, {"cg-lag": 0.6}
+    s.decisions.save_item(item, "m", "whole", 1.0, whole, from_full_text=True)
+    s.decisions.save_item(item, "t", "title", 1.0, title, from_full_text=False)
+    tags = Tags("beginner", frozenset({"cg-lag"}))
+    s.tags.save(item, TagResult(tags, {}, True), "m", 1)
+    s.tags.save(other, TagResult(tags, {}, False), "m", 1)
+
+    change_profile(s, "full_text_internal", "excerpt")
+    assert s.decisions.item_hash(item, "m") is None
+    assert s.decisions.item_hash(item, "t") == "title"
+    # No tags left: the next tag pass asks about what its rights allow now.
+    assert s.tags.version(item) is None
+    assert s.tags.needs_tagging(item, 1) is True
+    assert s.tags.version(other) == 1
 
 
 def test_a_changed_text_is_embedded_again(store: tuple[Store, Probe]) -> None:
@@ -1647,15 +1676,68 @@ def test_decisions_are_kept_per_article_with_their_hashes(
     item = s.items.upsert_from_feed(source(s), entry("decided"), keep_excerpt=False)
     model = "perplexity/pplx-decider-v1.2"
     assert s.decisions.item_hash(item, model) is None
-    s.decisions.save_item(item, model, "t0", 1.2, {"cg-lag": 0.9, "cg-ryw": 0.1})
+    s.decisions.save_item(
+        item, model, "t0", 1.2, {"cg-lag": 0.9, "cg-ryw": 0.1}, from_full_text=True
+    )
     # Asked again after its text changed: the new answers replace the old ones.
-    s.decisions.save_item(item, model, "t1", 0.7, {"cg-ryw": 0.8})
+    s.decisions.save_item(item, model, "t1", 0.7, {"cg-ryw": 0.8}, from_full_text=False)
     assert s.decisions.item_hash(item, model) == "t1"
     got = s.decisions.read(item, model)
-    assert got == ItemDecisions({}, {"cg-ryw": 0.8}, 0.7)
+    assert got == ItemDecisions({}, {"cg-ryw": 0.8}, 0.7, False)
     assert s.decisions.read(item, "another/model") == ItemDecisions({}, {})
     with pytest.raises(ValueError, match="no concept"):
-        s.decisions.save_item(item, model, "t2", 1.0, {"cg-nobody": 0.5})
+        s.decisions.save_item(
+            item, model, "t2", 1.0, {"cg-nobody": 0.5}, from_full_text=False
+        )
+
+
+# ADR-0058: the answers an article's moments had are kept under their own keys
+# (article_decisions) and read as its sections beside the model's own pass: the
+# rollup's section rules apply to them, its title cut to the own pass.
+def test_the_moments_answers_are_read_as_the_articles_sections(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    item = s.items.upsert_from_feed(source(s), entry("folded"), keep_excerpt=False)
+    model = "perplexity/pplx-decider-v1.2"
+
+    def save(key: str, difficulty: float, probabilities: dict[str, float]) -> None:
+        s.decisions.save_item(
+            item, key, "h", difficulty, probabilities, from_full_text=True
+        )
+
+    # Stage A's copy alone (its moments gone): one section.
+    save(f"moments:{model}", 2.0, {"cg-lag": 0.9})
+    assert s.decisions.read(item, model) == ItemDecisions(
+        {}, {}, None, True, {-1: (2.0, {"cg-lag": 0.9})}
+    )
+    # Each moment's own answers replace it as the sections.
+    save(f"moments:{model}:0", 1.0, {"cg-lag": 0.8, "cg-ryw": 0.75})
+    save(f"moments:{model}:1", 1.0, {"cg-ryw": 0.72})
+    s.decisions.save_item(
+        item, model, "t", 0.5, {"cg-quorum": 0.6}, from_full_text=False
+    )
+    got = s.decisions.read(item, model)
+    assert got.folded == {
+        0: (1.0, {"cg-lag": 0.8, "cg-ryw": 0.75}),
+        1: (1.0, {"cg-ryw": 0.72}),
+    }
+    assert (got.item, got.item_difficulty, got.from_full_text) == (
+        {"cg-quorum": 0.6},
+        0.5,
+        True,
+    )
+    # cg-lag is in one moment under the strong cut: left out. cg-ryw is over the
+    # section cut in two: kept. The own pass's cg-quorum is over the title cut: kept.
+    tags = rollup(got, {"cg-lag", "cg-ryw", "cg-quorum"})
+    assert tags.item.concepts == frozenset({"cg-ryw", "cg-quorum"})
+    assert tags.sessions == {}
+    assert tags.from_full_text is True
+    # Asked again, the model's own answers are replaced; the moments' stay.
+    s.decisions.save_item(item, model, "t2", 0.5, {}, from_full_text=False)
+    assert s.decisions.item_hash(item, f"moments:{model}:0") == "h"
 
 
 def test_a_loaded_graph_answers_recursive_prerequisites(
@@ -1785,7 +1867,7 @@ def test_tags_are_saved_replaced_and_survive_retiring_their_concept(
     s.items.store_full_text(item, "Intro\nLag\nbody")
     tag_input = s.tags.input(item)
     assert tag_input is not None and tag_input.full_text == "Intro\nLag\nbody"
-    assert tag_input.moments == []  # ADR-0058: an article is tagged whole
+    assert tag_input.sessions == []  # ADR-0058: an article is tagged whole
     result = TagResult(
         Tags("intermediate", frozenset({"cg-lag", "cg-replication"})), {}
     )
@@ -1917,8 +1999,8 @@ def test_re_ingesting_leaves_the_admins_overrides_alone(
     sid = source(s)
     item = s.items.upsert_from_feed(sid, entry("survive"), keep_excerpt=False)
     conn.execute(
-        "insert into tag_override (content_item_id, heading, difficulty, concepts, "
-        "updated_by) values (%s, '', 'advanced', '{}', 'admin')",
+        "insert into tag_override (content_item_id, difficulty, concepts, "
+        "updated_by) values (%s, 'advanced', '{}', 'admin')",
         (item,),
     )
     s.items.upsert_from_feed(sid, entry("survive"), keep_excerpt=False)
@@ -1927,25 +2009,6 @@ def test_re_ingesting_leaves_the_admins_overrides_alone(
         "select count(*) from tag_override where content_item_id = %s", (item,)
     ).fetchone()
     assert rows == (1,)
-
-
-# ADR-0058: the moments switch's columns stay until stage C, but the worker no
-# longer writes them: a seed reload leaves them as they are.
-def test_a_seed_reload_leaves_the_moments_columns_alone(
-    conn: psycopg.Connection,
-) -> None:
-    s = PostgresStore(conn)
-    s.sources.sync([seed("switched")])
-    conn.execute(
-        "update source set moments_seeded = true, moments_enabled = true "
-        "where name = 'switched'"
-    )
-    s.sources.sync([seed("switched", quality_score=4)])
-    row = conn.execute(
-        "select moments_seeded, moments_enabled, quality_score from source "
-        "where name = 'switched'"
-    ).fetchone()
-    assert row == (True, True, 4)
 
 
 # REC-1 (P1-W4-S02): what ranking reads about a user.
@@ -2408,8 +2471,8 @@ def test_tagged_full_text_articles_are_question_targets(
 def test_an_article_with_questions_carried_from_its_moments_is_drafted_already(
     store: tuple[Store, Probe],
 ) -> None:
-    # ADR-0058 stage A moved each moment's questions to its article: those are its
-    # questions now, never retired by a redraft.
+    # ADR-0058 folded each moment's questions into its article (from_moments): those
+    # are its questions now, never retired by a redraft.
     s, probe = store
     _, (_, lag, quorum), _ = _question_item(s, probe)
     carried = probe.carry_over_question(lag)
@@ -2425,6 +2488,21 @@ def test_an_article_with_questions_carried_from_its_moments_is_drafted_already(
     with pytest.raises(ValueError, match="keeps its moments"):
         s.questions.save_estimate(lag, None, ["cg-lag"], "m", "e", None)
     assert s.questions.pending(carried) == (lag, DRAFT)
+
+
+def test_an_article_whose_moments_had_an_estimate_drafted_is_drafted_already(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, quorum), _ = _question_item(s, probe)
+    probe.carry_over_estimate(lag)
+    assert lag not in s.questions.targets(None)
+    assert quorum in s.questions.targets(None)
+    assert s.questions.estimate_drafted_hash(lag) is None  # a moment's, not whole
+    with pytest.raises(ValueError, match="keeps its moments"):
+        s.questions.save_estimate(lag, None, ["cg-lag"], "m", "e", None)
+    with pytest.raises(ValueError, match="keeps its moments"):
+        s.questions.save(lag, [DRAFT, DRAFT], ["cg-lag"], "m", 1, "h", None)
 
 
 def test_drafts_replace_an_articles_questions_and_remember_their_hash(
@@ -2612,7 +2690,7 @@ def test_an_articles_estimate_lives_beside_its_multiple_choice(
 ) -> None:
     s, probe = store
     before = set(s.questions.pending_questions())
-    held_moments, _ = s.questions.in_open_batches()
+    held_articles, _ = s.questions.in_open_batches()
     _, (_, lag, _), _ = _question_item(s, probe)
     choice = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
     estimate = EstimateDraft("How many ms?", 40, "ms", "lag of 40 ms")
@@ -2648,8 +2726,8 @@ def test_an_articles_estimate_lives_beside_its_multiple_choice(
     entry = QuestionBatchEntry(f"estimate-{lag}", lag, None, "e3", "estimate")
     s.questions.record_batch("b-est", "draft", "m", [entry])
     assert s.questions.batch_entries("b-est") == [entry]
-    moments, _ = s.questions.in_open_batches()
-    assert moments - held_moments == {(lag, "estimate")}
+    articles, _ = s.questions.in_open_batches()
+    assert articles - held_articles == {(lag, "estimate")}
     s.questions.close_batch("b-est", "failed", {})
 
 
@@ -2661,14 +2739,14 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     s, probe = store
     # A local database may already hold real pending questions.
     before = set(s.questions.pending_questions())
-    held_moments, held_questions = s.questions.in_open_batches()
+    held_articles, held_questions = s.questions.in_open_batches()
 
     def open_ours() -> list[tuple[str, str]]:
         return [(b, k) for b, k, _ in s.questions.open_batches() if b in ("b1", "b2")]
 
     def in_ours() -> tuple[set[tuple[int, QuestionKind]], set[int]]:
-        moments, questions = s.questions.in_open_batches()
-        return moments - held_moments, questions - held_questions
+        articles, questions = s.questions.in_open_batches()
+        return articles - held_articles, questions - held_questions
 
     item, (_, lag, quorum), _ = _question_item(s, probe)
     draft = DRAFT
@@ -2708,8 +2786,8 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     )
     assert open_ours() == [("b2", "validate")]
     assert in_ours() == (set(), {pending})
-    broken_moments, broken_questions = s.questions.broken_counts()
-    assert {k: n for k, n in broken_moments.items() if k[0] in (lag, quorum)} == {
+    broken_articles, broken_questions = s.questions.broken_counts()
+    assert {k: n for k, n in broken_articles.items() if k[0] in (lag, quorum)} == {
         (lag, "h-lag"): 1
     }
     assert pending not in broken_questions

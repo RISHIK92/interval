@@ -2,7 +2,6 @@
 // container.ts wires them. Nothing outside adapters/ imports kysely or pg.
 
 import type {
-  BreakLength,
   Capability,
   Difficulty,
   FeedbackKind,
@@ -74,11 +73,6 @@ export type FeedCard = {
   // A feed leaves completed articles out, so a card is unread or continue_reading.
   state: ArticleState;
 };
-
-// ADR-0058: one list until stage C drops the chip column. The worker stores the one
-// ranked list of articles under this chip, and the preferences row's NOT NULL
-// break_length gets it too; nothing reads it as a break length any more.
-export const FEED_CHIP: BreakLength = "3-8";
 
 // CACHE-1, P1-W4-S04: the worker stores each user's ranked feed; this only reads it.
 export interface FeedReader {
@@ -526,14 +520,15 @@ export interface Notes {
   remove(userId: string, itemId: string): Promise<boolean>;
   // P2-W7-S04: the Library's list, newest edit first.
   list(userId: string, limit: number): Promise<NoteEntry[]>;
-  // Notes on these articles, the article's own (sectionTitle null) and the earlier
-  // section notes, for their cards and the reader.
+  // The user's notes on these articles, for their cards and the reader.
   onItems(
     userId: string,
     itemIds: string[],
-  ): Promise<{ itemId: string; sectionTitle: string | null; body: string }[]>;
-  // By the note's own id (the Library), which also reaches an earlier section note;
-  // what it was on, or null when the user has no such note.
+  ): Promise<{ itemId: string; body: string }[]>;
+  // The text of the user's note with this id; null when there is none.
+  bodyById(userId: string, noteId: string): Promise<string | null>;
+  // By the note's own id (the Library); what it was on, or null when the user has no
+  // such note.
   update(
     userId: string,
     noteId: string,
@@ -544,8 +539,6 @@ export interface Notes {
 export type NoteTarget = { itemId: string };
 export type NoteEntry = NoteTarget & {
   noteId: string;
-  // An earlier section note's title (ADR-0058); null on the article's note.
-  sectionTitle: string | null;
   articleTitle: string;
   sourceName: string;
   body: string;

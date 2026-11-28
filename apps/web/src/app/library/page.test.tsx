@@ -263,30 +263,24 @@ test("no session goes to /join; not onboarded goes to /onboarding", async () => 
   await expect(page()).rejects.toThrow("redirect:/onboarding");
 });
 
-// P2-W7-S04 (§5I, Q-P2-01): the Notes section, each note back to its article; a note
-// written on a section before ADR-0058 is named by its section.
-test("Notes lists each note with its article, section and an edit by its id", async () => {
+// P2-W7-S04 (§5I, Q-P2-01): the Notes section, each note back to its article.
+test("Notes lists each note with its article and an edit by its id", async () => {
   current.mockResolvedValue(user);
   const note: NoteEntry = {
     noteId: "42",
     itemId: "70",
-    sectionTitle: "Raft in one page",
     articleTitle: "Consensus in practice",
     sourceName: "Example Engineering",
     body: "Terms are epochs",
     frameable: true,
     linkBroken: false,
   };
-  list.mockResolvedValueOnce([
-    note,
-    { ...note, noteId: "43", sectionTitle: null, body: "Older" },
-  ]);
+  list.mockResolvedValueOnce([note, { ...note, noteId: "43", body: "Older" }]);
   const html = await page();
   const notes = html.slice(html.indexOf('aria-label="Notes"><h2'));
   expect(text(notes)).toContain("Consensus in practice · Example Engineering");
-  expect(text(notes)).toContain("Raft in one page");
-  expect(text(notes)).toContain("Whole article");
   expect(text(notes)).toContain("Terms are epochs");
+  expect(text(notes)).toContain("Older");
   expect(notes.match(/href="\/read\/70\?from=library"/g)).toHaveLength(2);
   expect(notes).toMatch(/<input[^>]*name="noteId"[^>]*value="43"/);
   expect(notes).toMatch(/<button[^>]*value="delete"/);
@@ -308,7 +302,6 @@ test("note links follow the page: the browser when it can't be framed, or Link b
   const note: NoteEntry = {
     noteId: "42",
     itemId: "70",
-    sectionTitle: "Raft in one page",
     articleTitle: "Consensus in practice",
     sourceName: "Example Engineering",
     body: "Terms are epochs",
@@ -317,7 +310,7 @@ test("note links follow the page: the browser when it can't be framed, or Link b
   };
   list.mockResolvedValueOnce([
     note,
-    { ...note, noteId: "43", sectionTitle: null },
+    { ...note, noteId: "43" },
     { ...note, noteId: "44", linkBroken: true },
   ]);
   const html = await page();
@@ -327,8 +320,7 @@ test("note links follow the page: the browser when it can't be framed, or Link b
   );
   expect(text(notes)).toContain("Link broken");
   // Each row's controls are named by what the note is on (screen readers).
-  expect(notes).toContain('aria-label="Open article: Raft in one page"');
-  expect(notes).toContain('aria-label="Note on Raft in one page"');
+  expect(notes).toContain('aria-label="Open article: Consensus in practice"');
   expect(notes).toContain('aria-label="Note on Consensus in practice"');
 });
 

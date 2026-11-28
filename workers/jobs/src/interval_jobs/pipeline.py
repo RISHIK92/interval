@@ -1096,7 +1096,7 @@ class Pipeline:
         with self._unit() as services:
             questions = services.store.questions
             # targets() leaves out an article whose questions came from its moments
-            # (ADR-0058): a stray job never retires them.
+            # (ADR-0058, from_moments): a stray job never retires them.
             target = questions.target(item_id) if questions.targets(item_id) else None
             drafted = questions.drafted_hash(item_id)
             pending_ids = questions.pending_ids(item_id)
@@ -1361,6 +1361,7 @@ class Pipeline:
                     asked.item.content_hash,
                     asked.item.difficulty,
                     asked.item.probabilities,
+                    from_full_text=bool(item.full_text),
                 )
             # Answers paid for are kept even when the pass stopped part way: the hash
             # skip resumes from them next time.
@@ -1438,7 +1439,7 @@ def _same_text(now: TagInput | None, then: TagInput) -> bool:
 
 def questions_job(item_id: int) -> Next:
     """The job drafting an article's questions (Q-1, ADR-0058). Its own key: a job
-    queued for a moment of the same id is another job."""
+    queued before ADR-0058, for a moment of the same id, is another job."""
     return (
         "generate_questions",
         {"content_item_id": item_id, "attempt": 0, "broken": 0},

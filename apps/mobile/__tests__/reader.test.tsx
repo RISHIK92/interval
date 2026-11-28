@@ -13,7 +13,6 @@ const page = {
   saved: false,
   state: "continue_reading",
   note: null,
-  sectionNotes: [],
   testable: false,
   listen: false,
   measure: null,
@@ -119,28 +118,6 @@ test("no Next section: the article is the one reading", async () => {
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
   expect(screen.queryByRole("button", { name: "Next section" })).toBeNull();
-});
-
-// ADR-0058: notes written on a section before it, folded away under the article's.
-test("older section notes are listed, collapsed", async () => {
-  answer({
-    ...page,
-    sectionNotes: [{ sectionTitle: "Leader election", body: "Terms." }],
-  });
-  await renderRouter("./app", { initialUrl: OPEN });
-  await screen.findByText("blog.dev");
-  expect(screen.queryByText("Terms.")).toBeNull();
-  await fireEvent.press(
-    screen.getByRole("button", { name: "Notes on sections (1)" }),
-  );
-  expect(screen.getByText("Leader election")).toBeOnTheScreen();
-  expect(screen.getByText("Terms.")).toBeOnTheScreen();
-});
-
-test("no older section notes: nothing to unfold", async () => {
-  await renderRouter("./app", { initialUrl: OPEN });
-  await screen.findByText("blog.dev");
-  expect(screen.queryByText(/Notes on sections/)).toBeNull();
 });
 
 test("a note is written on the article", async () => {

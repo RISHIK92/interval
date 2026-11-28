@@ -178,15 +178,14 @@ function Completed(props: { item: SavedItem | HistoryItem }) {
   ) : null;
 }
 
-// A note goes back to its article on the publisher's page (§3.2); a note written on a
-// section before ADR-0058 is named by its section, so they read apart.
+// A note goes back to its article on the publisher's page (§3.2).
 function NoteLink(props: { note: NoteEntry }) {
   const { note } = props;
   return (
     <LibraryLink
       itemId={note.itemId}
       label="Open article"
-      name={`Open article: ${note.sectionTitle ?? note.articleTitle}`}
+      name={`Open article: ${note.articleTitle}`}
       frameable={note.frameable}
       linkBroken={note.linkBroken}
     />
@@ -446,14 +445,11 @@ export default async function LibraryPage({
                   mark="note"
                   className="relative pr-16"
                 >
-                  <p className="text-sm text-ink-muted">
-                    {note.sectionTitle ?? "Whole article"}
-                  </p>
                   <p className="whitespace-pre-line">{note.body}</p>
                   <NoteLink note={note} />
                   <NoteBox
                     on={{ noteId: note.noteId }}
-                    about={note.sectionTitle ?? note.articleTitle}
+                    about={note.articleTitle}
                     note={note.body}
                     back="/library"
                   />

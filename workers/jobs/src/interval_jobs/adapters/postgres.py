@@ -35,7 +35,6 @@ from interval_jobs.irt import Answer
 from interval_jobs.match_results import MatchResult, flagged
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
-    FEED_CHIP,
     PROJECT_NOTE_PROMPT_VERSION,
     VALIDATORS_MAX_AGE,
     Arm,
@@ -131,6 +130,7 @@ from interval_jobs.ports import (
     ValidatedQuestion,
     Validators,
     WordTime,
+    article_decisions,
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
@@ -281,7 +281,7 @@ class PostgresSources:
         return SyncResult(added, updated, unchanged, deactivated)
 
 
-# The seed file's own settings (ADR-0058: the moments columns are no longer written).
+# The seed file's own settings.
 _SETTINGS_WRITE = "feed_url, rights_profile, homepage, paywalled, quality_score, topics"
 # The same columns read back for comparison: the enum as text.
 _SETTINGS_READ = _SETTINGS_WRITE.replace("rights_profile", "rights_profile::text")
@@ -588,14 +588,14 @@ class PostgresFeed:
             self._conn.execute(
                 f"""
                 insert into user_feed_entry
-                  (user_id, chip, content_item_id, rank, top_signal, reasons,
+                  (user_id, content_item_id, rank, top_signal, reasons,
                    explore_kind, explore_arm, score_parts, reason_kinds, difficulty)
-                select %s, %s::break_length, r.item_id, r.rank, r.top_signal,
+                select %s, r.item_id, r.rank, r.top_signal,
                        r.reasons, r.explore_kind, r.explore_arm, r.score_parts,
                        r.reason_kinds::text[], r.difficulty
                 {_RANKED_ROWS}
                 """,
-                (user_id, FEED_CHIP, *_ranked_arrays(ranked)),
+                (user_id, *_ranked_arrays(ranked)),
             )
             self._conn.execute(
                 "insert into user_feed_state (user_id, computed_at) values (%s, %s) "
@@ -613,7 +613,6 @@ class PostgresFeed:
                 "select pg_advisory_xact_lock(%s, hashtext(%s))",
                 (FEED_LOCK_KEY, f"starter:{topic}:{level}"),
             )
-            # Every chip's rows: the other chips' lists of before ADR-0058 go too.
             self._conn.execute(
                 "delete from starter_feed_entry where topic = %s and level = %s",
                 (topic, level),
@@ -621,13 +620,13 @@ class PostgresFeed:
             self._conn.execute(
                 f"""
                 insert into starter_feed_entry
-                  (topic, level, chip, content_item_id, rank, reasons, reason_kinds,
+                  (topic, level, content_item_id, rank, reasons, reason_kinds,
                    difficulty)
-                select %s, %s, %s::break_length, r.item_id, r.rank, r.reasons,
+                select %s, %s, r.item_id, r.rank, r.reasons,
                        r.reason_kinds::text[], r.difficulty
                 {_RANKED_ROWS}
                 """,
-                (topic, level, FEED_CHIP, *_ranked_arrays(ranked)),
+                (topic, level, *_ranked_arrays(ranked)),
             )
 
     def active_users(self, since: datetime) -> list[str]:
@@ -1053,14 +1052,20 @@ class PostgresItemTags:
         self, item_id: int, result: TagResult, model: str, prompt_version: int
     ) -> None:
         conn = self._conn
-        if result.moments:
+        if result.sessions:
             raise ValueError("an article is tagged whole (ADR-0058)")
         conn.execute("delete from item_tagging where content_item_id = %s", (item_id,))
         conn.execute(
             "insert into item_tagging "
-            "(content_item_id, difficulty, model, prompt_version) "
-            "values (%s, %s, %s, %s)",
-            (item_id, result.item.difficulty, model, prompt_version),
+            "(content_item_id, difficulty, model, prompt_version, from_full_text) "
+            "values (%s, %s, %s, %s, %s)",
+            (
+                item_id,
+                result.item.difficulty,
+                model,
+                prompt_version,
+                result.from_full_text,
+            ),
         )
         conn.execute(
             "insert into item_concept (content_item_id, concept_id) "
@@ -1141,7 +1146,7 @@ class PostgresEmbeddings:
             join source s on s.id = ci.source_id
             left join item_tagging t on t.content_item_id = ci.id
             -- An admin's correction wins over the model's level (P1-W3-S05).
-            left join tag_override o on o.content_item_id = ci.id and o.heading = ''
+            left join tag_override o on o.content_item_id = ci.id
             where e.embedding is not null
               and s.rights_profile in ('full_text_internal', 'full_text_display')
               and (%(sources)s::bigint[] is null or s.id = any(%(sources)s))
@@ -1186,12 +1191,12 @@ _SHOWN_ITEMS = """
 # An item's concepts: the admin's correction replaces the model's tags (P1-W3-S05).
 _ITEM_CONCEPTS = """
     select unnest(o.concepts) as slug from tag_override o
-    where o.content_item_id = {item} and o.heading = ''
+    where o.content_item_id = {item}
     union all
     select c.slug from item_concept ic join concept c on c.id = ic.concept_id
     where ic.content_item_id = {item} and not exists (
       select 1 from tag_override o2
-      where o2.content_item_id = {item} and o2.heading = ''
+      where o2.content_item_id = {item}
     )
 """
 
@@ -1402,7 +1407,7 @@ class PostgresRankingInputs:
                    s.name
             from content_item ci
             join source s on s.id = ci.source_id
-            left join tag_override io on io.content_item_id = ci.id and io.heading = ''
+            left join tag_override io on io.content_item_id = ci.id
             left join item_tagging it on it.content_item_id = ci.id
             where ci.id = any(%s)
             """,
@@ -1437,8 +1442,7 @@ class PostgresRankingInputs:
             select ci.id, s.id
             from content_item ci
             join source s on s.id = ci.source_id
-            left join tag_override o
-              on o.content_item_id = ci.id and o.heading = ''
+            left join tag_override o on o.content_item_id = ci.id
             where ci.id in (select id from shown_item) and s.active
               and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
               and {_ON_TOPICS}
@@ -1485,20 +1489,24 @@ class PostgresDecisions:
         content_hash: str,
         difficulty: float,
         probabilities: dict[str, float],
+        *,
+        from_full_text: bool,
     ) -> None:
         self._known(probabilities)
         # An upsert, so a second writer (the pipeline and an eval run) waits on the
         # row's lock and then replaces the answers instead of failing on the key.
         self._conn.execute(
             """
-            insert into item_decision (content_item_id, model, content_hash, difficulty)
-            values (%s, %s, %s, %s)
+            insert into item_decision
+              (content_item_id, model, content_hash, difficulty, from_full_text)
+            values (%s, %s, %s, %s, %s)
             on conflict (content_item_id, model) do update
               set content_hash = excluded.content_hash,
                   difficulty = excluded.difficulty,
+                  from_full_text = excluded.from_full_text,
                   decided_at = now()
             """,
-            (item_id, model, content_hash, difficulty),
+            (item_id, model, content_hash, difficulty, from_full_text),
         )
         self._conn.execute(
             "delete from item_concept_probability "
@@ -1516,23 +1524,31 @@ class PostgresDecisions:
             )
 
     def read(self, item_id: int, model: str) -> ItemDecisions:
-        found = self._conn.execute(
-            "select difficulty from item_decision "
-            "where content_item_id = %s and model = %s",
+        decided = self._conn.execute(
+            """
+            select model, difficulty, from_full_text from item_decision
+            where content_item_id = %s and (model = %s or model like 'moments:%%')
+            """,
             (item_id, model),
-        ).fetchone()
-        item = {
-            str(r[0]): float(r[1])
-            for r in self._conn.execute(
-                """
-                select c.slug, p.probability from item_concept_probability p
-                join concept c on c.id = p.concept_id
-                where p.content_item_id = %s and p.model = %s
-                """,
-                (item_id, model),
-            ).fetchall()
-        }
-        return ItemDecisions({}, item, None if found is None else float(found[0]))
+        ).fetchall()
+        probabilities: dict[str, dict[str, float]] = {str(r[0]): {} for r in decided}
+        for key, slug, p in self._conn.execute(
+            """
+            select p.model, c.slug, p.probability from item_concept_probability p
+            join concept c on c.id = p.concept_id
+            where p.content_item_id = %s and (p.model = %s or p.model like 'moments:%%')
+            order by c.id
+            """,
+            (item_id, model),
+        ).fetchall():
+            probabilities[str(key)][str(slug)] = float(p)
+        return article_decisions(
+            model,
+            {
+                str(r[0]): (float(r[1]), probabilities[str(r[0])], bool(r[2]))
+                for r in decided
+            },
+        )
 
 
 # An article's live concepts: an admin's correction replaces the model's tags
@@ -1541,7 +1557,7 @@ _ARTICLE_LIVE_CONCEPTS = """
     select c.id, c.slug, c.name from concept c
     where c.retired_at is null and c.slug = any(coalesce(
       (select o.concepts from tag_override o
-       where o.content_item_id = ci.id and o.heading = ''),
+       where o.content_item_id = ci.id),
       array(select c2.slug from item_concept ic
             join concept c2 on c2.id = ic.concept_id where ic.content_item_id = ci.id)
     ))
@@ -1565,7 +1581,7 @@ _QUESTION_TARGETS = f"""
     join source s on s.id = ci.source_id
     left join item_tagging t on t.content_item_id = ci.id
     -- An admin's correction wins over the model's level (P1-W3-S05).
-    left join tag_override lo on lo.content_item_id = ci.id and lo.heading = ''
+    left join tag_override lo on lo.content_item_id = ci.id
     where {_ALLOWED_ARTICLE}
       and exists (
         select 1 from content_item_private_text pt where pt.content_item_id = ci.id
@@ -1574,13 +1590,14 @@ _QUESTION_TARGETS = f"""
 """
 
 # ADR-0058: an article whose moments had questions or an estimate drafted keeps those
-# as its own (stage A moved them to it): drafting per article would retire them.
+# as its own (marked from_moments when the moments were folded into it): drafting per
+# article would retire them.
 _CARRIED_OVER = """(
     exists (select 1 from question q
-            where q.content_item_id = ci.id and q.moment_id is not null
+            where q.content_item_id = ci.id and q.from_moments
               and q.status <> 'retired')
     or exists (select 1 from question_estimate_drafted d
-               where d.content_item_id = ci.id and d.moment_id is not null)
+               where d.content_item_id = ci.id and d.from_moments)
 )"""
 
 
@@ -1619,7 +1636,7 @@ class PostgresQuestions:
     def drafted_hash(self, item_id: int) -> str | None:
         row = self._conn.execute(
             "select content_hash from question "
-            "where content_item_id = %s and moment_id is null and kind = 'choice' "
+            "where content_item_id = %s and not from_moments and kind = 'choice' "
             "and status <> 'retired' limit 1",
             (item_id,),
         ).fetchone()
@@ -1628,7 +1645,7 @@ class PostgresQuestions:
     def estimate_drafted_hash(self, item_id: int) -> str | None:
         row = self._conn.execute(
             "select content_hash from question_estimate_drafted "
-            "where content_item_id = %s and moment_id is null",
+            "where content_item_id = %s and not from_moments",
             (item_id,),
         ).fetchone()
         return None if row is None else str(row[0])
@@ -1727,7 +1744,7 @@ class PostgresQuestions:
             """
             insert into question_estimate_drafted (content_item_id, content_hash)
             values (%s, %s)
-            on conflict (content_item_id) where moment_id is null
+            on conflict (content_item_id)
               do update set content_hash = excluded.content_hash
             """,
             (item_id, content_hash),
@@ -1770,7 +1787,7 @@ class PostgresQuestions:
     def retry_state(self, item_id: int) -> tuple[int, datetime] | None:
         row = self._conn.execute(
             "select attempt, retry_at from question_drafting "
-            "where content_item_id = %s and moment_id is null",
+            "where content_item_id = %s",
             (item_id,),
         ).fetchone()
         return None if row is None else (int(row[0]), row[1])
@@ -1780,7 +1797,7 @@ class PostgresQuestions:
             """
             insert into question_drafting (content_item_id, attempt, retry_at)
             values (%s, %s, %s)
-            on conflict (content_item_id) where moment_id is null do update
+            on conflict (content_item_id) do update
               set attempt = excluded.attempt, retry_at = excluded.retry_at
             """,
             (item_id, attempt, retry_at),
@@ -1788,8 +1805,7 @@ class PostgresQuestions:
 
     def clear_retry(self, item_id: int) -> None:
         self._conn.execute(
-            "delete from question_drafting "
-            "where content_item_id = %s and moment_id is null",
+            "delete from question_drafting where content_item_id = %s",
             (item_id,),
         )
 
@@ -4482,7 +4498,7 @@ class PostgresReminders:
             """
             select v.article_title, count(*) over ()
             from user_feed_visible v
-            where v.user_id = %s and v.chip = %s
+            where v.user_id = %s
               and not exists (select 1 from user_article_opened o
                 where o.user_id = v.user_id and o.content_item_id = v.content_item_id)
               and not exists (select 1 from user_article_finished a
@@ -4490,7 +4506,7 @@ class PostgresReminders:
             order by v.rank
             limit 1
             """,
-            (user_id, FEED_CHIP),
+            (user_id,),
         ).fetchone()
         if row is None:
             return None

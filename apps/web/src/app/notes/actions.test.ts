@@ -10,12 +10,14 @@ const update = vi.fn<Notes["update"]>(() => Promise.resolve({ itemId: "5" }));
 const removeById = vi.fn<Notes["removeById"]>(() =>
   Promise.resolve({ itemId: "5" }),
 );
+const get = vi.fn<Notes["get"]>(() => Promise.resolve(null));
+const bodyById = vi.fn<Notes["bodyById"]>(() => Promise.resolve(null));
 const emit = vi.fn();
 const warn = vi.fn();
 vi.mock("../../server/log", () => ({ log: { warn, info: vi.fn() } }));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
-  notes: () => ({ save, remove, update, removeById }),
+  notes: () => ({ save, remove, update, removeById, get, bodyById }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -131,7 +133,40 @@ test("a refused note or a save with nowhere to go is logged, never dropped silen
   expect(emit).not.toHaveBeenCalled();
 });
 
-// P2-W7-S04: the Library edits a note by its id, an earlier section note included.
+// ADR-0058: a note joined from section notes may be longer than 2000; it is edited
+// up to its own length, never cut, while a shorter note keeps the 2000 limit.
+test("a note longer than 2000 is saved up to its own length, by article or by id", async () => {
+  current.mockResolvedValue(user);
+  const stored = "s".repeat(5000);
+  get.mockResolvedValueOnce(stored);
+  await act({
+    control: "save",
+    itemId: "5",
+    body: "e".repeat(4999),
+    back: "/",
+  });
+  expect(save).toHaveBeenCalledWith("u1", "5", "e".repeat(4999));
+  bodyById.mockResolvedValueOnce(stored);
+  await act({
+    control: "save",
+    noteId: "42",
+    body: "e".repeat(5000),
+    back: "/",
+  });
+  expect(bodyById).toHaveBeenCalledWith("u1", "42");
+  expect(update).toHaveBeenCalledWith("u1", "42", "e".repeat(5000));
+  bodyById.mockResolvedValueOnce(stored);
+  await act({
+    control: "save",
+    noteId: "42",
+    body: "e".repeat(5001),
+    back: "/",
+  });
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(warn).toHaveBeenCalledWith("notes: refused input", { user_id: "u1" });
+});
+
+// P2-W7-S04: the Library edits a note by its id.
 test("with a note id, saving edits that note and deleting removes it", async () => {
   current.mockResolvedValue(user);
   const to = await act({

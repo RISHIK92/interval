@@ -65,7 +65,7 @@ def item_id() -> Iterator[int]:
 
 
 def save(s: PostgresStore, item: int, h: str, p: float) -> None:
-    s.decisions.save_item(item, MODEL, h, 1.0, {SLUG: p})
+    s.decisions.save_item(item, MODEL, h, 1.0, {SLUG: p}, from_full_text=True)
 
 
 def test_a_second_writer_waits_for_the_first_and_then_replaces_its_answers(

@@ -587,6 +587,8 @@ async function estimateOn(
     .insertInto("question")
     .values({
       ...home,
+      // An article's questions take a slot of its own (article_ordinal).
+      ...("content_item_id" in home ? { article_ordinal: 9 } : {}),
       ordinal: 9,
       kind: "estimate",
       stem: "an estimate",

@@ -107,12 +107,7 @@ export default async function ReadPage({
     path !== undefined ? `/paths/${path}` : library ? "/library" : null;
   const closeHref = `${back ?? "/"}?ask=${item}`;
   const allNotes = await notes().onItems(actor.userId, [item]);
-  const note = allNotes.find((n) => n.sectionTitle === null)?.body ?? null;
-  // ADR-0058: notes written on a section before it, shown under the article until
-  // stage C joins them into its note.
-  const sectionNotes = allNotes.flatMap((n) =>
-    n.sectionTitle === null ? [] : [{ title: n.sectionTitle, body: n.body }],
-  );
+  const note = allNotes[0]?.body ?? null;
   // ADR-0058: Quiz me, the article's one quiz, once it has a live question; it stays
   // after the article is completed.
   const testable = (await quizzes().offered([item])).has(item);
@@ -251,21 +246,6 @@ export default async function ReadPage({
             )}
           </div>
         </div>
-        {sectionNotes.length === 0 ? null : (
-          <details className="text-sm">
-            <summary className="cursor-pointer text-ink-muted">
-              Notes on sections ({sectionNotes.length})
-            </summary>
-            <ul className="mt-2 flex max-h-40 flex-col gap-2 overflow-y-auto">
-              {sectionNotes.map((n, i) => (
-                <li key={i}>
-                  <p className="font-semibold">{n.title}</p>
-                  <p className="whitespace-pre-wrap text-ink-muted">{n.body}</p>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
         <NoteBox
           on={{ itemId: item }}
           about={title}

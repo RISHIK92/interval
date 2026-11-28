@@ -126,6 +126,7 @@ from interval_jobs.ports import (
     ValidatedQuestion,
     Validators,
     WordTime,
+    article_decisions,
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.segment import minutes
@@ -347,9 +348,12 @@ class InMemorySources:
             if source.rights_profile != "excerpt":
                 item.excerpt = None
         if source.rights_profile not in _FULL_TEXT:
-            # Derived from the full text (ING-2): the article's vector and questions.
+            # Derived from the full text (ING-2): the article's vector, questions, and
+            # the tagging answers and tags read off it.
             self.store.embeddings.drop(items)
             self.store.questions.drop(items)
+            self.store.decisions.drop_full_text(items)
+            self.store.tags.drop_full_text(items)
 
 
 class InMemoryItems:
@@ -725,6 +729,7 @@ class InMemoryDecisions:
     def __init__(self, concepts: InMemoryConcepts) -> None:
         self._concepts = concepts
         self._item: dict[tuple[int, str], tuple[str, float, dict[str, float]]] = {}
+        self.from_full_text: set[tuple[int, str]] = set()
 
     def _known(self, probabilities: dict[str, float]) -> None:
         graph = self._concepts.graph
@@ -744,15 +749,31 @@ class InMemoryDecisions:
         content_hash: str,
         difficulty: float,
         probabilities: dict[str, float],
+        *,
+        from_full_text: bool,
     ) -> None:
         self._known(probabilities)
         self._item[(item_id, model)] = (content_hash, difficulty, dict(probabilities))
+        if from_full_text:
+            self.from_full_text.add((item_id, model))
+        else:
+            self.from_full_text.discard((item_id, model))
 
     def read(self, item_id: int, model: str) -> ItemDecisions:
-        found = self._item.get((item_id, model))
-        if found is None:
-            return ItemDecisions({}, {})
-        return ItemDecisions({}, dict(found[2]), found[1])
+        return article_decisions(
+            model,
+            {
+                key: (difficulty, dict(probabilities), (i, key) in self.from_full_text)
+                for (i, key), (_, difficulty, probabilities) in self._item.items()
+                if i == item_id and (key == model or key.startswith("moments:"))
+            },
+        )
+
+    def drop_full_text(self, item_ids: set[int]) -> None:
+        # Mirrors the purge trigger: answers asked about the full text go (ING-2).
+        for key in [k for k in self.from_full_text if k[0] in item_ids]:
+            self._item.pop(key, None)
+            self.from_full_text.discard(key)
 
 
 class InMemoryItemTags:
@@ -763,6 +784,7 @@ class InMemoryItemTags:
         # The web admin page writes these: an item's corrected level and concepts
         self.overrides: dict[int, Difficulty] = {}
         self.item_concept_overrides: dict[int, frozenset[str]] = {}
+        self.from_full_text: set[int] = set()  # tags read off the full text (ING-2)
 
     def input(self, item_id: int) -> TagInput | None:
         item = self._items.rows.get(item_id)
@@ -814,9 +836,19 @@ class InMemoryItemTags:
     def save(
         self, item_id: int, result: TagResult, model: str, prompt_version: int
     ) -> None:
-        if result.moments:
+        if result.sessions:
             raise ValueError("an article is tagged whole (ADR-0058)")
         self.rows[item_id] = (result.item, model, prompt_version)
+        if result.from_full_text:
+            self.from_full_text.add(item_id)
+        else:
+            self.from_full_text.discard(item_id)
+
+    def drop_full_text(self, item_ids: set[int]) -> None:
+        # Mirrors the purge trigger: tags read off the full text go (ING-2).
+        for item_id in item_ids & self.from_full_text:
+            self.rows.pop(item_id, None)
+        self.from_full_text -= item_ids
 
 
 class InMemoryEmbeddings:
@@ -932,7 +964,6 @@ RANKING_DEFAULTS: dict[str, float] = {
     "weight.level_fit": 0.6,
     "weight.quality": 0.4,
     "weight.freshness": 0.5,
-    "weight.time_fit": 0.7,
     "penalty.less_like_this": 1.0,
     "penalty.not_interested_concepts": 0.8,
     "freshness.half_life_days": 14,
@@ -1144,8 +1175,8 @@ class StoredQuestion:
     calibrated_at: datetime | None = None
     validator_estimate: float | None = None
     stem_tried_at: datetime | None = None
-    # ADR-0058 stage A: a question drafted for one of the article's moments.
-    moment_id: int | None = None
+    # ADR-0058: drafted for one of the article's moments, before they were folded in.
+    from_moments: bool = False
 
     @property
     def kind(self) -> QuestionKind:
@@ -1170,8 +1201,8 @@ class InMemoryQuestions:
         self._next_id = 1
         self.retries: dict[int, tuple[int, datetime]] = {}
         self.estimates_drafted: dict[int, str] = {}  # article -> hash (P3-W13-S03b)
-        # ADR-0058 stage A: articles one of whose moments had its estimate drafted.
-        self.moment_estimates_drafted: set[int] = set()
+        # ADR-0058: articles one of whose moments had its estimate drafted.
+        self.estimates_from_moments: set[int] = set()
         # Q-2 reviews, oldest first: (question id, reason, decided)
         self.reviews: list[tuple[int, str, bool]] = []
         # Quiz answers (not reviews), which the web app writes (P2-W9-S01);
@@ -1209,8 +1240,8 @@ class InMemoryQuestions:
         )
 
     def _carried_over(self, item_id: int) -> bool:
-        return item_id in self.moment_estimates_drafted or any(
-            q.item_id == item_id and q.moment_id is not None and q.status != "retired"
+        return item_id in self.estimates_from_moments or any(
+            q.item_id == item_id and q.from_moments and q.status != "retired"
             for q in self.rows
         )
 
@@ -1229,7 +1260,7 @@ class InMemoryQuestions:
                 q.content_hash
                 for q in self.rows
                 if q.item_id == item_id
-                and q.moment_id is None
+                and not q.from_moments
                 and q.status != "retired"
                 and q.kind == "choice"
             ),
@@ -1586,13 +1617,12 @@ class InMemoryQuestions:
         self.retries.pop(item_id, None)
 
     def drop(self, item_ids: set[int]) -> None:
-        # Mirrors the purge trigger: the articles' questions and drafting state go (a
-        # moment-era one's with its moment).
+        # Mirrors the purge trigger: the articles' questions and drafting state go.
         self.rows = [q for q in self.rows if q.item_id not in item_ids]
         for item_id in item_ids:
             self.retries.pop(item_id, None)
             self.estimates_drafted.pop(item_id, None)
-        self.moment_estimates_drafted -= item_ids
+        self.estimates_from_moments -= item_ids
         kept = {q.id for q in self.rows}
         self.reviews = [r for r in self.reviews if r[0] in kept]
 

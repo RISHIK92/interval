@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { noteMax } from "@interval/api-client";
 import { z } from "zod";
 import { notes, sessionReader } from "../../server/container";
 import { log } from "../../server/log";
@@ -12,9 +13,9 @@ import { sameSitePath, textField } from "../form";
 
 // Notes (§5I, Q-P2-01, P2-W7-S03): a private note on the article being read
 // (ADR-0058; a section sent by an older page is ignored). The Library edits a note by
-// its own id (P2-W7-S04), which also reaches an earlier section note. Saving an empty
-// note deletes it.
-const Body = z.string().trim().max(2000);
+// its own id (P2-W7-S04). Saving an empty note deletes it. A body may be as long as
+// noteMax allows: NOTE_MAX, or the stored note's own length.
+const Body = z.string().trim();
 const Note = z.union([
   z.object({
     control: z.enum(["save", "delete"]),
@@ -47,6 +48,14 @@ export async function noteAction(form: FormData): Promise<void> {
     redirect(back);
   }
   const note = parsed.data;
+  const stored =
+    "noteId" in note
+      ? await notes().bodyById(actor.userId, note.noteId)
+      : await notes().get(actor.userId, note.itemId);
+  if (note.body.length > noteMax(stored)) {
+    log.warn("notes: refused input", { user_id: actor.userId });
+    redirect(back);
+  }
   const saving = note.control === "save" && note.body !== "";
   const context = { ...actor, sessionId: visitId(await cookies()) };
   if ("noteId" in note) {

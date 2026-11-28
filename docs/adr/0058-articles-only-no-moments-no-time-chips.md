@@ -76,6 +76,23 @@ On 2026-11-27 the owner asked to "remove duration wise division of articles and 
 
 **Down migrations:** the contract step can't restore moments, so its down raises.
 
+**As built (stage C, 2026-11-28):**
+
+- **Tags:**
+  - Section-era tag answers stay as their own rows, as two sets of keys:
+    - `moments:<model>:<ordinal>`, one row per moment;
+    - `moments:<model>` and `moments:tags`, per-article copies.
+  - All are marked `from_full_text`.
+  - The rollup reads them as sections with the old section rules: two sections at 0.7 or more, or one at 0.85 or more.
+  - Today's `item_concept` is unchanged; it rebuilds on the next tag pass.
+- **ING-2:** when a source drops below full text, the purge deletes the full-text-derived decisions, probabilities and tags (`from_full_text`, including the chat tagger's), the article vectors and the article questions. Title-pass rows stay.
+- **Tag overrides:** where an article has no whole-article row, it gets one combining all its section overrides' concepts (newest first, capped at 5), with the newest override's level.
+- **Notes:**
+  - Section notes are joined into the article note, under their section titles.
+  - A note may be edited at the greater of 2000 characters and its stored length, so a joined note is never cut. The database has no upper bound.
+- **Finishes:** per-section finishes become opens. An article is completed only where it already was.
+- **Applying it:** the contract migration runs in one transaction. Stop the web app and workers while it runs, then run `recompute-due`.
+
 ## Open questions
 
 - How many questions should an article's quiz sample? Default 5, the old quiz length.

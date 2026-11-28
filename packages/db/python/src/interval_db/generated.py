@@ -32,7 +32,6 @@ type AiProvider = Literal[
 type BetaGroup = Literal["student", "developer"]
 type BookCheckpointStatus = Literal["preparing", "ready", "failed"]
 type BookStatus = Literal["processing", "ocr", "ready", "failed"]
-type BreakLength = Literal["1-3", "3-8", "8-15"]
 type Capability = Literal[
     "feed.read",
     "admin.review",
@@ -68,7 +67,6 @@ type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
 ]
 type LldDifficulty = Literal["easy", "medium", "hard"]
-type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type PathStatus = Literal["draft", "live", "retired"]
 type QuestionBatchKind = Literal["draft", "validate"]
 type QuestionKind = Literal["choice", "estimate"]
@@ -913,6 +911,7 @@ class ItemDecision(TypedDict):
     content_hash: str
     difficulty: float
     decided_at: datetime
+    from_full_text: bool
 
 
 class ItemEmbedding(TypedDict):
@@ -935,6 +934,7 @@ class ItemTagging(TypedDict):
     model: str
     prompt_version: int
     tagged_at: datetime
+    from_full_text: bool
 
 
 class LeagueCohort(TypedDict):
@@ -1059,58 +1059,6 @@ class LldProblem(TypedDict):
     concepts: list[str]
 
 
-class Moment(TypedDict):
-    id: int
-    content_item_id: int
-    ordinal: int
-    title: str
-    estimated_minutes: int
-    link: str
-    link_type: MomentLinkType
-    created_at: datetime
-    oversized: bool
-    search_vector: str | None
-
-
-class MomentBoundaryOverride(TypedDict):
-    content_item_id: int
-    headings: list[str]
-    updated_by: str
-    updated_at: datetime
-
-
-class MomentConcept(TypedDict):
-    moment_id: int
-    concept_id: int
-
-
-class MomentConceptProbability(TypedDict):
-    moment_id: int
-    model: str
-    concept_id: int
-    probability: float
-
-
-class MomentDecision(TypedDict):
-    moment_id: int
-    model: str
-    content_hash: str
-    difficulty: float
-    decided_at: datetime
-
-
-class MomentEmbedding(TypedDict):
-    moment_id: int
-    model: str
-    embedding: str
-    embedded_at: datetime
-
-
-class MomentTagging(TypedDict):
-    moment_id: int
-    difficulty: Difficulty
-
-
 class Path(TypedDict):
     id: int
     name: str
@@ -1136,7 +1084,6 @@ class PathSectionConcept(TypedDict):
 class PathSession(TypedDict):
     section_id: int
     ordinal: int
-    moment_id: int | None
     content_item_id: int
 
 
@@ -1239,7 +1186,6 @@ class PushSubscription(TypedDict):
 
 class Question(TypedDict):
     id: int
-    moment_id: int | None
     ordinal: int
     stem: str
     options: list[str] | None
@@ -1267,6 +1213,7 @@ class Question(TypedDict):
     stem_rewrite_tried_at: datetime | None
     content_item_id: int | None
     article_ordinal: int | None
+    from_moments: bool
 
 
 class QuestionBatch(TypedDict):
@@ -1282,7 +1229,6 @@ class QuestionBatch(TypedDict):
 class QuestionBatchItem(TypedDict):
     batch_id: str
     custom_id: str
-    moment_id: int | None
     question_id: int | None
     content_hash: str | None
     result: str | None
@@ -1296,16 +1242,15 @@ class QuestionConcept(TypedDict):
 
 
 class QuestionDrafting(TypedDict):
-    moment_id: int | None
     attempt: int
     retry_at: datetime
-    content_item_id: int | None
+    content_item_id: int
 
 
 class QuestionEstimateDrafted(TypedDict):
-    moment_id: int | None
     content_hash: str
-    content_item_id: int | None
+    content_item_id: int
+    from_moments: bool
 
 
 class QuestionFlag(TypedDict):
@@ -1340,7 +1285,6 @@ class QuizAttempt(TypedDict):
     id: int
     user_id: str
     content_item_id: int | None
-    moment_id: int | None
     started_at: datetime
     ends_at: datetime | None
     finished_at: datetime | None
@@ -1431,7 +1375,6 @@ class Source(TypedDict):
     homepage: str | None
     feed_url: str
     rights_profile: RightsProfile
-    moments_enabled: bool
     paywalled: bool
     created_at: datetime
     quality_score: int | None
@@ -1440,18 +1383,12 @@ class Source(TypedDict):
     poll_interval_seconds: int
     next_poll_at: datetime
     polled_at: datetime | None
-    moments_seeded: bool
-    moments_switched_off: bool
-    moments_switched_by: str | None
-    moments_switched_at: datetime | None
 
 
 class StarterFeedEntry(TypedDict):
     topic: str
     level: Difficulty
-    moment_id: int | None
     rank: int
-    chip: BreakLength
     content_item_id: int
     note_id: int | None
     reasons: str | None
@@ -1462,14 +1399,8 @@ class StarterFeedEntry(TypedDict):
 class StarterFeedVisible(TypedDict):
     topic: str | None
     level: Difficulty | None
-    chip: BreakLength | None
     rank: int | None
-    kind: str | None
     content_item_id: int | None
-    moment_id: int | None
-    section_title: str | None
-    section_number: int | None
-    section_count: int | None
     estimated_minutes: int | None
     link: str | None
     article_title: str | None
@@ -1486,7 +1417,6 @@ class StarterFeedVisible(TypedDict):
 
 class TagOverride(TypedDict):
     content_item_id: int
-    heading: str
     difficulty: Difficulty
     concepts: list[str]
     updated_by: str
@@ -1600,10 +1530,8 @@ class UserExploreOpen(TypedDict):
 
 class UserFeedEntry(TypedDict):
     user_id: str
-    moment_id: int | None
     rank: int
     top_signal: str
-    chip: BreakLength
     content_item_id: int
     note_id: int | None
     explore_kind: str | None
@@ -1621,14 +1549,8 @@ class UserFeedState(TypedDict):
 
 class UserFeedVisible(TypedDict):
     user_id: str | None
-    chip: BreakLength | None
     rank: int | None
-    kind: str | None
     content_item_id: int | None
-    moment_id: int | None
-    section_title: str | None
-    section_number: int | None
-    section_count: int | None
     estimated_minutes: int | None
     link: str | None
     article_title: str | None
@@ -1656,25 +1578,10 @@ class UserInferredReset(TypedDict):
     reset_at: datetime
 
 
-class UserMomentFinished(TypedDict):
-    user_id: str
-    moment_id: int
-    method: FinishMethod
-    finished_at: datetime
-
-
-class UserMomentOpened(TypedDict):
-    user_id: str
-    moment_id: int
-    opened_at: datetime
-
-
 class UserNote(TypedDict):
     id: int
     user_id: str
     content_item_id: int
-    moment_id: int | None
-    section_title: str | None
     body: str
     created_at: datetime
     updated_at: datetime
@@ -1702,7 +1609,6 @@ class UserPathSession(TypedDict):
     user_id: str
     section_id: int
     ordinal: int
-    moment_id: int | None
     content_item_id: int
 
 
@@ -1710,7 +1616,6 @@ class UserPreferences(TypedDict):
     user_id: str
     topics: list[Topic]
     level: Difficulty
-    break_length: BreakLength
     onboarded_at: datetime
     updated_at: datetime
     goals: list[LearningGoal]

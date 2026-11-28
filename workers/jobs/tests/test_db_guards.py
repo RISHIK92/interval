@@ -1,5 +1,6 @@
 import psycopg
 import pytest
+from psycopg import sql
 
 from interval_db.generated import RightsProfile
 from interval_jobs.adapters.postgres import PostgresStore
@@ -49,73 +50,56 @@ def test_database_refuses_an_excerpt_for_metadata_only(
 FULL_TEXT = "guard-full_text_internal"
 
 
-def enable_moments(conn: psycopg.Connection, enabled: bool) -> None:
-    conn.execute(
-        "update source set moments_seeded = %s, moments_enabled = %s where name = %s",
-        (enabled, enabled, FULL_TEXT),
-    )
-
-
-def add_moment(conn: psycopg.Connection, item_id: int) -> None:
-    conn.execute(
-        "insert into moment (content_item_id, ordinal, title, estimated_minutes, link, "
-        "link_type) values (%s, 0, 't', 1, 'https://guard.example.test/a', 'page_top')",
-        (item_id,),
-    )
-
-
-def moment_count(conn: psycopg.Connection, item_id: int) -> int:
+def count(conn: psycopg.Connection, table: str, item_id: int) -> int:
     row = conn.execute(
-        "select count(*) from moment where content_item_id = %s", (item_id,)
+        sql.SQL("select count(*) from {} where content_item_id = %s").format(
+            sql.Identifier(table)
+        ),
+        (item_id,),
     ).fetchone()
     assert row is not None
     return row[0]
 
 
-@pytest.mark.parametrize(
-    ("profile", "moments_enabled"),
-    [("full_text_internal", False), ("excerpt", True), ("metadata_only", True)],
-)
-def test_database_refuses_moments_without_the_switch_and_full_text_rights(
-    conn: psycopg.Connection, profile: RightsProfile, moments_enabled: bool
-) -> None:
-    item_id = item_for(conn, profile)
-    conn.execute(
-        "update source set moments_seeded = %s, moments_enabled = %s where name = %s",
-        (moments_enabled, moments_enabled, f"guard-{profile}"),
-    )
-    with pytest.raises(psycopg.errors.RaiseException, match="does not allow moments"):
-        add_moment(conn, item_id)
-
-
-def test_switching_moments_off_deletes_them(conn: psycopg.Connection) -> None:
-    item_id = item_for(conn, "full_text_internal")
-    enable_moments(conn, True)
-    add_moment(conn, item_id)
-    enable_moments(conn, False)
-    assert moment_count(conn, item_id) == 0
-
-
-def test_lowering_the_profile_deletes_sections_and_moments(
+# ING-2 (ADR-0058): lowering a source below full text deletes what was derived from
+# its articles' full text, questions folded in from their moments included.
+def test_lowering_the_profile_deletes_sections_questions_and_drafting_state(
     conn: psycopg.Connection,
 ) -> None:
     item_id = item_for(conn, "full_text_internal")
-    enable_moments(conn, True)
-    add_moment(conn, item_id)
     conn.execute(
         "insert into content_item_section (content_item_id, ordinal, heading, level, "
         "anchor_id, word_count) values (%s, 0, 'h', 2, null, 10)",
         (item_id,),
     )
+    for ordinal, carried in enumerate([False, True]):
+        conn.execute(
+            "insert into question (content_item_id, article_ordinal, ordinal, stem, "
+            "options, correct, citation, generator_model, prompt_version, "
+            "content_hash, from_moments) values (%s, %s, %s, 's', "
+            "array['a','b','c','d'], 0, 'c', 'g', 1, 'h', %s)",
+            (item_id, ordinal, ordinal, carried),
+        )
+    conn.execute(
+        "insert into question_estimate_drafted (content_item_id, content_hash, "
+        "from_moments) values (%s, 'h', true)",
+        (item_id,),
+    )
+    conn.execute(
+        "insert into question_drafting (content_item_id, attempt, retry_at) "
+        "values (%s, 1, now())",
+        (item_id,),
+    )
     conn.execute(
         "update source set rights_profile = 'excerpt' where name = %s", (FULL_TEXT,)
     )
-    assert moment_count(conn, item_id) == 0
-    row = conn.execute(
-        "select count(*) from content_item_section where content_item_id = %s",
-        (item_id,),
-    ).fetchone()
-    assert row == (0,)
+    for table in (
+        "content_item_section",
+        "question",
+        "question_estimate_drafted",
+        "question_drafting",
+    ):
+        assert count(conn, table, item_id) == 0, table
 
 
 @pytest.mark.parametrize("profile", ["metadata_only", "excerpt"])

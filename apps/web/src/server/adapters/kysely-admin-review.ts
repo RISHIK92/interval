@@ -112,7 +112,6 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
           .selectFrom("tag_override")
           .select(["difficulty", "concepts"])
           .where("content_item_id", "=", id)
-          .where("heading", "=", "")
           .executeTakeFirst(),
       ]);
       return {
@@ -144,13 +143,11 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
       return rows.map((r) => r.slug);
     },
 
-    // The whole article's row is heading '' (ADR-0058).
     async setTags(itemId, value, by): Promise<void> {
       if (value === null) {
         await db
           .deleteFrom("tag_override")
           .where("content_item_id", "=", itemId)
-          .where("heading", "=", "")
           .execute();
         return;
       }
@@ -158,13 +155,12 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
         .insertInto("tag_override")
         .values({
           content_item_id: itemId,
-          heading: "",
           difficulty: value.difficulty,
           concepts: value.concepts,
           updated_by: by,
         })
         .onConflict((oc) =>
-          oc.columns(["content_item_id", "heading"]).doUpdateSet({
+          oc.column("content_item_id").doUpdateSet({
             difficulty: value.difficulty,
             concepts: value.concepts,
             updated_by: by,

@@ -17,7 +17,7 @@ export const articleTeaches = (
   where taught.id = ${concept} and taught.retired_at is null
     and taught.slug = any(coalesce(
       (select o.concepts from tag_override o
-       where o.content_item_id = ci.id and o.heading = ''),
+       where o.content_item_id = ci.id),
       array(select c2.slug from item_concept ic
             join concept c2 on c2.id = ic.concept_id
             where ic.content_item_id = ci.id)

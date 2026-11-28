@@ -1,11 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, type RawBuilder, sql } from "kysely";
-import {
-  type ConceptsByTopic,
-  FEED_CHIP,
-  type Progress,
-  TOPICS,
-} from "../ports";
+import { type ConceptsByTopic, type Progress, TOPICS } from "../ports";
 
 // Reading as weak evidence of mastery (PER-2, Q-P2-02): each new finish moves a concept
 // a tenth of the way to 1, never past 0.3 from reading alone, and never lowers or
@@ -50,7 +45,7 @@ const ARTICLE_CONCEPTS = sql`
   select c.id from added a
   join concept c on c.retired_at is null and c.slug = any(coalesce(
     (select o.concepts from tag_override o
-     where o.content_item_id = a.content_item_id and o.heading = ''),
+     where o.content_item_id = a.content_item_id),
     array(select c2.slug from item_concept ic
           join concept c2 on c2.id = ic.concept_id
           where ic.content_item_id = a.content_item_id)
@@ -149,8 +144,7 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
       await sql`
         with entry as (
           select explore_kind, explore_arm from user_feed_entry
-          where user_id = ${userId} and chip = ${FEED_CHIP}::break_length
-            and content_item_id = ${itemId} and moment_id is null
+          where user_id = ${userId} and content_item_id = ${itemId}
             and explore_kind is not null
         ),
         opened as (

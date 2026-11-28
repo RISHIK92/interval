@@ -2,8 +2,9 @@
 
 Chapters come from the PDF's bookmarks, else its largest headings, else the whole book
 is one. Each chapter is split at its headings into 2 to 8 minute sessions by the same
-rules as moments (segment.plan_units); a stretch with no headings is cut at paragraph
-breaks. Headings are found by font size: a short line clearly larger than the body.
+rules articles' moments once had (segment.plan_units); a stretch with no headings is
+cut at paragraph breaks. Headings are found by font size: a short line clearly larger
+than the body.
 """
 
 import re

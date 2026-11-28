@@ -127,8 +127,7 @@ test("an answer reads its citations' labels from the catalogue, dropping broken 
         outcome: "answered",
         text: "Shard late [m1].",
         citations: JSON.stringify([
-          // Written before ADR-0058: its moment is ignored, the article cited.
-          { passage: "m1", item_id: item.id, moment_id: "1" },
+          { passage: "m1", item_id: item.id },
           { passage: "i2", item_id: broken.id },
           { passage: "c3", concept_id: concept.id },
         ]),
@@ -368,7 +367,7 @@ test("a session's articles: only the owner's answered question, only openable ci
         outcome: "answered",
         text: "x [m1]",
         citations: JSON.stringify([
-          { passage: "a", item_id: sharding.item, moment_id: "1" },
+          { passage: "a", item_id: sharding.item },
           { passage: "b", item_id: sharding.item },
           { passage: "c", item_id: hidden.item },
           { passage: "d", item_id: linked.item },

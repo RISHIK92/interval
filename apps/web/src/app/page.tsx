@@ -170,17 +170,12 @@ export default async function HomePage({
     { card_count: cards.length },
     { ...actor, sessionId: visitId(jar) },
   );
-  // P2-W7-S04: each card's own note on its article. ADR-0058: a note written on one
-  // of its sections before is not the article's own, so the card doesn't show it.
+  // P2-W7-S04: each card's own note on its article.
   const onCards = await notes().onItems(
     actor.userId,
     cards.map((c) => c.itemId),
   );
-  const yours = new Map(
-    onCards
-      .filter((n) => n.sectionTitle === null)
-      .map((n) => [n.itemId, n.body]),
-  );
+  const yours = new Map(onCards.map((n) => [n.itemId, n.body]));
   // P2-W9-S06: due reviews are read when the feed is served; they change by the
   // minute.
   // P2-W10-S06: so is the active path's next step (the first card), and (S05) the

@@ -424,18 +424,18 @@ def test_redrafting_one_kind_never_retires_the_other() -> None:
     unit = unit_of(store)
     submit(unit, gateway, MODEL)
     collect(unit, gateway, MODEL)
-    moment = store.questions.targets(None)[0]
-    choice = [q for q in kinds(store, QuestionDraft) if q.item_id == moment]
-    estimate = next(q for q in kinds(store, EstimateDraft) if q.item_id == moment)
+    article_id = store.questions.targets(None)[0]
+    choice = [q for q in kinds(store, QuestionDraft) if q.item_id == article_id]
+    estimate = next(q for q in kinds(store, EstimateDraft) if q.item_id == article_id)
     assert isinstance(choice[0].draft, QuestionDraft)
     assert isinstance(estimate.draft, EstimateDraft)
     slugs = ["write-ahead-log"]
-    store.questions.save(moment, [choice[0].draft], slugs, "m", 1, "h", None)
+    store.questions.save(article_id, [choice[0].draft], slugs, "m", 1, "h", None)
     assert estimate.status == "pending"
     assert all(q.status == "retired" for q in choice)
-    store.questions.save_estimate(moment, estimate.draft, slugs, "m", "h2", None)
+    store.questions.save_estimate(article_id, estimate.draft, slugs, "m", "h2", None)
     assert estimate.status == "retired"
-    newest = [q for q in kinds(store, QuestionDraft) if q.item_id == moment][-1]
+    newest = [q for q in kinds(store, QuestionDraft) if q.item_id == article_id][-1]
     assert newest.status == "pending"
 
 
@@ -464,18 +464,18 @@ def test_a_changed_passage_redrafts_its_estimate_and_retires_the_old_one() -> No
     unit = unit_of(store)
     submit(unit, gateway, MODEL)
     collect(unit, gateway, MODEL)
-    moment = store.questions.targets(None)[0]
-    old = next(q for q in kinds(store, EstimateDraft) if q.item_id == moment)
-    item = store.items.rows[moment]
+    article_id = store.questions.targets(None)[0]
+    old = next(q for q in kinds(store, EstimateDraft) if q.item_id == article_id)
+    item = store.items.rows[article_id]
     assert item.full_text is not None
-    text = question_passage(store, store.questions.target(moment))
+    text = question_passage(store, store.questions.target(article_id))
     first_word = text.split()[0]
     item.full_text = item.full_text.replace(first_word, first_word + "s", 1)
     assert submit(unit, gateway, MODEL).estimates >= 1
     collect(unit, gateway, MODEL)
     assert old.status == "retired"
     assert any(
-        q.item_id == moment and q.status == "pending"
+        q.item_id == article_id and q.status == "pending"
         for q in kinds(store, EstimateDraft)
     )
 

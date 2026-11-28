@@ -2,7 +2,7 @@
 2026-10-27): a yes/no question per shortlisted concept, plus one difficulty question,
 asked again only when the text changed since this model last saw it. An article is
 asked once, about its title, summary and the text its rights allow (its full text,
-else its excerpt), cut to MOMENT_CHARS (ADR-0058). A book chapter is asked about each
+else its excerpt), cut to TEXT_CHARS (ADR-0058). A book chapter is asked about each
 session, and once more about its title. The raw probabilities are returned for
 storing; `tagging_rollup` turns them into tags."""
 
@@ -21,7 +21,7 @@ from interval_jobs.ports import (
     ScoreAnswer,
     TagInput,
 )
-from interval_jobs.tagging import MOMENT_CHARS, TaggingError, moment_texts
+from interval_jobs.tagging import TEXT_CHARS, TaggingError, session_texts
 from interval_jobs.tagging_shortlist import shortlist
 
 # The candidates asked about per text; at 15 the shortlist kept 99% of the labelled
@@ -50,10 +50,10 @@ def content_hash(text: str, graph_version: int, embedding_model: str, size: int)
 
 def article_text(item: TagInput) -> str:
     """What an article is asked about whole (ADR-0058): its title, summary and the
-    text its rights allow (its full text, else its excerpt), cut to MOMENT_CHARS."""
+    text its rights allow (its full text, else its excerpt), cut to TEXT_CHARS."""
     body = item.full_text or item.excerpt or ""
     parts = (item.title, item.summary or "", body)
-    return "\n".join(p for p in parts if p)[:MOMENT_CHARS]
+    return "\n".join(p for p in parts if p)[:TEXT_CHARS]
 
 
 @dataclass(frozen=True)
@@ -65,7 +65,7 @@ class Answered:
 
 @dataclass(frozen=True)
 class DecidePass:
-    moments: dict[int, Answered]  # a book chapter's sessions, by id
+    sessions: dict[int, Answered]  # a book chapter's sessions, by id
     item: Answered | None  # the title (an article's whole) pass, when it was asked
     cost_usd: Decimal
     # Set when the budget or the model stopped the pass part way: what was answered
@@ -116,16 +116,16 @@ def decide(
     size: int = SHORTLIST,
     user_id: str | None = None,  # a book's owner pays for its tagging (OPS-4)
 ) -> DecidePass:
-    texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
+    texts = session_texts(item.full_text, item.sessions) if item.full_text else {}
     # A heading with nothing under it has no text to embed or ask about.
     sent = [
         m
-        for m in sorted(item.moments, key=lambda m: m.ordinal)
+        for m in sorted(item.sessions, key=lambda m: m.ordinal)
         if texts.get(m.id, "").strip()
     ]
     todo: list[tuple[int | None, DecisionState, str, str]] = []  # id, state, text, hash
     for m in sent:
-        text = texts[m.id][:MOMENT_CHARS]
+        text = texts[m.id][:TEXT_CHARS]
         digest = content_hash(text, graph.version, embedding_model, size)
         state: DecisionState = {
             "article": item.title,
@@ -135,7 +135,7 @@ def decide(
         todo.append((m.id, state, text, digest))
     # Sessions are asked about one by one; an article's text goes in its one pass.
     title = (
-        "\n".join(p for p in (item.title, item.summary or "") if p)[:MOMENT_CHARS]
+        "\n".join(p for p in (item.title, item.summary or "") if p)[:TEXT_CHARS]
         if sent
         else article_text(item)
     )
@@ -159,13 +159,13 @@ def decide(
         if isinstance(result, OverBudget):
             return DecidePass({}, None, cost, refused=result)
         cost += result.usage.cost_usd
-        for (moment_id, _, _, _), vector in zip(batch, result.vectors, strict=True):
-            vector_of[moment_id] = vector
+        for (session_id, _, _, _), vector in zip(batch, result.vectors, strict=True):
+            vector_of[session_id] = vector
 
-    moments: dict[int, Answered] = {}
+    sessions: dict[int, Answered] = {}
     title_answer: Answered | None = None
-    for moment_id, state, text, digest in todo:
-        vector = vector_of[moment_id]
+    for session_id, state, text, digest in todo:
+        vector = vector_of[session_id]
         candidates = shortlist(
             vector, None, text, vectors, graph, size=size, prior_size=0
         )
@@ -178,16 +178,16 @@ def decide(
                 questions=_questions(candidates, graph),
             )
             if isinstance(decided, OverBudget):
-                return DecidePass(moments, title_answer, cost, refused=decided)
+                return DecidePass(sessions, title_answer, cost, refused=decided)
             cost += decided.usage.cost_usd
             answered = Answered(digest, *_read(decided.answers, candidates))
         except (ModelError, TaggingError) as error:
-            return DecidePass(moments, title_answer, cost, stopped=str(error))
-        if moment_id is None:
+            return DecidePass(sessions, title_answer, cost, stopped=str(error))
+        if session_id is None:
             title_answer = answered
         else:
-            moments[moment_id] = answered
-    return DecidePass(moments, title_answer, cost)
+            sessions[session_id] = answered
+    return DecidePass(sessions, title_answer, cost)
 
 
 def _read(

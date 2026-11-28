@@ -565,19 +565,16 @@ test("Now reading offers a note on the article, filled in when there is one", as
   expect(html).toMatch(/<button[^>]*value="delete"/);
 });
 
-// P2-W7-S04: a card shows the user's note on its article. ADR-0058: a note written on
-// one of its sections before is listed in the Library and the reader, not on the card.
-test("cards show the user's note on their article, not earlier section notes", async () => {
+// P2-W7-S04: a card shows the user's note on its article.
+test("cards show the user's note on their article", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card, other("20")]));
   onItems.mockResolvedValueOnce([
-    { itemId: "10", sectionTitle: null, body: "Mine on this article" },
-    { itemId: "20", sectionTitle: "Raft", body: "Mine on a section" },
+    { itemId: "10", body: "Mine on this article" },
   ]);
   const html = await render();
   expect(onItems).toHaveBeenCalledWith("u1", ["10", "20"]);
   expect(html).toContain("Mine on this article");
-  expect(html).not.toContain("Mine on a section");
 });
 
 // P2-W9-S02, ADR-0058: Quiz me from a card, on the whole article.
@@ -695,9 +692,7 @@ test("a plan without the daily challenge shows no card for it", async () => {
 
 // P2-W10-S06 (REC-1, Q-P2-27): the active path's next step is the first card.
 const reading = {
-  momentId: "900",
   itemId: "50",
-  sectionTitle: "Leaders",
   articleTitle: "Designing data systems",
   sourceName: "Pub",
   minutes: 4,

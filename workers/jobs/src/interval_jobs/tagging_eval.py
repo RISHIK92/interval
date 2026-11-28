@@ -206,6 +206,7 @@ def _decisions_eval(
                 asked.item.content_hash,
                 asked.item.difficulty,
                 asked.item.probabilities,
+                from_full_text=bool(item.full_text),
             )
         cost += asked.cost_usd
         items[url] = item_id
@@ -226,7 +227,7 @@ def _decisions_eval(
         (cut, r.precision, r.recall, r.f1)
         for cut in SWEEP
         for r in [
-            score(labels, predicted(replace(DEFAULT_CUTOFFS, moment=cut, title=cut)))
+            score(labels, predicted(replace(DEFAULT_CUTOFFS, session=cut, title=cut)))
         ]
     )
     report = score(labels, predicted(DEFAULT_CUTOFFS), cost, min_f1, min_difficulty)

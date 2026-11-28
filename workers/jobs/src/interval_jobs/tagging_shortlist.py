@@ -1,10 +1,10 @@
-"""The tagging shortlist (2026-10-27): a moment's 15-25 candidate concepts, chosen with
+"""The tagging shortlist (2026-10-27): a text's 15-25 candidate concepts, chosen with
 no model call, so the decision model is asked about those instead of all 250.
 
-Candidates, in order: concepts whose name or an alias appears in the moment's text
-(whole words, any case), nearest the moment first; then up to `prior_size` more from
+Candidates, in order: concepts whose name or an alias appears in the text
+(whole words, any case), nearest the text first; then up to `prior_size` more from
 the article's title-and-summary vector (the prior); then the concepts nearest the
-moment's own vector. A concept left off can never be tagged, so the shortlist's recall
+text's own vector. A concept left off can never be tagged, so the shortlist's recall
 is measured first (`eval-shortlist`)."""
 
 import math
@@ -59,7 +59,7 @@ def alias_hits(text: str, graph: ConceptGraph) -> list[str]:
 
 
 def shortlist(
-    moment: Sequence[float],
+    vector: Sequence[float],
     prior: Sequence[float] | None,
     text: str,
     vectors: Mapping[str, Sequence[float]],
@@ -71,16 +71,16 @@ def shortlist(
     if size < 1:
         raise ValueError("a shortlist holds at least one concept")
     active = [c.slug for c in graph.concepts if not c.retired]
-    ordered = _by_nearness(moment, alias_hits(text, graph), vectors)[:size]
+    ordered = _by_nearness(vector, alias_hits(text, graph), vectors)[:size]
     if prior is not None:
         fresh = [s for s in _by_nearness(prior, active, vectors) if s not in ordered]
         ordered += fresh[:prior_size]
-    ordered += [s for s in _by_nearness(moment, active, vectors) if s not in ordered]
+    ordered += [s for s in _by_nearness(vector, active, vectors) if s not in ordered]
     return ordered[:size]
 
 
 def recall(cases: Iterable[tuple[set[str], Sequence[str]]]) -> float:
-    """The share of labelled concepts that made their moment's shortlist."""
+    """The share of labelled concepts that made their text's shortlist."""
     wanted = kept = 0
     for labelled, offered in cases:
         wanted += len(labelled)

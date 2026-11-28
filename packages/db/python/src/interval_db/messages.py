@@ -41,7 +41,7 @@ class AnswerInterviewer(_Message):
 
 
 class Ask(_Message):
-    """Answer an Explore question from the user's catalogue: retrieve moments, call
+    """Answer an Explore question from the user's catalogue: retrieve readings, call
     ASK_MODEL through the gateway, validate and store the answer (ADR-0046)."""
 
     question_id: Annotated[str, Field(min_length=1)]

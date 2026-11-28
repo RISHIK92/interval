@@ -358,17 +358,16 @@ def test_project_note_candidates_come_from_connected_users_project_cards(
         for n in range(3)
     ]
     rows = [
-        ("tc10", "3-8", items[1], 1, ["project_match"]),
-        ("tc10", "8-15", items[1], 4, ["project_match"]),  # the same item again
-        ("tc10", "3-8", items[0], 2, ["project_match"]),
-        ("tc10", "3-8", items[2], 3, ["goal_match"]),  # not a project card
-        ("tc11", "3-8", items[0], 1, ["project_match"]),  # not connected
+        ("tc10", items[1], 1, ["project_match"]),
+        ("tc10", items[0], 2, ["project_match"]),
+        ("tc10", items[2], 3, ["goal_match"]),  # not a project card
+        ("tc11", items[0], 1, ["project_match"]),  # not connected
     ]
-    for user, chip, item, rank, kinds in rows:
+    for user, item, rank, kinds in rows:
         conn.execute(
-            "insert into user_feed_entry (user_id, chip, content_item_id, rank, "
-            "top_signal, reason_kinds) values (%s, %s, %s, %s, 'project_match', %s)",
-            (user, chip, item, rank, kinds),
+            "insert into user_feed_entry (user_id, content_item_id, rank, "
+            "top_signal, reason_kinds) values (%s, %s, %s, 'project_match', %s)",
+            (user, item, rank, kinds),
         )
     found = store.github.project_note_candidates()
     assert found.get("tc10") == [items[1], items[0]]
@@ -394,8 +393,8 @@ def test_user_goal_concepts_include_projects_only_with_the_stack_goal(
         }
 
     conn.execute(
-        "insert into user_preferences (user_id, goals, topics, level, break_length) "
-        "values ('tc12', '{stay-sharp}', '{backend}', 'beginner', '3-8')"
+        "insert into user_preferences (user_id, goals, topics, level) "
+        "values ('tc12', '{stay-sharp}', '{backend}', 'beginner')"
     )
     assert goal_concepts() == set()
     conn.execute(

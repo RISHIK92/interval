@@ -1,4 +1,4 @@
-import { NOTE_MAX, type ReaderResponse } from "@interval/api-client";
+import { noteMax, type ReaderResponse } from "@interval/api-client";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -65,7 +65,6 @@ export default function ReaderScreen() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
   const [noteStatus, setNoteStatus] = useState<string | null>(null);
-  const [sectionNotesOpen, setSectionNotesOpen] = useState(false);
   const [rowStatus, setRowStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -279,7 +278,7 @@ export default function ReaderScreen() {
           <TextInput
             accessibilityLabel="Your note"
             multiline
-            maxLength={NOTE_MAX}
+            maxLength={noteMax(page.note)}
             value={note}
             onChangeText={(text) => {
               setNote(text);
@@ -373,32 +372,6 @@ export default function ReaderScreen() {
           )}
         </View>
       </View>
-      {/* ADR-0058: notes written on a section before it, folded away below the row. */}
-      {page.sectionNotes.length === 0 ? null : (
-        <View style={styles.sectionNotes}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: sectionNotesOpen }}
-            onPress={() => {
-              setSectionNotesOpen(!sectionNotesOpen);
-            }}
-          >
-            <Text style={{ color: c["ink-muted"] }}>
-              {`Notes on sections (${String(page.sectionNotes.length)})`}
-            </Text>
-          </Pressable>
-          {sectionNotesOpen
-            ? page.sectionNotes.map((n, i) => (
-                <View key={i}>
-                  <Text style={[styles.strong, { color: c.ink }]}>
-                    {n.sectionTitle}
-                  </Text>
-                  <Text style={{ color: c["ink-muted"] }}>{n.body}</Text>
-                </View>
-              ))
-            : null}
-        </View>
-      )}
     </View>
   );
 }
@@ -557,7 +530,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   footer: { borderTopWidth: 1, paddingHorizontal: 16, paddingVertical: 8 },
   end: { marginLeft: "auto", flexDirection: "row", gap: 8 },
-  sectionNotes: { paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
   round: {
     width: 36,
     height: 36,

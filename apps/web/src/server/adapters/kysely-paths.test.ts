@@ -278,9 +278,8 @@ test("the timeline ticks completed readings and opens only the first section", a
   });
 });
 
-// ADR-0058: two moments of one article in a section became two sessions of the same
-// article; the list counts it once there (a backstop to the worker's dedupe), though
-// another section may teach it again.
+// An article twice in a section counts once there (a backstop to the worker's
+// dedupe), though another section may teach it again.
 test("an article counts once per section in a path's readings and minutes", async () => {
   await inRollback(async (trx, { userId, items }) => {
     const [a1, , a2] = items;
@@ -489,10 +488,10 @@ test("a session swaps for another article on its concepts, and falls back when t
     expect(
       await trx
         .selectFrom("user_path_session")
-        .select(["content_item_id", "moment_id"])
+        .select("content_item_id")
         .where("user_id", "=", userId)
         .execute(),
-    ).toEqual([{ content_item_id: onC1, moment_id: null }]);
+    ).toEqual([{ content_item_id: onC1 }]);
     const titles = async () =>
       (await paths.path(userId, live))?.sections[0]?.readings.map((r) => [
         r.ordinal,
@@ -848,7 +847,6 @@ test("paths carry their topic and whether they fit the user's goal", async () =>
         goals: ["system-design-interviews"],
         topics: ["backend"],
         level: "beginner",
-        break_length: "3-8",
       })
       .execute();
     // Both paths' first sections teach Concept 1.

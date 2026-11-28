@@ -156,8 +156,8 @@ def test_a_waiting_question_its_thread_level_and_stack(
 ) -> None:
     user(conn, "ask-u2")
     conn.execute(
-        "insert into user_preferences (user_id, goals, topics, level, break_length) "
-        "values ('ask-u2', '{stay-sharp}', '{databases}', 'advanced', '3-8')"
+        "insert into user_preferences (user_id, goals, topics, level) "
+        "values ('ask-u2', '{stay-sharp}', '{databases}', 'advanced')"
     )
     tech = conn.execute(
         "insert into technology (slug, name, source) values "

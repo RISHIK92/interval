@@ -100,22 +100,11 @@ test("an item reads back with its sections and the model's tags", async () => {
   });
 });
 
-// ADR-0058: the whole article's override only; a section's row left from before is
-// neither read nor touched (stage C folds it in).
+// ADR-0058: one override per article.
 test("the article's override is written, replaced and cleared", async () => {
   await rolledBack(async (trx) => {
     const id = await seed(trx);
     const review = kyselyAdminReview(trx);
-    await trx
-      .insertInto("tag_override")
-      .values({
-        content_item_id: id,
-        heading: "Setup",
-        difficulty: "advanced",
-        concepts: [],
-        updated_by: "admin-0",
-      })
-      .execute();
     await review.setTags(
       id,
       { difficulty: "advanced", concepts: [] },
@@ -135,10 +124,10 @@ test("the article's override is written, replaced and cleared", async () => {
     expect(
       await trx
         .selectFrom("tag_override")
-        .select("heading")
+        .select("content_item_id")
         .where("content_item_id", "=", id)
         .execute(),
-    ).toEqual([{ heading: "Setup" }]);
+    ).toEqual([]);
     expect(await review.recent(500)).toEqual(
       expect.arrayContaining([expect.objectContaining({ id, reports: [] })]),
     );

@@ -7,12 +7,7 @@ import type { Actor, ReaderPage } from "../../../../server/ports";
 // always the whole article.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const reader = vi.fn<() => Promise<ReaderPage | null>>();
-const onItems = vi.fn(() =>
-  Promise.resolve([
-    { itemId: "5", sectionTitle: null, body: "Mine." },
-    { itemId: "5", sectionTitle: "Leader election", body: "Terms." },
-  ]),
-);
+const onItems = vi.fn(() => Promise.resolve([{ itemId: "5", body: "Mine." }]));
 const countOpen = vi.fn(() => Promise.resolve());
 const offered = vi.fn(() => Promise.resolve(new Set(["5"])));
 const emit = vi.fn();
@@ -74,8 +69,6 @@ test("a feed card's open: the article, attributed, in the app even if it can't b
     saved: true,
     state: "continue_reading",
     note: "Mine.",
-    // ADR-0058: notes written on a section before it, under the article.
-    sectionNotes: [{ sectionTitle: "Leader election", body: "Terms." }],
     testable: true,
     listen: true,
     // P4-W20-S03: the whole page, read through for about its minutes.

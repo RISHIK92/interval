@@ -4,8 +4,8 @@ import type { Transaction } from "kysely";
 
 // Tests that need a whole match or sprint of live multiple-choice questions seed them
 // here: a fresh database (CI) has none, so leaning on whatever a local one holds hid
-// failures. ADR-0058: all on one article of a full-text source, with no moment, as
-// the worker now drafts them.
+// failures. ADR-0058: all on one article of a full-text source, as the worker drafts
+// them.
 export async function seedLiveQuestions(
   trx: Transaction<DB>,
   count: number,

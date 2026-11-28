@@ -139,23 +139,17 @@ def test_the_digest_counts_what_isnt_opened_or_finished(
 ) -> None:
     a_user(conn, "rm5")
     conn.execute(
-        "insert into user_preferences (user_id, goals, topics, level, break_length) "
-        "values ('rm5', '{stay-sharp}', '{backend}', 'beginner', '3-8')"
+        "insert into user_preferences (user_id, goals, topics, level) "
+        "values ('rm5', '{stay-sharp}', '{backend}', 'beginner')"
     )
     source = _source(conn, "rmfeed")
     items = [_article(conn, source, n) for n in ("a", "b", "c")]
     for rank, item in enumerate(items):
         conn.execute(
-            "insert into user_feed_entry (user_id, chip, content_item_id, rank,"
-            " top_signal) values ('rm5', '3-8', %s, %s, 'topic')",
+            "insert into user_feed_entry (user_id, content_item_id, rank,"
+            " top_signal) values ('rm5', %s, %s, 'topic')",
             (item, rank + 1),
         )
-    # A list of before ADR-0058, under another chip, is no longer read.
-    conn.execute(
-        "insert into user_feed_entry (user_id, chip, content_item_id, rank,"
-        " top_signal) values ('rm5', '8-15', %s, 1, 'topic')",
-        (items[2],),
-    )
     store = PostgresReminders(conn)
     assert store.digest("rm5") == PushNotice(
         "digest", "Your break is ready", "3 new: Article a", "/"
@@ -185,16 +179,16 @@ def test_the_digest_never_names_a_broken_link(
 ) -> None:
     a_user(conn, "rm7")
     conn.execute(
-        "insert into user_preferences (user_id, goals, topics, level, break_length) "
-        "values ('rm7', '{stay-sharp}', '{backend}', 'beginner', '3-8')"
+        "insert into user_preferences (user_id, goals, topics, level) "
+        "values ('rm7', '{stay-sharp}', '{backend}', 'beginner')"
     )
     source = _source(conn, "rmgate")
     broken_item = _article(conn, source, "broken")
     item = _article(conn, source, "ok")
     for rank, i in enumerate([broken_item, item]):
         conn.execute(
-            "insert into user_feed_entry (user_id, chip, content_item_id, rank,"
-            " top_signal) values ('rm7', '3-8', %s, %s, 'topic')",
+            "insert into user_feed_entry (user_id, content_item_id, rank,"
+            " top_signal) values ('rm7', %s, %s, 'topic')",
             (i, rank + 1),
         )
     conn.execute(

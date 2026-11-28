@@ -31,8 +31,6 @@ async function inRollback(
           name: `lib-${randomUUID()}`,
           feed_url: "https://lib.example.test/feed.xml",
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();

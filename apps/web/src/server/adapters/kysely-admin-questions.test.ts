@@ -32,8 +32,6 @@ async function inRollback(
           name: `aq-${randomUUID()}`,
           feed_url: "https://aq.example.test/feed.xml",
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -47,23 +45,12 @@ async function inRollback(
         })
         .returning("id")
         .executeTakeFirstOrThrow();
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 0,
-          title: "Raft",
-          estimated_minutes: 3,
-          link: "https://aq.example.test/post#raft",
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
       const question = (ordinal: number, status: "live" | "flagged") =>
         trx
           .insertInto("question")
           .values({
-            moment_id: moment.id,
+            content_item_id: item.id,
+            article_ordinal: ordinal,
             ordinal,
             stem: `Question ${String(ordinal)}?`,
             options: ["right", "w1", "w2", "w3"],
@@ -110,7 +97,7 @@ test("the queue lists undecided reviews with the question, its key and its artic
       validatorAnswer: 0,
       citation: "Raft elects a leader.",
       articleTitle: "Consensus in practice",
-      // ADR-0058: the article's own page, not the moment-era section's anchor.
+      // ADR-0058: the article's own page.
       link: "https://aq.example.test/post",
     });
   });
@@ -210,7 +197,7 @@ test("a hand-written estimate is stored live with its concepts and source", asyn
       difficulty: "intermediate",
       options: null,
       correct: null,
-      moment_id: null,
+      content_item_id: null,
       generator_model: null,
     });
     const concepts = await trx
@@ -277,7 +264,9 @@ test("an estimate in the queue shows its answer, unit and source; Keep and Retir
       .set({
         source_url: null,
         source_title: null,
-        moment_id: sql<string>`(select moment_id from question where id = ${sampled})`,
+        content_item_id: sql<string>`(select content_item_id from question where id = ${sampled})`,
+        // The article's estimates take their own slots; this is the only one.
+        article_ordinal: 0,
         generator_model: "m",
         prompt_version: 1,
         content_hash: "h",

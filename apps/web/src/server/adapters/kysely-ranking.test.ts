@@ -57,8 +57,7 @@ const parts = {
   penalty: 0.25,
 };
 
-// ADR-0058: the one list of articles, FEED_CHIP's; another chip's entries and a moment
-// entry stored before the switch are not the feed.
+// ADR-0058: the one list of articles; another user's entries are not this feed.
 test("entries show the user's own feed in rank order, with each breakdown", async () => {
   await rolledBack(async (trx) => {
     const tag = randomUUID().slice(0, 8);
@@ -68,8 +67,6 @@ test("entries show the user's own feed in rank order, with each breakdown", asyn
         name: `rank-${tag}`,
         feed_url: `https://rank-${tag}.example.test/feed`,
         rights_profile: "full_text_internal",
-        moments_seeded: true,
-        moments_enabled: true,
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -80,18 +77,6 @@ test("entries show the user's own feed in rank order, with each breakdown", asyn
         guid: "g1",
         canonical_url: `https://rank-${tag}.example.test/post`,
         title: "Consensus in practice",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-    const moment = await trx
-      .insertInto("moment")
-      .values({
-        content_item_id: item.id,
-        ordinal: 0,
-        title: "Raft in one page",
-        estimated_minutes: 3,
-        link: `https://rank-${tag}.example.test/post#raft`,
-        link_type: "anchor",
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -110,27 +95,21 @@ test("entries show the user's own feed in rank order, with each breakdown", asyn
     await trx
       .insertInto("user_feed_entry")
       .values([
-        { ...entry, user_id: me, chip: "3-8", rank: 3, moment_id: moment.id },
         {
           content_item_id: second.id,
           top_signal: "quality",
           user_id: me,
-          chip: "3-8",
           rank: 2,
-          moment_id: null,
         },
         {
           ...entry,
           user_id: me,
-          chip: "3-8",
           rank: 1,
-          moment_id: null,
           explore_kind: "topic",
           explore_arm: "backend",
           score_parts: JSON.stringify(parts),
         },
-        { ...entry, user_id: me, chip: "1-3", rank: 1, moment_id: moment.id },
-        { ...entry, user_id: other, chip: "3-8", rank: 1, moment_id: null },
+        { ...entry, user_id: other, rank: 1 },
       ])
       .execute();
     expect(await kyselyRanking(trx).entries(me)).toEqual([
@@ -181,10 +160,8 @@ test("a breakdown in an older shape reads as none, not a broken page", async () 
       .insertInto("user_feed_entry")
       .values({
         user_id: me,
-        chip: "3-8",
         rank: 1,
         content_item_id: item.id,
-        moment_id: null,
         top_signal: "quality",
         score_parts: JSON.stringify({ values: {} }),
       })

@@ -10,7 +10,7 @@ export const messageSchemas = {
   answer_interviewer: z.strictObject({
     question_id: z.number().int().min(1),
   }),
-  // Answer an Explore question from the user's catalogue: retrieve moments, call ASK_MODEL through the gateway, validate and store the answer (ADR-0046).
+  // Answer an Explore question from the user's catalogue: retrieve readings, call ASK_MODEL through the gateway, validate and store the answer (ADR-0046).
   ask: z.strictObject({
     question_id: z.string().min(1),
   }),

@@ -17,7 +17,6 @@ from interval_db.generated import (
     AiFeature,
     AiProvider,
     BetaGroup,
-    BreakLength,
     Capability,
     ConceptEdgeType,
     Difficulty,
@@ -287,10 +286,6 @@ class RankedEntry:
     difficulty: "Difficulty | None" = None
 
 
-# ADR-0058: one list until stage C drops the chip column.
-FEED_CHIP: BreakLength = "3-8"
-
-
 class Feed(Protocol):
     """Precomputed feeds (CACHE-1, Q-P1-17): the worker writes them, the web reads."""
 
@@ -434,9 +429,49 @@ class ItemDecisions:
     article has only its own pass (ADR-0058); a book chapter has one per session."""
 
     # section id -> (difficulty score, concept slug -> probability)
-    moments: dict[int, tuple[float, dict[str, float]]]
+    sessions: dict[int, tuple[float, dict[str, float]]]
     item: dict[str, float]  # the title/summary pass: concept slug -> probability
     item_difficulty: float | None = None  # the title/summary pass's score
+    # Some answer was asked about the full text (ING-2: a rights purge deletes it).
+    from_full_text: bool = False
+    # An article's moments' answers, folded into it (ADR-0058, article_decisions): read
+    # as its sections by the rollup's rules, never tagged themselves.
+    folded: dict[int, tuple[float, dict[str, float]]] = field(
+        default_factory=dict[int, tuple[float, dict[str, float]]]
+    )
+
+
+MOMENT_TAGS = "moments:tags"
+# A decision row as stored: its difficulty, its probabilities by concept slug, and
+# whether it was asked about the full text.
+DecisionRow = tuple[float, dict[str, float], bool]
+
+
+def article_decisions(model: str, rows: dict[str, DecisionRow]) -> ItemDecisions:
+    """An article's answers for the rollup, from its decision rows by key: the model's
+    own pass, and (ADR-0058) its moments' answers folded in under their own keys by the
+    contract migration, read as its sections: each moment's ('moments:<model>:<n>'),
+    else stage A's per-article copy ('moments:<model>', when the moments had been
+    re-segmented away), and the moments' tags that had no answers behind them
+    ('moments:tags', at probability 1)."""
+    prefix = f"moments:{model}:"
+    used = {
+        key: int(key.removeprefix(prefix))
+        for key in rows
+        if key.startswith(prefix) and key.removeprefix(prefix).isdigit()
+    }
+    if not used and f"moments:{model}" in rows:
+        used[f"moments:{model}"] = -1
+    if MOMENT_TAGS in rows:
+        used[MOMENT_TAGS] = -2
+    own = rows.get(model)
+    return ItemDecisions(
+        {},
+        {} if own is None else own[1],
+        None if own is None else own[0],
+        any(rows[k][2] for k in [*used, *([model] if own else [])]),
+        {n: (rows[k][0], rows[k][1]) for k, n in used.items()},
+    )
 
 
 @dataclass(frozen=True)
@@ -600,8 +635,8 @@ class Questions(Protocol):
 
     def targets(self, item_id: int | None) -> list[int]:
         """The item if it is a target to draft for; every one when item_id is None.
-        An article whose questions were carried over from its moments (ADR-0058
-        stage A) is drafted already: those are its questions, never redrafted."""
+        An article whose questions were carried over from its moments (ADR-0058,
+        from_moments) is drafted already: those are its questions, never redrafted."""
         ...
 
     def drafted_hash(self, item_id: int) -> str | None:
@@ -658,7 +693,8 @@ class Questions(Protocol):
     # P2-W8-S02 (Q-1): the blind validator.
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
         """A multiple-choice question still waiting for its verdict, with its article
-        (a moment-era one's too); None once validated, retired, or gone."""
+        (one carried over from its moments too); None once validated, retired, or
+        gone."""
         ...
 
     def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
@@ -807,7 +843,7 @@ class Questions(Protocol):
 class Decisions(Protocol):
     """A decision model's raw answers, kept so cut-offs can be retuned without asking
     again; each with the hash of what was asked about. One pass per article
-    (ADR-0058); the moments' answers stay in their own rows until stage C."""
+    (ADR-0058)."""
 
     def item_hash(self, item_id: int, model: str) -> str | None: ...
 
@@ -818,10 +854,16 @@ class Decisions(Protocol):
         content_hash: str,
         difficulty: float,
         probabilities: dict[str, float],
-    ) -> None: ...
+        *,
+        from_full_text: bool,
+    ) -> None:
+        """Replaces the model's answers for the article; `from_full_text` when it was
+        asked about the full text (ING-2: a rights purge deletes them)."""
+        ...
 
     def read(self, item_id: int, model: str) -> ItemDecisions:
-        """The article's own pass; no per-section answers."""
+        """The article's own pass, and the answers its moments had (ADR-0058,
+        article_decisions) as `folded`. No per-section answers."""
         ...
 
 
@@ -853,7 +895,7 @@ class Concepts(Protocol):
 
 
 @dataclass(frozen=True)
-class TagMoment:
+class TagSession:
     """A part of the text tagged on its own: a book chapter's session (an article has
     none, ADR-0058)."""
 
@@ -870,7 +912,7 @@ class TagInput:
     summary: str | None
     full_text: str | None  # only under the source's current full-text rights (ING-2)
     excerpt: str | None  # only under the excerpt profile ("for tagging", Q-P1-01)
-    moments: list[TagMoment]  # a book chapter's sessions; none for an article
+    sessions: list[TagSession]  # a book chapter's sessions; none for an article
     tagged_version: int | None  # prompt version it was last tagged with
     duplicate: bool  # tag the primary only (AI-4: once per item)
 
@@ -884,7 +926,9 @@ class Tags:
 @dataclass(frozen=True)
 class TagResult:
     item: Tags
-    moments: dict[int, Tags]  # a book chapter's sessions by id; none for an article
+    sessions: dict[int, Tags]  # a book chapter's sessions by id; none for an article
+    # Derived from the full text (ING-2: a rights purge deletes the tags).
+    from_full_text: bool = False
 
 
 class ItemTags(Protocol):
@@ -934,7 +978,7 @@ class ItemEmbeddings(Protocol):
 
     def vector(self, item_id: int, model: str) -> list[float] | None:
         """The item's vector from this model (ranking's anchors); None without one
-        (an article whose moments' mean was purged with them has none)."""
+        (an article whose vector a rights purge deleted has none)."""
         ...
 
     def similar(

@@ -43,7 +43,6 @@ test("a reader answer is an article", () => {
     saved: false,
     state: "unread",
     note: null,
-    sectionNotes: [{ sectionTitle: "Leader election", body: "terms" }],
     testable: true,
     listen: false,
     measure: { minutes: 12 },

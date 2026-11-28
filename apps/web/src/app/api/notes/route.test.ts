@@ -4,8 +4,10 @@ import type { Actor } from "../../../server/ports";
 // P4-W20-S02 (§5I): the app's note on what the reader shows; empty deletes it.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const writeNote = vi.fn(() => Promise.resolve());
+const get = vi.fn(() => Promise.resolve<string | null>(null));
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
+  notes: () => ({ get }),
 }));
 vi.mock("../../../server/note-writes", () => ({ writeNote }));
 vi.mock("../../../env", () => ({
@@ -59,4 +61,13 @@ test("a guest, another site, or a note too long: refused", async () => {
   expect((await put({ itemId: "5", body: "x" }, {})).status).toBe(403);
   expect((await put({ itemId: "5", body: "x".repeat(2001) })).status).toBe(400);
   expect(writeNote).not.toHaveBeenCalled();
+});
+
+// ADR-0058: a joined note longer than 2000 is edited up to its own length.
+test("a stored note longer than 2000 may be saved at its own length", async () => {
+  current.mockResolvedValue(account);
+  get.mockResolvedValue("s".repeat(3000));
+  expect((await put({ itemId: "5", body: "x".repeat(3000) })).status).toBe(204);
+  expect((await put({ itemId: "5", body: "x".repeat(3001) })).status).toBe(400);
+  expect(get).toHaveBeenCalledWith("u1", "5");
 });

@@ -1,6 +1,6 @@
 """Concept tagging and difficulty (AI-2..AI-5, Q-P1-10, P1-W3-S02): one gateway call per
 article, tagged whole (ADR-0058), answers checked against the concept list, never
-stored with source text. moment_texts cuts a book chapter's sessions."""
+stored with source text. session_texts cuts a book chapter's sessions."""
 
 import json
 import re
@@ -19,10 +19,10 @@ from interval_jobs.ports import (
     Embeddings,
     Message,
     TagInput,
-    TagMoment,
     Tags,
+    TagSession,
 )
-from interval_jobs.tagging import Tagged, TaggingError, moment_texts, tag_item
+from interval_jobs.tagging import Tagged, TaggingError, session_texts, tag_item
 
 TEXT = """Intro paragraph about logs.
 Why a log
@@ -31,9 +31,9 @@ Recovery
 Replay the log after a crash.
 """
 SECTIONS = [
-    TagMoment(id=10, ordinal=0, heading=None),
-    TagMoment(id=11, ordinal=1, heading="Why a log"),
-    TagMoment(id=12, ordinal=2, heading="Recovery"),
+    TagSession(id=10, ordinal=0, heading=None),
+    TagSession(id=11, ordinal=1, heading="Why a log"),
+    TagSession(id=12, ordinal=2, heading="Recovery"),
 ]
 GRAPH = parse_concepts(
     "version: 1\nconcepts:\n"
@@ -50,7 +50,7 @@ def item(full_text: str | None = TEXT, excerpt: str | None = None) -> TagInput:
         summary="A tour of the write-ahead log.",
         full_text=full_text,
         excerpt=excerpt,
-        moments=[],
+        sessions=[],
         tagged_version=None,
         duplicate=False,
     )
@@ -91,7 +91,7 @@ def tagged(result: Tagged | OverBudget) -> Tagged:
 
 
 def test_each_section_gets_the_text_under_its_heading() -> None:
-    texts = moment_texts(TEXT, SECTIONS)
+    texts = session_texts(TEXT, SECTIONS)
     assert texts == {
         10: "Intro paragraph about logs.",
         11: "Writes go to the log first.",
@@ -105,10 +105,10 @@ def test_headings_with_permalink_glyphs_are_found_in_real_extractor_output() -> 
 <h2 id="b">Recovery <a href="#b">\xc2\xb6</a></h2><p>Replay after a crash.</p>
 </article></body></html>"""
     sections = extract_sections(page, "utf-8", "T")
-    parts = [TagMoment(10, 0, None)] + [
-        TagMoment(11 + i, i + 1, s.heading) for i, s in enumerate(sections[1:])
+    parts = [TagSession(10, 0, None)] + [
+        TagSession(11 + i, i + 1, s.heading) for i, s in enumerate(sections[1:])
     ]
-    texts = moment_texts(extract_text(page, "utf-8"), parts)
+    texts = session_texts(extract_text(page, "utf-8"), parts)
     assert texts[11] == "Writes go first."
     assert texts[12] == "Replay after a crash."
 
@@ -116,16 +116,18 @@ def test_headings_with_permalink_glyphs_are_found_in_real_extractor_output() -> 
 def test_a_section_whose_heading_is_missing_is_left_out(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    lost = [*SECTIONS, TagMoment(13, 3, "Not in the text")]
-    assert 13 not in moment_texts(TEXT, lost)
-    assert "tagging: moment heading not in the text" in capsys.readouterr().out
+    lost = [*SECTIONS, TagSession(13, 3, "Not in the text")]
+    assert 13 not in session_texts(TEXT, lost)
+    assert "tagging: session heading not in the text" in capsys.readouterr().out
 
 
 def test_the_article_is_tagged_whole_from_its_fenced_text() -> None:
     llm = ScriptedLlm(answer())
     result = tagged(tag_item(gateway(llm), "small-model", item(), GRAPH))
     assert result.result.item == Tags("intermediate", frozenset({"write-ahead-log"}))
-    assert result.result.moments == {}
+    assert result.result.sessions == {}
+    # ING-2: read off the full text, so a rights purge takes the tags.
+    assert result.result.from_full_text is True
     assert result.cost_usd == Decimal("0.002")
     prompt = llm.prompts[0][-1]["content"]
     assert "write-ahead-log" in prompt
@@ -148,7 +150,8 @@ def test_an_item_without_body_text_is_tagged_from_title_summary_and_excerpt() ->
     result = tagged(
         tag_item(gateway(llm), "m", item(None, excerpt="Logs first."), GRAPH)
     )
-    assert result.result.moments == {}
+    assert result.result.sessions == {}
+    assert result.result.from_full_text is False
     prompt = llm.prompts[0][-1]["content"]
     assert "A tour of the write-ahead log." in prompt and "Logs first." in prompt
     assert "<text-" not in prompt
@@ -159,7 +162,7 @@ def test_an_item_without_body_text_is_tagged_from_title_summary_and_excerpt() ->
     [
         "not json at all",
         {"item": {"difficulty": "expert", "concepts": []}},
-        {"moments": []},
+        {"sections": []},
         {"item": "intermediate"},
     ],
 )

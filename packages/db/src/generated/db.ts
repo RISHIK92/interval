@@ -23,8 +23,6 @@ export type BookCheckpointStatus = "failed" | "preparing" | "ready";
 
 export type BookStatus = "failed" | "ocr" | "processing" | "ready";
 
-export type BreakLength = "1-3" | "3-8" | "8-15";
-
 export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "explore.ask" | "explore.ask.daily" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.hld" | "play.league" | "play.live" | "play.sprint" | "push.notify" | "questions.submit" | "questions.submit.daily";
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
@@ -66,8 +64,6 @@ export type LearnerState = "due_for_review" | "explored" | "mastered" | "practic
 export type LearningGoal = "finish-that-book" | "stack-i-use" | "stay-sharp" | "system-design-interviews";
 
 export type LldDifficulty = "easy" | "hard" | "medium";
-
-export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 
 export type Numeric = ColumnType<string, number | string, number | string>;
 
@@ -919,6 +915,7 @@ export interface ItemDecision {
   content_item_id: Int8;
   decided_at: Generated<Timestamp>;
   difficulty: number;
+  from_full_text: Generated<boolean>;
   model: string;
 }
 
@@ -939,6 +936,7 @@ export interface ItemFeedback {
 export interface ItemTagging {
   content_item_id: Int8;
   difficulty: Difficulty;
+  from_full_text: Generated<boolean>;
   model: string;
   prompt_version: number;
   tagged_at: Generated<Timestamp>;
@@ -1066,58 +1064,6 @@ export interface LldProblem {
   visible: Json;
 }
 
-export interface Moment {
-  content_item_id: Int8;
-  created_at: Generated<Timestamp>;
-  estimated_minutes: number;
-  id: Generated<Int8>;
-  link: string;
-  link_type: MomentLinkType;
-  ordinal: number;
-  oversized: Generated<boolean>;
-  search_vector: Generated<string | null>;
-  title: string;
-}
-
-export interface MomentBoundaryOverride {
-  content_item_id: Int8;
-  headings: string[];
-  updated_at: Generated<Timestamp>;
-  updated_by: string;
-}
-
-export interface MomentConcept {
-  concept_id: Int8;
-  moment_id: Int8;
-}
-
-export interface MomentConceptProbability {
-  concept_id: Int8;
-  model: string;
-  moment_id: Int8;
-  probability: number;
-}
-
-export interface MomentDecision {
-  content_hash: string;
-  decided_at: Generated<Timestamp>;
-  difficulty: number;
-  model: string;
-  moment_id: Int8;
-}
-
-export interface MomentEmbedding {
-  embedded_at: Generated<Timestamp>;
-  embedding: string;
-  model: string;
-  moment_id: Int8;
-}
-
-export interface MomentTagging {
-  difficulty: Difficulty;
-  moment_id: Int8;
-}
-
 export interface Path {
   created_at: Generated<Timestamp>;
   decided_at: Timestamp | null;
@@ -1142,7 +1088,6 @@ export interface PathSectionConcept {
 
 export interface PathSession {
   content_item_id: Int8;
-  moment_id: Int8 | null;
   ordinal: number;
   section_id: Int8;
 }
@@ -1257,10 +1202,10 @@ export interface Question {
   correct_count: Generated<number>;
   created_at: Generated<Timestamp>;
   difficulty: Difficulty | null;
+  from_moments: Generated<boolean>;
   generator_model: string | null;
   id: Generated<Int8>;
   kind: Generated<QuestionKind>;
-  moment_id: Int8 | null;
   options: string[] | null;
   ordinal: number;
   prompt_version: number | null;
@@ -1292,7 +1237,6 @@ export interface QuestionBatchItem {
   content_item_id: Int8 | null;
   custom_id: string;
   kind: Generated<QuestionKind>;
-  moment_id: Int8 | null;
   question_id: Int8 | null;
   result: string | null;
 }
@@ -1304,15 +1248,14 @@ export interface QuestionConcept {
 
 export interface QuestionDrafting {
   attempt: number;
-  content_item_id: Int8 | null;
-  moment_id: Int8 | null;
+  content_item_id: Int8;
   retry_at: Timestamp;
 }
 
 export interface QuestionEstimateDrafted {
   content_hash: string;
-  content_item_id: Int8 | null;
-  moment_id: Int8 | null;
+  content_item_id: Int8;
+  from_moments: Generated<boolean>;
 }
 
 export interface QuestionFlag {
@@ -1355,7 +1298,6 @@ export interface QuizAttempt {
   finished_at: Timestamp | null;
   id: Generated<Int8>;
   match_id: string | null;
-  moment_id: Int8 | null;
   pass_mark: Generated<number | null>;
   path_section_id: Int8 | null;
   review: Generated<boolean>;
@@ -1438,11 +1380,6 @@ export interface Source {
   feed_url: string;
   homepage: string | null;
   id: Generated<Int8>;
-  moments_enabled: Generated<boolean>;
-  moments_seeded: Generated<boolean>;
-  moments_switched_at: Timestamp | null;
-  moments_switched_by: string | null;
-  moments_switched_off: Generated<boolean>;
   name: string;
   next_poll_at: Generated<Timestamp>;
   paywalled: Generated<boolean>;
@@ -1454,11 +1391,9 @@ export interface Source {
 }
 
 export interface StarterFeedEntry {
-  chip: BreakLength;
   content_item_id: Int8;
   difficulty: Difficulty | null;
   level: Difficulty;
-  moment_id: Int8 | null;
   note_id: Int8 | null;
   rank: number;
   reason_kinds: Generated<string[]>;
@@ -1469,23 +1404,17 @@ export interface StarterFeedEntry {
 export interface StarterFeedVisible {
   article_title: string | null;
   author: string | null;
-  chip: BreakLength | null;
   content_item_id: Int8 | null;
   difficulty: Difficulty | null;
   estimated_minutes: number | null;
   frameable: boolean | null;
-  kind: string | null;
   level: Difficulty | null;
   link: string | null;
-  moment_id: Int8 | null;
   note_ai: boolean | null;
   note_text: string | null;
   rank: number | null;
   reason_kinds: string[] | null;
   reasons: string | null;
-  section_count: number | null;
-  section_number: number | null;
-  section_title: string | null;
   source_name: string | null;
   source_topic: Topic | null;
   topic: string | null;
@@ -1495,7 +1424,6 @@ export interface TagOverride {
   concepts: string[];
   content_item_id: Int8;
   difficulty: Difficulty;
-  heading: string;
   updated_at: Generated<Timestamp>;
   updated_by: string;
 }
@@ -1606,12 +1534,10 @@ export interface UserExploreOpen {
 }
 
 export interface UserFeedEntry {
-  chip: BreakLength;
   content_item_id: Int8;
   difficulty: Difficulty | null;
   explore_arm: string | null;
   explore_kind: string | null;
-  moment_id: Int8 | null;
   note_id: Int8 | null;
   rank: number;
   reason_kinds: Generated<string[]>;
@@ -1629,14 +1555,11 @@ export interface UserFeedState {
 export interface UserFeedVisible {
   article_title: string | null;
   author: string | null;
-  chip: BreakLength | null;
   content_item_id: Int8 | null;
   difficulty: Difficulty | null;
   estimated_minutes: number | null;
   frameable: boolean | null;
-  kind: string | null;
   link: string | null;
-  moment_id: Int8 | null;
   note_ai: boolean | null;
   note_text: string | null;
   project_note_repositories: string[] | null;
@@ -1644,9 +1567,6 @@ export interface UserFeedVisible {
   rank: number | null;
   reason_kinds: string[] | null;
   reasons: string | null;
-  section_count: number | null;
-  section_number: number | null;
-  section_title: string | null;
   source_name: string | null;
   source_topic: Topic | null;
   user_id: string | null;
@@ -1663,27 +1583,12 @@ export interface UserInferredReset {
   user_id: string;
 }
 
-export interface UserMomentFinished {
-  finished_at: Generated<Timestamp>;
-  method: FinishMethod;
-  moment_id: Int8;
-  user_id: string;
-}
-
-export interface UserMomentOpened {
-  moment_id: Int8;
-  opened_at: Generated<Timestamp>;
-  user_id: string;
-}
-
 export interface UserNote {
   body: string;
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
   id: Generated<Int8>;
-  moment_id: Int8 | null;
   search_vector: Generated<string | null>;
-  section_title: string | null;
   updated_at: Generated<Timestamp>;
   user_id: string;
 }
@@ -1707,14 +1612,12 @@ export interface UserPathSection {
 
 export interface UserPathSession {
   content_item_id: Int8;
-  moment_id: Int8 | null;
   ordinal: number;
   section_id: Int8;
   user_id: string;
 }
 
 export interface UserPreferences {
-  break_length: BreakLength;
   goals: ArrayType<LearningGoal>;
   level: Difficulty;
   onboarded_at: Generated<Timestamp>;
@@ -1834,13 +1737,6 @@ export interface DB {
   lld_practice_code: LldPracticeCode;
   lld_practice_counted: LldPracticeCounted;
   lld_problem: LldProblem;
-  moment: Moment;
-  moment_boundary_override: MomentBoundaryOverride;
-  moment_concept: MomentConcept;
-  moment_concept_probability: MomentConceptProbability;
-  moment_decision: MomentDecision;
-  moment_embedding: MomentEmbedding;
-  moment_tagging: MomentTagging;
   path: Path;
   path_section: PathSection;
   path_section_concept: PathSectionConcept;
@@ -1898,8 +1794,6 @@ export interface DB {
   user_feed_visible: UserFeedVisible;
   user_hidden_source: UserHiddenSource;
   user_inferred_reset: UserInferredReset;
-  user_moment_finished: UserMomentFinished;
-  user_moment_opened: UserMomentOpened;
   user_note: UserNote;
   user_path: UserPath;
   user_path_section: UserPathSection;

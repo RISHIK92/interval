@@ -37,8 +37,6 @@ async function inRollback(
           name: `prog-${randomUUID()}`,
           feed_url: "https://prog.example.test/feed.xml",
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -309,7 +307,6 @@ test("dismissing hides a continue card; opening the article again brings it back
 });
 
 // P1-W5-S03: outcomes of exploration (REC-4, P1-W4-S09), counted once per user and item.
-// ADR-0058: the stored feed is one list of article entries under FEED_CHIP.
 test("an explored entry's first open counts as shown, its first finish as finished", async () => {
   await inRollback(async (trx, { userId, itemId }) => {
     const progress = kyselyProgress(trx);
@@ -317,10 +314,8 @@ test("an explored entry's first open counts as shown, its first finish as finish
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
-        chip: "3-8",
         rank: 1,
         content_item_id: itemId,
-        moment_id: null,
         top_signal: "freshness",
         explore_kind: "topic",
         explore_arm: "test-arm",
@@ -345,30 +340,16 @@ test("an explored entry's first open counts as shown, its first finish as finish
   });
 });
 
-test("opening an entry that wasn't explored, or one in another chip's old list, counts nothing", async () => {
+test("opening an entry that wasn't explored counts nothing", async () => {
   await inRollback(async (trx, { userId, itemId }) => {
     await trx
       .insertInto("user_feed_entry")
-      .values([
-        {
-          user_id: userId,
-          chip: "3-8",
-          rank: 1,
-          content_item_id: itemId,
-          moment_id: null,
-          top_signal: "freshness",
-        },
-        {
-          user_id: userId,
-          chip: "8-15",
-          rank: 1,
-          content_item_id: itemId,
-          moment_id: null,
-          top_signal: "freshness",
-          explore_kind: "source",
-          explore_arm: "old-arm",
-        },
-      ])
+      .values({
+        user_id: userId,
+        rank: 1,
+        content_item_id: itemId,
+        top_signal: "freshness",
+      })
       .execute();
     await kyselyProgress(trx).countExploreOpen(userId, itemId);
     const opens = await trx
@@ -390,10 +371,8 @@ test("opens by another user add to the same arm's shown count", async () => {
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
-        chip: "3-8",
         rank: 1,
         content_item_id: itemId,
-        moment_id: null,
         top_signal: "freshness",
         explore_kind: "topic",
         explore_arm: "shared-arm",
@@ -571,7 +550,6 @@ test("retired concepts credit nothing; an admin's whole-article correction, even
       .insertInto("tag_override")
       .values({
         content_item_id: itemId,
-        heading: "",
         difficulty: "beginner",
         concepts: [],
         updated_by: "admin",

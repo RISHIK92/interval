@@ -284,7 +284,6 @@ test("spaces count learners and this week's unopened items per topic", async () 
         goals: ["stay-sharp"],
         topics: ["backend"],
         level: "beginner",
-        break_length: "3-8",
       })
       .execute();
     const src = await source(trx, { topics: ["backend"] });

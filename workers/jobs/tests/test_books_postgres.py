@@ -273,7 +273,7 @@ def test_a_checkpoint_is_read_while_preparing_and_saved_ready_with_its_concepts(
         (chapter_id,),
     ).fetchone() == ("ready", None)
     rows = conn.execute(
-        "select q.moment_id, q.ordinal, q.status, q.validator_answer, "
+        "select q.content_item_id, q.ordinal, q.status, q.validator_answer, "
         "array(select c.slug from question_concept qc join concept c "
         "on c.id = qc.concept_id where qc.question_id = q.id) "
         "from question q where q.book_chapter_id = %s order by q.ordinal",

@@ -17,7 +17,7 @@ import {
 // the catalogue, so the answer row never holds a title or a passage.
 
 // What the worker writes (interval_jobs.ask): ids as strings. ADR-0058: a reading is
-// its article; a moment_id written before it is ignored (zod drops it).
+// its article.
 const StoredCitation = z.union([
   z.object({ passage: z.string(), item_id: z.string() }),
   z.object({ passage: z.string(), concept_id: z.string() }),

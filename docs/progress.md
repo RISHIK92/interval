@@ -6261,3 +6261,26 @@ The owner said to continue building overnight with recommended answers, switchin
   - Change `quiz_attempt.moment_id`'s cascade.
   - Drop the stage A triggers, the moment tables, the chip column and `break_length`.
   - Queue `recompute-due` after migrating.
+
+## 2026-11-28: ADR-0058 stage C, contract (moments and chips dropped)
+
+- **Migration** `20261128000000_articles_contract.sql`. It cannot be reversed: its down raises, so the way back is a backup. It folds all moment-era data into articles first, then drops:
+  - the moment tables, `user_moment_*` and `moment_boundary_override`;
+  - the `source.moments_*` columns;
+  - the chip columns and the `break_length` enum;
+  - the `weight.time_fit` ranking row;
+  - the stage A triggers.
+- **Tags:** section answers are kept as their own rows, marked `from_full_text`. The rollup applies the old section rules to them, and the ING-2 purge deletes full-text-derived tags, chat-tagger ones included.
+- **Questions:** `from_moments` marks carried-over questions, which are never redrafted or retired.
+- **Notes:** section notes are joined into the article note. `noteMax` lets a long joined note be edited without being cut.
+- **Quiz attempts** move to their article, with no answers lost.
+- **`daily_challenge_fit`** now picks article questions.
+- **Code:** no reader or writer uses moments, chips or `FEED_CHIP` any more. Book tagging internals are renamed to sessions.
+- **Counts on `interval_mac`:** unchanged for questions (1024), quiz answers (48), quiz attempts (19), opens (19), finishes (2), embeddings (524) and `item_concept` (578). Only feed-cache rows were trimmed; `recompute-due` rebuilds them.
+- **Backups:** `<db>-before-contract*.dump` in the session scratchpad.
+- **Checks:** `pnpm check` passes, 68 of 68 tasks. Two reviews were done and all their findings fixed. The stage A and B migration tests are deleted, since their down steps can no longer run.
+- **For the owner:**
+  - Accept ADR-0058.
+  - Drop the scratch DB `review_c`; the permission check blocked it.
+  - CLAUDE.md still lists `segment-item` and `check-links`.
+  - Run `recompute-due` wherever this migration is applied.

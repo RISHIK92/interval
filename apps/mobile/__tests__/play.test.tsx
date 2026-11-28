@@ -204,7 +204,6 @@ const article = {
   saved: false,
   state: "continue_reading",
   note: null,
-  sectionNotes: [],
   testable: true,
   listen: false,
   measure: null,

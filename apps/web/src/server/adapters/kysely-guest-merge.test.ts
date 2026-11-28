@@ -76,8 +76,6 @@ async function inRollback(
           name: `merge-${randomUUID()}`,
           feed_url: `https://merge.example.test/${randomUUID()}.xml`,
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -91,23 +89,12 @@ async function inRollback(
         })
         .returning("id")
         .executeTakeFirstOrThrow();
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 0,
-          title: "Merge",
-          estimated_minutes: 3,
-          link: "https://merge.example.test/post#merge",
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
       const questions = await trx
         .insertInto("question")
         .values(
           [0, 1, 2].map((ordinal) => ({
-            moment_id: moment.id,
+            content_item_id: item.id,
+            article_ordinal: ordinal,
             ordinal,
             stem: `q${String(ordinal)}`,
             options: ["right", "w1", "w2", "w3"],

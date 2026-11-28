@@ -135,7 +135,7 @@ def test_tagging_queues_a_tagged_articles_questions_and_they_are_drafted_once() 
         sections = len(world.store.items.rows[item_id].sections)
         mine = sorted(q.ordinal for q in saved if q.item_id == item_id)
         assert mine == list(range(min(8, 2 * max(1, sections))))
-    assert all(q.moment_id is None for q in saved)
+    assert not any(q.from_moments for q in saved)
     # Queued again (a re-tag, a backfill): same text, same prompt, no new call.
     for item_id in items:
         world.queue.enqueue(
@@ -182,7 +182,7 @@ def test_an_article_with_questions_carried_over_from_its_moments_is_not_drafted(
             1,
             "moment-hash",
             status="live",
-            moment_id=7,
+            from_moments=True,
         )
     )
     world.queue.drop_pending("generate_questions")
@@ -243,25 +243,25 @@ def test_one_retry_chain_per_article_and_broken_replies_stop_after_five() -> Non
     world.discover()
     world.run_except("generate_questions")
     deliver_questions_once(world)
-    moments = {
+    articles = {
         m["content_item_id"]
         for _, m in world.queue.pending_messages("generate_questions")
     }
     calls = llm.question_calls
     # A backfill while each retry waits starts a second chain: dropped, no call.
-    for item_id in moments:
+    for item_id in articles:
         world.queue.enqueue(
             "generate_questions",
             {"content_item_id": item_id, "attempt": 0, "broken": 0},
             idempotency_key=f"backfill-{item_id}",
         )
     deliver_questions_once(world)
-    assert llm.question_calls == calls + len(moments)  # only the real retries ran
+    assert llm.question_calls == calls + len(articles)  # only the real retries ran
     for _ in range(10):
         deliver_questions_once(world)
     # Five broken replies each, then it gives up: nothing waits, nothing is saved.
     assert world.queue.pending("generate_questions") == 0
-    assert llm.question_calls == 5 * len(moments)
+    assert llm.question_calls == 5 * len(articles)
     assert world.store.questions.retries == {}
 
 

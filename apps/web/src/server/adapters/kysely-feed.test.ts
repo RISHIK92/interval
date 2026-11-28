@@ -25,11 +25,9 @@ type Seeded = {
   otherId: string;
   itemId: string;
   otherItemId: string;
-  momentId: string;
 };
 
-// One source, two items (the first with a moment left from before ADR-0058), and two
-// users (P1-W4-S04).
+// One source, two items, and two users (P1-W4-S04).
 async function seed(trx: Transaction<DB>): Promise<Seeded> {
   const source = await trx
     .insertInto("source")
@@ -37,8 +35,6 @@ async function seed(trx: Transaction<DB>): Promise<Seeded> {
       name: "webfeed-test",
       feed_url: "https://webfeed.example.test/feed.xml",
       rights_profile: "full_text_internal",
-      moments_seeded: true,
-      moments_enabled: true,
     })
     .returning("id")
     .executeTakeFirstOrThrow();
@@ -61,18 +57,6 @@ async function seed(trx: Transaction<DB>): Promise<Seeded> {
       guid: "g2",
       canonical_url: "https://webfeed.example.test/other",
       title: "Another post",
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  const moment = await trx
-    .insertInto("moment")
-    .values({
-      content_item_id: item.id,
-      ordinal: 0,
-      title: "Why consensus",
-      estimated_minutes: 2,
-      link: "https://webfeed.example.test/post",
-      link_type: "page_top",
     })
     .returning("id")
     .executeTakeFirstOrThrow();
@@ -104,7 +88,6 @@ async function seed(trx: Transaction<DB>): Promise<Seeded> {
     otherId,
     itemId: item.id,
     otherItemId: otherItem.id,
-    momentId: moment.id,
   };
 }
 
@@ -119,13 +102,11 @@ async function inRollback(
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-// ADR-0058: the worker stores one ranked list of articles under FEED_CHIP.
+// ADR-0058: the worker stores one ranked list of articles.
 const entry = (userId: string, itemId: string, rank: number) =>
   ({
     user_id: userId,
-    chip: "3-8",
     content_item_id: itemId,
-    moment_id: null,
     rank,
     top_signal: "quality",
   }) as const;
@@ -193,45 +174,6 @@ test("read returns the user's own article cards in rank order, in one query", as
   });
 });
 
-// ADR-0058: until stage C drops the chip column, only FEED_CHIP's article entries are
-// the feed; another chip's and a moment entry stored before the switch are not read.
-test("only the one list's article entries are read", async () => {
-  await inRollback(async (trx, { userId, itemId, otherItemId, momentId }) => {
-    await trx
-      .insertInto("user_feed_entry")
-      .values([
-        { ...entry(userId, itemId, 1), chip: "8-15" },
-        { ...entry(userId, itemId, 2), moment_id: momentId },
-        entry(userId, otherItemId, 3),
-      ])
-      .execute();
-    await computed(trx, userId);
-    const { cards } = await kyselyFeedReader(trx).read(userId, 50);
-    expect(cards.map((c) => c.itemId)).toEqual([otherItemId]);
-    await trx.deleteFrom("starter_feed_entry").execute();
-    const starter = { topic: "databases", level: "beginner" } as const;
-    await trx
-      .insertInto("starter_feed_entry")
-      .values([
-        { ...starter, content_item_id: itemId, chip: "1-3", rank: 1 },
-        {
-          ...starter,
-          content_item_id: itemId,
-          chip: "3-8",
-          moment_id: momentId,
-          rank: 2,
-        },
-        { ...starter, content_item_id: otherItemId, chip: "3-8", rank: 3 },
-      ])
-      .execute();
-    expect(
-      (
-        await kyselyFeedReader(trx).starter(userId, "databases", "beginner", 50)
-      ).map((c) => c.itemId),
-    ).toEqual([otherItemId]);
-  });
-});
-
 // ADR-0058: an article opened and not completed is Continue reading.
 test("a card opened by the user reads as continue_reading", async () => {
   await inRollback(async (trx, { userId, otherId, itemId }) => {
@@ -271,7 +213,6 @@ test("the starter feed is read per topic and level", async () => {
     const beginner = {
       topic: "databases",
       level: "beginner",
-      chip: "3-8",
     } as const;
     // The shared database may hold real starter feeds; this transaction rolls back.
     await trx
@@ -299,7 +240,7 @@ test("the starter feed is read per topic and level", async () => {
 
 // ADR-0049: a topic has reading once its starter feed has cards from sources tagged with
 // it whose rights allow reading (ING-2). Concept tags on other sources' items don't count.
-// ADR-0058: the per-source moments switch no longer matters; only the rights do.
+// Only the source's rights gate a topic's reading (ING-2).
 test("a topic has reading only from its own tagged, readable sources", async () => {
   await inRollback(async (trx, { itemId }) => {
     await trx.deleteFrom("starter_feed_entry").execute();
@@ -311,24 +252,16 @@ test("a topic has reading only from its own tagged, readable sources", async () 
         topic: "software-design",
         level: "beginner",
         content_item_id: itemId,
-        chip: "3-8",
         rank: 1,
       })
       .execute();
     const source = async (fields: {
       topics: string[];
       rights_profile?: "metadata_only" | "full_text_internal";
-      moments_seeded?: boolean;
-      moments_switched_off?: boolean;
     }) => {
       await trx
         .updateTable("source")
-        .set({
-          ...fields,
-          moments_enabled:
-            (fields.moments_seeded ?? true) &&
-            !(fields.moments_switched_off ?? false),
-        })
+        .set(fields)
         .where("name", "=", "webfeed-test")
         .execute();
     };
@@ -337,12 +270,9 @@ test("a topic has reading only from its own tagged, readable sources", async () 
     expect(await reader.topicsWithReading()).toEqual([]);
     await source({ topics: ["backend", "software-design"] });
     expect(await reader.topicsWithReading()).toEqual(["software-design"]);
-    await source({ topics: ["software-design"], moments_switched_off: true });
-    expect(await reader.topicsWithReading()).toEqual(["software-design"]);
     await source({
       topics: ["software-design"],
       rights_profile: "metadata_only",
-      moments_seeded: false,
     });
     expect(await reader.topicsWithReading()).toEqual([]);
   });
@@ -401,9 +331,7 @@ test("the user's not-interested items and hidden sources are left out at once", 
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
-        chip: "3-8",
         content_item_id: itemId,
-        moment_id: null,
         rank: 1,
         top_signal: "quality",
       })
@@ -422,9 +350,7 @@ test("the user's not-interested items and hidden sources are left out at once", 
       .values({
         topic: "databases",
         level: "beginner",
-        chip: "3-8",
         content_item_id: itemId,
-        moment_id: null,
         rank: 1,
       })
       .execute();
@@ -522,9 +448,7 @@ test("cards say whether their page can be framed, unknown reading as no", async 
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
-        chip: "3-8",
         content_item_id: itemId,
-        moment_id: null,
         rank: 1,
         top_signal: "quality",
       })
@@ -553,9 +477,7 @@ test("cards carry their source's first known topic, or none, and their difficult
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
-        chip: "3-8",
         content_item_id: itemId,
-        moment_id: null,
         rank: 1,
         top_signal: "quality",
         difficulty: "intermediate",
@@ -587,9 +509,7 @@ test("cards say whether the user saved their article", async () => {
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
-        chip: "3-8",
         content_item_id: itemId,
-        moment_id: null,
         rank: 1,
         top_signal: "quality",
       })
@@ -617,9 +537,7 @@ test("a project note shows only in its own user's feed", async () => {
         .insertInto("user_feed_entry")
         .values({
           user_id: user,
-          chip: "3-8",
           content_item_id: itemId,
-          moment_id: null,
           rank: 1,
           top_signal: "project_match",
         })
@@ -680,9 +598,7 @@ test("a project note shows only in its own user's feed", async () => {
       .values({
         topic: "databases",
         level: "beginner",
-        chip: "3-8",
         content_item_id: itemId,
-        moment_id: null,
         rank: 1,
       })
       .execute();

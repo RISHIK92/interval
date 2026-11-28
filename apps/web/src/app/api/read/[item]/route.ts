@@ -79,13 +79,7 @@ export async function GET(
     domain: new URL(url).hostname.replace(/^www\./, ""),
     saved: page.saved,
     state: page.state,
-    note: allNotes.find((n) => n.sectionTitle === null)?.body ?? null,
-    // ADR-0058: notes written on a section before it, shown under the article.
-    sectionNotes: allNotes.flatMap((n) =>
-      n.sectionTitle === null
-        ? []
-        : [{ sectionTitle: n.sectionTitle, body: n.body }],
-    ),
+    note: allNotes[0]?.body ?? null,
     // As the web reader's Quiz me (P2-W9-S02).
     testable: (await quizzes().offered([item])).has(item),
     // As the web reader's Listen (P4-W23-S01).

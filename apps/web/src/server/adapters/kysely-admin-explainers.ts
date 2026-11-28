@@ -5,8 +5,7 @@ import { citedArticles } from "./explainer-citations";
 
 // P4-W22-S01 (§5G, ADR-0038): the owner's review of explainer scripts. A citation whose
 // article is gone is left out rather than shown without its link, and counted; a script
-// left with fewer than two cited articles can't be approved (AI-1). ADR-0058: sources
-// are articles; a moment-era citation counts by its moment's article.
+// left with fewer than two cited articles can't be approved (AI-1).
 const MIN_SOURCES = 2;
 export function kyselyAdminExplainers(db: Kysely<DB>): AdminExplainers {
   return {
@@ -60,10 +59,8 @@ export function kyselyAdminExplainers(db: Kysely<DB>): AdminExplainers {
           q.where(
             sql<boolean>`(select count(distinct ci.id)
               from jsonb_array_elements(citations) e
-              join content_item ci on ci.id = coalesce(
-                (e ->> 'content_item_id')::bigint,
-                (select m.content_item_id from moment m
-                 where m.id = (e ->> 'moment_id')::bigint))) >= ${MIN_SOURCES}`,
+              join content_item ci
+                on ci.id = (e ->> 'content_item_id')::bigint) >= ${MIN_SOURCES}`,
           ),
         )
         .executeTakeFirst();

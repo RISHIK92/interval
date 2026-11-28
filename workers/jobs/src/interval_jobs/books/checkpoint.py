@@ -1,9 +1,10 @@
 """A book chapter's checkpoint, made when the user reaches the chapter's end (§5F,
 Q-P2-35, P2-W11-S06), so unread chapters cost nothing.
 
-The chapter's sessions go through the same steps as a moment: the W3 decision tagger
-(owner, 2026-10-29), then the W8 generator and its blind validator (Q-1). Every call is
-on the book owner's budget (OPS-4) and goes through the gateway (ADR-0008). Its text
+The chapter's sessions go through the same steps an article's sections once did: the
+W3 decision tagger (owner, 2026-10-29), then the W8 generator and its blind validator
+(Q-1). Every call is on the book owner's budget (OPS-4) and goes through the gateway
+(ADR-0008). Its text
 goes to the questions model as-is (Q-P2-38, owner 2026-10-29: no retention flag)."""
 
 from collections.abc import Callable, Generator
@@ -21,7 +22,7 @@ from interval_jobs.ports import (
     ModelError,
     Store,
     TagInput,
-    TagMoment,
+    TagSession,
 )
 from interval_jobs.questions import (
     QuestionReplyError,
@@ -32,7 +33,7 @@ from interval_jobs.questions import (
     shuffled,
     validation_prompt,
 )
-from interval_jobs.tagging import MOMENT_CHARS
+from interval_jobs.tagging import TEXT_CHARS
 from interval_jobs.tagging_decide import decide
 from interval_jobs.tagging_rollup import rollup
 
@@ -67,20 +68,20 @@ def spread(count: int, most: int) -> list[int]:
 
 
 def _as_item(chapter: ChapterForCheckpoint, picked: list[int]) -> TagInput:
-    """The chapter as an article for the tagger: each picked session a moment under a
-    heading of its own, so moment_texts finds each one's text."""
+    """The chapter as an article for the tagger: each picked session a passage under a
+    heading of its own, so session_texts finds each one's text."""
     lines: list[str] = []
-    moments: list[TagMoment] = []
+    sessions: list[TagSession] = []
     for ordinal, index in enumerate(picked):
         heading = f"Session {index + 1} of {len(chapter.sessions)}"
         lines += [heading, chapter.sessions[index][1]]
-        moments.append(TagMoment(index, ordinal, heading))
+        sessions.append(TagSession(index, ordinal, heading))
     return TagInput(
         title=chapter.title,
         summary=chapter.book_title,
         full_text="\n".join(lines),
         excerpt=None,
-        moments=moments,
+        sessions=sessions,
         tagged_version=None,
         duplicate=False,
     )
@@ -153,7 +154,7 @@ def _ask(
             raise ModelError(asked.stopped)
         tags = rollup(
             ItemDecisions(
-                {m: (a.difficulty, a.probabilities) for m, a in asked.moments.items()},
+                {m: (a.difficulty, a.probabilities) for m, a in asked.sessions.items()},
                 {} if asked.item is None else asked.item.probabilities,
                 None if asked.item is None else asked.item.difficulty,
             ),
@@ -161,14 +162,14 @@ def _ask(
         )
         questions: list[BookQuestion] = []
         for index in picked:
-            session = tags.moments.get(index)
+            session = tags.sessions.get(index)
             # A session the tagger found nothing in is asked about the chapter's; a
             # chapter with none at all still gets questions, and a pass then marks
             # nothing practiced (its misses have no concept to review either).
             slugs = (
                 session.concepts if session and session.concepts else tags.item.concepts
             )
-            text = chapter.sessions[index][1][:MOMENT_CHARS]
+            text = chapter.sessions[index][1][:TEXT_CHARS]
             questions += _questions_of(
                 gateway,
                 models.questions,

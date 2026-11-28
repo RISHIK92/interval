@@ -185,8 +185,6 @@ test("Postgres picks seven different live questions and records them in order", 
           name: `live-${randomUUID()}`,
           feed_url: `https://live.example.test/${randomUUID()}.xml`,
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -223,26 +221,15 @@ test("Postgres picks seven different live questions and records them in order", 
         )
         .execute();
       const ours: string[] = [];
-      // Enough for a sprint (two a section) without anyone else's questions.
+      // Enough for a sprint without anyone else's questions.
       for (let m = 0; m < LIVE_QUESTIONS.sprint / 2; m += 1) {
-        const moment = await trx
-          .insertInto("moment")
-          .values({
-            content_item_id: item.id,
-            ordinal: m,
-            title: `M${String(m)}`,
-            estimated_minutes: 3,
-            link: `https://live.example.test/post#m${String(m)}`,
-            link_type: "anchor",
-          })
-          .returning("id")
-          .executeTakeFirstOrThrow();
         for (const ordinal of [0, 1])
           await trx
             .insertInto("question")
             .values({
-              moment_id: moment.id,
-              ordinal,
+              content_item_id: item.id,
+              article_ordinal: 2 * m + ordinal,
+              ordinal: 2 * m + ordinal,
               stem: `Which ${String(m)}.${String(ordinal)}?`,
               options: ["right", "w1", "w2", "w3"],
               correct: 0,
@@ -408,7 +395,6 @@ test("Postgres: retired concepts never count, goal concepts fill, the pair's lev
           user_id: players[0] ?? "",
           topics: ["databases"],
           level: "intermediate",
-          break_length: "3-8",
           goals: ["stay-sharp"],
         })
         .execute();
@@ -431,8 +417,6 @@ test("Postgres: retired concepts never count, goal concepts fill, the pair's lev
           name: `tier-${randomUUID()}`,
           feed_url: `https://tier.example.test/${randomUUID()}.xml`,
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -452,23 +436,12 @@ test("Postgres: retired concepts never count, goal concepts fill, the pair's lev
         difficulty: "intermediate" | "advanced",
       ) => {
         n += 1;
-        const moment = await trx
-          .insertInto("moment")
-          .values({
-            content_item_id: item.id,
-            ordinal: n,
-            title: `M${String(n)}`,
-            estimated_minutes: 3,
-            link: `https://tier.example.test/post#m${String(n)}`,
-            link_type: "anchor",
-          })
-          .returning("id")
-          .executeTakeFirstOrThrow();
         const { id } = await trx
           .insertInto("question")
           .values({
-            moment_id: moment.id,
-            ordinal: 0,
+            content_item_id: item.id,
+            article_ordinal: n,
+            ordinal: n,
             stem: `Q${String(n)}?`,
             options: ["right", "w1", "w2", "w3"],
             correct: 0,
@@ -552,8 +525,6 @@ test("Postgres: a ghost match replays the nearest unmet run, in its questions' o
           name: `ghost-${randomUUID()}`,
           feed_url: `https://ghost.example.test/${randomUUID()}.xml`,
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -567,24 +538,13 @@ test("Postgres: a ghost match replays the nearest unmet run, in its questions' o
         })
         .returning("id")
         .executeTakeFirstOrThrow();
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 0,
-          title: "M",
-          estimated_minutes: 3,
-          link: "https://ghost.example.test/post#m",
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
       const question = async (ordinal: number, status: "live" | "retired") =>
         (
           await trx
             .insertInto("question")
             .values({
-              moment_id: moment.id,
+              content_item_id: item.id,
+              article_ordinal: ordinal,
               ordinal,
               stem: `Q${String(ordinal)}?`,
               options: ["right", "w1", "w2", "w3"],
@@ -821,8 +781,6 @@ test("Postgres: a bot plays a question at its real rate and live sprint time", a
           name: `botd-${randomUUID()}`,
           feed_url: `https://botd.example.test/${randomUUID()}.xml`,
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -836,24 +794,13 @@ test("Postgres: a bot plays a question at its real rate and live sprint time", a
         })
         .returning("id")
         .executeTakeFirstOrThrow();
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 0,
-          title: "M",
-          estimated_minutes: 3,
-          link: "https://botd.example.test/post#m",
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
       const question = async (ordinal: number) =>
         (
           await trx
             .insertInto("question")
             .values({
-              moment_id: moment.id,
+              content_item_id: item.id,
+              article_ordinal: ordinal,
               ordinal,
               stem: `B${String(ordinal)}?`,
               options: ["right", "w1", "w2", "w3"],

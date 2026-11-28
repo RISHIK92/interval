@@ -16,9 +16,9 @@ from interval_jobs.ports import (
     NoulAnswer,
     ScoreAnswer,
     TagInput,
-    TagMoment,
+    TagSession,
 )
-from interval_jobs.tagging import MOMENT_CHARS
+from interval_jobs.tagging import TEXT_CHARS
 from interval_jobs.tagging_decide import DecidePass, article_text, content_hash, decide
 
 from .test_tagging import GRAPH, SECTIONS, TEXT, ScriptedLlm, item
@@ -69,7 +69,9 @@ def gateway(
     return AiGateway(InMemoryAi(users), ScriptedLlm({}), voyage, decisions=decider)
 
 
-def chapter(full_text: str = TEXT, sessions: list[TagMoment] | None = None) -> TagInput:
+def chapter(
+    full_text: str = TEXT, sessions: list[TagSession] | None = None
+) -> TagInput:
     """A book chapter as the checkpoint builds it: its sessions as sections."""
     return TagInput(
         "Chapter 1", "A book", full_text, None, sessions or SECTIONS, None, False
@@ -95,7 +97,7 @@ def test_an_article_is_asked_once_about_its_title_summary_and_text() -> None:
     decider = Decider()
     result = run(decider)
     assert isinstance(result, DecidePass)
-    assert len(decider.asked) == 1 and result.moments == {}
+    assert len(decider.asked) == 1 and result.sessions == {}
     state, questions = decider.asked[0]
     text = state["text"]
     assert text == article_text(item())
@@ -114,7 +116,7 @@ def test_the_article_pass_reads_full_text_else_its_excerpt() -> None:
     )
     excerpt = item(None, excerpt="Logs first.")
     assert article_text(excerpt).endswith("Logs first.")
-    assert len(article_text(item("x" * (MOMENT_CHARS * 2)))) == MOMENT_CHARS
+    assert len(article_text(item("x" * (TEXT_CHARS * 2)))) == TEXT_CHARS
 
 
 def test_an_unchanged_article_is_not_asked_again() -> None:
@@ -136,7 +138,7 @@ def test_each_session_of_a_chapter_gets_its_own_questions() -> None:
     assert set(questions) == {"write-ahead-log", "transactions", "difficulty"}
     wal = questions["write-ahead-log"]
     assert isinstance(wal, dict) and wal["type"] == "noul"
-    answer = result.moments[11]
+    answer = result.sessions[11]
     assert answer.probabilities == {"write-ahead-log": 0.9, "transactions": 0.1}
     assert answer.content_hash == content_hash(
         "Writes go to the log first.", 1, "voyage-x", 2
@@ -172,7 +174,7 @@ def test_answers_paid_for_are_kept_when_the_model_fails_part_way() -> None:
 
     result = run(FailsThird(), text=chapter())
     assert isinstance(result, DecidePass)
-    assert set(result.moments) == {10, 11}
+    assert set(result.sessions) == {10, 11}
     assert result.stopped is not None and "missing" in result.stopped
 
 
@@ -220,22 +222,22 @@ def test_a_session_with_no_text_is_neither_embedded_nor_asked() -> None:
     )
     assert isinstance(result, DecidePass)
     assert all(text.strip() for text in voyage.texts)
-    assert set(result.moments) == {10, 12}
+    assert set(result.sessions) == {10, 12}
 
 
-def test_a_session_is_cut_to_moment_chars() -> None:
+def test_a_session_is_cut_to_text_chars() -> None:
     voyage, decider = NearWal(), Decider()
-    long = "Intro paragraph about logs. " + "x" * MOMENT_CHARS + "\n"
+    long = "Intro paragraph about logs. " + "x" * TEXT_CHARS + "\n"
     result = decide(
         gateway(decider, voyage),
         "pplx",
         "voyage-x",
-        chapter(long, [TagMoment(id=10, ordinal=0, heading=None)]),
+        chapter(long, [TagSession(id=10, ordinal=0, heading=None)]),
         GRAPH,
         VECTORS,
         None,
         size=1,
     )
     assert isinstance(result, DecidePass)
-    assert len(voyage.texts) == 2  # the session, cut to MOMENT_CHARS, and the title
-    assert len(voyage.texts[0]) == MOMENT_CHARS
+    assert len(voyage.texts) == 2  # the session, cut to TEXT_CHARS, and the title
+    assert len(voyage.texts[0]) == TEXT_CHARS

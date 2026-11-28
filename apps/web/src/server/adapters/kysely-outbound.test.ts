@@ -35,8 +35,6 @@ async function inRollback(
           name: `out-${randomUUID()}`,
           feed_url: "https://out.example.test/feed.xml",
           rights_profile: "full_text_internal",
-          moments_seeded: true,
-          moments_enabled: true,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -137,29 +135,15 @@ test("the reader gets the link, titles, reasons, save, minutes and the article's
         { content_item_id: itemId, ordinal: 1, word_count: 400 },
       ])
       .execute();
-    // ADR-0058: the feed's one list of articles; an older chip's row is not read.
     await trx
       .insertInto("user_feed_entry")
-      .values([
-        {
-          user_id: userId,
-          chip: "3-8",
-          content_item_id: itemId,
-          moment_id: null,
-          rank: 1,
-          top_signal: "topic_match",
-          reasons: "Good prep for system design interviews: Caching.",
-        },
-        {
-          user_id: userId,
-          chip: "8-15",
-          content_item_id: itemId,
-          moment_id: null,
-          rank: 1,
-          top_signal: "topic_match",
-          reasons: "An older list's reason.",
-        },
-      ])
+      .values({
+        user_id: userId,
+        content_item_id: itemId,
+        rank: 1,
+        top_signal: "topic_match",
+        reasons: "Good prep for system design interviews: Caching.",
+      })
       .execute();
     await trx
       .insertInto("user_save")
