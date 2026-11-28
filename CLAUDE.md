@@ -27,7 +27,7 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 ## Domain invariants (never violate)
 
 - A source's rights profile gates every processing step (ING-2). No full text stored, processed, or displayed beyond what the profile allows.
-- Moments are deep links into the publisher's page, never copies (Part I §3.2).
+- Articles are deep links into the publisher's page, never copies (Part I §3.2, ADR-0058).
 - AI output is stored separately from source text, cites its source passages, and is always labeled in UI (AI-3, AI-1).
 - Explicit user choices always override inferred interests (PER-1).
 - Agent hook sends only started/finished events. Never prompts or code (§7).
@@ -41,7 +41,7 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 - No new dependency without asking, with a one-line reason. Prefer stdlib and platform features.
 - Comments explain why, never what. No TODOs without an issue reference, no commented-out code, no dead exports.
 - No abstraction with one caller. No config for things that don't vary yet. No "utils" dumping grounds.
-- Names come from docs/glossary.md. Don't invent synonyms (a moment is a moment, not a "chunk" or "snippet").
+- Names come from docs/glossary.md. Don't invent synonyms (a concept is a concept, not a "notion" or "subject").
 - Tests verify behavior, not implementation. Every bug fix starts with a failing test.
 
 ## How we work
@@ -63,14 +63,12 @@ Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED).
 - Event list (DB-5, Q-P1-20): edit `packages/events/events.json`, then `pnpm events:codegen` (TS + Python types; `pnpm check` fails while they are stale). Local events land in `.data/events/<UTC day>.jsonl`
 - Web dev server (port 3100, matches `BETTER_AUTH_URL`): `pnpm --filter @interval/web dev` · build: `pnpm turbo build`
 - Web image: `docker build -f apps/web/Dockerfile -t interval-web .` · run: `docker run -p 127.0.0.1:3100:3000 -e DATABASE_URL='postgres://interval:interval@host.docker.internal:5432/interval?sslmode=disable' -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" -e BETTER_AUTH_URL=http://localhost:3100 -e MAIL_TRANSPORT=log -e EVENTS_TRANSPORT=file -e EVENTS_DIR=/tmp/interval-events -e QUEUE_TRANSPORT=bullmq -e VALKEY_URL=redis://host.docker.internal:6379 interval-web`
-- Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01; full-text ingest also segments)
-- Worker, re-split one item into moments: `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
-- Worker, ingestion pipeline (ING-1, W2-S02b): `scripts/with-env.sh uv run python -m interval_jobs consume` runs the stages (discover, fetch, segment, tag, embed, recompute_feed, project_note) until Ctrl-C (`--max-entries N` takes only each feed's newest N entries, for a one-off local sample); `... enqueue-discover [--source-id N]` queues a poll of one or every active source; `... poll-due` queues only the sources whose adaptive turn has come (ING-3; EventBridge Scheduler or the VM's `interval-poll.timer` runs it every 5 minutes). Load sources first with `... load-sources`
+- Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01)
+- Worker, ingestion pipeline (ING-1, W2-S02b): `scripts/with-env.sh uv run python -m interval_jobs consume` runs the stages (discover, fetch, tag, embed, recompute_feed, project_note and the rest of `STAGES` in workers/jobs/src/interval_jobs/pipeline.py) until Ctrl-C (`--max-entries N` takes only each feed's newest N entries, for a one-off local sample); `... enqueue-discover [--source-id N]` queues a poll of one or every active source; `... poll-due` queues only the sources whose adaptive turn has come (ING-3; EventBridge Scheduler or the VM's `interval-poll.timer` runs it every 5 minutes). Load sources first with `... load-sources`
 - Worker, precomputed feeds (CACHE-1, Q-P1-17, W4-S04): `scripts/with-env.sh uv run python -m interval_jobs recompute-due` queues a recompute per active user (session used in 7 days; `consume` runs them) and refreshes the starter feeds; EventBridge Scheduler or the VM's `interval-recompute.timer` runs it hourly. Onboarding queues a user's first recompute
 - Worker, weekly link health (ING-6, W6-S03): `scripts/with-env.sh uv run python -m interval_jobs check-links-due` queues a status check of every item's URL (`consume` runs them; a 404/410 marks the link broken and the item leaves the feed, a later 200 clears it); EventBridge Scheduler or the VM's `interval-links.timer` runs it weekly
 - Worker, GitHub reads (§5H, ADR-0024, W12-S02): `scripts/with-env.sh uv run python -m interval_jobs sync-github-due` queues a read of each connected user's repositories (active in 7 days; `consume` runs them: metadata and dependency names, never code); EventBridge Scheduler or the VM's `interval-github.timer` runs it daily. Connecting from Profile, and Profile's Refresh, queue one too
 - Worker, technologies (PER-4, W12-S03): `scripts/with-env.sh uv run python -m interval_jobs load-technologies` syncs `workers/jobs/seeds/technologies.yaml` (run `load-concepts` first); `... suggest-technologies` asks QUESTIONS_MODEL to map unclaimed packages (weekly on EventBridge and the VM's `interval-technologies.timer`); the owner accepts or rejects them at `/admin/technologies`
-- Worker, deep-link check (Q-P1-25, W6-S02): `scripts/with-env.sh uv run python -m interval_jobs check-links [--source-id N]` fetches each moment's page politely and prints a JSON report: per-source pass rates, sources under 90% flagged, and every failing or unchecked moment with its reason. Nothing is stored or switched off
 - Metric queries (Phase 1 "done when", Q-P1-21, W6-S04): `packages/events/queries/*.sql` in Athena SQL, saved as named queries in the AWS stack (Glue table `interval_events.events`, workgroup `interval-events`); tested with DuckDB on fixture events in `workers/jobs/tests/test_metric_queries.py`
 - CDK synth (both stacks, VM `interval-prod` and AWS `interval-prod-aws`; no credentials; never deploy): `pnpm --filter @interval/infra synth`
 - VM mode stack (local smoke run, ADR-0013): see `deploy/compose.prod.yml` and docs/runbooks/vm.md; set `ENV_DIR`, `PGDATA_DIR`, `VALKEY_DIR`, `HTTP_PORT=8080` to run it locally

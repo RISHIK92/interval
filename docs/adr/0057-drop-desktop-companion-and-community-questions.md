@@ -1,6 +1,6 @@
 # 0057. Drop the desktop companion and community-submitted questions from Phase 7
 
-- Status: PROPOSED
+- Status: ACCEPTED (owner, 2026-11-28)
 - Date: 2026-11-27
 - Supersedes: none (amends docs/product.md §2, §6.8 and §7 for scope only)
 - Superseded by: none

@@ -331,7 +331,7 @@ Oct 23 is silent on these. They are not adopted unless confirmed.
 
 - **docs/product.md §2, §6.8, §7:** these sections describe a menubar desktop companion and "Community-submitted (later)" questions.
 - **The owner's instruction (2026-11-27):** delete both. The web app and its PWA cover desktop, and the React Native app covers mobile.
-- **Built:** W50 is reverted and W51 deleted; nothing of the desktop companion was built. ADR-0057 (PROPOSED) records it.
+- **Built:** W50 is reverted and W51 deleted; nothing of the desktop companion was built. ADR-0057 records it. **Resolved:** ADR-0057 ACCEPTED (owner, 2026-11-28).
 
 ### C-40 Moments and time chips removed (2026-11-27, ADR-0058)
 
