@@ -171,6 +171,25 @@ def test_the_worker_image_carries_the_seed_file() -> None:
     assert "WORKDIR /app" in dockerfile
 
 
+def test_the_game_image_copies_every_package_the_server_imports() -> None:
+    # `COPY *.go` alone left out services/game/judge (imported since P5-W31-S02b-1), so
+    # the image didn't build; CI builds no images, so this pins each subpackage's copy.
+    game = ROOT / "services" / "game"
+    imported = {
+        match.group(1)
+        for path in game.rglob("*.go")
+        if not path.name.endswith("_test.go")
+        and "load" not in path.relative_to(game).parts
+        for match in re.finditer(
+            r'"interval/services/game/([a-z0-9_]+)"', path.read_text(encoding="utf-8")
+        )
+    }
+    assert imported, "expected the server to import at least one subpackage"
+    dockerfile = (game / "Dockerfile").read_text(encoding="utf-8")
+    for package in sorted(imported):
+        assert f"COPY {package} ./{package}" in dockerfile, package
+
+
 def test_the_worker_image_carries_the_timeline_schema() -> None:
     # write-scenes checks drafts against packages/diagrams' generated JSON Schema, read
     # relative to /app (P4.5-W26-S01). CI builds no images, so this pins the copy.
