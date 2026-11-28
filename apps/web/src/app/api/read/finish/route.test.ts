@@ -33,7 +33,8 @@ const post = async (body: unknown, headers: Record<string, string> = APP) => {
   );
 };
 
-test("Mark done finishes the section, or the article, from android", async () => {
+// ADR-0058: the article is completed; a section an older app sends is ignored.
+test("Done completes the article, from android", async () => {
   current.mockResolvedValue(account);
   expect((await post({ itemId: "5", momentId: "9" })).status).toBe(204);
   expect(finishReading).toHaveBeenCalledWith(
@@ -43,14 +44,6 @@ test("Mark done finishes the section, or the article, from android", async () =>
       sessionId: null,
     }),
     "5",
-    "9",
-    "mark_done",
-  );
-  expect((await post({ itemId: "5" })).status).toBe(204);
-  expect(finishReading).toHaveBeenLastCalledWith(
-    expect.anything(),
-    "5",
-    undefined,
     "mark_done",
   );
 });
@@ -64,19 +57,11 @@ test("a guest, another site or a bad body: refused", async () => {
   expect(finishReading).not.toHaveBeenCalled();
 });
 
-// P4-W20-S03 (§5D): the reader's own finish, for a section only.
-test("an automatic finish is a section's, recorded as auto", async () => {
+// P4-W20-S03 (§5D): the reader's own finish, once the page is read to its end.
+test("an automatic finish completes the article, recorded as auto", async () => {
   current.mockResolvedValue(account);
-  expect(
-    (await post({ itemId: "5", momentId: "9", method: "auto" })).status,
-  ).toBe(204);
-  expect(finishReading).toHaveBeenCalledWith(
-    expect.anything(),
-    "5",
-    "9",
-    "auto",
-  );
-  expect((await post({ itemId: "5", method: "auto" })).status).toBe(400);
+  expect((await post({ itemId: "5", method: "auto" })).status).toBe(204);
+  expect(finishReading).toHaveBeenCalledWith(expect.anything(), "5", "auto");
   expect((await post({ itemId: "5", method: "return_prompt" })).status).toBe(
     400,
   );

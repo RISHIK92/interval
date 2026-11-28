@@ -1,30 +1,11 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import type { OutboundLink, OutboundLinks } from "../ports";
+import { FEED_CHIP, type OutboundLink, type OutboundLinks } from "../ports";
 
+// ADR-0058: a link is always the article's own page, which every rights profile
+// allows (a deep link, never a copy: §3.2).
 export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
-  const resolve = async (
-    itemId: string,
-    momentId: string | null,
-  ): Promise<OutboundLink | null> => {
-    if (momentId !== null) {
-      const moment = await db
-        .selectFrom("moment as m")
-        .innerJoin("content_item as c", "c.id", "m.content_item_id")
-        .innerJoin("source as s", "s.id", "c.source_id")
-        .select(["m.link", "m.link_type"])
-        .where("m.id", "=", momentId)
-        .where("m.content_item_id", "=", itemId)
-        .where("s.moments_enabled", "=", true)
-        .where("s.rights_profile", "in", [
-          "full_text_internal",
-          "full_text_display",
-        ])
-        .executeTakeFirst();
-      if (moment !== undefined) {
-        return { url: moment.link, linkType: moment.link_type };
-      }
-    }
+  const resolve = async (itemId: string): Promise<OutboundLink | null> => {
     const item = await db
       .selectFrom("content_item")
       .select("canonical_url")
@@ -36,64 +17,56 @@ export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
   };
   return {
     resolve,
-    reader: async (userId, itemId, momentId) => {
-      const link = await resolve(itemId, momentId);
-      if (link === null) return null;
-      // The section really reached: resolve() fell back to the page otherwise.
-      const reached = link.linkType === "article" ? null : momentId;
+    reader: async (userId, itemId) => {
       const item = await db
         .selectFrom("content_item as c")
         .innerJoin("source as s", "s.id", "c.source_id")
-        .select(["c.title", "c.frameable", "s.name"])
+        .select(["c.canonical_url", "c.title", "c.frameable", "s.name"])
+        .select(sql<number | null>`item_minutes(c.id)`.as("minutes"))
         .select(
           sql<boolean>`exists (
             select 1 from user_save us
             where us.user_id = ${userId} and us.content_item_id = c.id
           )`.as("saved"),
         )
+        .select(
+          sql<boolean>`exists (
+            select 1 from user_article_finished f
+            where f.user_id = ${userId} and f.content_item_id = c.id
+          )`.as("completed"),
+        )
+        .select(
+          sql<boolean>`exists (
+            select 1 from user_article_opened o
+            where o.user_id = ${userId} and o.content_item_id = c.id
+          )`.as("opened"),
+        )
         .where("c.id", "=", itemId)
-        .executeTakeFirstOrThrow();
-      const section =
-        reached === null
-          ? undefined
-          : await db
-              .selectFrom("moment")
-              .select(["title", "ordinal", "estimated_minutes"])
-              .where("id", "=", reached)
-              .executeTakeFirstOrThrow();
-      // resolve() checked the source allows moments; the next one shares the source.
-      const next =
-        section === undefined
-          ? undefined
-          : await db
-              .selectFrom("moment")
-              .select(["id", "link"])
-              .where("content_item_id", "=", itemId)
-              .where("ordinal", ">", section.ordinal)
-              .orderBy("ordinal")
-              .limit(1)
-              .executeTakeFirst();
-      // An entry may sit in more than one chip; its reasons are the same entry's.
+        .executeTakeFirst();
+      if (item === undefined) return null;
+      // ADR-0058: the feed's one list of articles until stage C drops the chip.
       const entry = await db
-        .selectFrom("user_feed_entry as fe")
-        .select("fe.reasons")
-        .where("fe.user_id", "=", userId)
-        .where("fe.content_item_id", "=", itemId)
-        .where("fe.moment_id", reached === null ? "is" : "=", reached)
-        .where("fe.reasons", "is not", null)
-        .limit(1)
+        .selectFrom("user_feed_entry")
+        .select("reasons")
+        .where("user_id", "=", userId)
+        .where("chip", "=", FEED_CHIP)
+        .where("content_item_id", "=", itemId)
+        .where("moment_id", "is", null)
+        .where("reasons", "is not", null)
         .executeTakeFirst();
       return {
-        link,
+        link: { url: item.canonical_url, linkType: "article" },
         frameable: item.frameable === true,
         articleTitle: item.title,
-        sectionTitle: section?.title ?? null,
         sourceName: item.name,
         reasons: entry?.reasons ?? null,
         saved: item.saved,
-        nextMomentId: next?.id ?? null,
-        estimatedMinutes: section?.estimated_minutes ?? null,
-        nextLink: next?.link ?? null,
+        state: item.completed
+          ? "completed"
+          : item.opened
+            ? "continue_reading"
+            : "unread",
+        estimatedMinutes: item.minutes,
       };
     },
   };

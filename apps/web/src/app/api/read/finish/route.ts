@@ -6,16 +6,14 @@ import { appPlatform, fromSiteOrApp } from "../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
 
-// auto (P4-W20-S03): the reader saw the section read through; a section only.
-const Body = z
-  .object({
-    itemId: z.string().regex(BIGINT_ID),
-    momentId: z.string().regex(BIGINT_ID).optional(),
-    method: z.enum(["mark_done", "auto"]).default("mark_done"),
-  })
-  .refine((b) => b.method !== "auto" || b.momentId !== undefined);
+// auto (P4-W20-S03): the reader saw the article read through. ADR-0058: a section an
+// older app sends is ignored (zod drops unknown keys).
+const Body = z.object({
+  itemId: z.string().regex(BIGINT_ID),
+  method: z.enum(["mark_done", "auto"]).default("mark_done"),
+});
 
-// P4-W20-S02 (§5D, ADR-0018): the app reader's Mark done, as the web reader's, and its
+// P4-W20-S02 (§5D, ADR-0018): the app reader's Done, as the web reader's, and its
 // automatic finish (P4-W20-S03).
 export async function POST(request: Request): Promise<Response> {
   if (!fromSiteOrApp(request)) return new Response(null, { status: 403 });
@@ -28,7 +26,6 @@ export async function POST(request: Request): Promise<Response> {
   await finishReading(
     { ...actor, sessionId: null, ...(source === undefined ? {} : { source }) },
     body.data.itemId,
-    body.data.momentId,
     body.data.method,
   );
   return new Response(null, { status: 204 });

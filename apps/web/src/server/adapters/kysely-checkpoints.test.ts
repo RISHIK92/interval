@@ -9,6 +9,8 @@ import { kyselyQuizzes } from "./kysely-quizzes";
 
 // Checkpoints (§5F, Q-P2-26, P2-W10-S04): a 60-second quiz on a path section once its
 // readings are finished; 4 of 5 (all but one of fewer) opens the next section.
+// ADR-0058: a reading is an article, finished when completed, and its questions are
+// the article's.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) {
   throw new Error("DATABASE_URL is not set; copy .env.example to .env");
@@ -25,10 +27,10 @@ type Seeded = {
   userId: string;
   otherUser: string;
   pathId: string;
-  first: string; // section 1: reading m1, concepts c1 (questions) and c3, c4 (none)
-  second: string; // section 2: reading m2, concept c2 (two questions)
-  m1: string;
-  m2: string;
+  first: string; // section 1: reading a1, concepts c1 (questions) and c3, c4 (none)
+  second: string; // section 2: reading a2, concept c2 (two questions)
+  a1: string;
+  a2: string;
   sourceId: string;
   concept: Record<"c1" | "c2" | "c3" | "c4", string>;
   q: Record<string, string>; // stem → id
@@ -46,8 +48,6 @@ async function inRollback(
             name: `checkpoint-${n}-${randomUUID()}`,
             feed_url: `https://checkpoint.example.test/${randomUUID()}.xml`,
             rights_profile: "full_text_internal" as const,
-            moments_seeded: true,
-            moments_enabled: true,
           })),
         )
         .returning("id")
@@ -66,24 +66,8 @@ async function inRollback(
         )
         .returning("id")
         .execute();
-      const moments = (
-        await trx
-          .insertInto("moment")
-          .values(
-            items.map((item, n) => ({
-              content_item_id: item.id,
-              ordinal: 0,
-              title: `M${String(n + 1)}`,
-              estimated_minutes: 3,
-              link: `https://checkpoint.example.test/${String(n)}#a`,
-              link_type: "anchor" as const,
-            })),
-          )
-          .returning("id")
-          .execute()
-      ).map((m) => m.id);
-      const [m1, m2, elsewhere, hidden] = moments;
-      if (!m1 || !m2 || !elsewhere || !hidden) throw new Error("seed");
+      const [a1, a2, elsewhere, hidden] = items.map((item) => item.id);
+      if (!a1 || !a2 || !elsewhere || !hidden) throw new Error("seed");
       const made = await trx
         .insertInto("concept")
         .values(
@@ -99,7 +83,7 @@ async function inRollback(
       if (!c1 || !c2 || !c3 || !c4) throw new Error("seed");
       const q: Record<string, string> = {};
       const question = async (
-        momentId: string,
+        itemId: string,
         ordinal: number,
         stem: string,
         concept: string,
@@ -107,7 +91,8 @@ async function inRollback(
         const row = await trx
           .insertInto("question")
           .values({
-            moment_id: momentId,
+            content_item_id: itemId,
+            article_ordinal: ordinal,
             ordinal,
             stem,
             options: ["right", "w1", "w2", "w3"],
@@ -129,8 +114,8 @@ async function inRollback(
       // Section 1's own reading has three; section 2's two, on c2; a reading in no
       // path has three more on c1, which section 1 asks after its own. "hidden" is on c1 in a source whose
       // rights are lowered below: never asked (ING-2).
-      for (const i of [0, 1, 2]) await question(m1, i, `own-${String(i)}`, c1);
-      for (const i of [0, 1]) await question(m2, i, `two-${String(i)}`, c2);
+      for (const i of [0, 1, 2]) await question(a1, i, `own-${String(i)}`, c1);
+      for (const i of [0, 1]) await question(a2, i, `two-${String(i)}`, c2);
       for (const i of [2, 3, 4])
         await question(elsewhere, i, `rel-${String(i)}`, c1);
       await question(hidden, 0, "hidden", c1);
@@ -153,9 +138,9 @@ async function inRollback(
         .returning("id")
         .executeTakeFirstOrThrow();
       const sections: string[] = [];
-      for (const [ordinal, [moment, concepts]] of [
-        [m1, [c1, c3, c4]],
-        [m2, [c2]],
+      for (const [ordinal, [article, concepts]] of [
+        [a1, [c1, c3, c4]],
+        [a2, [c2]],
       ].entries()) {
         const section = await trx
           .insertInto("path_section")
@@ -177,7 +162,7 @@ async function inRollback(
           .values({
             section_id: section.id,
             ordinal: 0,
-            moment_id: moment as string,
+            content_item_id: article as string,
           })
           .execute();
       }
@@ -215,8 +200,8 @@ async function inRollback(
         pathId: path.id,
         first,
         second,
-        m1,
-        m2,
+        a1,
+        a2,
         sourceId: on.id,
         concept: { c1, c2, c3, c4 },
         q,
@@ -231,10 +216,10 @@ function served(got: QuizQuestion | "over" | null): QuizQuestion {
   return got;
 }
 
-const finish = (trx: Transaction<DB>, userId: string, momentId: string) =>
+const finish = (trx: Transaction<DB>, userId: string, itemId: string) =>
   trx
-    .insertInto("user_moment_finished")
-    .values({ user_id: userId, moment_id: momentId, method: "mark_done" })
+    .insertInto("user_article_finished")
+    .values({ user_id: userId, content_item_id: itemId, method: "mark_done" })
     .execute();
 
 // Answers every question it serves: right for the stems in `right`, else wrong.
@@ -262,7 +247,7 @@ async function take(
 
 test("a checkpoint starts once its section is open and its readings are finished", async () => {
   await inRollback(
-    async (trx, { userId, otherUser, pathId, first, second, m1 }) => {
+    async (trx, { userId, otherUser, pathId, first, second, a1 }) => {
       const quizzes = kyselyQuizzes(trx);
       expect(await quizzes.startCheckpoint(userId, first)).toBeNull();
       expect(
@@ -270,11 +255,11 @@ test("a checkpoint starts once its section is open and its readings are finished
           (s) => s.checkpoint,
         ),
       ).toEqual(["reading", "locked"]);
-      await finish(trx, userId, m1);
+      await finish(trx, userId, a1);
       // The second section waits for the first's checkpoint.
       expect(await quizzes.startCheckpoint(userId, second)).toBeNull();
       // Not on a path the user hasn't started.
-      await finish(trx, otherUser, m1);
+      await finish(trx, otherUser, a1);
       expect(await quizzes.startCheckpoint(otherUser, first)).toBeNull();
       const started = await quizzes.startCheckpoint(userId, first);
       expect(started).toMatchObject({ firstTime: true });
@@ -301,10 +286,10 @@ test("a checkpoint starts once its section is open and its readings are finished
 });
 
 test("it asks 5: the section's own readings first, never a source its rights forbid", async () => {
-  await inRollback(async (trx, { userId, first, m1 }) => {
-    await finish(trx, userId, m1);
+  await inRollback(async (trx, { userId, first, a1 }) => {
+    await finish(trx, userId, a1);
     // An estimate is answered with a number: never in a checkpoint (P3-W13-S03).
-    await estimateOn(trx, { moment_id: m1 });
+    await estimateOn(trx, { content_item_id: a1 });
     const started = await kyselyQuizzes(trx).startCheckpoint(userId, first);
     const stems = await take(trx, userId, started?.attemptId ?? "", () => true);
     expect(stems).toHaveLength(5);
@@ -315,7 +300,7 @@ test("it asks 5: the section's own readings first, never a source its rights for
 
 test("4 of 5 passes: its concepts practiced, misses due now, the next section open", async () => {
   await inRollback(
-    async (trx, { userId, pathId, first, second, m1, concept }) => {
+    async (trx, { userId, pathId, first, second, a1, concept }) => {
       await trx
         .insertInto("concept_mastery")
         .values({
@@ -326,7 +311,7 @@ test("4 of 5 passes: its concepts practiced, misses due now, the next section op
           evidence_count: 4,
         })
         .execute();
-      await finish(trx, userId, m1);
+      await finish(trx, userId, a1);
       const quizzes = kyselyQuizzes(trx);
       const started = await quizzes.startCheckpoint(userId, first);
       const attemptId = started?.attemptId ?? "";
@@ -383,8 +368,8 @@ test("4 of 5 passes: its concepts practiced, misses due now, the next section op
 });
 
 test("3 of 5 doesn't: the next section stays locked, and a retry asks others first", async () => {
-  await inRollback(async (trx, { userId, pathId, first, m1, concept }) => {
-    await finish(trx, userId, m1);
+  await inRollback(async (trx, { userId, pathId, first, a1, concept }) => {
+    await finish(trx, userId, a1);
     const quizzes = kyselyQuizzes(trx);
     const one = await quizzes.startCheckpoint(userId, first);
     const asked = await take(
@@ -419,13 +404,13 @@ test("3 of 5 doesn't: the next section stays locked, and a retry asks others fir
 });
 
 test("a smaller section passes with all but one", async () => {
-  await inRollback(async (trx, { userId, pathId, first, second, m1, m2 }) => {
+  await inRollback(async (trx, { userId, pathId, first, second, a1, a2 }) => {
     const quizzes = kyselyQuizzes(trx);
-    await finish(trx, userId, m1);
+    await finish(trx, userId, a1);
     const one = await quizzes.startCheckpoint(userId, first);
     await take(trx, userId, one?.attemptId ?? "", () => true);
     await quizzes.finish(userId, one?.attemptId ?? "");
-    await finish(trx, userId, m2);
+    await finish(trx, userId, a2);
     const two = await quizzes.startCheckpoint(userId, second);
     const attemptId = two?.attemptId ?? "";
     expect(
@@ -446,9 +431,9 @@ test("a smaller section passes with all but one", async () => {
 });
 
 test("a checkpoint left behind closes at its clock and still counts", async () => {
-  await inRollback(async (trx, { userId, pathId, first, m1 }) => {
+  await inRollback(async (trx, { userId, pathId, first, a1 }) => {
     const quizzes = kyselyQuizzes(trx);
-    await finish(trx, userId, m1);
+    await finish(trx, userId, a1);
     const one = await quizzes.startCheckpoint(userId, first);
     const attemptId = one?.attemptId ?? "";
     await take(trx, userId, attemptId, () => true);
@@ -470,8 +455,8 @@ test("a checkpoint left behind closes at its clock and still counts", async () =
 });
 
 test("no checkpoint without a live question its rights allow (ING-2)", async () => {
-  await inRollback(async (trx, { userId, pathId, first, m1, sourceId }) => {
-    await finish(trx, userId, m1);
+  await inRollback(async (trx, { userId, pathId, first, a1, sourceId }) => {
+    await finish(trx, userId, a1);
     await sql`set local session_replication_role = replica`.execute(trx);
     await trx
       .updateTable("source")
@@ -487,9 +472,9 @@ test("no checkpoint without a live question its rights allow (ING-2)", async () 
 });
 
 test("a pass stays when its answers go with their questions (a re-split, ING-2)", async () => {
-  await inRollback(async (trx, { userId, pathId, first, m1, q }) => {
+  await inRollback(async (trx, { userId, pathId, first, a1, q }) => {
     const quizzes = kyselyQuizzes(trx);
-    await finish(trx, userId, m1);
+    await finish(trx, userId, a1);
     const one = await quizzes.startCheckpoint(userId, first);
     await take(trx, userId, one?.attemptId ?? "", () => true);
     await quizzes.finish(userId, one?.attemptId ?? "");
@@ -506,17 +491,12 @@ test("a pass stays when its answers go with their questions (a re-split, ING-2)"
 });
 
 test("a broken link doesn't hold a checkpoint back; a paused path doesn't start one", async () => {
-  await inRollback(async (trx, { userId, pathId, first, m1 }) => {
+  await inRollback(async (trx, { userId, pathId, first, a1 }) => {
     const quizzes = kyselyQuizzes(trx);
-    const item = await trx
-      .selectFrom("moment")
-      .select("content_item_id")
-      .where("id", "=", m1)
-      .executeTakeFirstOrThrow();
     await trx
       .updateTable("content_item")
       .set({ link_broken_at: sql<Date>`now()` })
-      .where("id", "=", item.content_item_id)
+      .where("id", "=", a1)
       .execute();
     expect(
       (await kyselyPaths(trx).path(userId, pathId))?.sections[0]?.checkpoint,
@@ -531,11 +511,11 @@ test("a broken link doesn't hold a checkpoint back; a paused path doesn't start 
 });
 
 test("checkpoints follow the user's copy: a skipped section has none, a moved one opens first", async () => {
-  await inRollback(async (trx, { userId, first, second, m1, m2 }) => {
+  await inRollback(async (trx, { userId, first, second, a1, a2 }) => {
     const quizzes = kyselyQuizzes(trx);
     const paths = kyselyPaths(trx);
-    await finish(trx, userId, m1);
-    await finish(trx, userId, m2);
+    await finish(trx, userId, a1);
+    await finish(trx, userId, a2);
     // Section 2 moved ahead: open, and section 1 now waits for it.
     await paths.moveSection(userId, second, "up");
     expect(await quizzes.startCheckpoint(userId, first)).toBeNull();
@@ -554,9 +534,9 @@ test("checkpoints follow the user's copy: a skipped section has none, a moved on
 });
 
 test("next offers a ready checkpoint; closeStale returns the checkpoint it closed", async () => {
-  await inRollback(async (trx, { userId, pathId, first, m1 }) => {
+  await inRollback(async (trx, { userId, pathId, first, a1 }) => {
     const quizzes = kyselyQuizzes(trx);
-    await finish(trx, userId, m1);
+    await finish(trx, userId, a1);
     expect(await kyselyPaths(trx).next(userId)).toMatchObject({
       kind: "checkpoint",
       pathId,
@@ -601,7 +581,7 @@ test("next offers a ready checkpoint; closeStale returns the checkpoint it close
 
 async function estimateOn(
   trx: Transaction<DB>,
-  home: { moment_id: string } | { book_chapter_id: string },
+  home: { content_item_id: string } | { book_chapter_id: string },
 ) {
   await trx
     .insertInto("question")
@@ -770,7 +750,7 @@ test("a chapter checkpoint not ready, or of a book not ready, doesn't start", as
 });
 
 test("a book's questions never reach anyone else's quiz or review", async () => {
-  await inRollback(async (trx, { userId, otherUser, concept, first, m1 }) => {
+  await inRollback(async (trx, { userId, otherUser, concept, first, a1 }) => {
     const quizzes = kyselyQuizzes(trx);
     // The owner's book tests c1, which the public section 1 also tests.
     const { questions } = await aBookChapter(trx, userId, concept.c1, 3);
@@ -804,13 +784,8 @@ test("a book's questions never reach anyone else's quiz or review", async () => 
       await quizzes.answer(otherUser, review.attemptId, got.questionId, 0);
     }
     leaked(asked);
-    // The owner's own Test 60s on a public moment, and the path checkpoint on c1.
-    const item = await trx
-      .selectFrom("moment")
-      .select("content_item_id")
-      .where("id", "=", m1)
-      .executeTakeFirstOrThrow();
-    const sprint = await quizzes.start(userId, item.content_item_id, m1);
+    // The owner's own Test 60s on a public article, and the path checkpoint on c1.
+    const sprint = await quizzes.start(userId, a1);
     if (sprint === null) throw new Error("sprint");
     const sprinted: string[] = [];
     for (;;) {
@@ -820,7 +795,7 @@ test("a book's questions never reach anyone else's quiz or review", async () => 
       await quizzes.answer(userId, sprint.attemptId, got.questionId, 0);
     }
     leaked(sprinted);
-    await finish(trx, userId, m1);
+    await finish(trx, userId, a1);
     const checkpoint = await quizzes.startCheckpoint(userId, first);
     if (checkpoint === null) throw new Error("checkpoint");
     const stems = await take(trx, userId, checkpoint.attemptId, () => true);

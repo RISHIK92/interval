@@ -14,7 +14,6 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
     goals: [],
     topics: ["backend"],
     level: "beginner",
-    breakLength: "3-8",
     firstName: null,
   }),
 );
@@ -44,7 +43,6 @@ afterEach(() => {
 });
 
 const reading = {
-  articleTitle: "Designing data systems",
   sourceName: "Pub Engineering",
   minutes: 4,
   linkBroken: false,
@@ -71,18 +69,16 @@ const timeline: PathTimeline = {
       readings: [
         {
           ...reading,
-          momentId: "900",
           itemId: "50",
-          sectionTitle: "Leaders",
+          articleTitle: "Leaders",
           frameable: true,
           finished: true,
           ordinal: 0,
         },
         {
           ...reading,
-          momentId: "901",
           itemId: "51",
-          sectionTitle: "Followers",
+          articleTitle: "Followers",
           frameable: false,
           finished: false,
           ordinal: 1,
@@ -104,9 +100,8 @@ const timeline: PathTimeline = {
       readings: [
         {
           ...reading,
-          momentId: "902",
           itemId: "52",
-          sectionTitle: "Majorities",
+          articleTitle: "Majorities",
           frameable: true,
           finished: false,
           ordinal: 0,
@@ -136,18 +131,16 @@ test("the timeline ticks finished readings, offers the next, and shows checkpoin
   expect(path).toHaveBeenCalledWith("u1", "6");
   expect(html).toContain("Replication");
   expect(html).toContain("Leader-follower replication");
-  // Finished, in words as well as a mark.
-  expect(html).toMatch(/Leaders[^]*?Finished/);
+  // Completed (ADR-0058), in words as well as a mark.
+  expect(html).toMatch(/Leaders[^]*?Completed/);
   // The next unfinished reading is the call to action; one the reader can't frame
   // opens in the browser through /out, still as a path open.
   expect(html.replace(/<[^>]+>/g, "")).toContain("Next: Followers");
   expect(html).toContain(
-    'href="/out?item=51&amp;moment=901&amp;from=path&amp;target=section"',
+    'href="/out?item=51&amp;from=path&amp;target=article"',
   );
   // A framed reading opens in the reader, coming back here.
-  expect(html).toContain(
-    'href="/read/50?moment=900&amp;chip=3-8&amp;from=path&amp;path=6"',
-  );
+  expect(html).toContain('href="/read/50?from=path&amp;path=6"');
   expect(html).toContain("Checkpoint · Pass 4 of 5 to unlock Quorums");
   expect(html).toContain(
     "Locked · unlocks after the Leader-follower replication checkpoint",
@@ -166,9 +159,7 @@ test("a section's checkpoint is offered once its readings are finished, on the a
   };
   path.mockResolvedValueOnce(ready);
   const html = await page();
-  expect(html).toMatch(
-    /name="sectionId" value="60"[^]*?name="chip" value="3-8"[^]*?Take the checkpoint/,
-  );
+  expect(html).toMatch(/name="sectionId" value="60"[^]*?Take the checkpoint/);
   // Not while the readings are unfinished, nor on a path that isn't active.
   path.mockResolvedValueOnce(timeline);
   expect(await page()).not.toContain("Take the checkpoint");
@@ -205,7 +196,7 @@ test("a path the user hasn't started offers Start; a retired one says so", async
 test("ask= opens the Finished? prompt coming back from a reading", async () => {
   current.mockResolvedValue(user);
   path.mockResolvedValue(timeline);
-  const html = await page({ ask: "50.900" });
+  const html = await page({ ask: "50" });
   expect(html).toContain('aria-label="Finished reading?"');
   expect(html).toContain('name="back" value="/paths/6"');
   expect(await page()).not.toContain('aria-label="Finished reading?"');
@@ -272,9 +263,8 @@ test("a skipped section can be unskipped; a moved one is flagged; swap lists alt
   });
   alternatives.mockResolvedValueOnce([
     {
-      momentId: "905",
-      sectionTitle: "Read quorums",
-      articleTitle: "Dynamo",
+      itemId: "905",
+      articleTitle: "Read quorums",
       sourceName: "Pub",
       minutes: 6,
     },
@@ -289,7 +279,7 @@ test("a skipped section can be unskipped; a moved one is flagged; swap lists alt
   expect(html).toContain("Skipped · no checkpoint");
   expect(html).toContain('aria-label="Unskip Leader-follower replication"');
   expect(html).toMatch(
-    /name="edit" value="swap"[^]*?name="sectionId" value="60"[^]*?name="ordinal" value="1"[^]*?name="momentId" value="905"[^]*?Use this/,
+    /name="edit" value="swap"[^]*?name="sectionId" value="60"[^]*?name="ordinal" value="1"[^]*?name="itemId" value="905"[^]*?Use this/,
   );
   // A bad swap key lists nothing.
   alternatives.mockClear();
@@ -366,8 +356,7 @@ test("a section names the foundations you haven't read, with a reading on each",
             name: "Transactions",
             reading: {
               itemId: "70",
-              momentId: "970",
-              sectionTitle: "ACID in practice",
+              articleTitle: "ACID in practice",
               frameable: true,
               linkBroken: false,
             },
@@ -383,9 +372,7 @@ test("a section names the foundations you haven't read, with a reading on each",
   expect(text).toContain(
     "Builds on Transactions, which you haven&#x27;t read yet: ACID in practice",
   );
-  expect(html).toContain(
-    'href="/read/70?moment=970&amp;chip=3-8&amp;from=path&amp;path=6"',
-  );
+  expect(html).toContain('href="/read/70?from=path&amp;path=6"');
   expect(text).toContain(
     "Builds on Write-ahead logging, which you haven&#x27;t read yet.",
   );

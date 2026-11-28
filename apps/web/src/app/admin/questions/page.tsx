@@ -168,9 +168,7 @@ export default async function QuestionsPage(props: {
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    {q.sectionTitle === null
-                      ? q.articleTitle
-                      : `${q.sectionTitle} — ${q.articleTitle}`}
+                    {q.articleTitle}
                   </a>
                 </p>
                 <p className="text-base font-semibold">{q.stem}</p>

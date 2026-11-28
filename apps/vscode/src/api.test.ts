@@ -13,12 +13,11 @@ const running = {
     startedAt: "2026-11-27T10:00:00.000Z",
     seconds: 130,
   },
-  chip: "3-8",
   suggestions: [
     {
       title: "Why consensus",
       minutes: 2,
-      url: "https://interval.example/read/10",
+      url: "https://interval.example/read/10?pos=1&via=agent",
     },
   ],
 };
@@ -36,24 +35,17 @@ test("the token shape is the CLI's", () => {
   expect(DEVICE_TOKEN.test(`ivd_${"a".repeat(42)}=`)).toBe(false);
 });
 
+// ADR-0058: no time chip goes with it.
 test("the only request is a GET of the status with the token, redirects not followed", async () => {
   const fetchFn = answering(Response.json(running));
-  await fetchStatus(fetchFn, site, TOKEN, "1-3");
+  await fetchStatus(fetchFn, site, TOKEN);
   expect(fetchFn).toHaveBeenCalledTimes(1);
   const [url, init] = fetchFn.mock.calls[0] ?? [];
-  expect(url).toBe("https://interval.example/api/agent/status?chip=1-3");
+  expect(url).toBe("https://interval.example/api/agent/status");
   expect(init?.method ?? "GET").toBe("GET");
   expect(init?.body).toBeUndefined();
   expect(init?.redirect).toBe("manual");
   expect(init?.headers).toEqual({ Authorization: `Bearer ${TOKEN}` });
-});
-
-test("without a chip the site picks the user's break length", async () => {
-  const fetchFn = answering(Response.json(running));
-  await fetchStatus(fetchFn, site, TOKEN, undefined);
-  expect(fetchFn.mock.calls[0]?.[0]).toBe(
-    "https://interval.example/api/agent/status",
-  );
 });
 
 test("a status parses with the API's schema", async () => {
@@ -61,7 +53,6 @@ test("a status parses with the API's schema", async () => {
     answering(Response.json(running)),
     site,
     TOKEN,
-    undefined,
   );
   expect(result).toEqual({ kind: "ok", status: running });
 });
@@ -69,11 +60,7 @@ test("a status parses with the API's schema", async () => {
 test("an answer that isn't a status fails instead of showing nonsense", async () => {
   for (const body of [
     "not json",
-    JSON.stringify({
-      task: { state: "sleeping" },
-      chip: "3-8",
-      suggestions: [],
-    }),
+    JSON.stringify({ task: { state: "sleeping" }, suggestions: [] }),
     JSON.stringify({
       ...running,
       suggestions: Array(4).fill(running.suggestions[0]),
@@ -84,7 +71,6 @@ test("an answer that isn't a status fails instead of showing nonsense", async ()
       answering(new Response(body)),
       site,
       TOKEN,
-      undefined,
     );
     expect(result).toEqual({
       kind: "failed",
@@ -127,9 +113,9 @@ test("each refusal is told apart", async () => {
     ],
   ];
   for (const [response, expected] of cases) {
-    expect(
-      await fetchStatus(answering(response), site, TOKEN, undefined),
-    ).toEqual(expected);
+    expect(await fetchStatus(answering(response), site, TOKEN)).toEqual(
+      expected,
+    );
   }
 });
 
@@ -141,7 +127,6 @@ test("a huge Retry-After is capped at an hour, so the timer stays in range", asy
       ),
       site,
       TOKEN,
-      undefined,
     );
     expect(result, header).toEqual({
       kind: "rateLimited",
@@ -154,18 +139,16 @@ test("the body limit counts bytes and trusts a declared length", async () => {
   // 40k three-byte characters: under 64 KiB in UTF-16 units, over it in bytes.
   const wide = JSON.stringify({ ...running, filler: "€".repeat(40_000) });
   expect(wide.length).toBeLessThan(64 * 1024);
-  expect(
-    await fetchStatus(answering(new Response(wide)), site, TOKEN, undefined),
-  ).toEqual({
-    kind: "failed",
-    detail: "Interval's answer wasn't a status",
-  });
+  expect(await fetchStatus(answering(new Response(wide)), site, TOKEN)).toEqual(
+    {
+      kind: "failed",
+      detail: "Interval's answer wasn't a status",
+    },
+  );
   const declared = new Response(JSON.stringify(running), {
     headers: { "Content-Length": String(1024 * 1024) },
   });
-  expect(
-    await fetchStatus(answering(declared), site, TOKEN, undefined),
-  ).toEqual({
+  expect(await fetchStatus(answering(declared), site, TOKEN)).toEqual({
     kind: "failed",
     detail: "Interval's answer wasn't a status",
   });
@@ -174,8 +157,7 @@ test("the body limit counts bytes and trusts a declared length", async () => {
     suggestions: [{ ...running.suggestions[0], title: "Ünïcödé €" }],
   });
   expect(
-    (await fetchStatus(answering(new Response(fine)), site, TOKEN, undefined))
-      .kind,
+    (await fetchStatus(answering(new Response(fine)), site, TOKEN)).kind,
   ).toBe("ok");
 });
 
@@ -183,7 +165,7 @@ test("an unreachable site fails with why", async () => {
   const fetchFn = vi.fn<typeof fetch>(() =>
     Promise.reject(new TypeError("fetch failed")),
   );
-  expect(await fetchStatus(fetchFn, site, TOKEN, undefined)).toEqual({
+  expect(await fetchStatus(fetchFn, site, TOKEN)).toEqual({
     kind: "failed",
     detail: "couldn't reach Interval (fetch failed)",
   });

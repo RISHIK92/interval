@@ -17,7 +17,6 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
     goals: [],
     topics: ["backend"],
     level: "beginner",
-    breakLength: "3-8",
     firstName: null,
   }),
 );
@@ -400,9 +399,7 @@ test("picking a path previews its sections on the right, to start it", async () 
         concepts: ["Caching", "CDN"],
         readings: [
           {
-            momentId: "601",
             itemId: "60",
-            sectionTitle: "Cache-aside",
             articleTitle: "Caching patterns",
             sourceName: "Example Engineering",
             minutes: 4,
@@ -432,7 +429,8 @@ test("picking a path previews its sections on the right, to start it", async () 
   expect(html).not.toContain("Your plan shows up here");
   // Owner, 2026-10-29: the path opens in a pane on the right with its readings; the
   // upload steps aside, the list is one column, and the picked card is marked.
-  expect(html).toContain("Cache-aside · Example Engineering · 4 min");
+  // ADR-0058: each reading is an article, by its title.
+  expect(html).toContain("Caching patterns · Example Engineering · 4 min");
   expect(html).not.toContain("Bring your own reading");
   expect(html).not.toContain("sm:grid-cols-2");
   expect(html).toContain('href="/paths?preview=6#path-6"');

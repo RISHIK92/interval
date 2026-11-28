@@ -16,8 +16,6 @@ from interval_jobs import log
 from interval_jobs.ports import Sources, SourceSettings, SyncResult
 
 PROFILES: tuple[str, ...] = get_args(RightsProfile.__value__)
-# ING-2 (Q-P1-01 matrix): moments need the body, which only the full-text levels keep.
-MOMENT_PROFILES = frozenset({"full_text_internal", "full_text_display"})
 TOPIC = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 KEYS = frozenset(
     {
@@ -25,7 +23,6 @@ KEYS = frozenset(
         "homepage",
         "feed_url",
         "rights_profile",
-        "moments_enabled",
         "paywalled",
         "quality_score",
         "topics",
@@ -41,7 +38,6 @@ class SeedSource:
     homepage: str | None
     feed_url: str | None  # None: feedless, skipped in Phase 1
     rights_profile: RightsProfile
-    moments_enabled: bool
     paywalled: bool
     quality_score: int | None
     topics: tuple[str, ...]
@@ -143,18 +139,11 @@ class _Entry:
                 self.at("rights_profile"),
                 f"rights_profile {profile!r} is not one of {', '.join(PROFILES)}",
             )
-        moments = self.flag("moments_enabled")
-        if moments and profile not in MOMENT_PROFILES:
-            raise self.fail(
-                self.at("moments_enabled"),
-                f"moments need a full-text profile, not {profile} (ING-2)",
-            )
         return SeedSource(
             name=name,
             homepage=self.text("homepage"),
             feed_url=self.text("feed_url"),
             rights_profile=cast(RightsProfile, profile),
-            moments_enabled=moments,
             paywalled=self.flag("paywalled"),
             quality_score=self.score(),
             topics=self.topics(),
@@ -229,7 +218,6 @@ def load_seeds(sources: Sources, text: str, path: str) -> tuple[SyncResult, int]
                 homepage=seed.homepage,
                 feed_url=seed.feed_url,
                 rights_profile=seed.rights_profile,
-                moments_enabled=seed.moments_enabled,
                 paywalled=seed.paywalled,
                 quality_score=seed.quality_score,
                 topics=seed.topics,

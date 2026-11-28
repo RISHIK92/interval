@@ -153,11 +153,11 @@ describe("editing the explicit choices", () => {
         ]),
       ),
     ).rejects.toThrow("redirect:/profile?saved=choices");
+    // ADR-0058: a break length an old form still posts is not kept.
     expect(update).toHaveBeenCalledExactlyOnceWith("g1", {
       goals: ["system-design-interviews"],
       topics: ["backend", "databases"],
       level: "advanced",
-      breakLength: "8-15",
     });
     expect(enqueue).toHaveBeenCalledOnce();
     expect(give).not.toHaveBeenCalled();
@@ -172,7 +172,6 @@ describe("editing the explicit choices", () => {
         form([
           ["topic", "backend"],
           ["level", "advanced"],
-          ["breakLength", "8-15"],
         ]),
       ),
     ).rejects.toThrow("redirect:/onboarding");
@@ -187,7 +186,6 @@ describe("editing the explicit choices", () => {
         form([
           ["topic", "software-design"],
           ["level", "advanced"],
-          ["breakLength", "8-15"],
         ]),
       ),
     ).rejects.toThrow("redirect:/profile?missing=topic-unavailable");
@@ -197,12 +195,7 @@ describe("editing the explicit choices", () => {
   test("an edit with no topic is refused and changes nothing", async () => {
     const { updatePreferencesAction } = await actions();
     await expect(
-      updatePreferencesAction(
-        form([
-          ["level", "advanced"],
-          ["breakLength", "8-15"],
-        ]),
-      ),
+      updatePreferencesAction(form([["level", "advanced"]])),
     ).rejects.toThrow("redirect:/profile?missing=topic");
     expect(update).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
@@ -243,7 +236,6 @@ test("without a session every action sends the visitor to /join", async () => {
   const valid = form([
     ["topic", "backend"],
     ["level", "advanced"],
-    ["breakLength", "8-15"],
     ["sourceId", "7"],
   ]);
   await expect(all.updatePreferencesAction(valid)).rejects.toThrow(

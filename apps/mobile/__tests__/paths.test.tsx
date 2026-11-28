@@ -51,8 +51,6 @@ const timeline = {
       readings: [
         {
           itemId: "5",
-          momentId: "9",
-          sectionTitle: "Leader election",
           articleTitle: "Raft",
           sourceName: "A blog",
           minutes: 6,
@@ -74,11 +72,9 @@ const timeline = {
       readings: [
         {
           itemId: "6",
-          momentId: "10",
-          sectionTitle: "Paxos made simple",
-          articleTitle: "Paxos",
+          articleTitle: "Paxos made simple",
           sourceName: "A blog",
-          minutes: 8,
+          minutes: null,
           linkBroken: false,
           finished: false,
         },
@@ -191,7 +187,7 @@ test("a path's reading opens the reader on its path; its checkpoint opens the qu
   expect(
     screen.getByText("Checkpoint · Pass 4 of 5 to finish the path"),
   ).toBeOnTheScreen();
-  expect(screen.getByText("✓ Leader election")).toBeOnTheScreen();
+  expect(screen.getByText("✓ Raft")).toBeOnTheScreen();
   await fireEvent.press(
     screen.getByRole("button", { name: "Take the checkpoint" }),
   );
@@ -203,14 +199,14 @@ test("a path's reading opens the reader on its path; its checkpoint opens the qu
   });
 });
 
+// ADR-0058: a reading is a whole article.
 test("a path's reading asks the reader for it as the path's", async () => {
   serve({ "GET /api/paths/3": () => Response.json(timeline) });
   await renderRouter("./app", { initialUrl: "/paths/3" });
-  await fireEvent.press(
-    await screen.findByRole("link", { name: "Finished: Leader election" }),
-  );
+  expect(await screen.findByText("A blog · 6 min")).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole("link", { name: "Finished: Raft" }));
   expect(screen).toHavePathname("/read/5");
-  expect(calls().map((c) => c.url)).toContain("/api/read/5?moment=9&path=3");
+  expect(calls().map((c) => c.url)).toContain("/api/read/5?path=3");
 });
 
 test("not onboarded: finish on the web", async () => {

@@ -149,28 +149,28 @@ export default function PathScreen() {
             {section.readings.map((r) =>
               // As the web: a locked section's readings are listed, not opened.
               !section.open || r.linkBroken ? (
-                <Text key={r.momentId} style={{ color: c["ink-muted"] }}>
+                <Text key={r.itemId} style={{ color: c["ink-muted"] }}>
                   {r.linkBroken
-                    ? `${r.sectionTitle} · link broken`
-                    : r.sectionTitle}
+                    ? `${r.articleTitle} · link broken`
+                    : r.articleTitle}
                 </Text>
               ) : (
                 <Pressable
-                  key={r.momentId}
+                  key={r.itemId}
                   accessibilityRole="link"
-                  accessibilityLabel={`${r.finished ? "Finished: " : ""}${r.sectionTitle}`}
+                  accessibilityLabel={`${r.finished ? "Finished: " : ""}${r.articleTitle}`}
                   onPress={() => {
-                    router.push(
-                      `/read/${r.itemId}?moment=${r.momentId}&path=${path.pathId}`,
-                    );
+                    router.push(`/read/${r.itemId}?path=${path.pathId}`);
                   }}
                   style={styles.reading}
                 >
                   <Text style={{ color: c.ink }}>
-                    {`${r.finished ? "✓ " : ""}${r.sectionTitle}`}
+                    {`${r.finished ? "✓ " : ""}${r.articleTitle}`}
                   </Text>
                   <Text style={{ color: c["ink-muted"] }}>
-                    {`${r.articleTitle} · ${r.sourceName} · ${String(r.minutes)} min`}
+                    {r.minutes === null
+                      ? r.sourceName
+                      : `${r.sourceName} · ${String(r.minutes)} min`}
                   </Text>
                 </Pressable>
               ),

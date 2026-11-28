@@ -1,12 +1,9 @@
-import type { Marker } from "@interval/api-client";
-import type { Chip } from "./chips";
 import { events, progress } from "./container";
 import type { EventContext } from "./events";
-import type { OutboundLink } from "./ports";
 
 // The publisher's page with utm_source=interval added (§8): appended as is, never
-// re-encoding the publisher's own query, and before the fragment, so a section link
-// still lands on its section. Null unless it is an http(s) URL: links come from feeds.
+// re-encoding the publisher's own query, and before the fragment, so a link with a
+// fragment still lands on it. Null unless it is an http(s) URL: links come from feeds.
 export function attributed(stored: string): string | null {
   let url: URL;
   try {
@@ -22,44 +19,30 @@ export function attributed(stored: string): string | null {
 }
 
 // What an open records, whether it opened in the browser (/out) or in Interval's
-// reader (/read, ADR-0018). A feed card has a chip and position; `from` names the
-// other links: Continue, Library, a path's reading, or a move inside the reader.
+// reader (/read, ADR-0018). A feed card has a position; `from` names the other links:
+// Continue, Library, a path's reading, or a move inside the reader.
 export async function countOpen(
   context: EventContext,
   open: {
     itemId: string;
-    momentId: string | undefined;
-    link: OutboundLink;
     // `via`: offered by Home's feed, or by a companion surface (P7-W46).
-    card: { chip: Chip; pos: number; via: "feed" | "agent" } | null;
+    card: { pos: number; via: "feed" | "agent" } | null;
     from: "continue" | "library" | "reader" | "path" | "explore" | undefined;
     surface: "in_app" | "browser";
   },
 ): Promise<void> {
-  const { itemId, momentId, link, card } = open;
-  // A section the reader reached counts as read for continue cards (P1-W5-S03).
-  if (momentId !== undefined && link.linkType !== "article") {
-    await progress().recordOpen(context.userId, itemId, momentId);
-  }
+  const { itemId, card } = open;
+  // ADR-0058: any open makes the article Continue reading until it is completed.
+  await progress().recordOpen(context.userId, itemId);
   if (card !== null) {
     // A feed card placed by exploration counts toward its arm (P1-W5-S03).
-    await progress().countExploreOpen(
-      context.userId,
-      card.chip,
-      itemId,
-      momentId ?? null,
-    );
+    await progress().countExploreOpen(context.userId, itemId);
     events().emit(
       "card_opened",
       {
-        kind: momentId === undefined ? "article" : "moment",
-        chip: card.chip,
         position: card.pos,
-        // The ids, to match this open to a finish (P1-W6-S04). A link that landed
-        // on the article is an article open: the article is what the reader can
-        // finish, as the reading cookie says (owner, 2026-10-26).
+        // The id, to match this open to a completion (P1-W6-S04).
         item_id: itemId,
-        moment_id: link.linkType === "article" ? null : (momentId ?? null),
         surface: open.surface,
         via: card.via,
       },
@@ -68,24 +51,4 @@ export async function countOpen(
   } else if (open.from === "continue") {
     events().emit("continue_clicked", {}, context);
   }
-}
-
-// P4-W20-S03 (§5D): where a stored section link points in its page, for the app's
-// reader to measure: an anchor's id or a text fragment's start (the segmenter writes
-// only ":~:text=<start>", percent-encoded). Null for a link without either.
-export function sectionMarker(link: string): Marker | null {
-  const hash = link.indexOf("#");
-  if (hash === -1) return null;
-  const fragment = link.slice(hash + 1);
-  const text = fragment.startsWith(":~:text=")
-    ? fragment.slice(":~:text=".length).split(/[,&]/, 1)[0]
-    : null;
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(text ?? fragment);
-  } catch {
-    return null;
-  }
-  if (decoded.trim() === "") return null;
-  return text === null ? { id: decoded } : { text: decoded };
 }

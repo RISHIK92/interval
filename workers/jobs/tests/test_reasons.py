@@ -23,7 +23,6 @@ from interval_jobs.ranking.scoring import Scored
 NOW = datetime(2026, 10, 29, 12, tzinfo=UTC)
 # The Tailscale card from the owner's feed (2026-10-29), as the ranking scored it.
 TAILSCALE = EntryFacts(
-    moment_id=7,
     item_id=35089,
     source_id=700,
     minutes=1,
@@ -38,7 +37,6 @@ WEIGHTED = {
     "topic_match": 1.0,
     "goal_match": 0.8,
     "project_match": 0.8,
-    "time_fit": 0.7,
     "level_fit": 0.6,
     "quality": 0.2,
     "freshness": 0.04,
@@ -56,7 +54,6 @@ def scored(
 ) -> Scored:
     parts = WEIGHTED if weighted is None else weighted
     return Scored(
-        7,
         facts.item_id,
         700,
         sum(parts.values()),
@@ -98,7 +95,7 @@ def test_only_a_topic_pick_claims_exploration() -> None:
     topic_pick = scored(arm=Arm("topic", "system-design"))
     text, kind = say(topic_pick, goals=(), projects={})
     assert kind == "explore" and text in templates().by_category["explore"]
-    # A source pick is only one the chip's main picks didn't reach: no novelty claimed.
+    # A source pick is only one the feed's main picks didn't reach: no novelty claimed.
     _, kind = say(scored(arm=Arm("source", "700")), goals=(), projects={})
     assert kind is None
 

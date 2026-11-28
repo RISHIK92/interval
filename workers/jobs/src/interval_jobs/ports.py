@@ -23,7 +23,6 @@ from interval_db.generated import (
     Difficulty,
     LeagueTier,
     LearningGoal,
-    MomentLinkType,
     RightsProfile,
     Topic,
 )
@@ -122,22 +121,11 @@ class SectionRow:
 
 
 @dataclass(frozen=True)
-class MomentRow:
-    ordinal: int
-    title: str
-    estimated_minutes: int
-    link: str
-    link_type: MomentLinkType
-    oversized: bool = False  # over 8 minutes with nowhere to split (Q-P1-06)
-
-
-@dataclass(frozen=True)
 class SourceRecord:
     id: int
     feed_url: str
     rights_profile: RightsProfile
     active: bool  # removed from the seed file: not polled (P1-W2-S01)
-    moments_enabled: bool
     poll_interval: timedelta  # ING-3, adapted after every poll
     polled_at: datetime | None  # when it last adapted
 
@@ -152,14 +140,6 @@ class FetchInput:
 
 
 @dataclass(frozen=True)
-class SegmentationInput:
-    title: str
-    canonical_url: str
-    rights_profile: RightsProfile
-    moments_enabled: bool
-
-
-@dataclass(frozen=True)
 class SourceSettings:
     """A source's settings from the seed list (Q-P1-02); only sources with a feed."""
 
@@ -167,7 +147,6 @@ class SourceSettings:
     homepage: str | None
     feed_url: str
     rights_profile: RightsProfile
-    moments_enabled: bool
     paywalled: bool
     quality_score: int | None
     topics: tuple[str, ...]
@@ -207,7 +186,8 @@ class Sources(Protocol):
         rights_profile: RightsProfile,
         homepage: str | None,
     ) -> int:
-        """Lowering a profile removes stored text and moments it no longer allows.
+        """Lowering a profile removes stored text it no longer allows, and what was
+        derived from it (ING-2).
         The source is active afterwards (ingest-one uses it on purpose)."""
         ...
 
@@ -282,16 +262,6 @@ class Items(Protocol):
 
     def replace_sections(self, item_id: int, sections: list[Section]) -> None: ...
 
-    def for_segmentation(self, item_id: int) -> SegmentationInput | None:
-        """Also takes the item's lock for the rest of the unit of work."""
-        ...
-
-    def sections(self, item_id: int) -> list[SectionRow]: ...
-
-    def boundary_override(self, item_id: int) -> list[str] | None:
-        """Headings an admin chose for moments to start at (ING-6, P1-W3-S05)."""
-        ...
-
     def for_fetch(self, item_id: int) -> FetchInput | None: ...
 
     def has_body(self, item_id: int) -> bool:
@@ -300,37 +270,10 @@ class Items(Protocol):
 
 
 @dataclass(frozen=True)
-class MomentLink:
-    """A moment's deep link, for checking where it lands (P1-W6-S02)."""
-
-    moment_id: int
-    item_id: int
-    source_id: int
-    source_name: str
-    title: str
-    link: str
-    link_type: MomentLinkType
-
-
-class Moments(Protocol):
-    def exist(self, item_id: int) -> bool: ...
-
-    def links(self, source_id: int | None) -> list[MomentLink]:
-        """Every moment's link, or one source's, by source then item and ordinal."""
-        ...
-
-    def replace(self, item_id: int, rows: list[MomentRow]) -> None:
-        """Upsert by ordinal (ids stay stable) and remove ordinals no longer present."""
-        ...
-
-
-@dataclass(frozen=True)
 class RankedEntry:
-    """One feed entry, in rank order (the list's order is the rank): a moment, or with
-    no moment the whole article (§3.2, P1-W4-S05b)."""
+    """One feed entry, an article, in rank order (the list's order is the rank)."""
 
     item_id: int
-    moment_id: int | None
     top_signal: str  # the rule that counted most (ranking inspection)
     # ADR-0027: the card's one explanation, in words.
     reasons: str | None
@@ -344,6 +287,10 @@ class RankedEntry:
     difficulty: "Difficulty | None" = None
 
 
+# ADR-0058: one list until stage C drops the chip column.
+FEED_CHIP: BreakLength = "3-8"
+
+
 class Feed(Protocol):
     """Precomputed feeds (CACHE-1, Q-P1-17): the worker writes them, the web reads."""
 
@@ -353,22 +300,15 @@ class Feed(Protocol):
         ...
 
     def replace_user(
-        self,
-        user_id: str,
-        by_chip: Mapping[BreakLength, list[RankedEntry]],
-        computed_at: datetime,
+        self, user_id: str, ranked: list[RankedEntry], computed_at: datetime
     ) -> None:
-        """Replaces the user's whole feed, one list per time chip (Q-P1-16), and records
-        when, in one transaction: a failure leaves the previous feed exactly as it was
-        (LOAD-5). A user or moment deleted since ranking is skipped, not an error."""
+        """Replaces the user's whole feed, one list (ADR-0058), and records when, in
+        one transaction: a failure leaves the previous feed exactly as it was (LOAD-5).
+        A user or item deleted since ranking is skipped, not an error."""
         ...
 
     def replace_starter(
-        self,
-        topic: str,
-        level: Difficulty,
-        chip: BreakLength,
-        ranked: list[RankedEntry],
+        self, topic: str, level: Difficulty, ranked: list[RankedEntry]
     ) -> None:
         """Replaces one starter feed (ADR-0008: a new guest's feed meanwhile)."""
         ...
@@ -490,9 +430,10 @@ class ConceptCycleError(ValueError):
 
 @dataclass(frozen=True)
 class ItemDecisions:
-    """A decision model's raw answers for one item (tagging v3, 2026-10-27)."""
+    """A decision model's raw answers for one item (tagging v3, 2026-10-27). An
+    article has only its own pass (ADR-0058); a book chapter has one per session."""
 
-    # moment id -> (difficulty score, concept slug -> probability)
+    # section id -> (difficulty score, concept slug -> probability)
     moments: dict[int, tuple[float, dict[str, float]]]
     item: dict[str, float]  # the title/summary pass: concept slug -> probability
     item_difficulty: float | None = None  # the title/summary pass's score
@@ -501,7 +442,7 @@ class ItemDecisions:
 @dataclass(frozen=True)
 class QuestionDraft:
     """One drafted multiple-choice question (Q-1, Q-P2-08): `correct` indexes
-    `options`; `citation` quotes the moment's text (Q-P2-12)."""
+    `options`; `citation` quotes the passage (Q-P2-12)."""
 
     stem: str
     options: tuple[str, ...]
@@ -512,7 +453,7 @@ class QuestionDraft:
 @dataclass(frozen=True)
 class EstimateDraft:
     """One drafted estimation question (P3-W13-S03b, Q-P3-05): a positive number in
-    `unit`, which `citation` (the moment's own words, Q-P2-12) states."""
+    `unit`, which `citation` (the passage's own words, Q-P2-12) states."""
 
     stem: str
     answer: float
@@ -529,22 +470,22 @@ class StemCandidate:
     when its stem was last sent for a rewrite (None: never)."""
 
     question_id: int
-    moment_id: int
+    item_id: int
     draft: QuestionDraft | EstimateDraft
     tried_at: datetime | None
 
 
 @dataclass(frozen=True)
 class QuestionTarget:
-    """A moment questions may be drafted for (Q-P2-09): not a duplicate's, its source
-    allows full text and moments (ING-2), and it has live concepts (an admin's
+    """An article questions may be drafted for (Q-P2-09, ADR-0058): not a duplicate,
+    its source allows full text (ING-2), and it has live concepts (an admin's
     correction replacing the model's tags) as (slug, name)."""
 
-    moment_id: int
     item_id: int
     concepts: tuple[tuple[str, str], ...]
     # Its level (an admin's correction winning); a question starts there (Q-P2-11).
     difficulty: Difficulty | None
+    sections: int  # its stored heading sections, which size its questions
 
 
 @dataclass(frozen=True)
@@ -563,11 +504,11 @@ class QuestionSummary:
 
 @dataclass(frozen=True)
 class QuestionBatchEntry:
-    """One request of a question batch (Q-P2-13): a moment's draft (with the content
+    """One request of a question batch (Q-P2-13): an article's draft (with the content
     hash it was built from) or a question's validation."""
 
     custom_id: str
-    moment_id: int | None
+    item_id: int | None
     question_id: int | None
     content_hash: str | None
     kind: QuestionKind = "choice"  # what it drafts or validates (P3-W13-S03b)
@@ -592,13 +533,13 @@ type BatchItemResult = Literal["saved", "decided", "broken", "error", "skipped"]
 # Topic paths (§5F, Q-P2-22, Q-P2-24, P2-W10-S01).
 @dataclass(frozen=True)
 class ConceptCoverage:
-    """A live concept and how much there is to read on it: moments the rights allow,
+    """A live concept and how much there is to read on it: articles the rights allow,
     and how many sources they come from."""
 
     slug: str
     name: str
     topic: str
-    moments: int
+    articles: int
     sources: int
 
 
@@ -611,10 +552,10 @@ class PathCandidate:
 
 @dataclass(frozen=True)
 class SessionCandidate:
-    """A moment a path session could be: its live concepts, its source, whether the
+    """An article a path session could be: its live concepts, its source, whether the
     reader can frame it and whether it has live questions (for the checkpoint)."""
 
-    moment_id: int
+    item_id: int
     concepts: frozenset[str]
     source_id: int
     frameable: bool
@@ -624,7 +565,7 @@ class SessionCandidate:
 @dataclass(frozen=True)
 class DraftSection:
     concepts: tuple[str, ...]
-    moment_ids: tuple[int, ...]
+    item_ids: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -638,7 +579,7 @@ class Paths(Protocol):
     """Path proposals (P2-W10-S01): what there is to propose from, and drafts."""
 
     def coverage(self) -> list[ConceptCoverage]:
-        """Every live concept, with the moments and sources the rights allow."""
+        """Every live concept, with the articles and sources the rights allow."""
         ...
 
     def prerequisites(self) -> set[tuple[str, str]]:
@@ -646,34 +587,37 @@ class Paths(Protocol):
         ...
 
     def session_candidates(self, slugs: Collection[str]) -> list[SessionCandidate]:
-        """Allowed moments tagged with any of these live concepts."""
+        """Allowed articles tagged with any of these live concepts."""
         ...
 
     def save_draft(self, draft: PathDraft, model: str, prompt_version: int) -> int: ...
 
 
 class Questions(Protocol):
-    """The question bank (Q-1, P2-W8-S01)."""
+    """The question bank (Q-1, P2-W8-S01), drafted per article (ADR-0058)."""
 
-    def target(self, moment_id: int) -> QuestionTarget | None: ...
+    def target(self, item_id: int) -> QuestionTarget | None: ...
 
     def targets(self, item_id: int | None) -> list[int]:
-        """The item's moments that are targets; every target when item_id is None."""
+        """The item if it is a target to draft for; every one when item_id is None.
+        An article whose questions were carried over from its moments (ADR-0058
+        stage A) is drafted already: those are its questions, never redrafted."""
         ...
 
-    def drafted_hash(self, moment_id: int) -> str | None:
-        """The content hash the moment's multiple-choice questions were drafted from;
+    def drafted_hash(self, item_id: int) -> str | None:
+        """The content hash the article's multiple-choice questions were drafted from;
         None if none."""
         ...
 
-    def estimate_drafted_hash(self, moment_id: int) -> str | None:
-        """P3-W13-S03b: the hash the moment's estimate was last drafted from, even when
-        the passage stated no number (so it isn't asked again, AI-4); None if never."""
+    def estimate_drafted_hash(self, item_id: int) -> str | None:
+        """P3-W13-S03b: the hash the article's estimate was last drafted from, even
+        when the passage stated no number (so it isn't asked again, AI-4); None if
+        never."""
         ...
 
     def save(
         self,
-        moment_id: int,
+        item_id: int,
         drafts: Sequence[QuestionDraft],
         concepts: Sequence[str],
         model: str,
@@ -682,47 +626,47 @@ class Questions(Protocol):
         difficulty: Difficulty | None,
     ) -> list[int]:
         """These, pending, starting at `difficulty`, each tagged with the concepts
-        (slugs), in place of the moment's current multiple-choice questions, which are
-        retired, not deleted; clears the moment's retry state. Their ids, in order."""
+        (slugs), in place of the article's current multiple-choice questions, which
+        are retired, not deleted; clears the article's retry state. Each takes the
+        article's next free slot (article_ordinal). Their ids, in order. Refused for
+        an article whose questions were carried over from its moments."""
         ...
 
     def save_estimate(
         self,
-        moment_id: int,
+        item_id: int,
         draft: EstimateDraft | None,
         concepts: Sequence[str],
         model: str,
         content_hash: str,
         difficulty: Difficulty | None,
     ) -> int | None:
-        """P3-W13-S03b: retire the moment's estimate and, given one, save this in its
-        place, pending; its id. Multiple choice is untouched."""
+        """P3-W13-S03b: retire the article's estimate and, given one, save this in its
+        place, pending; its id. Multiple choice is untouched. Refused as `save` is."""
         ...
 
-    def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
-        """The attempt the moment's newest retry carries and when it is due."""
+    def retry_state(self, item_id: int) -> tuple[int, datetime] | None:
+        """The attempt the article's newest retry carries and when it is due."""
         ...
 
-    def record_retry(
-        self, moment_id: int, attempt: int, retry_at: datetime
-    ) -> None: ...
+    def record_retry(self, item_id: int, attempt: int, retry_at: datetime) -> None: ...
 
-    def clear_retry(self, moment_id: int) -> None:
+    def clear_retry(self, item_id: int) -> None:
         """Drafting gave up (a reply that kept breaking the rules)."""
         ...
 
     # P2-W8-S02 (Q-1): the blind validator.
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
-        """A multiple-choice question still waiting for its verdict, with its moment;
-        None once validated, retired, or gone."""
+        """A multiple-choice question still waiting for its verdict, with its article
+        (a moment-era one's too); None once validated, retired, or gone."""
         ...
 
     def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
-        """P3-W13-S03b: as `pending`, for a moment's estimate."""
+        """P3-W13-S03b: as `pending`, for an article's estimate."""
         ...
 
-    def pending_ids(self, moment_id: int) -> list[int]:
-        """The moment's multiple-choice questions still waiting for a verdict
+    def pending_ids(self, item_id: int) -> list[int]:
+        """The article's multiple-choice questions still waiting for a verdict
         (re-queued by a backfill, so none waits forever)."""
         ...
 
@@ -829,7 +773,7 @@ class Questions(Protocol):
     def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]: ...
 
     def in_open_batches(self) -> tuple[set[tuple[int, QuestionKind]], set[int]]:
-        """The moments (with the kind each is drafted for) and questions an open
+        """The articles (with the kind each is drafted for) and questions an open
         batch is working on."""
         ...
 
@@ -845,13 +789,13 @@ class Questions(Protocol):
         outcome: Literal["completed", "failed"],
         results: Mapping[str, BatchItemResult],
     ) -> None:
-        """Closed: its moments and questions can be sent again; each entry keeps its
+        """Closed: its articles and questions can be sent again; each entry keeps its
         result (by custom_id)."""
         ...
 
     def broken_counts(self) -> tuple[dict[tuple[int, str], int], dict[int, int]]:
-        """How many batch replies came back breaking a rule: per (moment, content
-        hash) for drafts, so a changed moment starts again, and per question."""
+        """How many batch replies came back breaking a rule: per (article, content
+        hash) for drafts, so a changed article starts again, and per question."""
         ...
 
     def summary(self, sample: int) -> QuestionSummary:
@@ -862,20 +806,8 @@ class Questions(Protocol):
 
 class Decisions(Protocol):
     """A decision model's raw answers, kept so cut-offs can be retuned without asking
-    again; each with the hash of what was asked about."""
-
-    def moment_hashes(self, item_id: int, model: str) -> dict[int, str]: ...
-
-    def save_moment(
-        self,
-        moment_id: int,
-        model: str,
-        content_hash: str,
-        difficulty: float,
-        probabilities: dict[str, float],
-    ) -> None:
-        """Replaces the moment's earlier answers from this model."""
-        ...
+    again; each with the hash of what was asked about. One pass per article
+    (ADR-0058); the moments' answers stay in their own rows until stage C."""
 
     def item_hash(self, item_id: int, model: str) -> str | None: ...
 
@@ -888,7 +820,9 @@ class Decisions(Protocol):
         probabilities: dict[str, float],
     ) -> None: ...
 
-    def read(self, item_id: int, model: str) -> ItemDecisions: ...
+    def read(self, item_id: int, model: str) -> ItemDecisions:
+        """The article's own pass; no per-section answers."""
+        ...
 
 
 class Concepts(Protocol):
@@ -920,9 +854,12 @@ class Concepts(Protocol):
 
 @dataclass(frozen=True)
 class TagMoment:
+    """A part of the text tagged on its own: a book chapter's session (an article has
+    none, ADR-0058)."""
+
     id: int
     ordinal: int
-    heading: str | None  # None: the intro, at the top of the page
+    heading: str | None  # None: the top of the text
 
 
 @dataclass(frozen=True)
@@ -933,7 +870,7 @@ class TagInput:
     summary: str | None
     full_text: str | None  # only under the source's current full-text rights (ING-2)
     excerpt: str | None  # only under the excerpt profile ("for tagging", Q-P1-01)
-    moments: list[TagMoment]
+    moments: list[TagMoment]  # a book chapter's sessions; none for an article
     tagged_version: int | None  # prompt version it was last tagged with
     duplicate: bool  # tag the primary only (AI-4: once per item)
 
@@ -947,7 +884,7 @@ class Tags:
 @dataclass(frozen=True)
 class TagResult:
     item: Tags
-    moments: dict[int, Tags]  # by moment id
+    moments: dict[int, Tags]  # a book chapter's sessions by id; none for an article
 
 
 class ItemTags(Protocol):
@@ -963,10 +900,6 @@ class ItemTags(Protocol):
         """Not yet tagged at this prompt version, and not a duplicate (AI-4)."""
         ...
 
-    def clear(self, item_id: int) -> None:
-        """Drops the item's tags: its moments changed, so they are redone."""
-        ...
-
     def find(self, canonical_url: str) -> int | None:
         """The primary item at this canonical URL (eval labels name items by URL)."""
         ...
@@ -974,52 +907,34 @@ class ItemTags(Protocol):
     def save(
         self, item_id: int, result: TagResult, model: str, prompt_version: int
     ) -> None:
-        """Replaces the item's and its moments' tags. Moment ids that aren't the
-        item's are refused."""
-        ...
-
-    def for_item(self, item_id: int) -> tuple[Tags | None, dict[int, Tags]]:
-        """The item's tags and its moments' tags by ordinal; retired concepts too."""
+        """Replaces the item's tags (an article's only: per-section tags are refused,
+        ADR-0058)."""
         ...
 
 
 @dataclass(frozen=True)
-class SimilarMoment:
-    moment_id: int
+class SimilarArticle:
     item_id: int
     source_id: int
     score: float  # cosine similarity, 1 is identical
 
 
-class MomentEmbeddings(Protocol):
-    """One vector per moment (DB-3); moments exist only under full-text rights."""
+class ItemEmbeddings(Protocol):
+    """One vector per article (DB-3, ADR-0058), of the text full-text rights allow."""
 
     def missing(self, item_id: int, model: str) -> bool:
-        """The item has moments, isn't a duplicate, and hasn't been embedded in full
-        by this model (AI-4: once per item and model)."""
+        """The item has stored full text, isn't a duplicate, and has no vector from
+        this model (AI-4: once per item and model; storing a changed text, or a rights
+        purge, drops the vector)."""
         ...
 
-    def done(self, item_id: int, model: str) -> set[int]:
-        """Moments that already have a vector from this model."""
+    def save(self, item_id: int, vector: list[float], model: str) -> None:
+        """The item's vector from this model, replacing an earlier one."""
         ...
 
-    def save(
-        self,
-        item_id: int,
-        vectors: dict[int, list[float]],
-        model: str,
-        *,
-        complete: bool,
-    ) -> None:
-        """Upserts by moment id (another item's moment ids are refused). `complete`
-        records that every moment with text has been embedded by this model."""
-        ...
-
-    def clear(self, item_id: int) -> None: ...
-
-    def vectors_of_item(self, item_id: int, model: str) -> dict[int, list[float]]:
-        """The item's moment vectors from this model by moment id (ranking's
-        anchors; tagging's shortlist)."""
+    def vector(self, item_id: int, model: str) -> list[float] | None:
+        """The item's vector from this model (ranking's anchors); None without one
+        (an article whose moments' mean was purged with them has none)."""
         ...
 
     def similar(
@@ -1032,10 +947,9 @@ class MomentEmbeddings(Protocol):
         model: str | None = None,
         exclude_sources: set[int] | None = None,
         exclude_items: set[int] | None = None,
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[SimilarMoment]:
-        """Nearest moments first, in one query filtered by rights, source and
-        difficulty (DB-3). A difficulty filter leaves out untagged moments; `model`
+    ) -> list[SimilarArticle]:
+        """Nearest articles first, in one query filtered by rights, source and
+        difficulty (DB-3). A difficulty filter leaves out untagged articles; `model`
         keeps to one model's vectors, which are the only ones comparable. Only the copy
         of a duplicate group the feed shows, from active sources, is returned."""
         ...
@@ -1057,28 +971,14 @@ class UserPreferences:
 
     topics: list[Topic]
     level: Difficulty
-    break_length: BreakLength
     # ADR-0015, in LEARNING_GOALS order; none for a starter feed.
     goals: list[LearningGoal] = field(default_factory=list["LearningGoal"])
 
 
 @dataclass(frozen=True)
-class CandidateMoment:
-    moment_id: int
-    item_id: int
-    source_id: int
-
-
-# (item id, moment id): a moment, or with no moment the whole article.
-type EntryKey = tuple[int, int | None]
-
-
-@dataclass(frozen=True)
 class EntryFacts:
-    """What scoring needs about one candidate: a moment or a whole article (P1-W4-S03,
-    P1-W4-S05b)."""
+    """What scoring needs about one candidate article (P1-W4-S03, ADR-0058)."""
 
-    moment_id: int | None
     item_id: int
     source_id: int
     minutes: int | None  # None: an article with no body text to count (Q-P1-39)
@@ -1088,10 +988,6 @@ class EntryFacts:
     concepts: frozenset[str]  # the item's: the admin's correction, else the model's
     topics: frozenset[str]  # its source's seed topics and its concepts' topics
     source_name: str  # for the why-this-matters note (P1-W4-S06)
-
-    @property
-    def key(self) -> EntryKey:
-        return (self.item_id, self.moment_id)
 
 
 @dataclass(frozen=True)
@@ -1125,14 +1021,6 @@ class ArmOutcome:
 
 
 @dataclass(frozen=True)
-class Finished:
-    """What a user finished (P1-W5-S02): not offered again (P1-W5-S03)."""
-
-    moments: frozenset[int]
-    items: frozenset[int]
-
-
-@dataclass(frozen=True)
 class CandidateArticle:
     item_id: int
     source_id: int
@@ -1145,7 +1033,7 @@ type ProjectConcepts = dict[str, tuple[tuple[str, str], ...]]
 
 class RankingInputs(Protocol):
     """What ranking reads (REC-1, Q-P1-15): a user's choices and feedback, which the
-    web app writes, and the moments that match them."""
+    web app writes, and the articles that match them."""
 
     def preferences(self, user_id: str) -> UserPreferences | None: ...
 
@@ -1159,16 +1047,15 @@ class RankingInputs(Protocol):
         repositories that use it, for the user's own card explanations."""
         ...
 
-    def concept_moments(
+    def concept_articles(
         self,
         concepts: frozenset[str],
         limit: int,
         *,
         exclude_sources: set[int],
         exclude_items: set[int],
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[CandidateMoment]:
-        """Moments of shown items tagged with any of the concepts, newest first."""
+    ) -> list[CandidateArticle]:
+        """Shown articles tagged with any of the concepts, newest first."""
         ...
 
     def goal_concepts(
@@ -1184,7 +1071,7 @@ class RankingInputs(Protocol):
         ...
 
     def anchor_items(self, user_id: str, limit: int) -> list[int]:
-        """Items to find similar moments from (Q-P1-13): those the user said More like
+        """Items to find similar articles from (Q-P1-13): those the user said More like
         this to, then those they saved (P1-W4-S07), each newest first, once."""
         ...
 
@@ -1200,33 +1087,17 @@ class RankingInputs(Protocol):
         """`ranking_config`: every weight in one place (Q-P1-13)."""
         ...
 
-    def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
-        """By moment id; a moment deleted meanwhile (a re-segment) is left out."""
+    def finished(self, user_id: str) -> frozenset[int]:
+        """Articles the user finished (P1-W5-S02): not offered again (P1-W5-S03)."""
         ...
-
-    def topic_moments(
-        self,
-        topics: list[Topic],
-        limit: int,
-        *,
-        exclude_sources: set[int],
-        exclude_items: set[int],
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[CandidateMoment]:
-        """Moments whose item's concepts (an admin's correction first, else the model's
-        tags) or source's seed topics match, newest first. Only the copy of a duplicate
-        group the feed shows, from active sources."""
-        ...
-
-    def finished(self, user_id: str) -> Finished: ...
 
     def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
         """Every arm with recorded outcomes; an arm not listed is at its prior."""
         ...
 
     def article_facts(self, item_ids: list[int]) -> dict[int, EntryFacts]:
-        """Whole articles by item id: minutes from the stored sections (230 words a
-        minute), None with no body text; the item's level, not a moment's."""
+        """Articles by item id: minutes from the stored sections (230 words a
+        minute), None with no body text; an item deleted meanwhile is left out."""
         ...
 
     def topic_articles(
@@ -1237,9 +1108,10 @@ class RankingInputs(Protocol):
         exclude_sources: set[int],
         exclude_items: set[int],
     ) -> list[CandidateArticle]:
-        """Items matching as topic_moments does, newest first, whatever their rights
-        profile (a whole article shows only its title and link). Per duplicate group,
-        the copy the feed shows: the earliest with moments, else the earliest."""
+        """Articles whose concepts (an admin's correction first, else the model's
+        tags) or source's seed topics match, newest first, whatever their rights
+        profile, from active sources. Per duplicate group, the copy the feed shows:
+        the earliest whose link works."""
         ...
 
 
@@ -1263,9 +1135,6 @@ class Store(Protocol):
     def items(self) -> Items: ...
 
     @property
-    def moments(self) -> Moments: ...
-
-    @property
     def feed(self) -> Feed: ...
 
     @property
@@ -1287,7 +1156,7 @@ class Store(Protocol):
     def tags(self) -> ItemTags: ...
 
     @property
-    def embeddings(self) -> MomentEmbeddings: ...
+    def embeddings(self) -> ItemEmbeddings: ...
 
     @property
     def ranking(self) -> RankingInputs: ...
@@ -2345,26 +2214,24 @@ class ExplainerConcept:
 
 @dataclass(frozen=True)
 class ExplainerSource:
-    moment_id: int
     item_id: int
-    section_title: str
     article_title: str
 
 
 @dataclass(frozen=True)
 class ExplainerCitation:
-    moment_id: int
-    quote: str  # a sentence of the cited section, to check against; never voiced
+    content_item_id: int
+    quote: str  # a sentence of the cited article, to check against; never voiced
 
 
 class Explainers(Protocol):
     def targets(self, limit: int) -> list[ExplainerConcept]:
-        """Live concepts with no explainer yet, each with full-text moments from at
-        least two items (ING-2: rights that allow full text and moments)."""
+        """Live concepts with no explainer yet, each with at least two full-text
+        articles (ING-2: rights that allow full text)."""
         ...
 
     def sources(self, concept_id: int, count: int) -> list[ExplainerSource]:
-        """Up to `count` of the concept's full-text moments, one per item."""
+        """Up to `count` of the concept's full-text articles, newest first."""
         ...
 
     def save(
@@ -2623,13 +2490,13 @@ class AskRequest:
 
 @dataclass(frozen=True)
 class AskPassage:
-    """A retrieved candidate. `passage` is the id the model cites: m<moment id>,
-    i<item id> or c<concept id> (an approved explainer script). The body is filled
-    by rights profile only (ask.passage_body); for a moment of a full-text source the
-    worker reads its section text itself."""
+    """A retrieved candidate. `passage` is the id the model cites: i<item id> or
+    c<concept id> (an approved explainer script). The body is filled by rights profile
+    only (ask.passage_body); for an article of a full-text source the worker reads its
+    text itself."""
 
     passage: str
-    kind: Literal["moment", "item", "explainer"]
+    kind: Literal["item", "explainer"]
     score: float  # cosine similarity to the question
     title: str
     rights_profile: RightsProfile | None  # None for an explainer (original content)
@@ -2639,7 +2506,6 @@ class AskPassage:
     excerpt: str | None = None  # stored only for excerpt sources (ING-2)
     script: str | None = None  # an approved explainer's script
     item_id: int | None = None
-    moment_id: int | None = None
     concept_id: int | None = None
 
 
@@ -2665,9 +2531,10 @@ class AskStore(Protocol):
     def nearest(
         self, user_id: str, vector: list[float], model: str, limit: int
     ) -> list[AskPassage]:
-        """The nearest moments and, through the nearest concepts, their approved
-        explainers and the metadata-only and excerpt items tagged with them; never
-        a source the user hid, a broken link, a source switched off or a duplicate."""
+        """The nearest full-text articles and, through the nearest concepts, their
+        approved explainers and the metadata-only and excerpt items tagged with them;
+        never a source the user hid, a broken link, a source switched off or a
+        duplicate."""
         ...
 
     def save(self, question_id: str, result: AskResult) -> bool:

@@ -1,14 +1,15 @@
 """A decision model's stored probabilities turned into tags (tagging v3, 2026-10-27).
 
 Pure, and cheap to rerun: the cut-offs can be retuned on stored answers without asking
-the model again (`eval-tagging` sweeps them).
-- A moment keeps every concept at or over `moment`, most likely first, at most five;
-  with nothing over it, none: much of the feed teaches no concept in the graph.
-- The article keeps concepts at or over `moment` in at least two of its moments, or at
-  or over `strong` in one, or at or over `title` in its title/summary pass; possibly
-  none.
-- Difficulty is the moment's score rounded (halves up); the article's is the median of
-  its moments' scores, or its title pass's score when it has no moments."""
+the model again (`eval-tagging` sweeps them). An article has only its own pass
+(ADR-0058); a book chapter has its sessions' passes and its title pass.
+- A session keeps every concept at or over `moment`, most likely first, at most five;
+  with nothing over it, none: much of what's read teaches no concept in the graph.
+- The whole keeps concepts at or over `moment` in at least two of its sessions, or at
+  or over `strong` in one, or at or over `title` in its own pass (an article's only
+  rule); possibly none.
+- Difficulty is the session's score rounded (halves up); the whole's is the median of
+  its sessions' scores, or its own pass's score when it has none."""
 
 import math
 from dataclasses import dataclass
@@ -56,15 +57,7 @@ def rollup(
     decisions: ItemDecisions,
     known: set[str],
     cutoffs: Cutoffs = DEFAULT_CUTOFFS,
-    current: frozenset[int] | None = None,
 ) -> TagResult:
-    """`current`: the item's moments with text now; answers for others are stale."""
-    if current is not None:
-        decisions = ItemDecisions(
-            {m: a for m, a in decisions.moments.items() if m in current},
-            decisions.item,
-            decisions.item_difficulty,
-        )
     moments = {
         moment_id: Tags(level(score), _moment(probs, known, cutoffs.moment))
         for moment_id, (score, probs) in decisions.moments.items()

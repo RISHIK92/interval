@@ -6,7 +6,7 @@ import { createDb } from "./kysely";
 import { kyselyAdminExplainers } from "./kysely-admin-explainers";
 
 // P4-W22-S01 (§5G, Q-P4-11): the owner's review of explainer scripts: pending ones with
-// their cited sections, each decided once.
+// their cited articles (ADR-0058), each decided once.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) {
   throw new Error("DATABASE_URL is not set; copy .env.example to .env");
@@ -25,8 +25,8 @@ async function inRollback(
     seeded: {
       admin: string;
       explainer: string;
-      moment: string;
-      second: string;
+      raft: string;
+      paxos: string;
     },
   ) => Promise<void>,
 ): Promise<void> {
@@ -74,36 +74,27 @@ async function inRollback(
         })
         .returning("id")
         .executeTakeFirstOrThrow();
-      const item = await trx
-        .insertInto("content_item")
-        .values({
-          source_id: source.id,
-          guid: tag,
-          canonical_url: `https://${tag}.test/raft`,
-          title: "Raft",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
+      const article = async (title: string) =>
+        trx
+          .insertInto("content_item")
+          .values({
+            source_id: source.id,
+            guid: `${tag}-${title}`,
+            canonical_url: `https://${tag}.test/${title.toLowerCase()}`,
+            title,
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+      const raft = await article("Raft");
+      const paxos = await article("Paxos");
       const moment = await trx
         .insertInto("moment")
         .values({
-          content_item_id: item.id,
+          content_item_id: paxos.id,
           ordinal: 0,
-          title: "Elections",
+          title: "Ballots",
           estimated_minutes: 3,
-          link: `https://${tag}.test/raft#elections`,
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      const second = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 1,
-          title: "Terms",
-          estimated_minutes: 3,
-          link: `https://${tag}.test/raft#terms`,
+          link: `https://${tag}.test/paxos#ballots`,
           link_type: "anchor",
         })
         .returning("id")
@@ -113,10 +104,12 @@ async function inRollback(
         .values({
           concept_id: concept.id,
           script: "Consensus keeps replicas agreeing.",
-          // A section re-segmented away is left out.
+          // ADR-0058: an article cited twice counts once; a moment-era citation by
+          // its moment's article; one naming nothing any more is left out.
           citations: JSON.stringify([
-            { moment_id: Number(moment.id), quote: "a quote" },
-            { moment_id: Number(second.id), quote: "another" },
+            { content_item_id: Number(raft.id), quote: "a quote" },
+            { content_item_id: Number(raft.id), quote: "again" },
+            { moment_id: Number(moment.id), quote: "another" },
             { moment_id: 999999999999, quote: "gone" },
           ]),
           generator_model: "qwen/x",
@@ -127,16 +120,16 @@ async function inRollback(
       await body(trx, {
         admin,
         explainer: explainer.id,
-        moment: moment.id,
-        second: second.id,
+        raft: raft.id,
+        paxos: paxos.id,
       });
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-test("pending scripts with their cited sections; each decided once", async () => {
-  await inRollback(async (trx, { admin, explainer, moment, second }) => {
+test("pending scripts with their cited articles; each decided once", async () => {
+  await inRollback(async (trx, { admin, explainer, raft, paxos }) => {
     const store = kyselyAdminExplainers(trx);
     const mine = (await store.pending()).find((x) => x.id === explainer);
     expect(mine).toMatchObject({
@@ -146,12 +139,11 @@ test("pending scripts with their cited sections; each decided once", async () =>
       model: "qwen/x",
       citations: [
         {
-          momentId: moment,
+          itemId: raft,
           articleTitle: "Raft",
-          sectionTitle: "Elections",
-          link: expect.stringMatching(/#elections$/) as string,
+          link: expect.stringMatching(/\/raft$/) as string,
         },
-        { momentId: second, sectionTitle: "Terms" },
+        { itemId: paxos, articleTitle: "Paxos" },
       ],
     });
     expect(await store.decide(explainer, "approved", admin)).toBe(true);
@@ -166,9 +158,10 @@ test("pending scripts with their cited sections; each decided once", async () =>
   });
 });
 
-test("a script left with fewer than two sources can't be approved, only rejected", async () => {
-  await inRollback(async (trx, { admin, explainer, second }) => {
-    await trx.deleteFrom("moment").where("id", "=", second).execute();
+test("a script left with fewer than two cited articles can't be approved, only rejected", async () => {
+  await inRollback(async (trx, { admin, explainer, paxos }) => {
+    // Raft is cited twice, but is one source (AI-1).
+    await trx.deleteFrom("content_item").where("id", "=", paxos).execute();
     const store = kyselyAdminExplainers(trx);
     expect(await store.decide(explainer, "approved", admin)).toBe(false);
     expect(await store.decide(explainer, "rejected", admin)).toBe(true);

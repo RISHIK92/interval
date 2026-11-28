@@ -16,13 +16,10 @@ import {
 // the worker's answers. A citation is stored as ids; its chip's label is read here from
 // the catalogue, so the answer row never holds a title or a passage.
 
-// What the worker writes (interval_jobs.ask): ids as strings.
+// What the worker writes (interval_jobs.ask): ids as strings. ADR-0058: a reading is
+// its article; a moment_id written before it is ignored (zod drops it).
 const StoredCitation = z.union([
-  z.object({
-    passage: z.string(),
-    item_id: z.string(),
-    moment_id: z.string().optional(),
-  }),
+  z.object({ passage: z.string(), item_id: z.string() }),
   z.object({ passage: z.string(), concept_id: z.string() }),
 ]);
 const StoredCitations = z.array(StoredCitation);
@@ -63,9 +60,6 @@ async function citationsOf(
   const readingIds = parsed.data.flatMap((c) =>
     "item_id" in c ? [c.item_id] : [],
   );
-  const momentIds = parsed.data.flatMap((c) =>
-    "item_id" in c && c.moment_id !== undefined ? [c.moment_id] : [],
-  );
   const conceptIds = parsed.data.flatMap((c) =>
     "concept_id" in c ? [c.concept_id] : [],
   );
@@ -89,14 +83,6 @@ async function citationsOf(
             where ci.id = any(${readingIds}::bigint[])
           `.execute(db)
         ).rows;
-  const moments =
-    momentIds.length === 0
-      ? []
-      : await db
-          .selectFrom("moment")
-          .select(["id", "title"])
-          .where("id", "in", momentIds)
-          .execute();
   const concepts =
     conceptIds.length === 0
       ? []
@@ -122,17 +108,12 @@ async function citationsOf(
     const item = items.find((r) => r.id === c.item_id);
     // A link that broke since, or a source switched off, isn't offered.
     if (item === undefined || item.broken) return [];
-    const moment =
-      c.moment_id === undefined
-        ? undefined
-        : moments.find((r) => r.id === c.moment_id);
     return [
       {
         kind: "reading",
         passage: c.passage,
         itemId: item.id,
-        momentId: moment?.id ?? null,
-        label: `${item.source_name} · ${moment?.title ?? item.title}`,
+        label: `${item.source_name} · ${item.title}`,
         topic: item.topic !== null && isTopic(item.topic) ? item.topic : null,
       },
     ];
@@ -264,7 +245,7 @@ export function kyselyAsks(db: Kysely<DB>): Asks {
       return gone.length > 0;
     },
 
-    sessionMoments: async (id, userId) => {
+    sessionArticles: async (id, userId) => {
       const answer = await db
         .selectFrom("ask_answer as a")
         .innerJoin("ask_question as q", "q.id", "a.question_id")
@@ -275,44 +256,43 @@ export function kyselyAsks(db: Kysely<DB>): Asks {
         .executeTakeFirst();
       if (answer === undefined) return null;
       const parsed = StoredCitations.safeParse(answer.citations);
+      // ADR-0058: each cited article once, in citation order.
       const cited = parsed.success
-        ? parsed.data.flatMap((c) =>
-            "moment_id" in c && c.moment_id !== undefined ? [c.moment_id] : [],
-          )
+        ? [
+            ...new Set(
+              parsed.data.flatMap((c) => ("item_id" in c ? [c.item_id] : [])),
+            ),
+          ]
         : [];
-      if (cited.length === 0) return { moments: [], prerequisites: [] };
-      // Only moments the feed itself would open now (ING-2, broken links, the
-      // user's hidden sources, sources switched off).
+      if (cited.length === 0) return { articles: [], prerequisites: [] };
+      // Only articles the feed itself would open now (broken links, the user's
+      // hidden sources, inactive sources, duplicates); a link to the publisher's
+      // page needs no full-text rights (ING-2).
       const { rows } = await sql<{
         item_id: string;
-        moment_id: string;
         title: string;
         source_name: string;
-        minutes: number;
+        minutes: number | null;
         concept_ids: string[];
       }>`
-        select ci.id as item_id, m.id as moment_id, m.title, s.name as source_name,
-               m.estimated_minutes as minutes,
-               array(select mc.concept_id::text from moment_concept mc
-                     where mc.moment_id = m.id) as concept_ids
-        from moment m
-        join content_item ci on ci.id = m.content_item_id
+        select ci.id as item_id, ci.title, s.name as source_name,
+               item_minutes(ci.id) as minutes,
+               array(select ic.concept_id::text from item_concept ic
+                     where ic.content_item_id = ci.id) as concept_ids
+        from content_item ci
         join source s on s.id = ci.source_id
-        where m.id = any(${cited}::bigint[])
+        where ci.id = any(${cited}::bigint[])
           and ci.link_broken_at is null and s.active and ci.duplicate_of is null
-          and s.moments_enabled
-          and s.rights_profile in ('full_text_internal', 'full_text_display')
           and not exists (select 1 from user_hidden_source h
                           where h.user_id = ${userId} and h.source_id = s.id)
       `.execute(db);
-      const moments = cited.flatMap((momentId) => {
-        const r = rows.find((row) => row.moment_id === momentId);
+      const articles = cited.flatMap((itemId) => {
+        const r = rows.find((row) => row.item_id === itemId);
         return r === undefined
           ? []
           : [
               {
                 itemId: r.item_id,
-                momentId: r.moment_id,
                 title: r.title,
                 sourceName: r.source_name,
                 minutes: r.minutes,
@@ -320,7 +300,7 @@ export function kyselyAsks(db: Kysely<DB>): Asks {
               },
             ];
       });
-      const concepts = [...new Set(moments.flatMap((m) => m.conceptIds))];
+      const concepts = [...new Set(articles.flatMap((a) => a.conceptIds))];
       const edges =
         concepts.length === 0
           ? []
@@ -332,7 +312,7 @@ export function kyselyAsks(db: Kysely<DB>): Asks {
               .where("to_id", "in", concepts)
               .execute();
       return {
-        moments,
+        articles,
         prerequisites: edges.map((e): [string, string] => [e.from_id, e.to_id]),
       };
     },

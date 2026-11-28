@@ -3,19 +3,25 @@ import { afterEach, expect, test, vi } from "vitest";
 import type { Actor, ReaderPage } from "../../../../server/ports";
 
 // P4-W20-S02 (ADR-0018, §3.2): the app's reader reads what the web reader shows around
-// the publisher's page, and counts the open as the web does, from the app.
+// the publisher's page, and counts the open as the web does, from the app. ADR-0058:
+// always the whole article.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const reader = vi.fn<() => Promise<ReaderPage | null>>();
-const noteOf = vi.fn(() => Promise.resolve<string | null>("Mine."));
+const onItems = vi.fn(() =>
+  Promise.resolve([
+    { itemId: "5", sectionTitle: null, body: "Mine." },
+    { itemId: "5", sectionTitle: "Leader election", body: "Terms." },
+  ]),
+);
 const countOpen = vi.fn(() => Promise.resolve());
-const offered = vi.fn(() => Promise.resolve(new Set(["5.9"])));
+const offered = vi.fn(() => Promise.resolve(new Set(["5"])));
 const emit = vi.fn();
 const voiced = vi.fn(() => Promise.resolve(["7"]));
 vi.mock("../../../../server/container", () => ({
   events: () => ({ emit }),
   sessionReader: () => ({ current }),
   outboundLinks: () => ({ reader }),
-  notes: () => ({ get: noteOf }),
+  notes: () => ({ onItems }),
   quizzes: () => ({ offered }),
   listening: () => ({ voiced }),
 }));
@@ -33,16 +39,14 @@ vi.mock("../../../../env", () => ({
 const account: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const APP = { "expo-origin": "interval://", "interval-platform": "ios" };
 const page: ReaderPage = {
-  link: { url: "https://www.blog.dev/raft#election", linkType: "anchor" },
+  link: { url: "https://www.blog.dev/raft", linkType: "article" },
   frameable: false,
   articleTitle: "Raft",
-  sectionTitle: "Leader election",
   sourceName: "A blog",
   reasons: null,
   saved: true,
-  nextMomentId: "10",
+  state: "continue_reading",
   estimatedMinutes: 6,
-  nextLink: "https://www.blog.dev/raft#log-replication",
 };
 
 afterEach(() => {
@@ -57,42 +61,52 @@ const get = async (query: string, headers: Record<string, string> = APP) => {
   );
 };
 
-test("a feed card's open: the page, attributed, in the app even if it can't be framed", async () => {
+test("a feed card's open: the article, attributed, in the app even if it can't be framed", async () => {
   current.mockResolvedValue(account);
   reader.mockResolvedValue(page);
-  const response = await get("?moment=9&chip=3-8&pos=2");
+  const response = await get("?pos=2");
   expect(response.status).toBe(200);
   expect(ReaderResponse.parse(await response.json())).toEqual({
-    url: "https://www.blog.dev/raft?utm_source=interval#election",
+    url: "https://www.blog.dev/raft?utm_source=interval",
     inApp: true,
-    title: "Leader election — Raft",
+    title: "Raft",
     domain: "blog.dev",
     saved: true,
-    reached: "9",
-    nextMomentId: "10",
+    state: "continue_reading",
     note: "Mine.",
+    // ADR-0058: notes written on a section before it, under the article.
+    sectionNotes: [{ sectionTitle: "Leader election", body: "Terms." }],
     testable: true,
     listen: true,
-    // P4-W20-S03: from this section's start to the next one's.
-    measure: {
-      start: { id: "election" },
-      end: { id: "log-replication" },
-      minutes: 6,
-    },
+    // P4-W20-S03: the whole page, read through for about its minutes.
+    measure: { minutes: 6 },
   });
-  expect(reader).toHaveBeenCalledWith("u1", "5", "9");
-  expect(noteOf).toHaveBeenCalledWith("u1", "5", "9");
+  expect(reader).toHaveBeenCalledWith("u1", "5");
+  expect(onItems).toHaveBeenCalledWith("u1", ["5"]);
+  expect(offered).toHaveBeenCalledWith(["5"]);
+  expect(voiced).toHaveBeenCalledWith("5");
   expect(countOpen).toHaveBeenCalledWith(
     expect.objectContaining({ source: "ios", sessionId: null }),
-    expect.objectContaining({
+    {
       itemId: "5",
-      momentId: "9",
-      card: { chip: "3-8", pos: 2, via: "feed" },
+      card: { pos: 2, via: "feed" },
       from: undefined,
       surface: "in_app",
-    }),
+    },
   );
   expect(emit).not.toHaveBeenCalled();
+});
+
+// An app from before ADR-0058 still sends its section and chip: both are ignored.
+test("an older app's section and chip are ignored", async () => {
+  current.mockResolvedValue(account);
+  reader.mockResolvedValue(page);
+  expect((await get("?moment=9&chip=3-8&pos=2")).status).toBe(200);
+  expect(reader).toHaveBeenCalledWith("u1", "5");
+  expect(countOpen).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ card: { pos: 2, via: "feed" } }),
+  );
 });
 
 test("a link without a card is from=reader; a page not on https is a browser open and an outbound click", async () => {
@@ -100,26 +114,26 @@ test("a link without a card is from=reader; a page not on https is a browser ope
   reader.mockResolvedValue({
     ...page,
     link: { url: "http://blog.dev/raft", linkType: "article" },
-    sectionTitle: null,
   });
-  const body = ReaderResponse.parse(await (await get("?moment=9")).json());
-  // Not https: the browser, as the web's /out.
-  expect(body).toMatchObject({
-    inApp: false,
-    reached: null,
-    title: "Raft",
-    measure: null,
-  });
-  expect(noteOf).toHaveBeenCalledWith("u1", "5", null);
+  const body = ReaderResponse.parse(await (await get("")).json());
+  // Not https: the browser, as the web's /out, so nothing to measure.
+  expect(body).toMatchObject({ inApp: false, title: "Raft", measure: null });
   expect(countOpen).toHaveBeenCalledWith(
     expect.anything(),
     expect.objectContaining({ card: null, from: "reader", surface: "browser" }),
   );
   expect(emit).toHaveBeenCalledWith(
     "outbound_click",
-    { link_type: "article", target: "section" },
+    { target: "article" },
     expect.objectContaining({ source: "ios" }),
   );
+});
+
+test("an article of unknown length has nothing to measure", async () => {
+  current.mockResolvedValue(account);
+  reader.mockResolvedValue({ ...page, estimatedMinutes: null });
+  const body = ReaderResponse.parse(await (await get("")).json());
+  expect(body.measure).toBeNull();
 });
 
 test("a guest, another site, a bad query or an unknown item: refused", async () => {
@@ -127,82 +141,37 @@ test("a guest, another site, a bad query or an unknown item: refused", async () 
   expect((await get("")).status).toBe(401);
   current.mockResolvedValue(account);
   expect((await get("", {})).status).toBe(403);
-  expect((await get("?moment=x")).status).toBe(400);
-  expect((await get("?chip=3-8")).status).toBe(400);
+  expect((await get("?pos=0")).status).toBe(400);
   reader.mockResolvedValue(null);
   expect((await get("")).status).toBe(404);
   expect(countOpen).not.toHaveBeenCalled();
 });
 
-// P4-W20-S03 (§5D): only a section with a findable start, and an end unless it is last.
-test.each([
-  [
-    "a text fragment, the last section: to the page's end",
-    { url: "https://blog.dev/raft#:~:text=Leader%20election", nextLink: null },
-    { start: { text: "Leader election" }, end: null, minutes: 6 },
-  ],
-  [
-    "a next section without a marker: nothing to measure",
-    {
-      url: "https://blog.dev/raft#election",
-      nextLink: "https://blog.dev/raft",
-    },
-    null,
-  ],
-  [
-    "a page-top link: nothing to measure",
-    { url: "https://blog.dev/raft", nextLink: null },
-    null,
-  ],
-])("%s", async (_, links, measure) => {
-  current.mockResolvedValue(account);
-  reader.mockResolvedValue({
-    ...page,
-    link: {
-      url: links.url,
-      linkType: links.url.includes("#:~:")
-        ? "text_fragment"
-        : links.url.includes("#")
-          ? "anchor"
-          : "page_top",
-    },
-    nextLink: links.nextLink,
-  });
-  const body = ReaderResponse.parse(await (await get("?moment=9")).json());
-  expect(body.measure).toEqual(measure);
-});
-
-test("no live question on what's shown: Test me isn't offered", async () => {
+test("no live question on the article: Quiz me isn't offered", async () => {
   current.mockResolvedValue(account);
   reader.mockResolvedValue(page);
   offered.mockResolvedValueOnce(new Set());
-  const body = ReaderResponse.parse(
-    await (await get("?moment=9&chip=3-8&pos=2")).json(),
-  );
+  const body = ReaderResponse.parse(await (await get("?pos=2")).json());
   expect(body.testable).toBe(false);
-  expect(offered).toHaveBeenCalledWith([{ itemId: "5", momentId: "9" }]);
 });
 
 // P4-W23-S02: Listen in the app, as on the web, once something here is voiced.
-test("nothing voiced on what's shown: no Listen", async () => {
+test("nothing voiced on the article: no Listen", async () => {
   current.mockResolvedValue(account);
   reader.mockResolvedValue(page);
   voiced.mockResolvedValueOnce([]);
-  const body = ReaderResponse.parse(
-    await (await get("?moment=9&chip=3-8&pos=2")).json(),
-  );
+  const body = ReaderResponse.parse(await (await get("?pos=2")).json());
   expect(body.listen).toBe(false);
-  expect(voiced).toHaveBeenCalledWith("5", "9");
 });
 
 // P4-W21-S03 (§5F): a path's reading counts as the web's from=path, never a card.
 test("a path's reading is from=path; a path and a card at once is refused", async () => {
   current.mockResolvedValue(account);
   reader.mockResolvedValue(page);
-  expect((await get("?moment=9&path=3")).status).toBe(200);
+  expect((await get("?path=3")).status).toBe(200);
   expect(countOpen).toHaveBeenCalledWith(
     expect.anything(),
     expect.objectContaining({ card: null, from: "path" }),
   );
-  expect((await get("?moment=9&path=3&chip=3-8&pos=1")).status).toBe(400);
+  expect((await get("?path=3&pos=1")).status).toBe(400);
 });

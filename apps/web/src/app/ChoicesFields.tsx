@@ -1,7 +1,6 @@
 import type { Topic } from "@interval/db";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import {
-  BREAK_LENGTHS,
   GOALS,
   LEVELS,
   LIVE_GOALS,
@@ -299,26 +298,6 @@ export function LevelChoices({ current }: Chosen) {
   );
 }
 
-export function BreakChoices({ current }: Chosen) {
-  return (
-    <div className={OPTIONS}>
-      {BREAK_LENGTHS.map((minutes) => (
-        <Option
-          key={minutes}
-          input={{
-            type: "radio",
-            name: "breakLength",
-            value: minutes,
-            required: true,
-            defaultChecked: current?.breakLength === minutes,
-          }}
-          title={`${minutes.replace("-", "–")} min`}
-        />
-      ))}
-    </div>
-  );
-}
-
 function Group({ legend, children }: { legend: string; children: ReactNode }) {
   return (
     <fieldset className="mt-6">
@@ -344,9 +323,6 @@ export function ChoicesFields({
       </Group>
       <Group legend="Your level">
         <LevelChoices current={current} />
-      </Group>
-      <Group legend="A typical break">
-        <BreakChoices current={current} />
       </Group>
     </>
   );

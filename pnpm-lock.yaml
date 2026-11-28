@@ -308,9 +308,6 @@ importers:
       '@interval/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      zod:
-        specifier: 4.6.7
-        version: 4.6.7
     devDependencies:
       '@interval/config':
         specifier: workspace:*

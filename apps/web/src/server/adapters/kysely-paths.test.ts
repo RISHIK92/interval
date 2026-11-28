@@ -23,9 +23,61 @@ type Seeded = {
   live: string;
   other: string;
   draft: string;
-  moments: string[];
+  // ADR-0058: a reading is a whole article: A1 and B1 in the first source, A2 and B2
+  // in the other.
+  items: string[];
   otherSource: string;
 };
+
+// An article of `minutes` reading minutes (item_minutes counts 230 words a minute),
+// tagged with `concept` when given.
+async function article(
+  trx: Transaction<DB>,
+  sourceId: string,
+  title: string,
+  minutes: number,
+  options: { frameable?: boolean; broken?: boolean; concept?: string } = {},
+): Promise<string> {
+  const item = await trx
+    .insertInto("content_item")
+    .values({
+      source_id: sourceId,
+      guid: randomUUID(),
+      canonical_url: `https://follow.example.test/${randomUUID()}`,
+      title,
+      frameable: options.frameable ?? false,
+      link_broken_at: options.broken === true ? sql<Date>`now()` : null,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await trx
+    .insertInto("content_item_section")
+    .values({ content_item_id: item.id, ordinal: 0, word_count: minutes * 230 })
+    .execute();
+  if (options.concept !== undefined) await tag(trx, item.id, options.concept);
+  return item.id;
+}
+
+async function tag(
+  trx: Transaction<DB>,
+  itemId: string,
+  conceptId: string,
+): Promise<void> {
+  await trx
+    .insertInto("item_tagging")
+    .values({
+      content_item_id: itemId,
+      difficulty: "beginner",
+      model: "m",
+      prompt_version: 1,
+    })
+    .onConflict((oc) => oc.column("content_item_id").doNothing())
+    .execute();
+  await trx
+    .insertInto("item_concept")
+    .values({ content_item_id: itemId, concept_id: conceptId })
+    .execute();
+}
 
 async function makePath(
   trx: Transaction<DB>,
@@ -44,7 +96,7 @@ async function makePath(
     })
     .returning("id")
     .executeTakeFirstOrThrow();
-  for (const [ordinal, moments] of sections.entries()) {
+  for (const [ordinal, items] of sections.entries()) {
     const section = await trx
       .insertInto("path_section")
       .values({ path_id: path.id, ordinal: ordinal * 10 })
@@ -63,10 +115,10 @@ async function makePath(
     await trx
       .insertInto("path_session")
       .values(
-        moments.map((moment_id, i) => ({
+        items.map((content_item_id, i) => ({
           section_id: section.id,
           ordinal: i,
-          moment_id,
+          content_item_id,
         })),
       )
       .execute();
@@ -86,45 +138,18 @@ async function inRollback(
             name: `follow-${String(n)}-${randomUUID()}`,
             feed_url: `https://follow.example.test/${randomUUID()}.xml`,
             rights_profile: "full_text_internal" as const,
-            moments_seeded: true,
-            moments_enabled: true,
           })),
         )
         .returning("id")
         .execute();
       const [one, two] = sources;
       if (!one || !two) throw new Error("seed");
-      const items = await trx
-        .insertInto("content_item")
-        .values(
-          [one, two].map((s, n) => ({
-            source_id: s.id,
-            guid: randomUUID(),
-            canonical_url: `https://follow.example.test/${String(n)}`,
-            title: `Article ${String(n + 1)}`,
-            frameable: n === 0,
-          })),
-        )
-        .returning("id")
-        .execute();
-      const moments = (
-        await trx
-          .insertInto("moment")
-          .values(
-            items.flatMap((item, n) =>
-              ["A", "B"].map((title, ordinal) => ({
-                content_item_id: item.id,
-                ordinal,
-                title: `${title}${String(n + 1)}`,
-                estimated_minutes: 3 + ordinal,
-                link: `https://follow.example.test/${String(n)}#${title}`,
-                link_type: "anchor" as const,
-              })),
-            ),
-          )
-          .returning("id")
-          .execute()
-      ).map((m) => m.id);
+      const items = [
+        await article(trx, one.id, "A1", 3, { frameable: true }),
+        await article(trx, one.id, "B1", 4, { frameable: true }),
+        await article(trx, two.id, "A2", 3),
+        await article(trx, two.id, "B2", 4),
+      ];
       await trx
         .insertInto("concept")
         .values(
@@ -135,7 +160,7 @@ async function inRollback(
           })),
         )
         .execute();
-      const [m1, m2, m3, m4] = moments;
+      const [m1, m2, m3, m4] = items;
       if (!m1 || !m2 || !m3 || !m4) throw new Error("seed");
       const live = await makePath(trx, "Replication", "live", [
         [m1, m3],
@@ -169,7 +194,7 @@ async function inRollback(
         live,
         other,
         draft,
-        moments,
+        items,
         otherSource: two.id,
       });
       throw new Rollback();
@@ -222,13 +247,13 @@ test("starting a path makes it active and pauses the other", async () => {
   });
 });
 
-test("the timeline ticks finished readings and opens only the first section", async () => {
-  await inRollback(async (trx, { userId, live, moments }) => {
-    const [m1] = moments;
+test("the timeline ticks completed readings and opens only the first section", async () => {
+  await inRollback(async (trx, { userId, live, items }) => {
+    const [m1] = items;
     if (!m1) throw new Error("seed");
     await trx
-      .insertInto("user_moment_finished")
-      .values({ user_id: userId, moment_id: m1, method: "mark_done" })
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: m1, method: "mark_done" })
       .execute();
     const timeline = await kyselyPaths(trx).path(userId, live);
     expect(timeline).toMatchObject({
@@ -239,17 +264,32 @@ test("the timeline ticks finished readings and opens only the first section", as
     expect(timeline?.sections.map((s) => s.open)).toEqual([true, false]);
     expect(timeline?.sections[0]?.concepts).toEqual(["Concept 1"]);
     expect(
-      timeline?.sections[0]?.readings.map((r) => [r.sectionTitle, r.finished]),
+      timeline?.sections[0]?.readings.map((r) => [r.articleTitle, r.finished]),
     ).toEqual([
       ["A1", true],
       ["A2", false],
     ]);
     expect(timeline?.sections[0]?.readings[0]).toMatchObject({
-      articleTitle: "Article 1",
+      itemId: m1,
       minutes: 3,
       frameable: true,
       linkBroken: false,
     });
+  });
+});
+
+// ADR-0058: two moments of one article in a section became two sessions of the same
+// article; the list counts it once there (a backstop to the worker's dedupe), though
+// another section may teach it again.
+test("an article counts once per section in a path's readings and minutes", async () => {
+  await inRollback(async (trx, { userId, items }) => {
+    const [a1, , a2] = items;
+    if (a1 === undefined || a2 === undefined) throw new Error("seed");
+    const twice = await makePath(trx, "Twice", "live", [[a1, a1, a2], [a1]]);
+    const listed = (await kyselyPaths(trx).live(userId)).find(
+      (p) => p.pathId === twice,
+    );
+    expect(listed).toMatchObject({ readings: 3, minutes: 3 + 3 + 3 });
   });
 });
 
@@ -269,7 +309,7 @@ test("readings whose rights changed are left out (ING-2)", async () => {
     expect(listed).toMatchObject({ readings: 2, minutes: 3 + 4 });
     const timeline = await kyselyPaths(trx).path(userId, live);
     expect(
-      timeline?.sections.map((s) => s.readings.map((r) => r.sectionTitle)),
+      timeline?.sections.map((s) => s.readings.map((r) => r.articleTitle)),
     ).toEqual([["A1"], ["B1"]]);
   });
 });
@@ -406,18 +446,17 @@ test("a skip opens the next section with no credit; an unskip brings its checkpo
   });
 });
 
-test("a session swaps for another moment on its concepts, and falls back when that goes", async () => {
-  await inRollback(async (trx, { userId, live, moments }) => {
+test("a session swaps for another article on its concepts, and falls back when that goes", async () => {
+  await inRollback(async (trx, { userId, live, items }) => {
     const paths = kyselyPaths(trx);
     const [one] = await sectionsOf(trx, userId, live);
-    const [m1, , m3] = moments;
+    const [m1, , m3] = items;
     if (!m1 || !m3) throw new Error("seed");
     await paths.start(userId, live);
     const source = await trx
       .selectFrom("content_item")
-      .innerJoin("moment", "moment.content_item_id", "content_item.id")
-      .select("content_item.source_id")
-      .where("moment.id", "=", m1)
+      .select("source_id")
+      .where("id", "=", m1)
       .executeTakeFirstOrThrow();
     const concepts = await trx
       .selectFrom("path_section_concept as pc")
@@ -429,85 +468,51 @@ test("a session swaps for another moment on its concepts, and falls back when th
     const [c1, c2] = concepts.map((c) => c.concept_id);
     if (!c1 || !c2) throw new Error("seed");
     // On Concept 1, on Concept 2, and on Concept 1 behind a broken link.
-    const made: string[] = [];
-    for (const [n, concept, broken] of [
-      [0, c1, false],
-      [1, c2, false],
-      [2, c1, true],
-    ] as const) {
-      const item = await trx
-        .insertInto("content_item")
-        .values({
-          source_id: source.source_id,
-          guid: randomUUID(),
-          canonical_url: `https://follow.example.test/swap-${String(n)}`,
-          title: `Swap ${String(n)}`,
-          link_broken_at: broken ? sql<Date>`now()` : null,
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 0,
-          title: `S${String(n)}`,
-          estimated_minutes: 5,
-          link: `https://follow.example.test/swap-${String(n)}#a`,
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      await trx
-        .insertInto("moment_tagging")
-        .values({ moment_id: moment.id, difficulty: "beginner" })
-        .execute();
-      await trx
-        .insertInto("moment_concept")
-        .values({ moment_id: moment.id, concept_id: concept })
-        .execute();
-      made.push(moment.id);
-    }
-    const [onC1, onC2] = made;
-    if (!onC1 || !onC2) throw new Error("seed");
-    // The approved session's own moment is on Concept 1 too.
-    await trx
-      .insertInto("moment_tagging")
-      .values({ moment_id: m1, difficulty: "beginner" })
-      .execute();
-    await trx
-      .insertInto("moment_concept")
-      .values({ moment_id: m1, concept_id: c1 })
-      .execute();
-    const offered = await paths.alternatives(userId, one, 0);
-    expect(offered.map((o) => o.momentId)).toEqual([onC1]);
-    expect(offered[0]).toMatchObject({
-      sectionTitle: "S0",
-      articleTitle: "Swap 0",
-      minutes: 5,
+    const onC1 = await article(trx, source.source_id, "Swap 0", 5, {
+      concept: c1,
     });
+    const onC2 = await article(trx, source.source_id, "Swap 1", 5, {
+      concept: c2,
+    });
+    await article(trx, source.source_id, "Swap 2", 5, {
+      concept: c1,
+      broken: true,
+    });
+    // The approved session's own article is on Concept 1 too.
+    await tag(trx, m1, c1);
+    const offered = await paths.alternatives(userId, one, 0);
+    expect(offered.map((o) => o.itemId)).toEqual([onC1]);
+    expect(offered[0]).toMatchObject({ articleTitle: "Swap 0", minutes: 5 });
     expect(await paths.swapSession(userId, one, 0, onC2)).toBeNull();
     expect(await paths.swapSession(userId, one, 0, onC1)).toBe(live);
+    // ADR-0058: the swap names the article alone.
+    expect(
+      await trx
+        .selectFrom("user_path_session")
+        .select(["content_item_id", "moment_id"])
+        .where("user_id", "=", userId)
+        .execute(),
+    ).toEqual([{ content_item_id: onC1, moment_id: null }]);
     const titles = async () =>
       (await paths.path(userId, live))?.sections[0]?.readings.map((r) => [
         r.ordinal,
-        r.sectionTitle,
+        r.articleTitle,
       ]);
     expect(await titles()).toEqual([
-      [0, "S0"],
+      [0, "Swap 0"],
       [1, "A2"],
     ]);
-    // The approved moment is offered first, untagged or not, to swap back.
+    // The approved article is offered first, untagged or not, to swap back.
     await trx
-      .deleteFrom("moment_concept")
-      .where("moment_id", "=", m1)
+      .deleteFrom("item_concept")
+      .where("content_item_id", "=", m1)
       .execute();
-    expect((await paths.alternatives(userId, one, 0))[0]?.momentId).toBe(m1);
+    expect((await paths.alternatives(userId, one, 0))[0]?.itemId).toBe(m1);
     expect(await paths.swapSession(userId, one, 0, m1)).toBe(live);
     expect(
       await trx
         .selectFrom("user_path_session")
-        .select("moment_id")
+        .select("content_item_id")
         .where("user_id", "=", userId)
         .execute(),
     ).toEqual([]);
@@ -515,7 +520,7 @@ test("a session swaps for another moment on its concepts, and falls back when th
       [0, "A1"],
       [1, "A2"],
     ]);
-    // Its rights lowered, a swapped moment gives way to the approved one (ING-2),
+    // Its rights lowered, a swapped article gives way to the approved one (ING-2),
     // and comes back with them.
     expect(await paths.swapSession(userId, one, 0, onC1)).toBe(live);
     const own = await trx
@@ -524,15 +529,13 @@ test("a session swaps for another moment on its concepts, and falls back when th
         name: `follow-swap-${randomUUID()}`,
         feed_url: `https://follow.example.test/${randomUUID()}.xml`,
         rights_profile: "full_text_internal",
-        moments_seeded: true,
-        moments_enabled: true,
       })
       .returning("id")
       .executeTakeFirstOrThrow();
     await trx
       .updateTable("content_item")
       .set({ source_id: own.id })
-      .where("title", "=", "Swap 0")
+      .where("id", "=", onC1)
       .execute();
     const rights = async (to: "metadata_only" | "full_text_internal") => {
       await sql`set local session_replication_role = replica`.execute(trx);
@@ -550,17 +553,17 @@ test("a session swaps for another moment on its concepts, and falls back when th
     ]);
     await rights("full_text_internal");
     expect(await titles()).toEqual([
-      [0, "S0"],
+      [0, "Swap 0"],
       [1, "A2"],
     ]);
-    // A finished reading isn't swapped.
+    // A completed reading isn't swapped.
     await trx
-      .insertInto("user_moment_finished")
-      .values({ user_id: userId, moment_id: m3, method: "mark_done" })
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: m3, method: "mark_done" })
       .execute();
     expect(await paths.alternatives(userId, one, 1)).toEqual([]);
-    // Its moment deleted (a re-split), the session is the approved one again.
-    await trx.deleteFrom("moment").where("id", "=", onC1).execute();
+    // Its article deleted, the session is the approved one again.
+    await trx.deleteFrom("content_item").where("id", "=", onC1).execute();
     expect(await titles()).toEqual([
       [0, "A1"],
       [1, "A2"],
@@ -570,10 +573,10 @@ test("a session swaps for another moment on its concepts, and falls back when th
 
 // P2-W10-S06 (REC-1, Q-P2-27): the active path's next step, for the feed.
 test("next is the first unfinished reading of the active path, then its checkpoint", async () => {
-  await inRollback(async (trx, { userId, live, moments }) => {
+  await inRollback(async (trx, { userId, live, items }) => {
     const paths = kyselyPaths(trx);
     const [one] = await sectionsOf(trx, userId, live);
-    const [m1, , m3] = moments;
+    const [m1, , m3] = items;
     if (!m1 || !m3) throw new Error("seed");
     expect(await paths.next(userId)).toBeNull();
     await paths.start(userId, live);
@@ -582,22 +585,22 @@ test("next is the first unfinished reading of the active path, then its checkpoi
       pathId: live,
       pathName: "Replication",
       concepts: ["Concept 1"],
-      reading: { momentId: m1 },
+      reading: { itemId: m1 },
       n: 1,
       of: 2,
     });
     await trx
-      .insertInto("user_moment_finished")
-      .values({ user_id: userId, moment_id: m1, method: "mark_done" })
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: m1, method: "mark_done" })
       .execute();
     expect(await paths.next(userId)).toMatchObject({
-      reading: { momentId: m3 },
+      reading: { itemId: m3 },
       n: 2,
     });
     // Readings done but no live question: no checkpoint to offer, so nothing.
     await trx
-      .insertInto("user_moment_finished")
-      .values({ user_id: userId, moment_id: m3, method: "mark_done" })
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: m3, method: "mark_done" })
       .execute();
     expect(await paths.next(userId)).toBeNull();
     // Skipped, the next section's first reading is next.
@@ -605,7 +608,7 @@ test("next is the first unfinished reading of the active path, then its checkpoi
     expect(await paths.next(userId)).toMatchObject({
       kind: "reading",
       concepts: ["Concept 2"],
-      reading: { sectionTitle: "B1" },
+      reading: { articleTitle: "B1" },
       n: 1,
     });
     // A paused path has no next step in the feed.
@@ -706,10 +709,10 @@ test("a section is mastered when every live concept in it is, for this user", as
 
 // P2-W10-S08 (Q-P2-30): direct prerequisites outside the path, never explored.
 test("an open section lists its missing foundations, each with a reading if one is allowed", async () => {
-  await inRollback(async (trx, { userId, live, moments }) => {
+  await inRollback(async (trx, { userId, live, items }) => {
     const paths = kyselyPaths(trx);
     const [one] = await sectionsOf(trx, userId, live);
-    const [m1] = moments;
+    const [m1] = items;
     if (!m1) throw new Error("seed");
     await paths.start(userId, live);
     const inPath = await trx
@@ -747,10 +750,9 @@ test("an open section lists its missing foundations, each with a reading if one 
     // F1 has a reading; F2's only reading is behind a broken link (ING-6), F3's in a
     // source whose rights were lowered since (ING-2).
     const source = await trx
-      .selectFrom("moment")
-      .innerJoin("content_item", "content_item.id", "moment.content_item_id")
-      .select("content_item.source_id")
-      .where("moment.id", "=", m1)
+      .selectFrom("content_item")
+      .select("source_id")
+      .where("id", "=", m1)
       .executeTakeFirstOrThrow();
     const lowered = await trx
       .insertInto("source")
@@ -758,8 +760,6 @@ test("an open section lists its missing foundations, each with a reading if one 
         name: `foundation-${randomUUID()}`,
         feed_url: `https://follow.example.test/${randomUUID()}.xml`,
         rights_profile: "full_text_internal",
-        moments_seeded: true,
-        moments_enabled: true,
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -767,40 +767,12 @@ test("an open section lists its missing foundations, each with a reading if one 
       ["F1", false, source.source_id],
       ["F2", true, source.source_id],
       ["F3", false, lowered.id],
-    ] as const) {
-      const item = await trx
-        .insertInto("content_item")
-        .values({
-          source_id: sourceId,
-          guid: randomUUID(),
-          canonical_url: `https://follow.example.test/${f}`,
-          title: `On ${f}`,
-          frameable: true,
-          link_broken_at: broken ? sql<Date>`now()` : null,
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 0,
-          title: `${f} basics`,
-          estimated_minutes: 4,
-          link: `https://follow.example.test/${f}#a`,
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
-      await trx
-        .insertInto("moment_tagging")
-        .values({ moment_id: moment.id, difficulty: "beginner" })
-        .execute();
-      await trx
-        .insertInto("moment_concept")
-        .values({ moment_id: moment.id, concept_id: id(f) })
-        .execute();
-    }
+    ] as const)
+      await article(trx, sourceId, `On ${f}`, 4, {
+        frameable: true,
+        broken,
+        concept: id(f),
+      });
     await sql`set local session_replication_role = replica`.execute(trx);
     await trx
       .updateTable("source")
@@ -810,12 +782,12 @@ test("an open section lists its missing foundations, each with a reading if one 
     await sql`set local session_replication_role = origin`.execute(trx);
     const listed = async () =>
       (await paths.path(userId, live))?.sections.map((s) =>
-        s.foundations.map((f) => [f.name, f.reading?.sectionTitle ?? null]),
+        s.foundations.map((f) => [f.name, f.reading?.articleTitle ?? null]),
       );
     // Up to 3 by name; the locked second section lists none.
     expect(await listed()).toEqual([
       [
-        ["F1", "F1 basics"],
+        ["F1", "On F1"],
         ["F2", null],
         ["F3", null],
       ],

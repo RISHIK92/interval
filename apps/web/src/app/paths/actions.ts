@@ -45,7 +45,8 @@ const Edit = z.discriminatedUnion("edit", [
   Section.extend({
     edit: z.literal("swap"),
     ordinal: z.coerce.number().int().min(0).max(32767),
-    momentId: z.string().regex(BIGINT_ID),
+    // ADR-0058: a session is swapped to another article.
+    itemId: z.string().regex(BIGINT_ID),
   }),
 ]);
 
@@ -65,7 +66,7 @@ export async function editPathAction(form: FormData): Promise<void> {
           userId,
           edit.sectionId,
           edit.ordinal,
-          edit.momentId,
+          edit.itemId,
         )
       : edit.edit === "skip"
         ? await paths().skipSection(userId, edit.sectionId)

@@ -16,12 +16,13 @@ from uuid import uuid4
 import psycopg
 import pytest
 
-from interval_db.generated import BreakLength, Difficulty, RightsProfile, Topic
+from interval_db.generated import Difficulty, RightsProfile, Topic
 from interval_jobs.adapters.memory import (
     GOAL_CONCEPTS,
     RANKING_DEFAULTS,
     InMemoryAi,
     InMemoryStore,
+    StoredQuestion,
     StoredUser,
 )
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore
@@ -29,6 +30,7 @@ from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.irt import Answer
 from interval_jobs.ports import (
+    FEED_CHIP,
     LEARNING_GOALS,
     AiLedger,
     Arm,
@@ -40,9 +42,7 @@ from interval_jobs.ports import (
     DuplicateInviteCode,
     EstimateDraft,
     FeedEntry,
-    Finished,
     ItemDecisions,
-    MomentRow,
     NoteBatchEntry,
     PathDraft,
     QuestionBatchEntry,
@@ -51,7 +51,6 @@ from interval_jobs.ports import (
     RankedEntry,
     RightsViolation,
     Section,
-    SectionRow,
     SessionCandidate,
     SourceSettings,
     StemCandidate,
@@ -73,20 +72,18 @@ TRUNCATE_TRIES = 10
 
 
 class Probe(Protocol):
-    def enable_moments(self, source_id: int) -> None: ...
     def excerpt(self, item_id: int) -> str | None: ...
     def full_text(self, item_id: int) -> str | None: ...
-    def moments(self, item_id: int) -> list[tuple[int, int, str]]: ...
-    def feed_titles(self, chip: BreakLength = "3-8") -> list[str]: ...
+    # (heading, anchor id, words, level), in order
+    def sections(
+        self, item_id: int
+    ) -> list[tuple[str | None, str | None, int, int | None]]: ...
+    def item_tags(self, item_id: int) -> Tags | None: ...
     def feed_state(self, user_id: str) -> datetime | None: ...
-    def feed_entries(
-        self, user_id: str, chip: BreakLength
-    ) -> list[tuple[int, int | None]]: ...
-    def starter_ids(
-        self, topic: str, level: Difficulty, chip: BreakLength
-    ) -> list[int]: ...
+    # ADR-0058: one list of articles per feed, stored under FEED_CHIP.
+    def feed_entries(self, user_id: str) -> list[int]: ...
+    def starter_ids(self, topic: str, level: Difficulty) -> list[int]: ...
     def age_sessions(self, user_id: str, days: int) -> None: ...
-    def disable_moments(self, source_id: int) -> None: ...
     def invite(
         self, code: str
     ) -> tuple[str, int, int, datetime, str | None] | None: ...
@@ -99,10 +96,7 @@ class Probe(Protocol):
     def source_state(self, name: str) -> tuple[object, ...] | None: ...
     def has_item(self, item_id: int) -> bool: ...
     def primary_of(self, item_id: int) -> int | None: ...
-    def oversized(self, item_id: int) -> list[bool]: ...
     def reset_concepts(self) -> None: ...
-    def set_boundaries(self, item_id: int, headings: list[str]) -> None: ...
-    def switch_moments_off(self, source_id: int, off: bool) -> None: ...
     # What the web app writes about a user (P1-W4-S01, W4-S07).
     def set_preferences(
         self, user_id: str, topics: list[str], goals: list[str] | None = None
@@ -112,19 +106,22 @@ class Probe(Protocol):
     def hide_source(self, user_id: str, source_id: int) -> None: ...
     def reset_inferred(self, user_id: str) -> None: ...
     def record_arm(self, arm: Arm, shown: int, finished: int) -> None: ...
-    def finish(self, user_id: str, moment_id: int, item_id: int) -> None: ...
+    def finish(self, user_id: str, item_id: int) -> None: ...
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
-    def correct_moment_concepts(
-        self, item_id: int, heading: str, slugs: list[str]
-    ) -> None: ...
     def flag_question(self, question_id: int) -> None: ...
+    # ADR-0058 stage A: a pending question drafted for one of the article's moments,
+    # moved to the article (DRAFT); its id.
+    def carry_over_question(self, item_id: int) -> int: ...
+    def question_ids(self, item_id: int) -> list[int]: ...
+    # The article's multiple-choice slots (article_ordinal), retired ones too.
+    def question_slots(self, item_id: int) -> list[int]: ...
     # A user's answer to a question in a finished Test 60s, or in a review (which
     # P2-W9-S08 leaves out).
     def add_answer(
         self, user_id: str, question_id: int, correct: bool, review: bool = False
     ) -> None: ...
     def question_calibrated(self, question_id: int) -> bool: ...
-    # A saved path: status, name, and each section's concepts (sorted) and moments.
+    # A saved path: status, name, and each section's concepts (sorted) and articles.
     def path(
         self, path_id: int
     ) -> tuple[str, str, list[tuple[tuple[str, ...], tuple[int, ...]]]]: ...
@@ -134,19 +131,13 @@ class Probe(Protocol):
     # Who drafted it, under which prompt, and who validated it last.
     def question_writers(self, question_id: int) -> tuple[str, int, str | None]: ...
     def retire_question(self, question_id: int) -> None: ...
-    def override_level(self, item_id: int, heading: str, level: str) -> None: ...
+    def override_level(self, item_id: int, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
 
 
 @dataclass
 class MemoryProbe:
     s: InMemoryStore
-
-    def enable_moments(self, source_id: int) -> None:
-        self.s.sources.set_moments_enabled(source_id, True)
-
-    def disable_moments(self, source_id: int) -> None:
-        self.s.sources.set_moments_enabled(source_id, False)
 
     def add_user(
         self, user_id: str, anonymous: bool, session_expires: list[datetime]
@@ -176,7 +167,6 @@ class MemoryProbe:
             row.active,
             row.feed_url,
             row.rights_profile,
-            row.moments_enabled,
             row.paywalled,
             row.quality_score,
             tuple(row.topics),
@@ -188,17 +178,8 @@ class MemoryProbe:
     def primary_of(self, item_id: int) -> int | None:
         return self.s.items.rows[item_id].duplicate_of
 
-    def oversized(self, item_id: int) -> list[bool]:
-        return [m.row.oversized for m in self.s.moments.for_item(item_id)]
-
     def reset_concepts(self) -> None:
         pass  # a fresh store has no graph
-
-    def set_boundaries(self, item_id: int, headings: list[str]) -> None:
-        self.s.items.boundary_overrides[item_id] = headings
-
-    def switch_moments_off(self, source_id: int, off: bool) -> None:
-        self.s.sources.switch_moments_off(source_id, off)
 
     def set_preferences(
         self, user_id: str, topics: list[str], goals: list[str] | None = None
@@ -206,7 +187,6 @@ class MemoryProbe:
         self.s.ranking.preferences_by_user[user_id] = UserPreferences(
             [t for t in get_args(Topic.__value__) if t in topics],
             "beginner",
-            "3-8",
             [g for g in LEARNING_GOALS if g in (goals or [])],
         )
 
@@ -219,8 +199,7 @@ class MemoryProbe:
     def hide_source(self, user_id: str, source_id: int) -> None:
         self.s.ranking.hidden.add((user_id, source_id))
 
-    def finish(self, user_id: str, moment_id: int, item_id: int) -> None:
-        self.s.ranking.finished_moments.add((user_id, moment_id))
+    def finish(self, user_id: str, item_id: int) -> None:
         self.s.ranking.finished_items.add((user_id, item_id))
 
     def record_arm(self, arm: Arm, shown: int, finished: int) -> None:
@@ -237,15 +216,35 @@ class MemoryProbe:
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None:
         self.s.tags.item_concept_overrides[item_id] = frozenset(slugs)
 
-    def correct_moment_concepts(
-        self, item_id: int, heading: str, slugs: list[str]
-    ) -> None:
-        # As the Postgres probe's row: the level comes with the concepts.
-        self.s.tags.moment_concept_overrides[(item_id, heading)] = frozenset(slugs)
-        self.s.tags.overrides[(item_id, heading)] = "beginner"
-
     def flag_question(self, question_id: int) -> None:
         next(q for q in self.s.questions.rows if q.id == question_id).status = "flagged"
+
+    def carry_over_question(self, item_id: int) -> int:
+        questions = self.s.questions
+        question = StoredQuestion(
+            10**6 + len(questions.rows),
+            item_id,
+            max((q.ordinal for q in questions.rows if q.item_id == item_id), default=-1)
+            + 1,
+            DRAFT,
+            (),
+            "m",
+            1,
+            "moment-hash",
+            moment_id=77,
+        )
+        questions.rows.append(question)
+        return question.id
+
+    def question_ids(self, item_id: int) -> list[int]:
+        return sorted(q.id for q in self.s.questions.rows if q.item_id == item_id)
+
+    def question_slots(self, item_id: int) -> list[int]:
+        return sorted(
+            q.ordinal
+            for q in self.s.questions.rows
+            if q.item_id == item_id and q.kind == "choice"
+        )
 
     def add_answer(
         self, user_id: str, question_id: int, correct: bool, review: bool = False
@@ -266,7 +265,7 @@ class MemoryProbe:
             saved.status,
             saved.draft.name,
             [
-                (tuple(sorted(sec.concepts)), sec.moment_ids)
+                (tuple(sorted(sec.concepts)), sec.item_ids)
                 for sec in saved.draft.sections
             ],
         )
@@ -295,9 +294,9 @@ class MemoryProbe:
         q = next(q for q in self.s.questions.rows if q.id == question_id)
         return q.model, q.prompt_version, q.validator_model
 
-    def override_level(self, item_id: int, heading: str, level: str) -> None:
+    def override_level(self, item_id: int, level: str) -> None:
         assert level in ("beginner", "intermediate", "advanced")
-        self.s.tags.overrides[(item_id, heading)] = level
+        self.s.tags.overrides[item_id] = level
 
     def simhash(self, item_id: int) -> int | None:
         return self.s.items.rows[item_id].simhash
@@ -314,34 +313,26 @@ class MemoryProbe:
     def full_text(self, item_id: int) -> str | None:
         return self.s.items.rows[item_id].full_text
 
-    def moments(self, item_id: int) -> list[tuple[int, int, str]]:
+    def sections(
+        self, item_id: int
+    ) -> list[tuple[str | None, str | None, int, int | None]]:
         return [
-            (m.id, m.row.ordinal, m.row.title) for m in self.s.moments.for_item(item_id)
+            (x.heading, x.anchor_id, x.word_count, x.level)
+            for x in self.s.items.rows[item_id].sections
         ]
 
-    def feed_titles(self, chip: BreakLength = "3-8") -> list[str]:
-        by_id = {m.id: m.row.title for m in self.s.moments.rows}
-        return [
-            by_id[r.moment_id]
-            for chips in self.s.feed.users.values()
-            for r in chips.get(chip, [])
-            if r.moment_id is not None  # moment entries, as the Postgres probe reads
-        ]
+    def item_tags(self, item_id: int) -> Tags | None:
+        row = self.s.tags.rows.get(item_id)
+        return None if row is None else row[0]
 
     def feed_state(self, user_id: str) -> datetime | None:
         return self.s.feed.computed.get(user_id)
 
-    def feed_entries(
-        self, user_id: str, chip: BreakLength
-    ) -> list[tuple[int, int | None]]:
-        rows = self.s.feed.users.get(user_id, {}).get(chip, [])
-        return [(r.item_id, r.moment_id) for r in rows]
+    def feed_entries(self, user_id: str) -> list[int]:
+        return [r.item_id for r in self.s.feed.users.get(user_id, [])]
 
-    def starter_ids(
-        self, topic: str, level: Difficulty, chip: BreakLength
-    ) -> list[int]:
-        rows = self.s.feed.starters.get((topic, level, chip), [])
-        return [r.moment_id for r in rows if r.moment_id is not None]
+    def starter_ids(self, topic: str, level: Difficulty) -> list[int]:
+        return [r.item_id for r in self.s.feed.starters.get((topic, level), [])]
 
     def age_sessions(self, user_id: str, days: int) -> None:
         user = self.s.users.rows[user_id]
@@ -351,20 +342,6 @@ class MemoryProbe:
 @dataclass
 class PostgresProbe:
     conn: psycopg.Connection
-
-    def enable_moments(self, source_id: int) -> None:
-        self.conn.execute(
-            "update source set moments_seeded = true, moments_enabled = true "
-            "where id = %s",
-            (source_id,),
-        )
-
-    def disable_moments(self, source_id: int) -> None:
-        self.conn.execute(
-            "update source set moments_seeded = false, moments_enabled = false "
-            "where id = %s",
-            (source_id,),
-        )
 
     def add_user(
         self, user_id: str, anonymous: bool, session_expires: list[datetime]
@@ -394,11 +371,11 @@ class PostgresProbe:
 
     def source_state(self, name: str) -> tuple[object, ...] | None:
         row = self.conn.execute(
-            "select active, feed_url, rights_profile::text, moments_enabled, "
+            "select active, feed_url, rights_profile::text, "
             "paywalled, quality_score, topics from source where name = %s",
             (name,),
         ).fetchone()
-        return None if row is None else (*row[:6], tuple(row[6]))
+        return None if row is None else (*row[:5], tuple(row[5]))
 
     def has_item(self, item_id: int) -> bool:
         row = self.conn.execute(
@@ -442,18 +419,41 @@ class PostgresProbe:
         ).fetchone()
         return None if row is None else str(row[0])
 
-    def moments(self, item_id: int) -> list[tuple[int, int, str]]:
+    def sections(
+        self, item_id: int
+    ) -> list[tuple[str | None, str | None, int, int | None]]:
         return self.conn.execute(
-            "select id, ordinal, title from moment where content_item_id = %s "
-            "order by ordinal",
+            "select heading, anchor_id, word_count, level from content_item_section "
+            "where content_item_id = %s order by ordinal",
             (item_id,),
         ).fetchall()
 
-    def override_level(self, item_id: int, heading: str, level: str) -> None:
+    def item_tags(self, item_id: int) -> Tags | None:
+        row = self.conn.execute(
+            """
+            select it.difficulty,
+                   coalesce(array_agg(c.slug) filter (where c.slug is not null), '{}')
+            from item_tagging it
+            left join item_concept ic on ic.content_item_id = it.content_item_id
+            left join concept c on c.id = ic.concept_id
+            where it.content_item_id = %s
+            group by it.difficulty
+            """,
+            (item_id,),
+        ).fetchone()
+        return None if row is None else Tags(row[0], frozenset(row[1]))
+
+    def override_level(self, item_id: int, level: str) -> None:
+        # The admin page's whole-article row: the level, and the concepts it keeps.
         self.conn.execute(
             "insert into tag_override (content_item_id, heading, difficulty, "
-            "concepts, updated_by) values (%s, %s, %s, '{}', 'contract-test')",
-            (item_id, heading, level),
+            "concepts, updated_by) "
+            "select %s, '', %s, coalesce(array_agg(c.slug), '{}'), 'contract-test' "
+            "from item_concept ic join concept c on c.id = ic.concept_id "
+            "where ic.content_item_id = %s "
+            "on conflict (content_item_id, heading) do update "
+            "set difficulty = excluded.difficulty",
+            (item_id, level, item_id),
         )
 
     def set_preferences(
@@ -461,6 +461,7 @@ class PostgresProbe:
     ) -> None:
         # At least one goal, as the database requires (ADR-0015).
         self.conn.execute(
+            # break_length: the web's column, until stage C drops it (ADR-0058).
             "insert into user_preferences "
             "(user_id, topics, level, break_length, goals) "
             "values (%s, %s::topic[], 'beginner', '3-8', %s::learning_goal[])",
@@ -483,12 +484,7 @@ class PostgresProbe:
             (user_id, item_id),
         )
 
-    def finish(self, user_id: str, moment_id: int, item_id: int) -> None:
-        self.conn.execute(
-            "insert into user_moment_finished (user_id, moment_id, method) "
-            "values (%s, %s, 'mark_done')",
-            (user_id, moment_id),
-        )
+    def finish(self, user_id: str, item_id: int) -> None:
         self.conn.execute(
             "insert into user_article_finished (user_id, content_item_id, method) "
             "values (%s, %s, 'mark_done')",
@@ -545,13 +541,13 @@ class PostgresProbe:
                 (user_id, content_item_id, moment_id, started_at, ends_at, finished_at,
                  review)
               select %(user)s,
-                     case when %(review)s then null else m.content_item_id end,
-                     case when %(review)s then null else m.id end,
+                     case when %(review)s then null else q.content_item_id end,
+                     null,
                      now() - interval '2 minutes',
                      case when %(review)s then null
                           else now() - interval '1 minute' end,
                      now() - interval '1 minute', %(review)s
-              from question q join moment m on m.id = q.moment_id
+              from question q
               where q.id = %(question)s
               returning id
             )
@@ -591,7 +587,7 @@ class PostgresProbe:
               array(select c.slug from path_section_concept pc
                     join concept c on c.id = pc.concept_id
                     where pc.section_id = s.id order by c.slug),
-              array(select ps.moment_id from path_session ps
+              array(select ps.content_item_id from path_session ps
                     where ps.section_id = s.id order by ps.ordinal)
             from path_section s where s.path_id = %s order by s.ordinal
             """,
@@ -643,30 +639,49 @@ class PostgresProbe:
         assert row is not None
         return str(row[0]), int(row[1]), None if row[2] is None else str(row[2])
 
-    def correct_moment_concepts(
-        self, item_id: int, heading: str, slugs: list[str]
-    ) -> None:
+    def carry_over_question(self, item_id: int) -> int:
+        # A moment, as the moment-era worker wrote it (its source allowed moments),
+        # and its question; stage A's trigger gives the question its article.
         self.conn.execute(
-            "insert into tag_override (content_item_id, heading, difficulty, concepts, "
-            "updated_by) values (%s, %s, 'beginner', %s, 'contract-test')",
-            (item_id, heading, slugs),
+            "update source set moments_seeded = true, moments_enabled = true "
+            "where id = (select source_id from content_item where id = %s)",
+            (item_id,),
         )
+        moment = self.conn.execute(
+            "insert into moment (content_item_id, ordinal, title, estimated_minutes, "
+            "link, link_type) values (%s, 0, 'Lag', 1, %s, 'page_top') returning id",
+            (item_id, f"https://contract.example.test/{item_id}"),
+        ).fetchone()
+        assert moment is not None
+        row = self.conn.execute(
+            "insert into question (moment_id, ordinal, stem, options, correct, "
+            "citation, generator_model, prompt_version, content_hash) "
+            "values (%s, 0, %s, %s, %s, %s, 'm', 1, 'moment-hash') returning id",
+            (
+                moment[0],
+                DRAFT.stem,
+                list(DRAFT.options),
+                DRAFT.correct,
+                DRAFT.citation,
+            ),
+        ).fetchone()
+        assert row is not None
+        return int(row[0])
 
-    def switch_moments_off(self, source_id: int, off: bool) -> None:
-        # What the web admin page runs (P1-W3-S06).
-        self.conn.execute(
-            "update source set moments_switched_off = %s, "
-            "moments_enabled = moments_seeded and not %s where id = %s",
-            (off, off, source_id),
-        )
+    def question_ids(self, item_id: int) -> list[int]:
+        rows = self.conn.execute(
+            "select id from question where content_item_id = %s order by id",
+            (item_id,),
+        ).fetchall()
+        return [int(r[0]) for r in rows]
 
-    def set_boundaries(self, item_id: int, headings: list[str]) -> None:
-        # The web admin page writes these (P1-W3-S05).
-        self.conn.execute(
-            "insert into moment_boundary_override (content_item_id, headings, "
-            "updated_by) values (%s, %s, 'contract-test')",
-            (item_id, headings),
-        )
+    def question_slots(self, item_id: int) -> list[int]:
+        rows = self.conn.execute(
+            "select article_ordinal from question where content_item_id = %s "
+            "and kind = 'choice' order by article_ordinal",
+            (item_id,),
+        ).fetchall()
+        return [int(r[0]) for r in rows]
 
     def reset_concepts(self) -> None:
         # A local database may hold the real graph; the test's transaction rolls this
@@ -691,13 +706,6 @@ class PostgresProbe:
                     raise
                 time.sleep(0.2 * (attempt + 1))
 
-    def oversized(self, item_id: int) -> list[bool]:
-        rows = self.conn.execute(
-            "select oversized from moment where content_item_id = %s order by ordinal",
-            (item_id,),
-        ).fetchall()
-        return [bool(r[0]) for r in rows]
-
     def primary_of(self, item_id: int) -> int | None:
         row = self.conn.execute(
             "select duplicate_of from content_item where id = %s", (item_id,)
@@ -712,43 +720,28 @@ class PostgresProbe:
         assert row is not None
         return row[0]
 
-    def feed_titles(self, chip: BreakLength = "3-8") -> list[str]:
-        rows = self.conn.execute(
-            "select m.title from user_feed_entry fe "
-            "join moment m on m.id = fe.moment_id "
-            "join content_item ci on ci.id = m.content_item_id "
-            "where ci.guid like 'contract-%%' and fe.chip = %s "
-            "order by fe.user_id, fe.rank",
-            (chip,),
-        ).fetchall()
-        return [r[0] for r in rows]
-
     def feed_state(self, user_id: str) -> datetime | None:
         row = self.conn.execute(
             "select computed_at from user_feed_state where user_id = %s", (user_id,)
         ).fetchone()
         return None if row is None else row[0]
 
-    def feed_entries(
-        self, user_id: str, chip: BreakLength
-    ) -> list[tuple[int, int | None]]:
+    def feed_entries(self, user_id: str) -> list[int]:
         rows = self.conn.execute(
-            "select content_item_id, moment_id from user_feed_entry "
-            "where user_id = %s and chip = %s order by rank",
-            (user_id, chip),
+            "select content_item_id from user_feed_entry "
+            "where user_id = %s and chip = %s and moment_id is null order by rank",
+            (user_id, FEED_CHIP),
         ).fetchall()
-        return [(int(r[0]), r[1]) for r in rows]
+        return [int(r[0]) for r in rows]
 
-    def starter_ids(
-        self, topic: str, level: Difficulty, chip: BreakLength
-    ) -> list[int]:
+    def starter_ids(self, topic: str, level: Difficulty) -> list[int]:
         rows = self.conn.execute(
-            "select moment_id from starter_feed_entry where topic = %s "
+            "select content_item_id from starter_feed_entry where topic = %s "
             "and level = %s::difficulty and chip = %s::break_length "
-            "and moment_id is not null order by rank",
-            (topic, level, chip),
+            "and moment_id is null order by rank",
+            (topic, level, FEED_CHIP),
         ).fetchall()
-        return [r[0] for r in rows]
+        return [int(r[0]) for r in rows]
 
     def age_sessions(self, user_id: str, days: int) -> None:
         self.conn.execute(
@@ -800,10 +793,6 @@ def source(s: Store, profile: RightsProfile = "full_text_internal") -> int:
     )
 
 
-def moment(ordinal: int, title: str) -> MomentRow:
-    return MomentRow(ordinal, title, 1, "https://contract.example.test/a", "page_top")
-
-
 def test_source_upsert_is_idempotent_by_name_and_get_reads_it_back(
     store: tuple[Store, Probe],
 ) -> None:
@@ -852,69 +841,13 @@ def test_full_text_store_replace_and_drop(store: tuple[Store, Probe]) -> None:
 
 
 def test_sections_are_replaced_and_read_in_order(store: tuple[Store, Probe]) -> None:
-    s, _ = store
+    s, probe = store
     item = s.items.upsert_from_feed(source(s), entry("g3"), keep_excerpt=False)
     s.items.replace_sections(
         item, [Section("A", 2, "a", 10), Section(None, None, None, 5)]
     )
     s.items.replace_sections(item, [Section("B", 2, None, 7), Section("C", 3, "c", 9)])
-    assert s.items.sections(item) == [
-        SectionRow("B", None, 7, 2),
-        SectionRow("C", "c", 9, 3),
-    ]
-
-
-def test_segmentation_input_reflects_the_source(store: tuple[Store, Probe]) -> None:
-    s, probe = store
-    sid = source(s)
-    item = s.items.upsert_from_feed(sid, entry("g4", title="Title"), keep_excerpt=False)
-    probe.enable_moments(sid)
-    got = s.items.for_segmentation(item)
-    assert got is not None
-    assert (got.title, got.canonical_url, got.rights_profile, got.moments_enabled) == (
-        "Title",
-        "https://contract.example.test/g4",
-        "full_text_internal",
-        True,
-    )
-    assert s.items.for_segmentation(10**12) is None
-
-
-def test_moments_replace_keeps_ids_by_ordinal_and_removes_extras(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("g5"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "a"), moment(1, "b"), moment(2, "c")])
-    ids = [m[0] for m in probe.moments(item)]
-    s.moments.replace(item, [moment(0, "a2"), moment(1, "b2")])
-    assert probe.moments(item) == [(ids[0], 0, "a2"), (ids[1], 1, "b2")]
-
-
-def test_moment_links_cover_sources_with_moments_on(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    on, off = source(s), source(s, "full_text_display")
-    probe.enable_moments(on)
-    probe.enable_moments(off)
-    item = s.items.upsert_from_feed(on, entry("links"), keep_excerpt=False)
-    other = s.items.upsert_from_feed(off, entry("links-off"), keep_excerpt=False)
-    s.moments.replace(item, [moment(1, "second"), moment(0, "first")])
-    s.moments.replace(other, [moment(0, "gone")])
-    probe.disable_moments(off)
-    links = s.moments.links(on)
-    assert [(m.title, m.source_name, m.item_id) for m in links] == [
-        ("first", "contract-full_text_internal", item),
-        ("second", "contract-full_text_internal", item),
-    ]
-    assert links[0].link == "https://contract.example.test/a"
-    assert links[0].link_type == "page_top"
-    everything = s.moments.links(None)
-    assert {m.moment_id for m in links} <= {m.moment_id for m in everything}
-    assert "gone" not in {m.title for m in everything}
+    assert probe.sections(item) == [("B", None, 7, 2), ("C", "c", 9, 3)]
 
 
 def test_link_health_keeps_the_first_break_and_clears_on_recovery(
@@ -933,20 +866,6 @@ def test_link_health_keeps_the_first_break_and_clears_on_recovery(
     assert s.items.link_health(10**12) is None
 
 
-def test_the_oversized_flag_is_stored_and_updated(store: tuple[Store, Probe]) -> None:
-    s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("g6"), keep_excerpt=False)
-    big = replace(moment(0, "big"), oversized=True)
-    s.moments.replace(item, [big, moment(1, "small")])
-    assert probe.oversized(item) == [True, False]
-    s.moments.replace(
-        item, [moment(0, "big"), replace(moment(1, "small"), oversized=True)]
-    )
-    assert probe.oversized(item) == [False, True]
-
-
 def change_profile(s: Store, profile_from: RightsProfile, to: RightsProfile) -> None:
     s.sources.upsert(
         name=f"contract-{profile_from}",
@@ -956,25 +875,73 @@ def change_profile(s: Store, profile_from: RightsProfile, to: RightsProfile) -> 
     )
 
 
-def test_lowering_full_text_purges_text_sections_moments_and_feed(
+def test_lowering_full_text_purges_text_and_what_was_made_from_it(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
     sid = source(s)
-    probe.enable_moments(sid)
     item = s.items.upsert_from_feed(
         sid, entry("purge", datetime(2099, 12, 1, tzinfo=UTC)), keep_excerpt=False
     )
     s.items.store_full_text(item, "body")
     s.items.replace_sections(item, [Section("A", 2, "a", 10)])
-    s.moments.replace(item, [moment(0, "purge0")])
-    put_in_feed(s, probe, item)
+    s.embeddings.save(item, unit(1), "voyage-3.5")
+    (question,) = s.questions.save(item, [DRAFT], [], "m", 1, "h", None)
+    s.questions.save_estimate(item, None, [], "m", "e", None)
+    s.questions.record_retry(item, 1, datetime(2099, 1, 1, tzinfo=UTC))
 
     change_profile(s, "full_text_internal", "excerpt")
     assert probe.full_text(item) is None
-    assert s.items.sections(item) == []
-    assert probe.moments(item) == []
-    assert "purge0" not in probe.feed_titles()
+    assert probe.sections(item) == []
+    # ING-2, ADR-0058: the article's vector and questions were made from its text.
+    assert s.embeddings.vector(item, "voyage-3.5") is None
+    assert s.questions.pending(question) is None
+    assert probe.question_ids(item) == []
+    # Its drafting state goes too, so the article is drafted again if rights return.
+    assert s.questions.estimate_drafted_hash(item) is None
+    assert s.questions.retry_state(item) is None
+    # Rights back and the text stored again: it is embedded again.
+    change_profile(s, "full_text_internal", "full_text_internal")
+    assert s.embeddings.missing(item, "voyage-3.5") is False  # no text yet
+    s.items.store_full_text(item, "body")
+    assert s.embeddings.missing(item, "voyage-3.5") is True
+
+
+def test_a_changed_text_is_embedded_again(store: tuple[Store, Probe]) -> None:
+    s, _ = store
+    item = s.items.upsert_from_feed(source(s), entry("retext"), keep_excerpt=False)
+    s.items.store_full_text(item, "first")
+    s.embeddings.save(item, unit(1), "voyage-3.5")
+    s.items.store_full_text(item, "first")  # the same text: the vector stands
+    assert s.embeddings.missing(item, "voyage-3.5") is False
+    s.items.store_full_text(item, "second")
+    assert s.embeddings.vector(item, "voyage-3.5") is None
+    assert s.embeddings.missing(item, "voyage-3.5") is True
+
+
+def test_lowering_rights_succeeds_after_a_question_was_played_in_a_match(
+    conn: psycopg.Connection,
+) -> None:
+    # A match's rounds go with a purged question (ING-2) rather than refusing it.
+    s = PostgresStore(conn)
+    item = s.items.upsert_from_feed(source(s), entry("played"), keep_excerpt=False)
+    s.items.store_full_text(item, "body")
+    (question,) = s.questions.save(item, [DRAFT], [], "m", 1, "h", None)
+    match = conn.execute(
+        "insert into game_match (server_id) values (0) returning id"
+    ).fetchone()
+    assert match is not None
+    conn.execute(
+        "insert into game_match_question (match_id, round, question_id) "
+        "values (%s, 1, %s)",
+        (match[0], question),
+    )
+    change_profile(s, "full_text_internal", "metadata_only")
+    rounds = conn.execute(
+        "select count(*) from game_match_question where match_id = %s", (match[0],)
+    ).fetchone()
+    assert rounds == (0,)
+    assert s.questions.pending(question) is None
 
 
 def test_lowering_excerpt_purges_the_excerpt(store: tuple[Store, Probe]) -> None:
@@ -986,16 +953,6 @@ def test_lowering_excerpt_purges_the_excerpt(store: tuple[Store, Probe]) -> None
     assert probe.excerpt(item) is None
 
 
-def test_switching_moments_off_purges_moments(store: tuple[Store, Probe]) -> None:
-    s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("off"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "off0")])
-    probe.disable_moments(sid)
-    assert probe.moments(item) == []
-
-
 def test_writes_the_profile_forbids_are_refused(store: tuple[Store, Probe]) -> None:
     s, _ = store
     meta = s.items.upsert_from_feed(source(s, "metadata_only"), entry("m"), False)
@@ -1004,7 +961,6 @@ def test_writes_the_profile_forbids_are_refused(store: tuple[Store, Probe]) -> N
         lambda: s.items.store_full_text(meta, "x"),
         lambda: s.items.replace_sections(meta, [Section("A", 2, None, 1)]),
         lambda: s.items.set_excerpt(full, "x"),
-        lambda: s.moments.replace(full, [moment(0, "no switch")]),
     ):
         with pytest.raises(RightsViolation):
             write()
@@ -1174,7 +1130,6 @@ def seed(
     name: str,
     *,
     rights_profile: RightsProfile = "full_text_internal",
-    moments_enabled: bool = True,
     paywalled: bool = False,
     quality_score: int | None = None,
     topics: tuple[str, ...] = ("backend",),
@@ -1184,7 +1139,6 @@ def seed(
         homepage=None,
         feed_url=f"https://{name}.example.test/feed",
         rights_profile=rights_profile,
-        moments_enabled=moments_enabled,
         paywalled=paywalled,
         quality_score=quality_score,
         topics=topics,
@@ -1201,7 +1155,6 @@ def test_syncing_the_seed_list_is_idempotent(store: tuple[Store, Probe]) -> None
         True,
         "https://sync-a.example.test/feed",
         "full_text_internal",
-        True,
         False,
         4,
         ("backend",),
@@ -1249,7 +1202,7 @@ def test_a_changed_seed_updates_its_source(store: tuple[Store, Probe]) -> None:
     assert (result.added, result.updated) == (0, 1)
     state = probe.source_state("sync-edit")
     assert state is not None
-    assert state[4:] == (True, 2, ("databases",))
+    assert state[3:] == (True, 2, ("databases",))
 
 
 def test_lowering_a_profile_through_sync_purges_stored_text(
@@ -1265,9 +1218,7 @@ def test_lowering_a_profile_through_sync_purges_stored_text(
     )
     item = s.items.upsert_from_feed(source_id, entry("lower-item"), keep_excerpt=False)
     s.items.store_full_text(item, "body")
-    s.sources.sync(
-        [seed("sync-lower", rights_profile="metadata_only", moments_enabled=False)]
-    )
+    s.sources.sync([seed("sync-lower", rights_profile="metadata_only")])
     assert probe.full_text(item) is None
 
 
@@ -1323,25 +1274,6 @@ def test_upsert_reactivates_a_source(store: tuple[Store, Probe]) -> None:
     assert state is not None and state[0] is True
 
 
-def test_switching_moments_off_through_sync_purges_moments(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    s.sources.sync([seed("sync-moments")])
-    source_id = s.sources.upsert(
-        name="sync-moments",
-        feed_url="https://sync-moments.example.test/feed",
-        rights_profile="full_text_internal",
-        homepage=None,
-    )
-    probe.enable_moments(source_id)
-    item = s.items.upsert_from_feed(source_id, entry("moment-item"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "m0")])
-    # Same full-text profile, moments switched off in the same update.
-    s.sources.sync([seed("sync-moments", moments_enabled=False, quality_score=3)])
-    assert probe.moments(item) == []
-
-
 def test_active_ids_lists_only_sources_still_in_the_seed_list(
     store: tuple[Store, Probe],
 ) -> None:
@@ -1358,7 +1290,7 @@ def test_active_ids_lists_only_sources_still_in_the_seed_list(
 
 
 # W2-S02b: what the pipeline's stages read.
-def test_what_the_fetch_and_segment_stages_read(store: tuple[Store, Probe]) -> None:
+def test_what_the_fetch_stage_reads(store: tuple[Store, Probe]) -> None:
     s, _ = store
     source_id = s.sources.upsert(
         name="stage-reads",
@@ -1375,7 +1307,6 @@ def test_what_the_fetch_and_segment_stages_read(store: tuple[Store, Probe]) -> N
     assert s.items.has_body(item) is False
     s.items.store_full_text(item, "body")
     assert s.items.has_body(item) is True
-    assert s.moments.exist(item) is False
 
 
 def test_fetch_validators_are_kept_per_url(store: tuple[Store, Probe]) -> None:
@@ -1705,32 +1636,26 @@ def test_concept_vectors_are_stored_per_model_with_their_texts_hash(
 
 
 # Tagging v3 (2026-10-27): a decision model's raw answers, kept so cut-offs can be
-# retuned without asking again, with the hash of what was asked about.
-def test_decisions_are_kept_per_moment_and_article_with_their_hashes(
+# retuned without asking again, with the hash of what was asked about. One pass per
+# article (ADR-0058).
+def test_decisions_are_kept_per_article_with_their_hashes(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
     probe.reset_concepts()
     sync_concepts(s, graph(1, CHAIN))
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("decided"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "a"), moment(1, "b")])
-    first = probe.moments(item)[0][0]
+    item = s.items.upsert_from_feed(source(s), entry("decided"), keep_excerpt=False)
     model = "perplexity/pplx-decider-v1.2"
-    assert s.decisions.moment_hashes(item, model) == {}
-    s.decisions.save_moment(first, model, "h0", 1.2, {"cg-lag": 0.9, "cg-ryw": 0.1})
+    assert s.decisions.item_hash(item, model) is None
+    s.decisions.save_item(item, model, "t0", 1.2, {"cg-lag": 0.9, "cg-ryw": 0.1})
     # Asked again after its text changed: the new answers replace the old ones.
-    s.decisions.save_moment(first, model, "h1", 0.4, {"cg-lag": 0.25})
     s.decisions.save_item(item, model, "t1", 0.7, {"cg-ryw": 0.8})
-    assert s.decisions.moment_hashes(item, model) == {first: "h1"}
     assert s.decisions.item_hash(item, model) == "t1"
     got = s.decisions.read(item, model)
-    assert got.moments == {first: (0.4, {"cg-lag": 0.25})}
-    assert (got.item, got.item_difficulty) == ({"cg-ryw": 0.8}, 0.7)
+    assert got == ItemDecisions({}, {"cg-ryw": 0.8}, 0.7)
     assert s.decisions.read(item, "another/model") == ItemDecisions({}, {})
     with pytest.raises(ValueError, match="no concept"):
-        s.decisions.save_moment(first, model, "h2", 1.0, {"cg-nobody": 0.5})
+        s.decisions.save_item(item, model, "t2", 1.0, {"cg-nobody": 0.5})
 
 
 def test_a_loaded_graph_answers_recursive_prerequisites(
@@ -1856,22 +1781,17 @@ def test_tags_are_saved_replaced_and_survive_retiring_their_concept(
     s, probe = store
     probe.reset_concepts()
     sync_concepts(s, graph(1, CHAIN))
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("tags"), keep_excerpt=False)
+    item = s.items.upsert_from_feed(source(s), entry("tags"), keep_excerpt=False)
     s.items.store_full_text(item, "Intro\nLag\nbody")
-    s.moments.replace(item, [moment(0, "intro"), moment(1, "Lag")])
     tag_input = s.tags.input(item)
     assert tag_input is not None and tag_input.full_text == "Intro\nLag\nbody"
-    assert [m.ordinal for m in tag_input.moments] == [0, 1]
-    second = tag_input.moments[1].id
+    assert tag_input.moments == []  # ADR-0058: an article is tagged whole
     result = TagResult(
-        Tags("intermediate", frozenset({"cg-lag", "cg-replication"})),
-        {second: Tags("advanced", frozenset({"cg-lag"}))},
+        Tags("intermediate", frozenset({"cg-lag", "cg-replication"})), {}
     )
     s.tags.save(item, result, "small-model", 1)
     assert s.tags.version(item) == 1
-    assert s.tags.for_item(item) == (result.item, {1: result.moments[second]})
+    assert probe.item_tags(item) == result.item
     # Retire cg-lag: its tags still read back (tags never dangle, Q-P1-04).
     without_lag = (
         CHAIN.replace(
@@ -1883,39 +1803,32 @@ def test_tags_are_saved_replaced_and_survive_retiring_their_concept(
         .replace(", related: [cg-lag]", "")
     )
     sync_concepts(s, graph(2, without_lag))
-    assert s.tags.for_item(item)[0] == result.item
+    assert probe.item_tags(item) == result.item
     # A new prompt version replaces the tags.
     again = TagResult(Tags("beginner", frozenset({"cg-replication"})), {})
     s.tags.save(item, again, "small-model", 2)
-    assert s.tags.for_item(item) == (again.item, {})
+    assert probe.item_tags(item) == again.item
     assert s.tags.version(item) == 2
 
 
-def test_tag_reads_respect_rights_and_saves_refuse_foreign_moments(
+def test_tag_reads_respect_rights_and_saves_refuse_per_section_tags(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
     probe.reset_concepts()
     sync_concepts(s, graph(1, CHAIN))
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("rights"), keep_excerpt=False)
-    other = s.items.upsert_from_feed(sid, entry("rights-other"), keep_excerpt=False)
+    item = s.items.upsert_from_feed(source(s), entry("rights"), keep_excerpt=False)
     s.items.store_full_text(item, "body")
-    s.moments.replace(other, [moment(0, "theirs")])
     assert s.tags.find("https://contract.example.test/rights") == item
     assert s.tags.needs_tagging(item, 1) is True
-    theirs = probe.moments(other)[0][0]
-    foreign = TagResult(
-        Tags("beginner", frozenset()), {theirs: Tags("beginner", frozenset())}
+    sections = TagResult(
+        Tags("beginner", frozenset()), {7: Tags("beginner", frozenset())}
     )
-    with pytest.raises(ValueError, match="not item"):
-        s.tags.save(item, foreign, "m", 1)
+    with pytest.raises(ValueError, match="whole"):
+        s.tags.save(item, sections, "m", 1)
     s.tags.save(item, TagResult(Tags("beginner", frozenset()), {}), "m", 1)
     assert s.tags.needs_tagging(item, 1) is False
     assert s.tags.needs_tagging(item, 2) is True
-    s.tags.clear(item)
-    assert s.tags.version(item) is None
     # Lowered to excerpt: the stored body is purged and never read for tagging.
     change_profile(s, "full_text_internal", "excerpt")
     tag_input = s.tags.input(item)
@@ -1927,60 +1840,49 @@ def unit(*first: float) -> list[float]:
     return [*first, *([0.0] * (1024 - len(first)))]
 
 
-def test_similar_moments_filter_by_rights_source_and_difficulty(
+# ADR-0058: one vector per article.
+def test_similar_articles_filter_by_rights_source_and_difficulty(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
     a, b = dup_source(s, "emb-a"), dup_source(s, "emb-b")
-    for sid in (a, b):
-        probe.enable_moments(sid)
     item_a = dup_item(s, a, "emb1", 2)
-    item_b = dup_item(s, b, "emb2", 3)
-    a1_row = replace(moment(1, "a1"), link_type="anchor")  # starts at heading "a1"
-    s.moments.replace(item_a, [moment(0, "a0"), a1_row])
-    s.moments.replace(item_b, [moment(0, "b0")])
-    a0, a1 = (m[0] for m in probe.moments(item_a))
-    (b0,) = (m[0] for m in probe.moments(item_b))
+    item_a2 = dup_item(s, a, "emb1b", 3)
+    item_b = dup_item(s, b, "emb2", 4)
+    for item in (item_a, item_a2, item_b):
+        s.items.store_full_text(item, "body")
     assert s.embeddings.missing(item_a, "voyage-3.5") is True
-    s.embeddings.save(item_a, {a0: unit(1, 0)}, "voyage-3.5", complete=False)
-    # Part way (a budget stop): still missing, and the done moment is skipped next.
-    assert s.embeddings.missing(item_a, "voyage-3.5") is True
-    assert s.embeddings.done(item_a, "voyage-3.5") == {a0}
-    s.embeddings.save(item_a, {a1: unit(0.7, 0.7)}, "voyage-3.5", complete=True)
-    s.embeddings.save(item_b, {b0: unit(0.9, 0.1)}, "voyage-3.5", complete=True)
+    s.embeddings.save(item_a, unit(1, 0), "voyage-3.5")
+    s.embeddings.save(item_a2, unit(0.7, 0.7), "voyage-3.5")
+    s.embeddings.save(item_b, unit(0.9, 0.1), "voyage-3.5")
     assert s.embeddings.missing(item_a, "voyage-3.5") is False
     assert s.embeddings.missing(item_a, "voyage-3-large") is True
-    s.tags.save(
-        item_a,
-        TagResult(
-            Tags("beginner", frozenset()),
-            {a0: Tags("advanced", frozenset()), a1: Tags("beginner", frozenset())},
-        ),
-        "m",
-        1,
-    )
+    s.tags.save(item_a, TagResult(Tags("advanced", frozenset()), {}), "m", 1)
+    s.tags.save(item_a2, TagResult(Tags("beginner", frozenset()), {}), "m", 1)
     query = unit(1, 0)
-    ours = {a0, a1, b0}
-    hits = [h.moment_id for h in s.embeddings.similar(query, 50) if h.moment_id in ours]
-    assert hits == [a0, b0, a1]  # nearest first
+    ours = {item_a, item_a2, item_b}
+    hits = [h.item_id for h in s.embeddings.similar(query, 50) if h.item_id in ours]
+    assert hits == [item_a, item_b, item_a2]  # nearest first
     # Vectors from another model aren't comparable, so they never match (P1-W4-S02).
     other = s.embeddings.similar(query, 50, model="voyage-3-large")
-    assert not [h for h in other if h.moment_id in ours]
-    assert s.embeddings.vectors_of_item(item_b, "voyage-3.5")[b0][:2] == [0.9, 0.1]
+    assert not [h for h in other if h.item_id in ours]
+    vector = s.embeddings.vector(item_b, "voyage-3.5")
+    assert vector is not None and vector[:2] == [0.9, 0.1]
+    assert s.embeddings.vector(item_b, "voyage-3-large") is None
     by_source = s.embeddings.similar(query, 50, source_ids=[b])
-    assert [h.moment_id for h in by_source] == [b0]
+    assert [h.item_id for h in by_source] == [item_b]
     by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
-    assert [h.moment_id for h in by_level if h.moment_id in ours] == [a1]
+    assert [h.item_id for h in by_level if h.item_id in ours] == [item_a2]
     # A broken link (P1-W6-S03) is never offered as similar; it comes back once fixed.
     s.items.set_link_broken(item_b, datetime(2026, 10, 26, tzinfo=UTC))
-    assert b0 not in {h.moment_id for h in s.embeddings.similar(query, 50)}
+    assert item_b not in {h.item_id for h in s.embeddings.similar(query, 50)}
     s.items.set_link_broken(item_b, None)
-    assert b0 in {h.moment_id for h in s.embeddings.similar(query, 50)}
-    # An admin's correction of a1's level wins (P1-W3-S05).
-    probe.override_level(item_a, "a1", "advanced")
+    assert item_b in {h.item_id for h in s.embeddings.similar(query, 50)}
+    # An admin's correction of an article's level wins (P1-W3-S05).
+    probe.override_level(item_a2, "advanced")
     by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
-    assert [h.moment_id for h in by_level if h.moment_id in ours] == []
-    # Lowering a source's rights removes its moments, and so their vectors.
+    assert [h.item_id for h in by_level if h.item_id in ours] == []
+    # Lowering a source's rights clears its vectors (ING-2).
     s.sources.upsert(
         name="dup-emb-b",
         feed_url="https://dup-emb-b.example.test/feed.xml",
@@ -1988,124 +1890,62 @@ def test_similar_moments_filter_by_rights_source_and_difficulty(
         homepage=None,
     )
     assert s.embeddings.similar(query, 50, source_ids=[b]) == []
+    assert s.embeddings.vector(item_b, "voyage-3.5") is None
+    assert s.embeddings.missing(item_b, "voyage-3.5") is False  # no text to embed
 
 
-def test_saving_vectors_for_another_items_moments_is_refused(
+def test_a_duplicate_or_textless_item_never_needs_embedding(
     store: tuple[Store, Probe],
 ) -> None:
-    s, probe = store
-    sid = dup_source(s, "emb-c")
-    probe.enable_moments(sid)
-    mine, theirs = dup_item(s, sid, "emb3", 2), dup_item(s, sid, "emb4", 2)
-    s.moments.replace(theirs, [moment(0, "t0")])
-    (t0,) = (m[0] for m in probe.moments(theirs))
-    with pytest.raises(ValueError, match="not item"):
-        s.embeddings.save(mine, {t0: unit(1)}, "voyage-3.5", complete=True)
-
-
-def test_a_duplicate_or_momentless_item_never_needs_embedding(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
+    s, _ = store
     url = "https://dup.example.test/emb-dup"
     a, b = dup_source(s, "emb-d1"), dup_source(s, "emb-d2")
-    probe.enable_moments(a)
-    probe.enable_moments(b)
     primary, copy = dup_item(s, a, "ed1", 1, url=url), dup_item(s, b, "ed2", 2, url=url)
-    assert s.embeddings.missing(primary, "voyage-3.5") is False  # no moments yet
-    s.moments.replace(primary, [moment(0, "p0")])
-    s.moments.replace(copy, [moment(0, "c0")])
+    assert s.embeddings.missing(primary, "voyage-3.5") is False  # no text yet
+    s.items.store_full_text(primary, "p")
+    s.items.store_full_text(copy, "c")
     s.items.link_duplicates(copy)
     assert s.embeddings.missing(primary, "voyage-3.5") is True
     assert s.embeddings.missing(copy, "voyage-3.5") is False
 
 
-# ING-6 admin review (P1-W3-S05): segmentation reads the admin's boundaries.
-def test_the_boundary_override_is_read_for_segmentation(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    item = s.items.upsert_from_feed(source(s), entry("bounds"), keep_excerpt=False)
-    assert s.items.boundary_override(item) is None
-    probe.set_boundaries(item, ["Setup", "Recovery"])
-    assert s.items.boundary_override(item) == ["Setup", "Recovery"]
-
-
 def test_re_ingesting_leaves_the_admins_overrides_alone(
     conn: psycopg.Connection,
 ) -> None:
-    # P1-W3-S05: tags and moments are redone on re-ingestion; overrides are not.
+    # P1-W3-S05: re-ingesting an article leaves an admin's correction alone.
     s = PostgresStore(conn)
     sid = source(s)
-    PostgresProbe(conn).enable_moments(sid)
     item = s.items.upsert_from_feed(sid, entry("survive"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "intro"), moment(1, "Setup")])
     conn.execute(
         "insert into tag_override (content_item_id, heading, difficulty, concepts, "
-        "updated_by) values (%s, 'Setup', 'advanced', '{}', 'admin')",
+        "updated_by) values (%s, '', 'advanced', '{}', 'admin')",
         (item,),
     )
-    PostgresProbe(conn).set_boundaries(item, ["Setup"])
-    s.tags.clear(item)
-    s.embeddings.clear(item)
-    s.moments.replace(item, [moment(0, "intro")])
     s.items.upsert_from_feed(sid, entry("survive"), keep_excerpt=False)
+    s.tags.save(item, TagResult(Tags("beginner", frozenset()), {}), "m", 1)
     rows = conn.execute(
-        "select (select count(*) from tag_override where content_item_id = %s), "
-        "(select count(*) from moment_boundary_override where content_item_id = %s)",
-        (item, item),
+        "select count(*) from tag_override where content_item_id = %s", (item,)
     ).fetchone()
-    assert rows == (1, 1)
+    assert rows == (1,)
 
 
-# P1-W3-S06: an admin's moments switch survives a seed reload.
-def test_an_admins_moments_switch_survives_seed_reloads(
-    store: tuple[Store, Probe],
+# ADR-0058: the moments switch's columns stay until stage C, but the worker no
+# longer writes them: a seed reload leaves them as they are.
+def test_a_seed_reload_leaves_the_moments_columns_alone(
+    conn: psycopg.Connection,
 ) -> None:
-    s, probe = store
+    s = PostgresStore(conn)
     s.sources.sync([seed("switched")])
-    sid = s.sources.upsert(
-        name="switched",
-        feed_url="https://switched.example.test/feed",
-        rights_profile="full_text_internal",
-        homepage=None,
+    conn.execute(
+        "update source set moments_seeded = true, moments_enabled = true "
+        "where name = 'switched'"
     )
-    item = s.items.upsert_from_feed(sid, entry("switched-item"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "sw0")])
-    put_in_feed(s, probe, item)
-    assert "sw0" in probe.feed_titles()
-    probe.switch_moments_off(sid, True)
-    assert probe.moments(item) == []  # purged: gone from the feed at once
-    assert "sw0" not in probe.feed_titles()
-    s.sources.sync([seed("switched")])  # unchanged file
-    s.sources.sync([seed("switched", quality_score=4)])  # a changed one
-    record = s.sources.get(sid)
-    assert record is not None and record.moments_enabled is False
-    probe.switch_moments_off(sid, False)  # back to what the seed file says
-    record = s.sources.get(sid)
-    assert record is not None and record.moments_enabled is True
-
-
-def test_the_seed_file_and_the_admin_switch_both_have_to_allow_moments(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    s.sources.sync([seed("both")])
-    sid = s.sources.upsert(
-        name="both",
-        feed_url="https://both.example.test/feed",
-        rights_profile="full_text_internal",
-        homepage=None,
-    )
-    probe.switch_moments_off(sid, True)
-    s.sources.sync([seed("both", moments_enabled=False)])
-    s.sources.sync([seed("both", moments_enabled=True)])  # seed back on: still off
-    record = s.sources.get(sid)
-    assert record is not None and record.moments_enabled is False
-    probe.switch_moments_off(sid, False)
-    s.sources.sync([seed("both", moments_enabled=False)])  # now the seed says off
-    record = s.sources.get(sid)
-    assert record is not None and record.moments_enabled is False
+    s.sources.sync([seed("switched", quality_score=4)])
+    row = conn.execute(
+        "select moments_seeded, moments_enabled, quality_score from source "
+        "where name = 'switched'"
+    ).fetchone()
+    assert row == (True, True, 4)
 
 
 # REC-1 (P1-W4-S02): what ranking reads about a user.
@@ -2131,7 +1971,7 @@ def test_goals_come_back_in_order_with_their_concept_sets(
     assert s.ranking.goal_concepts([]) == {}
 
 
-def test_readers_return_preferences_feedback_and_topic_moments(
+def test_readers_return_preferences_feedback_and_topic_articles(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
@@ -2153,12 +1993,9 @@ def test_readers_return_preferences_feedback_and_topic_moments(
     assert prefs is not None and prefs.topics == ["databases", "backend"]
 
     plain = dup_source(s, "rd-plain")  # seed topics: none
-    probe.enable_moments(plain)
     by_tag = dup_item(s, plain, "rd1", 3)
     by_correction = dup_item(s, plain, "rd2", 2)
     off_topic = dup_item(s, plain, "rd3", 1)
-    for item in (by_tag, by_correction, off_topic):
-        s.moments.replace(item, [moment(0, f"rd-{item}")])
     s.tags.save(
         by_tag, TagResult(Tags("beginner", frozenset({"rd-index"})), {}), "m", 1
     )
@@ -2170,10 +2007,21 @@ def test_readers_return_preferences_feedback_and_topic_moments(
         off_topic, TagResult(Tags("beginner", frozenset({"rd-raft"})), {}), "m", 1
     )
     mine = {by_tag, by_correction, off_topic}
-    rows = s.ranking.topic_moments(
+    rows = s.ranking.topic_articles(
         ["databases"], 1000, exclude_sources=set(), exclude_items=set()
     )
     assert [r.item_id for r in rows if r.item_id in mine] == [by_tag, by_correction]
+    # P2-W12-S04: by a project's concepts, the admin's correction winning too.
+    rows = s.ranking.concept_articles(
+        frozenset({"rd-index"}), 1000, exclude_sources=set(), exclude_items={by_tag}
+    )
+    assert [r.item_id for r in rows if r.item_id in mine] == [by_correction]
+    assert (
+        s.ranking.concept_articles(
+            frozenset(), 10, exclude_sources=set(), exclude_items=set()
+        )
+        == []
+    )
 
     probe.give_feedback(user, by_tag, "not_interested")
     probe.give_feedback(user, by_correction, "more_like_this")
@@ -2186,13 +2034,13 @@ def test_readers_return_preferences_feedback_and_topic_moments(
     assert s.ranking.anchor_items(user, 5) == [by_correction, off_topic]
     assert s.ranking.anchor_items(user, 1) == [by_correction]
     assert s.ranking.hidden_sources(user) == {plain}
-    rows = s.ranking.topic_moments(
+    rows = s.ranking.topic_articles(
         ["databases"], 1000, exclude_sources={plain}, exclude_items=set()
     )
     assert not [r for r in rows if r.item_id in mine]
 
 
-def test_topic_moments_offer_the_shown_copy_of_active_sources_in_order(
+def test_topic_articles_offer_the_shown_copy_of_active_sources_in_order(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
@@ -2205,43 +2053,41 @@ def test_topic_moments_offer_the_shown_copy_of_active_sources_in_order(
         ),
     )
     url = "https://dup.example.test/tm-shared"
-    listing = dup_item(s, dup_source(s, "tm-list", "metadata_only"), "tm1", 1, url=url)
     full = dup_source(s, "tm-full")
-    probe.enable_moments(full)
-    original = dup_item(s, full, "tm2", 2, url=url)
-    s.items.link_duplicates(original)
+    original = dup_item(s, full, "tm1", 1, url=url)
+    copy = dup_item(s, dup_source(s, "tm-copy"), "tm2", 2, url=url)
+    s.items.link_duplicates(copy)
     newer = dup_item(s, full, "tm3", 5)
     emptied = dup_item(s, full, "tm4", 4)
-    for item in (original, newer, emptied):
-        s.moments.replace(item, [moment(0, f"tm-{item}a"), moment(1, f"tm-{item}b")])
+    for item in (original, copy, newer, emptied):
         s.tags.save(
             item, TagResult(Tags("beginner", frozenset({"tm-idx"})), {}), "m", 1
         )
     probe.correct_concepts(emptied, [])  # an admin removed every concept: no match
 
-    def offered(limit: int = 1000) -> list[tuple[int, int]]:
-        rows = s.ranking.topic_moments(
+    def offered(limit: int = 1000) -> list[int]:
+        rows = s.ranking.topic_articles(
             ["databases"], limit, exclude_sources=set(), exclude_items=set()
         )
-        mine = {original, newer, emptied, listing}
-        return [(r.item_id, r.moment_id) for r in rows if r.item_id in mine]
+        mine = {original, copy, newer, emptied}
+        return [r.item_id for r in rows if r.item_id in mine]
 
-    got = offered()
-    # The original (a full-text duplicate of an earlier metadata-only listing) is
-    # offered; the listing has no moments. Newest item first, then reading order.
-    assert [item for item, _ in got] == [newer, newer, original, original]
-    assert got[0][1] < got[1][1]
+    # One card per story: the earliest copy, the one tagged and embedded. Newest first.
+    assert offered() == [newer, original]
     assert (
-        s.ranking.topic_moments([], 10, exclude_sources=set(), exclude_items=set())
+        s.ranking.topic_articles([], 10, exclude_sources=set(), exclude_items=set())
         == []
     )
-    # A broken link (P1-W6-S03) is never offered, and comes back once it works.
+    # A broken link (P1-W6-S03) is never offered, and comes back once it works; the
+    # story's other copy stands in meanwhile.
     when = datetime(2026, 10, 26, tzinfo=UTC)
     s.items.set_link_broken(newer, when)
-    assert [item for item, _ in offered()] == [original, original]
+    s.items.set_link_broken(original, when)
+    assert offered() == [copy]
     s.items.set_link_broken(newer, None)
-    assert [item for item, _ in offered()] == [newer, newer, original, original]
-    s.sources.sync([seed("other-only")])  # tm-full leaves the seed list: inactive
+    s.items.set_link_broken(original, None)
+    assert offered() == [newer, original]
+    s.sources.sync([seed("other-only")])  # both leave the seed list: inactive
     assert offered() == []
 
 
@@ -2260,7 +2106,7 @@ def test_the_fakes_ranking_config_matches_the_migrations_seed(
     assert PostgresStore(conn).ranking.config() == RANKING_DEFAULTS
 
 
-def test_moment_facts_and_feedback_for_scoring(store: tuple[Store, Probe]) -> None:
+def test_article_facts_and_feedback_for_scoring(store: tuple[Store, Probe]) -> None:
     s, probe = store
     probe.reset_concepts()
     sync_concepts(
@@ -2275,45 +2121,22 @@ def test_moment_facts_and_feedback_for_scoring(store: tuple[Store, Probe]) -> No
     user = f"scoring-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
     sid = dup_source(s, "sf")
-    probe.enable_moments(sid)
     item = dup_item(s, sid, "sf1", 7)
     disliked = dup_item(s, sid, "sf2", 6)
-    heading_row = replace(moment(1, "Setup"), link_type="anchor")
-    tuning_row = replace(moment(2, "Tuning"), link_type="anchor")
-    s.moments.replace(item, [moment(0, "intro"), heading_row, tuning_row])
-    s.moments.replace(disliked, [moment(0, "d0")])
-    intro, setup, tuning = (m[0] for m in probe.moments(item))
-    s.tags.save(
-        item,
-        TagResult(
-            Tags("beginner", frozenset({"sf-a"})),
-            {
-                setup: Tags("advanced", frozenset()),
-                tuning: Tags("beginner", frozenset()),
-            },
-        ),
-        "m",
-        1,
-    )
+    s.tags.save(item, TagResult(Tags("beginner", frozenset({"sf-a"})), {}), "m", 1)
     s.tags.save(disliked, TagResult(Tags("beginner", frozenset({"sf-b"})), {}), "m", 1)
-    probe.override_level(item, "Setup", "intermediate")  # the admin wins
-    facts = s.ranking.moment_facts([intro, setup, tuning])
-    assert facts[setup].difficulty == "intermediate"
-    assert facts[intro].difficulty == "beginner"  # no moment tag: the item's level
-    assert facts[tuning].difficulty == "beginner"  # the model's moment tag
-    assert facts[intro].concepts == frozenset({"sf-a"})
-    assert facts[intro].minutes == 1 and facts[intro].item_id == item
+    facts = s.ranking.article_facts([item])
+    assert facts[item].difficulty == "beginner"
+    assert facts[item].concepts == frozenset({"sf-a"})
+    assert facts[item].minutes is None  # no stored sections
     # Topics: the source's seed topics plus the topics of the item's concepts.
-    assert facts[intro].topics == frozenset({"databases"})
-    assert facts[intro].quality is None and facts[intro].source_id == sid
-    assert facts[intro].published_at == datetime(2099, 11, 7, tzinfo=UTC)
-    # Owner, 2026-10-26: an admin's item correction beats every model tag; only the
-    # admin's own moment correction is more specific.
-    probe.override_level(item, "", "advanced")
-    facts = s.ranking.moment_facts([intro, setup, tuning])
-    assert facts[tuning].difficulty == "advanced"
-    assert facts[intro].difficulty == "advanced"
-    assert facts[setup].difficulty == "intermediate"
+    assert facts[item].topics == frozenset({"databases"})
+    assert facts[item].quality is None and facts[item].source_id == sid
+    assert facts[item].published_at == datetime(2099, 11, 7, tzinfo=UTC)
+    # Owner, 2026-10-26: an admin's correction beats the model's tag.
+    probe.override_level(item, "advanced")
+    assert s.ranking.article_facts([item])[item].difficulty == "advanced"
+    assert s.ranking.article_facts([10**12]) == {}
     probe.give_feedback(user, item, "less_like_this")
     probe.give_feedback(user, disliked, "not_interested")
     assert s.ranking.less_liked(user) == {item}
@@ -2333,84 +2156,63 @@ def test_moment_facts_and_feedback_for_scoring(store: tuple[Store, Probe]) -> No
 
 
 def put_in_feed(s: Store, probe: Probe, item_id: int) -> str:
-    """A user whose feed holds the item's moments (feeds are per user, W4-S04)."""
+    """A user whose feed holds the item (feeds are per user, W4-S04)."""
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
-    ranked = [
-        RankedEntry(item_id, m[0], "topic_match", None) for m in probe.moments(item_id)
-    ]
-    s.feed.replace_user(user, {"3-8": ranked}, datetime.now(UTC))
+    s.feed.replace_user(
+        user, [RankedEntry(item_id, "topic_match", None)], datetime.now(UTC)
+    )
     return user
 
 
-# CACHE-1, Q-P1-17 (P1-W4-S04): a user's feed is replaced whole, every chip (Q-P1-16,
-# W4-S05), with its time.
+# CACHE-1, Q-P1-17 (P1-W4-S04): a user's feed is replaced whole, one list of articles
+# (ADR-0058), with its time.
 def test_a_users_feed_is_replaced_whole_with_its_time(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
     sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("uf"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "uf0"), moment(1, "uf1")])
-    first, second = (m[0] for m in probe.moments(item))
+    first = s.items.upsert_from_feed(sid, entry("uf0"), keep_excerpt=False)
+    second = s.items.upsert_from_feed(sid, entry("uf1"), keep_excerpt=False)
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
     assert probe.feed_state(user) is None
     early = datetime(2099, 1, 1, tzinfo=UTC)
     s.feed.replace_user(
         user,
-        {
-            "3-8": [
-                RankedEntry(item, first, "quality", None),
-                RankedEntry(item, second, "topic_match", None),
-            ],
-            "1-3": [RankedEntry(item, second, "time_fit", None)],
-        },
+        [
+            RankedEntry(first, "quality", None),
+            RankedEntry(second, "topic_match", None),
+        ],
         early,
     )
-    assert probe.feed_titles("3-8") == ["uf0", "uf1"]
-    assert probe.feed_titles("1-3") == ["uf1"]
+    assert probe.feed_entries(user) == [first, second]
     later = datetime(2099, 1, 2, tzinfo=UTC)
-    s.feed.replace_user(
-        user, {"3-8": [RankedEntry(item, second, "freshness", None)]}, later
-    )
-    assert probe.feed_titles("3-8") == ["uf1"]
-    assert probe.feed_titles("1-3") == []  # a chip left out is emptied, not kept
+    s.feed.replace_user(user, [RankedEntry(second, "freshness", None)], later)
+    assert probe.feed_entries(user) == [second]
     assert probe.feed_state(user) == later
     # An empty feed still counts as computed (ADR-0008: "not yet" vs "nothing").
-    s.feed.replace_user(user, {"3-8": []}, later)
-    assert probe.feed_titles() == []
+    s.feed.replace_user(user, [], later)
+    assert probe.feed_entries(user) == []
     assert probe.feed_state(user) == later
 
 
-def test_starter_feeds_are_replaced_per_topic_level_and_chip(
+def test_starter_feeds_are_replaced_per_topic_and_level(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
     sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("sf"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "sf0"), moment(1, "sf1")])
-    a, b = (m[0] for m in probe.moments(item))
-    s.feed.replace_starter(
-        "databases", "beginner", "3-8", [RankedEntry(item, a, "q", None)]
-    )
-    s.feed.replace_starter(
-        "databases", "advanced", "3-8", [RankedEntry(item, b, "q", None)]
-    )
-    s.feed.replace_starter(
-        "databases", "beginner", "1-3", [RankedEntry(item, a, "q", None)]
-    )
+    a = s.items.upsert_from_feed(sid, entry("sf0"), keep_excerpt=False)
+    b = s.items.upsert_from_feed(sid, entry("sf1"), keep_excerpt=False)
+    s.feed.replace_starter("databases", "beginner", [RankedEntry(a, "q", None)])
+    s.feed.replace_starter("databases", "advanced", [RankedEntry(b, "q", None)])
     s.feed.replace_starter(
         "databases",
         "beginner",
-        "3-8",
-        [RankedEntry(item, b, "quality", None), RankedEntry(item, a, "quality", None)],
+        [RankedEntry(b, "quality", None), RankedEntry(a, "quality", None)],
     )
-    assert probe.starter_ids("databases", "beginner", "3-8") == [b, a]
-    assert probe.starter_ids("databases", "beginner", "1-3") == [a]
-    assert probe.starter_ids("databases", "advanced", "3-8") == [b]
+    assert probe.starter_ids("databases", "beginner") == [b, a]
+    assert probe.starter_ids("databases", "advanced") == [b]
 
 
 def test_active_users_used_a_session_in_the_window(
@@ -2435,63 +2237,44 @@ def test_a_failed_feed_write_keeps_the_previous_feed(
 ) -> None:
     # LOAD-5: the write is all or nothing; the unit of work it runs in stays usable.
     s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("kept"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "kept0")])
-    (kept,) = (m[0] for m in probe.moments(item))
+    item = s.items.upsert_from_feed(source(s), entry("kept"), keep_excerpt=False)
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
     first = datetime(2099, 1, 1, tzinfo=UTC)
-    s.feed.replace_user(
-        user, {"3-8": [RankedEntry(item, kept, "quality", None)]}, first
-    )
+    s.feed.replace_user(user, [RankedEntry(item, "quality", None)], first)
     twice = [
-        RankedEntry(item, kept, "quality", None),
-        RankedEntry(item, kept, "freshness", None),
+        RankedEntry(item, "quality", None),
+        RankedEntry(item, "freshness", None),
     ]
     with pytest.raises(Exception):  # noqa: B017  the engine's own error
-        s.feed.replace_user(
-            user, {"1-3": [], "3-8": twice}, datetime(2099, 1, 2, tzinfo=UTC)
-        )
-    assert probe.feed_titles() == ["kept0"]
+        s.feed.replace_user(user, twice, datetime(2099, 1, 2, tzinfo=UTC))
+    assert probe.feed_entries(user) == [item]
     assert probe.feed_state(user) == first
 
 
-def test_a_feed_for_a_deleted_user_or_moment_is_skipped(
+def test_a_feed_for_a_deleted_user_or_item_is_skipped(
     store: tuple[Store, Probe],
 ) -> None:
-    # A user purged or a moment re-segmented between ranking and writing is not a
-    # failure (it would otherwise retry and count as one).
+    # A user purged or an item gone between ranking and writing is not a failure (it
+    # would otherwise retry and count as one).
     s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("gone"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "gone0")])
-    (live,) = (m[0] for m in probe.moments(item))
+    item = s.items.upsert_from_feed(source(s), entry("gone"), keep_excerpt=False)
     now = datetime(2099, 1, 1, tzinfo=UTC)
-    s.feed.replace_user(
-        "never-existed", {"3-8": [RankedEntry(item, live, "q", None)]}, now
-    )
+    s.feed.replace_user("never-existed", [RankedEntry(item, "q", None)], now)
     assert probe.feed_state("never-existed") is None
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
-    gone = live + 10_000_000
+    gone = item + 10_000_000
     s.feed.replace_user(
         user,
-        {
-            "3-8": [
-                RankedEntry(item, gone, "quality", None),
-                RankedEntry(item, live, "topic_match", None),
-            ]
-        },
+        [RankedEntry(gone, "quality", None), RankedEntry(item, "topic_match", None)],
         now,
     )
-    assert probe.feed_titles() == ["gone0"]
+    assert probe.feed_entries(user) == [item]
     assert probe.feed_state(user) == now
 
 
-# Whole articles (§3.2, Q-P1-16, Q-P1-39, P1-W4-S05b).
+# Articles of any profile (§3.2, Q-P1-39, ADR-0058).
 def test_topic_articles_offer_one_copy_per_story_whatever_the_profile(
     store: tuple[Store, Probe],
 ) -> None:
@@ -2507,11 +2290,9 @@ def test_topic_articles_offer_one_copy_per_story_whatever_the_profile(
     url = "https://dup.example.test/ta-shared"
     listing = dup_item(s, dup_source(s, "ta-list", "metadata_only"), "ta1", 1, url=url)
     full = dup_source(s, "ta-full")
-    probe.enable_moments(full)
     original = dup_item(s, full, "ta2", 2, url=url)
     s.items.link_duplicates(original)
     solo = dup_item(s, dup_source(s, "ta-meta", "metadata_only"), "ta3", 3)
-    s.moments.replace(original, [moment(0, "ta-o")])
     for item in (listing, original, solo):
         s.tags.save(
             item, TagResult(Tags("beginner", frozenset({"ta-idx"})), {}), "m", 1
@@ -2523,27 +2304,15 @@ def test_topic_articles_offer_one_copy_per_story_whatever_the_profile(
         )
         return [r.item_id for r in rows if r.item_id in {listing, original, solo}]
 
-    # One card per story: the copy whose moments the feed shows, not the earlier
-    # listing; a metadata-only article on its own is offered too. Newest first.
-    assert offered(set()) == [solo, original]
-    assert offered({solo}) == [original]
-    # A broken link (P1-W6-S03) hands the story to a working copy, moments or not.
-    s.items.set_link_broken(original, datetime(2026, 10, 26, tzinfo=UTC))
+    # One card per story, the earliest copy (the earlier listing here); a
+    # metadata-only article on its own is offered too. Newest first.
     assert offered(set()) == [solo, listing]
-    s.items.set_link_broken(original, None)
+    assert offered({solo}) == [listing]
+    # A broken link (P1-W6-S03) hands the story to a working copy.
+    s.items.set_link_broken(listing, datetime(2026, 10, 26, tzinfo=UTC))
     assert offered(set()) == [solo, original]
-    # With no copy that has moments, the earliest copy stands for the story.
-    first = dup_item(s, dup_source(s, "ta-a", "metadata_only"), "ta4", 4, url=url + "2")
-    later = dup_item(s, dup_source(s, "ta-b", "metadata_only"), "ta5", 6, url=url + "2")
-    s.items.link_duplicates(later)
-    for item in (first, later):
-        s.tags.save(
-            item, TagResult(Tags("beginner", frozenset({"ta-idx"})), {}), "m", 1
-        )
-    rows = s.ranking.topic_articles(
-        ["databases"], 1000, exclude_sources=set(), exclude_items=set()
-    )
-    assert {r.item_id for r in rows} & {first, later} == {first}
+    s.items.set_link_broken(listing, None)
+    assert offered(set()) == [solo, listing]
 
 
 def test_article_facts_measure_length_from_stored_sections(
@@ -2561,38 +2330,7 @@ def test_article_facts_measure_length_from_stored_sections(
     assert set(facts) == {item, bare}
     assert facts[item].minutes == 3  # 530 words at 230 a minute, rounded up
     assert facts[item].difficulty == "advanced"
-    assert facts[item].moment_id is None
     assert facts[bare].minutes is None  # no body text: length unknown (Q-P1-39)
-
-
-def test_a_feed_holds_moments_and_whole_articles_in_rank_order(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("mix"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "mix0")])
-    (only,) = (m[0] for m in probe.moments(item))
-    user = f"feed-{uuid4().hex[:8]}"
-    probe.add_user(user, False, [])
-    now = datetime(2099, 1, 1, tzinfo=UTC)
-    mixed = [
-        RankedEntry(item, None, "time_fit", None),
-        RankedEntry(item, only, "quality", None),
-    ]
-    s.feed.replace_user(user, {"8-15": mixed}, now)
-    assert probe.feed_entries(user, "8-15") == [(item, None), (item, only)]
-    whole_twice = [
-        RankedEntry(item, None, "a", None),
-        RankedEntry(item, None, "b", None),
-    ]
-    with pytest.raises(Exception):  # noqa: B017  the engine's own error
-        s.feed.replace_user(user, {"8-15": whole_twice}, now)
-    assert probe.feed_entries(user, "8-15") == [(item, None), (item, only)]
-    # Re-segmenting drops the moment's entry; the whole article stays.
-    s.moments.replace(item, [])
-    assert probe.feed_entries(user, "8-15") == [(item, None)]
 
 
 # Exploration outcomes (REC-4, P1-W4-S09): written by Week 5, read by ranking.
@@ -2603,124 +2341,104 @@ def test_arm_outcomes_are_read_as_stored(store: tuple[Store, Probe]) -> None:
     assert outcomes[Arm("topic", "contract-backend")] == ArmOutcome(10, 4)
 
 
-# P1-W5-S03: finished moments and articles, which candidates leave out.
-def test_finished_reads_moments_and_articles(store: tuple[Store, Probe]) -> None:
+# P1-W5-S03: finished articles, which candidates leave out.
+def test_finished_reads_articles(store: tuple[Store, Probe]) -> None:
     s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("fin"), keep_excerpt=False)
-    s.moments.replace(item, [moment(0, "fin0")])
-    (only,) = (m[0] for m in probe.moments(item))
+    item = s.items.upsert_from_feed(source(s), entry("fin"), keep_excerpt=False)
     user = f"fin-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
-    assert s.ranking.finished(user) == Finished(frozenset(), frozenset())
-    probe.finish(user, only, item)
-    assert s.ranking.finished(user) == Finished(frozenset({only}), frozenset({item}))
+    assert s.ranking.finished(user) == frozenset()
+    probe.finish(user, item)
+    assert s.ranking.finished(user) == frozenset({item})
 
 
-def test_topic_moments_leave_out_given_moments_before_the_limit(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    sid = dup_source(s, "tx")
-    probe.enable_moments(sid)
-    item = dup_item(s, sid, "tx1", 9)
-    s.moments.replace(item, [moment(0, "tx-a"), moment(1, "tx-b")])
-    first, second = (m[0] for m in probe.moments(item))
-    probe.reset_concepts()
-    sync_concepts(
-        s,
-        parse_concepts(
-            "version: 1\nconcepts:\n  - {slug: tx-c, name: C, topic: databases}\n",
-            "c.yaml",
-        ),
-    )
-    s.tags.save(item, TagResult(Tags("beginner", frozenset({"tx-c"})), {}), "m", 1)
-
-    def offered(limit: int, skip: frozenset[int]) -> list[int]:
-        rows = s.ranking.topic_moments(
-            ["databases"],
-            limit,
-            exclude_sources=set(),
-            exclude_items=set(),
-            exclude_moments=skip,
-        )
-        return [r.moment_id for r in rows if r.item_id == item]
-
-    assert offered(1000, frozenset({first})) == [second]
+# The question bank (Q-1, Q-P2-09, P2-W8-S01, ADR-0058): tagged full-text articles are
+# targets; drafts replace an article's questions.
+DRAFT = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
 
 
-# The question bank (Q-1, Q-P2-09, P2-W8-S01): tagged full-text moments are targets;
-# drafts replace a moment's questions and go with it.
 def _question_item(s: Store, probe: Probe) -> tuple[int, list[int], int]:
+    """Three full-text articles: "intro" untagged, "lag" and "quorum" tagged; the
+    first, all three, and their source."""
     probe.reset_concepts()
     sync_concepts(s, graph(1, CHAIN))
     sid = source(s)
-    probe.enable_moments(sid)
-    item = s.items.upsert_from_feed(sid, entry("questions"), keep_excerpt=False)
-    s.items.store_full_text(item, "Intro\nLag\nbody\nQuorum\nmore")
-    # The intro is the page's top; the others are headings an admin can correct.
-    anchor = "https://contract.example.test/a#"
-    s.moments.replace(
-        item,
-        [
-            moment(0, "intro"),
-            MomentRow(1, "Lag", 1, f"{anchor}lag", "anchor"),
-            MomentRow(2, "Quorum", 1, f"{anchor}quorum", "anchor"),
-        ],
-    )
-    tag_input = s.tags.input(item)
-    assert tag_input is not None
-    ids = [m.id for m in tag_input.moments]
-    s.tags.save(
-        item,
-        TagResult(
-            Tags("intermediate", frozenset({"cg-lag"})),
-            {
-                ids[1]: Tags("advanced", frozenset({"cg-lag", "cg-replication"})),
-                ids[2]: Tags("advanced", frozenset({"cg-quorum"})),
-            },
-        ),
-        "small-model",
-        1,
-    )
-    return item, ids, sid
+    tagged: dict[str, Tags | None] = {
+        "intro": None,
+        "lag": Tags("advanced", frozenset({"cg-lag", "cg-replication"})),
+        "quorum": Tags("advanced", frozenset({"cg-quorum"})),
+    }
+    ids: list[int] = []
+    for name, tags in tagged.items():
+        item = s.items.upsert_from_feed(
+            sid, entry(f"questions-{name}"), keep_excerpt=False
+        )
+        s.items.store_full_text(item, f"{name} body")
+        s.items.replace_sections(
+            item, [Section(None, None, None, 30), Section(name, 2, None, 300)]
+        )
+        if tags is not None:
+            s.tags.save(item, TagResult(tags, {}), "small-model", 1)
+        ids.append(item)
+    return ids[0], ids, sid
 
 
-def test_tagged_full_text_moments_are_question_targets(
+def test_tagged_full_text_articles_are_question_targets(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
-    item, (intro, lag, quorum), sid = _question_item(s, probe)
+    _, (intro, lag, quorum), _ = _question_item(s, probe)
     target = s.questions.target(lag)
-    assert target is not None and target.item_id == item
+    assert target is not None and target.item_id == lag
     assert target.concepts == (("cg-lag", "Lag"), ("cg-replication", "Replication"))
+    assert target.sections == 2  # its stored heading sections size its questions
     assert s.questions.target(intro) is None  # untagged
-    assert s.questions.targets(item) == [lag, quorum]
-    assert lag in s.questions.targets(None)
-    # An admin's correction replaces the model's tags, by the moment's heading.
-    probe.correct_moment_concepts(item, "Quorum", ["cg-ryw"])
+    assert s.questions.targets(lag) == [lag]
+    assert s.questions.targets(intro) == []
+    assert {lag, quorum} <= set(s.questions.targets(None))
+    # An admin's correction replaces the model's tags.
+    probe.correct_concepts(quorum, ["cg-ryw"])
     corrected = s.questions.target(quorum)
     assert corrected is not None and corrected.concepts == (("cg-ryw", "RYW"),)
-    # A source that stops allowing moments makes none of them targets (ING-2).
-    probe.switch_moments_off(sid, True)
+    # A source that no longer allows full text makes none of them targets (ING-2).
+    change_profile(s, "full_text_internal", "excerpt")
     assert s.questions.target(lag) is None
 
 
-def test_drafts_replace_a_moments_questions_and_remember_their_hash(
+def test_an_article_with_questions_carried_from_its_moments_is_drafted_already(
+    store: tuple[Store, Probe],
+) -> None:
+    # ADR-0058 stage A moved each moment's questions to its article: those are its
+    # questions now, never retired by a redraft.
+    s, probe = store
+    _, (_, lag, quorum), _ = _question_item(s, probe)
+    carried = probe.carry_over_question(lag)
+    assert s.questions.target(lag) is not None  # still validated against its text
+    assert lag not in s.questions.targets(None)
+    assert s.questions.targets(lag) == []
+    assert quorum in s.questions.targets(None)
+    assert s.questions.drafted_hash(lag) is None  # drafted from a moment, not whole
+    assert s.questions.pending(carried) == (lag, DRAFT)
+    # A stray draft never retires them.
+    with pytest.raises(ValueError, match="keeps its moments"):
+        s.questions.save(lag, [DRAFT, DRAFT], ["cg-lag"], "m", 1, "h", None)
+    with pytest.raises(ValueError, match="keeps its moments"):
+        s.questions.save_estimate(lag, None, ["cg-lag"], "m", "e", None)
+    assert s.questions.pending(carried) == (lag, DRAFT)
+
+
+def test_drafts_replace_an_articles_questions_and_remember_their_hash(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
-    item, (_, lag, _), _ = _question_item(s, probe)
+    _, (_, lag, _), _ = _question_item(s, probe)
     assert s.questions.drafted_hash(lag) is None
-    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
-    first = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
+    first = s.questions.save(lag, [DRAFT, DRAFT], ["cg-lag"], "m", 1, "h1", None)
     assert len(first) == 2 and s.questions.drafted_hash(lag) == "h1"
-    again = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2", None)
+    again = s.questions.save(lag, [DRAFT, DRAFT], ["cg-lag"], "m", 1, "h2", None)
     assert set(again).isdisjoint(first) and s.questions.drafted_hash(lag) == "h2"
-    # Questions go with their moment (and so with its rights, ING-2).
-    s.moments.replace(item, [moment(0, "intro")])
-    assert s.questions.drafted_hash(lag) is None
+    # Each takes the article's next slot; the retired keep theirs.
+    assert probe.question_slots(lag) == [0, 1, 2, 3]
 
 
 def test_a_verdict_makes_a_pending_question_live_or_rejected_once(
@@ -2728,7 +2446,7 @@ def test_a_verdict_makes_a_pending_question_live_or_rejected_once(
 ) -> None:
     s, probe = store
     _, (_, lag, _), _ = _question_item(s, probe)
-    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    draft = DRAFT
     right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
     assert s.questions.pending(right) == (lag, draft)
     assert s.questions.record_verdict(right, "validator", 2) is True
@@ -2868,17 +2586,16 @@ def test_spot_checks_sample_new_live_questions_and_take_every_flagged_one(
     assert s.questions.queue_spot_checks(later, 1.0) == (0, 0)
 
 
-# Q-3, Q-P2-11 (P2-W8-S04): a question starts at its moment's level, an admin's
+# Q-3, Q-P2-11 (P2-W8-S04): a question starts at its article's level, an admin's
 # correction winning.
-def test_a_question_starts_at_its_moments_difficulty(
+def test_a_question_starts_at_its_articles_difficulty(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
-    item, (_, lag, quorum), _ = _question_item(s, probe)
+    _, (_, lag, quorum), _ = _question_item(s, probe)
     target = s.questions.target(lag)
     assert target is not None and target.difficulty == "advanced"
-    # The admin page saves a heading's level and concepts together.
-    probe.correct_moment_concepts(item, "Quorum", ["cg-quorum"])
+    probe.override_level(quorum, "beginner")
     corrected = s.questions.target(quorum)
     assert corrected is not None and corrected.difficulty == "beginner"
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
@@ -2888,9 +2605,9 @@ def test_a_question_starts_at_its_moments_difficulty(
     assert probe.question_difficulty(first) == "advanced"
 
 
-# P3-W13-S03b: a moment's estimate is drafted, held and validated apart from its
-# multiple-choice pair, and neither kind retires the other.
-def test_a_moments_estimate_lives_beside_its_multiple_choice(
+# P3-W13-S03b: an article's estimate is drafted, held and validated apart from its
+# multiple-choice questions, and neither kind retires the other.
+def test_an_articles_estimate_lives_beside_its_multiple_choice(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
@@ -2937,7 +2654,7 @@ def test_a_moments_estimate_lives_beside_its_multiple_choice(
 
 
 # Q-P2-13 (P2-W8-S05): batches remember what each request was for; an open batch
-# holds its moments and questions; broken replies count per moment.
+# holds its articles and questions; broken replies count per article.
 def test_question_batches_hold_their_items_until_closed_and_count_broken_replies(
     store: tuple[Store, Probe],
 ) -> None:
@@ -2954,7 +2671,7 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
         return moments - held_moments, questions - held_questions
 
     item, (_, lag, quorum), _ = _question_item(s, probe)
-    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    draft = DRAFT
     (pending, _) = s.questions.save(
         quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None
     )
@@ -3063,25 +2780,22 @@ def test_paths_read_coverage_prerequisites_and_candidates_and_save_drafts(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
-    item, (_, lag, quorum), sid = _question_item(s, probe)
-    s.items.set_frameable(item, True)
-    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
-    (live, _) = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
+    _, (_, lag, quorum), sid = _question_item(s, probe)
+    s.items.set_frameable(lag, True)
+    (live, _) = s.questions.save(lag, [DRAFT, DRAFT], ["cg-lag"], "m", 1, "h1", None)
     s.questions.record_verdict(live, "v", 2)
     cover = {c.slug: c for c in s.paths.coverage()}
-    assert (cover["cg-lag"].moments, cover["cg-lag"].sources) == (1, 1)
-    assert cover["cg-replication"].moments == 1
-    assert cover["cg-quorum"].moments == 1
-    assert cover["cg-ryw"].moments == 0  # known, nothing to read
+    assert (cover["cg-lag"].articles, cover["cg-lag"].sources) == (1, 1)
+    assert cover["cg-replication"].articles == 1
+    assert cover["cg-quorum"].articles == 1
+    assert cover["cg-ryw"].articles == 0  # known, nothing to read
     assert (
         cover["cg-lag"].name == "Lag" and cover["cg-lag"].topic == "distributed-systems"
     )
     prerequisites = s.paths.prerequisites()
     assert {("cg-replication", "cg-lag"), ("cg-lag", "cg-ryw")} <= prerequisites
     assert not any("cg-quorum" in pair for pair in prerequisites)  # related only
-    found = {
-        c.moment_id: c for c in s.paths.session_candidates(["cg-lag", "cg-quorum"])
-    }
+    found = {c.item_id: c for c in s.paths.session_candidates(["cg-lag", "cg-quorum"])}
     assert found[lag] == SessionCandidate(
         lag, frozenset({"cg-lag", "cg-replication"}), sid, True, True
     )
@@ -3092,14 +2806,12 @@ def test_paths_read_coverage_prerequisites_and_candidates_and_save_drafts(
     assert eid is not None
     s.questions.record_estimate_verdict(eid, "v", 3, True)
     assert not next(
-        c for c in s.paths.session_candidates(["cg-quorum"]) if c.moment_id == quorum
+        c for c in s.paths.session_candidates(["cg-quorum"]) if c.item_id == quorum
     ).live_questions
     # An admin's correction replaces the model's tags.
-    probe.correct_moment_concepts(item, "Quorum", ["cg-ryw"])
-    assert quorum not in {
-        c.moment_id for c in s.paths.session_candidates(["cg-quorum"])
-    }
-    assert {c.slug: c.moments for c in s.paths.coverage()}["cg-ryw"] == 1
+    probe.correct_concepts(quorum, ["cg-ryw"])
+    assert quorum not in {c.item_id for c in s.paths.session_candidates(["cg-quorum"])}
+    assert {c.slug: c.articles for c in s.paths.coverage()}["cg-ryw"] == 1
     pid = s.paths.save_draft(
         PathDraft(
             "Replication basics",
@@ -3112,77 +2824,13 @@ def test_paths_read_coverage_prerequisites_and_candidates_and_save_drafts(
         "m",
         1,
     )
+    # ADR-0058: sessions are articles.
     assert probe.path(pid) == (
         "draft",
         "Replication basics",
         [(("cg-lag", "cg-replication"), (lag,)), (("cg-ryw",), (quorum,))],
     )
-    # A source whose moments are switched off has nothing to read (ING-2).
-    probe.switch_moments_off(sid, True)
-    assert {c.slug: c.moments for c in s.paths.coverage()}["cg-lag"] == 0
+    # A source that no longer allows full text has nothing to read (ING-2).
+    change_profile(s, "full_text_internal", "excerpt")
+    assert {c.slug: c.articles for c in s.paths.coverage()}["cg-lag"] == 0
     assert s.paths.session_candidates(["cg-lag"]) == []
-
-
-# P2-W12-S04 (REC-1 "projects"): moments of items tagged with any of the concepts, the
-# admin's correction winning, newest first, with the exclusions.
-def test_concept_moments_follow_the_items_concepts(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    probe.reset_concepts()
-    sync_concepts(
-        s,
-        parse_concepts(
-            "version: 1\nconcepts:\n"
-            "  - {slug: cm-raft, name: Raft, topic: distributed-systems}\n"
-            "  - {slug: cm-index, name: Index, topic: databases}\n",
-            "c.yaml",
-        ),
-    )
-    plain = dup_source(s, "cm-plain")
-    probe.enable_moments(plain)
-    newer = dup_item(s, plain, "cm1", 3)
-    older = dup_item(s, plain, "cm2", 2)
-    corrected = dup_item(s, plain, "cm3", 1)
-    for item in (newer, older, corrected):
-        s.moments.replace(item, [moment(0, f"cm-{item}")])
-    for item in (newer, older, corrected):
-        s.tags.save(
-            item, TagResult(Tags("beginner", frozenset({"cm-raft"})), {}), "m", 1
-        )
-    probe.correct_concepts(corrected, ["cm-index"])  # no longer about raft
-    mine = {newer, older, corrected}
-    rows = s.ranking.concept_moments(
-        frozenset({"cm-raft"}), 1000, exclude_sources=set(), exclude_items=set()
-    )
-    assert [r.item_id for r in rows if r.item_id in mine] == [newer, older]
-    rows = s.ranking.concept_moments(
-        frozenset({"cm-raft"}), 1000, exclude_sources=set(), exclude_items={newer}
-    )
-    assert [r.item_id for r in rows if r.item_id in mine] == [older]
-    # PER-1: a hidden source and a finished moment stay out too.
-    rows = s.ranking.concept_moments(
-        frozenset({"cm-raft"}), 1000, exclude_sources={plain}, exclude_items=set()
-    )
-    assert not [r for r in rows if r.item_id in mine]
-    first = next(
-        r.moment_id
-        for r in s.ranking.concept_moments(
-            frozenset({"cm-raft"}), 1000, exclude_sources=set(), exclude_items=set()
-        )
-        if r.item_id == newer
-    )
-    rows = s.ranking.concept_moments(
-        frozenset({"cm-raft"}),
-        1000,
-        exclude_sources=set(),
-        exclude_items=set(),
-        exclude_moments=frozenset({first}),
-    )
-    assert [r.item_id for r in rows if r.item_id in mine] == [older]
-    assert (
-        s.ranking.concept_moments(
-            frozenset(), 1000, exclude_sources=set(), exclude_items=set()
-        )
-        == []
-    )

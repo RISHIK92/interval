@@ -19,13 +19,11 @@ const Start = z.union([
   z.object({ sectionId: z.string().regex(BIGINT_ID) }),
   // P4-W21-S04 (Q-P2-35): a book chapter's checkpoint.
   z.object({ chapterId: z.string().regex(BIGINT_ID) }),
-  z.object({
-    itemId: z.string().regex(BIGINT_ID),
-    momentId: z.string().regex(BIGINT_ID).optional(),
-  }),
+  // ADR-0058: an article's quiz; a momentId an older app still sends is ignored.
+  z.object({ itemId: z.string().regex(BIGINT_ID) }),
 ]);
 
-// P4-W21-S01 (§6.3, Q-P2-14): a solo game, or Test 60s on what the reader shows, started
+// P4-W21-S01 (§6.3, Q-P2-14): a solo game, or Test 60s on the reader's article, started
 // as the web's actions start them (server/quiz-flow.ts).
 export async function POST(request: Request): Promise<Response> {
   if (!fromSiteOrApp(request)) return new Response(null, { status: 403 });
@@ -59,5 +57,5 @@ async function start(
     return guest ? null : startCheckpoint(context, asked.sectionId);
   if ("chapterId" in asked)
     return guest ? null : startBookCheckpoint(context, asked.chapterId);
-  return startTest(context, asked.itemId, asked.momentId ?? null);
+  return startTest(context, asked.itemId);
 }

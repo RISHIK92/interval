@@ -120,82 +120,94 @@ def test_return_is_split_by_beta_group(tmp_path: Path) -> None:
 OPENED = TODAY - days(10)
 
 
+# ADR-0058: an article is the only reading unit. An open is a card's (version 5 carries
+# no moment); an open from before it that named a moment is an open of its article.
 def opened(
     user: str,
     item: str,
-    moment: str | None,
     at: datetime = OPENED,
     group: str = "student",
     guest: bool = False,
+    moment: str | None = None,
 ) -> dict[str, object]:
+    if moment is not None:
+        return event(
+            "card_opened",
+            user,
+            at,
+            group=group,
+            guest=guest,
+            version=4,
+            kind="moment",
+            item_id=item,
+            moment_id=moment,
+        )
     return event(
-        "card_opened",
-        user,
-        at,
-        group=group,
-        guest=guest,
-        version=2,
-        kind="article" if moment is None else "moment",
-        item_id=item,
-        moment_id=moment,
+        "card_opened", user, at, group=group, guest=guest, version=5, item_id=item
     )
 
 
-def finished_section(
-    user: str, item: str, moment: str, at: datetime
-) -> dict[str, object]:
+def completed(user: str, item: str, at: datetime) -> dict[str, object]:
     return event(
-        "section_finished",
-        user,
-        at,
-        version=2,
-        method="mark_done",
-        item_id=item,
-        moment_id=moment,
+        "article_completed", user, at, version=1, method="mark_done", item_id=item
     )
 
 
-def finished_article(user: str, item: str, at: datetime) -> dict[str, object]:
-    return event(
-        "article_finished", user, at, version=2, method="mark_done", item_id=item
-    )
-
-
-def test_an_open_counts_as_finished_by_its_own_finish_within_7_days(
+def test_an_open_counts_as_finished_by_its_articles_completion_within_7_days(
     tmp_path: Path,
 ) -> None:
     events = [
-        opened("u", "1", "11"),
-        finished_section("u", "1", "11", OPENED + days(2)),  # its section: counts
-        opened("u", "2", None),
-        finished_article("u", "2", OPENED + days(6.9)),  # its article: counts
-        opened("u", "3", "31"),
-        finished_section("u", "3", "32", OPENED + days(1)),  # another section
-        opened("u", "4", "41"),
-        finished_section("u", "4", "41", OPENED + days(7)),  # too late
-        opened("u", "5", None),
-        finished_section(
-            "u", "5", "51", OPENED + days(1)
-        ),  # a section, not the article
+        opened("u", "1"),
+        completed("u", "1", OPENED + days(2)),  # its article: counts
+        opened("u", "2"),
+        completed("u", "2", OPENED + days(6.9)),  # just inside: counts
+        opened("u", "3"),
+        completed("u", "4", OPENED + days(1)),  # another article
+        opened("u", "5"),
+        completed("u", "5", OPENED + days(7)),  # too late
     ]
-    assert run("finished_rate.sql", events, tmp_path) == [("student", 5, 2, 0.4)]
+    assert run("finished_rate.sql", events, tmp_path) == [("student", 4, 2, 0.5)]
+
+
+def test_opens_and_finishes_from_before_adr_0058_count_by_article(
+    tmp_path: Path,
+) -> None:
+    events = [
+        # Two sections of one article opened: one open of the article.
+        opened("u", "1", moment="11"),
+        opened("u", "1", OPENED + days(1), moment="12"),
+        event(
+            "article_finished", "u", OPENED + days(2), version=3, item_id="1"
+        ),  # the old completion event counts
+        opened("u", "2", moment="21"),
+        # A finished section never completed the article.
+        event(
+            "section_finished",
+            "u",
+            OPENED + days(1),
+            version=3,
+            item_id="2",
+            moment_id="21",
+        ),
+    ]
+    assert run("finished_rate.sql", events, tmp_path) == [("student", 2, 1, 0.5)]
 
 
 def test_a_repeat_open_is_one_open_from_the_first_time(tmp_path: Path) -> None:
     events = [
-        opened("u", "1", "11"),
-        opened("u", "1", "11", OPENED + days(5)),
+        opened("u", "1"),
+        opened("u", "1", OPENED + days(5)),
         # Within 7 days of the second open but not the first: not counted.
-        finished_section("u", "1", "11", OPENED + days(8)),
+        completed("u", "1", OPENED + days(8)),
     ]
     assert run("finished_rate.sql", events, tmp_path) == [("student", 1, 0, 0.0)]
 
 
 def test_recent_opens_and_old_events_without_ids_are_left_out(tmp_path: Path) -> None:
     events = [
-        opened("u", "1", "11"),
-        finished_section("u", "1", "11", OPENED + days(1)),
-        opened("u", "2", "21", TODAY - days(6)),  # still inside its window
+        opened("u", "1"),
+        completed("u", "1", OPENED + days(1)),
+        opened("u", "2", TODAY - days(6)),  # still inside its window
         event("card_opened", "u", OPENED, kind="moment"),  # version 1: no ids
     ]
     assert run("finished_rate.sql", events, tmp_path) == [("student", 1, 1, 1.0)]
@@ -203,11 +215,11 @@ def test_recent_opens_and_old_events_without_ids_are_left_out(tmp_path: Path) ->
 
 def test_finished_counts_guests_and_splits_by_beta_group(tmp_path: Path) -> None:
     events = [
-        opened("g", "1", "11", guest=True),
-        finished_section("g", "1", "11", OPENED + days(1)),
-        opened("d", "1", "11", group="developer"),
-        opened("d", "2", None, group="developer"),
-        finished_article("d", "2", OPENED + days(3)),
+        opened("g", "1", guest=True),
+        completed("g", "1", OPENED + days(1)),
+        opened("d", "1", group="developer"),
+        opened("d", "2", group="developer"),
+        completed("d", "2", OPENED + days(3)),
     ]
     assert run("finished_rate.sql", events, tmp_path) == [
         ("developer", 2, 1, 0.5),
@@ -222,59 +234,81 @@ def test_no_events_give_no_rows(query: str, tmp_path: Path) -> None:
 
 def test_only_the_users_own_finish_after_the_open_counts(tmp_path: Path) -> None:
     events = [
-        finished_section("u", "1", "11", OPENED - days(1)),  # before the open
-        opened("u", "1", "11"),
-        opened("u", "2", "21"),
-        finished_section("someone-else", "2", "21", OPENED + days(1)),
+        completed("u", "1", OPENED - days(1)),  # before the open
+        opened("u", "1"),
+        opened("u", "2"),
+        completed("someone-else", "2", OPENED + days(1)),
     ]
     assert run("finished_rate.sql", events, tmp_path) == [("student", 2, 0, 0.0)]
 
 
-def test_a_moment_card_that_landed_on_the_article_counts_the_article_finish(
+# Phase 2 "done when" (P2-W9-S08, Q-P2-20): quizzes after completed articles, flags,
+# and whether quiz takers come back more. ADR-0058: one quiz per article.
+def quiz_started(user: str, item: str, at: datetime) -> dict[str, object]:
+    return event("quiz_started", user, at, version=3, kind="test", item_id=item)
+
+
+def test_a_completed_article_leads_to_a_quiz_on_it_within_a_day(
     tmp_path: Path,
 ) -> None:
-    # "Open original website", or moments switched off: the open carries no moment
-    # (owner, 2026-10-26), and the reader finishes the article.
-    landed = opened("u", "1", None)
-    landed["props"] = {**landed["props"], "kind": "moment"}  # type: ignore[dict-item]
-    events = [landed, finished_article("u", "1", OPENED + days(1))]
-    assert run("finished_rate.sql", events, tmp_path) == [("student", 1, 1, 1.0)]
-
-
-# Phase 2 "done when" (P2-W9-S08, Q-P2-20): quizzes after finished moments, flags,
-# and whether quiz takers come back more.
-def quiz_started(user: str, moment: str, at: datetime) -> dict[str, object]:
-    return event(
-        "quiz_started", user, at, version=2, kind="test", item_id="1", moment_id=moment
-    )
-
-
-def test_a_finished_moment_leads_to_a_quiz_on_it_within_a_day(tmp_path: Path) -> None:
     done = TODAY - days(5)
     events = [
-        finished_section("u", "1", "11", done),
+        completed("u", "11", done),
         quiz_started("u", "11", done + days(0.5)),  # after: counts
-        finished_section("u", "1", "12", done),
-        quiz_started("u", "12", done - days(0.1)),  # just before (reader): counts
-        finished_section("u", "1", "13", done),
-        quiz_started("u", "14", done),  # another moment
-        finished_section("u", "1", "15", done),
+        completed("u", "12", done),
+        quiz_started("u", "12", done - days(0.1)),  # just before (Quiz me): counts
+        completed("u", "13", done),
+        quiz_started("u", "14", done),  # another article
+        completed("u", "15", done),
         quiz_started("u", "15", done + days(1.5)),  # too late
-        finished_section("v", "1", "11", done),  # someone else's quiz doesn't count
-        finished_section("w", "1", "16", TODAY - days(0.5)),  # window still open
+        completed("v", "11", done),  # someone else's quiz doesn't count
+        completed("w", "16", TODAY - days(0.5)),  # window still open
         quiz_started("w", "16", TODAY - days(0.4)),
+        # A repeat completion is one completed article.
+        completed("u", "11", done + days(0.1)),
     ]
     assert run("quiz_rate.sql", events, tmp_path) == [("student", 5, 2, 0.4)]
 
 
-def test_a_review_isnt_a_quiz_on_the_moment(tmp_path: Path) -> None:
+def test_a_review_isnt_a_quiz_on_the_article(tmp_path: Path) -> None:
     done = TODAY - days(5)
     events = [
-        finished_section("u", "1", "11", done),
-        event("quiz_started", "u", done, version=2, kind="review"),
-        event("quiz_started", "u", done, version=1, item_id="1", moment_id="11"),
+        completed("u", "1", done),
+        event("quiz_started", "u", done, version=3, kind="review"),
+        event("quiz_started", "u", done, version=1, item_id="1"),
     ]
     assert run("quiz_rate.sql", events, tmp_path) == [("student", 1, 0, 0.0)]
+
+
+def test_a_quiz_from_before_adr_0058_counts_for_its_article(tmp_path: Path) -> None:
+    done = TODAY - days(5)
+    events = [
+        completed("u", "1", done),
+        event(
+            "quiz_started",
+            "u",
+            done,
+            version=2,
+            kind="test",
+            item_id="1",
+            moment_id="11",
+        ),
+    ]
+    assert run("quiz_rate.sql", events, tmp_path) == [("student", 1, 1, 1.0)]
+
+
+def test_a_completion_from_before_adr_0058_counts_as_finished(tmp_path: Path) -> None:
+    done = TODAY - days(5)
+    events = [
+        event("article_finished", "u", done, version=3, item_id="1"),
+        quiz_started("u", "1", done + days(0.5)),
+        event("article_finished", "u", done, version=3, item_id="2"),
+        # Version 1 has no ids: left out.
+        event("article_finished", "u", done, version=1),
+        # A finished section never completed its article.
+        event("section_finished", "u", done, version=3, item_id="3", moment_id="31"),
+    ]
+    assert run("quiz_rate.sql", events, tmp_path) == [("student", 2, 1, 0.5)]
 
 
 def test_the_flag_rate_is_flagged_questions_over_answered_ones(tmp_path: Path) -> None:
@@ -429,56 +463,62 @@ def test_players_and_non_players_each_get_a_return_rate(tmp_path: Path) -> None:
 def test_a_missed_concept_is_read_within_48_hours(tmp_path: Path) -> None:
     at = TODAY - days(5)
 
-    def missed(user: str, game: str, item: str, moment: str) -> dict[str, object]:
-        return event(
-            "concept_missed", user, at, game=game, item_id=item, moment_id=moment
-        )
+    def missed(user: str, game: str, item: str) -> dict[str, object]:
+        return event("concept_missed", user, at, version=2, game=game, item_id=item)
 
     events = [
-        missed("a", "sprint", "1", "10"),  # read at 47 h: counts
+        missed("a", "sprint", "1"),  # opened at 47 h: counts
+        event("card_opened", "a", at + timedelta(hours=47), version=5, item_id="1"),
+        missed("b", "sprint", "1"),  # completed at 49 h: too late
+        completed("b", "1", at + timedelta(hours=49)),
+        missed("c", "live", "1"),  # someone else read it
+        event("card_opened", "a", at + timedelta(hours=1), version=5, item_id="1"),
+        missed("d", "estimation", "2"),  # another article's open isn't it
+        event("card_opened", "d", at + timedelta(hours=2), version=5, item_id="3"),
+        missed("e", "daily", "1"),  # completed in time: counts
+        completed("e", "1", at + timedelta(hours=2)),
+        missed("f", "sprint", "1"),  # read before the miss doesn't count
+        event("card_opened", "f", at - timedelta(hours=1), version=5, item_id="1"),
+        # Before ADR-0058 a miss named a section: its article's open counts.
         event(
-            "card_opened", "a", at + timedelta(hours=47), item_id="1", moment_id="10"
+            "concept_missed",
+            "i",
+            at,
+            version=1,
+            game="live",
+            item_id="4",
+            moment_id="40",
         ),
-        missed("b", "sprint", "1", "10"),  # read at 49 h: too late
+        event(
+            "card_opened",
+            "i",
+            at + timedelta(hours=3),
+            version=4,
+            item_id="4",
+            moment_id="41",
+        ),
+        # Reads from before ADR-0058 carry the article: a finished section or article.
+        missed("j", "sprint", "5"),
         event(
             "section_finished",
-            "b",
-            at + timedelta(hours=49),
-            item_id="1",
-            moment_id="10",
+            "j",
+            at + timedelta(hours=5),
+            version=3,
+            item_id="5",
+            moment_id="50",
         ),
-        missed("c", "live", "1", "10"),  # someone else read it
-        event("card_opened", "a", at + timedelta(hours=1), item_id="1", moment_id="10"),
-        missed("d", "estimation", "2", "20"),  # another item's open isn't it
-        event("card_opened", "d", at + timedelta(hours=2), item_id="3", moment_id="30"),
-        missed("e", "daily", "1", "10"),  # another section of the item isn't it
-        event("card_opened", "e", at + timedelta(hours=2), item_id="1", moment_id="12"),
-        missed("f", "sprint", "1", "10"),  # read before the miss doesn't count
-        event("card_opened", "f", at - timedelta(hours=1), item_id="1", moment_id="10"),
+        missed("k", "sprint", "6"),
+        event("article_finished", "k", at + timedelta(hours=5), version=3, item_id="6"),
         # Too recent for a full 48 h, or too old.
-        event(
-            "concept_missed",
-            "g",
-            TODAY - days(1),
-            game="sprint",
-            item_id="1",
-            moment_id="10",
-        ),
-        event(
-            "concept_missed",
-            "h",
-            TODAY - days(10),
-            game="sprint",
-            item_id="1",
-            moment_id="10",
-        ),
+        event("concept_missed", "g", TODAY - days(1), game="sprint", item_id="1"),
+        event("concept_missed", "h", TODAY - days(10), game="sprint", item_id="1"),
     ]
     assert run("missed_read.sql", events, tmp_path) == [
-        ("all", 6, 1, 0.1667),
-        ("daily", 1, 0, 0.0),
+        ("all", 9, 5, 0.5556),
+        ("daily", 1, 1, 1.0),
         ("estimation", 1, 0, 0.0),
-        ("live", 1, 0, 0.0),
-        ("sprint", 3, 1, 0.3333),
+        ("live", 2, 1, 0.5),
+        ("sprint", 5, 3, 0.6),
     ]
 
 
@@ -638,15 +678,12 @@ def _one_counted_user(query: str, user: str) -> list[dict[str, object]]:
                 event("session_started", user, SIGNUP + days(8)),
             ]
         case "finished_rate.sql":
-            return [
-                opened(user, "1", "11"),
-                finished_section(user, "1", "11", OPENED + days(1)),
-            ]
+            return [opened(user, "1"), completed(user, "1", OPENED + days(1))]
         case "quiz_rate.sql":
             done = TODAY - days(5)
             return [
-                finished_section(user, "1", "11", done),
-                quiz_started(user, "11", done + days(0.5)),
+                completed(user, "1", done),
+                quiz_started(user, "1", done + days(0.5)),
             ]
         case "path_progress.sql":
             return [

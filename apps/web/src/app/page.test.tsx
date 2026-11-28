@@ -5,7 +5,6 @@ import type {
   Books,
   FeedCard,
   FeedReader,
-  Listening,
   Notes,
   Paths,
   Progress,
@@ -25,7 +24,6 @@ const getPreferences = vi.fn<(userId: string) => Promise<object | null>>(() =>
     goals: ["system-design-interviews"],
     topics: ["backend"],
     level: "beginner",
-    breakLength: "3-8",
     onboardedAt: new Date("2026-01-01T00:00:00Z"),
     firstName: null,
   }),
@@ -46,7 +44,7 @@ vi.mock("../server/container", () => ({
   usernames: () => ({ get: usernameGet }),
   preferences: () => ({ get: getPreferences }),
   feedback: () => ({ notInterested }),
-  progress: () => ({ describe: describe_, nextMoment, continueCards }),
+  progress: () => ({ describe: describe_, continueCards }),
   notes: () => ({ get: getNote, onItems }),
   feedReader: () => ({ read: getFeed, starter: vi.fn() }),
   sessionReader: () => ({ current }),
@@ -56,9 +54,7 @@ vi.mock("../server/container", () => ({
   quizzes: () => ({ offered, dueReviews, dailyStatus }),
   paths: () => ({ next: pathNext }),
   books: () => ({ nextSession }),
-  listening: () => ({ fitting }),
 }));
-const fitting = vi.fn<Listening["fitting"]>(() => Promise.resolve(null));
 const nextSession = vi.fn<Books["nextSession"]>(() => Promise.resolve(null));
 const pathNext = vi.fn<Paths["next"]>(() => Promise.resolve(null));
 const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
@@ -66,12 +62,10 @@ const dailyStatus = vi.fn<Quizzes["dailyStatus"]>(() =>
   Promise.resolve({ today: "none", streak: { days: 0, freezes: 0 } }),
 );
 const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
-let chipCookie: string | undefined;
 let readingCookie: string | undefined;
 const describe_ = vi.fn<Progress["describe"]>(() => Promise.resolve(null));
 const getNote = vi.fn<Notes["get"]>(() => Promise.resolve(null));
 const onItems = vi.fn<Notes["onItems"]>(() => Promise.resolve([]));
-const nextMoment = vi.fn<Progress["nextMoment"]>(() => Promise.resolve(null));
 const continueCards = vi.fn<Progress["continueCards"]>(() =>
   Promise.resolve([]),
 );
@@ -81,9 +75,6 @@ vi.mock("next/headers", () => ({
     Promise.resolve({
       get: (name: string) => {
         if (name === "iv_visit") return { name, value: "visit-9.1790000000" };
-        if (name === "iv_chip" && chipCookie !== undefined) {
-          return { name, value: chipCookie };
-        }
         if (name === "iv_reading" && readingCookie !== undefined) {
           return { name, value: readingCookie };
         }
@@ -100,24 +91,18 @@ const guest: Actor = { userId: "u1", isGuest: true, betaGroup: "student" };
 const user: Actor = { ...guest, isGuest: false };
 
 afterEach(() => {
-  chipCookie = undefined;
   readingCookie = undefined;
   describe_.mockClear();
-  nextMoment.mockClear();
   getFeed.mockReset();
   current.mockReset();
   emit.mockReset();
 });
 
+// ADR-0058: every card is an article.
 const card: FeedCard = {
-  kind: "moment",
   itemId: "10",
-  momentId: "1",
-  sectionTitle: "Why consensus",
-  sectionNumber: 1,
-  sectionCount: 2,
   estimatedMinutes: 2,
-  articleTitle: "Consensus in practice",
+  articleTitle: "Why consensus",
   author: null,
   sourceName: "Example Engineering",
   reasons: null,
@@ -126,7 +111,16 @@ const card: FeedCard = {
   frameable: false,
   topic: null,
   difficulty: null,
+  state: "unread",
 };
+const other = (
+  itemId: string,
+  articleTitle = `Article ${itemId}`,
+): FeedCard => ({
+  ...card,
+  itemId,
+  articleTitle,
+});
 
 async function render(
   params: Record<string, string | string[]> = {},
@@ -145,21 +139,19 @@ test("without a session the visitor is sent to /join", async () => {
 
 test("renders one card per feed entry", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(
-    feedOf([card, { ...card, momentId: "2", sectionNumber: 2 }]),
-  );
+  getFeed.mockResolvedValue(feedOf([card, other("11")]));
   const html = await render();
   expect(html.match(/<article/g)).toHaveLength(2);
   // Through /out, which records the open (P1-W5-S01).
-  expect(html).toContain(
-    'href="/out?item=10&amp;moment=1&amp;chip=3-8&amp;pos=1',
-  );
+  expect(html).toContain('href="/out?item=10&amp;pos=1&amp;target=article"');
+  expect(html).toContain('href="/out?item=11&amp;pos=2&amp;target=article"');
+  expect(getFeed).toHaveBeenCalledWith("u1", 50);
   expect(html).toContain("Example Engineering");
 });
 
 test("viewing the feed emits feed_viewed with the card count and the visit", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
+  getFeed.mockResolvedValue(feedOf([card, other("11")]));
   await render();
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "feed_viewed",
@@ -176,7 +168,7 @@ test("viewing the feed emits feed_viewed with the card count and the visit", asy
 test("renders an empty state when the feed is empty", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
-  expect(await render()).toContain("No moments yet.");
+  expect(await render()).toContain("Nothing to read yet.");
 });
 
 // OPS-3: the feed is a capability; a plan without it sees a message, not the feed.
@@ -216,72 +208,30 @@ test("the feed applies finished live matches' evidence", async () => {
   expect(applyEvidence).toHaveBeenCalledWith(user);
 });
 
-// Q-P1-16: three time chips; the selected one decides the feed (P1-W4-S05).
-test("renders the three chips as links and marks the onboarding one", async () => {
-  current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([card]));
-  const html = await render();
-  for (const chip of ["1-3", "3-8", "8-15"]) {
-    expect(html).toContain(`href="/?chip=${chip}"`);
-  }
-  // Separate list items, and the selected chip is visibly marked, not only for
-  // screen readers.
-  expect(html).toMatch(
-    /<li[^>]*><a aria-current="true"[^>]*href="\/\?chip=3-8"><strong>3–8 min<\/strong><\/a><\/li>/,
-  );
-  expect(html).toMatch(
-    /<li[^>]*><a [^>]*href="\/\?chip=1-3">1–3 min<\/a><\/li>/,
-  );
-  expect(html.match(/aria-current="true"/g)).toHaveLength(1); // one chip; the tab is "page"
-  expect(html.match(/<strong>/g)).toHaveLength(1);
-  expect(getFeed).toHaveBeenCalledWith("u1", "3-8", 50);
-  expect(html).toContain("chip=3-8&amp;pos=1");
-});
-
-test("a chip in the link picks that chip's feed", async () => {
+// ADR-0058: no time chips; one feed, and an old link's ?chip= changes nothing.
+test("there are no break-length chips, and a chip in the link is ignored", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render({ chip: "1-3" });
-  expect(getFeed).toHaveBeenCalledWith("u1", "1-3", 50);
-  expect(html).toMatch(/<a aria-current="true"[^>]*href="\/\?chip=1-3">/);
-  expect(html).toContain("chip=1-3&amp;pos=1");
+  expect(html).not.toContain('aria-label="Break length"');
+  expect(html).not.toContain("chip=");
+  expect(html).not.toContain("How long is this break?");
+  expect(getFeed).toHaveBeenCalledWith("u1", 50);
 });
 
-test("the chip chosen earlier in the session is kept", async () => {
-  current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([]));
-  chipCookie = "8-15";
-  await render();
-  expect(getFeed).toHaveBeenCalledWith("u1", "8-15", 50);
-});
-
-test("the 8–15 chip renders whole-article cards next to moments", async () => {
+// ADR-0058: a card shows its title, source, reading time and its state.
+test("a card shows its reading time, and Continue reading once opened", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([
-      {
-        kind: "article",
-        itemId: "20",
-        estimatedMinutes: null,
-        articleTitle: "A whole read",
-        author: null,
-        sourceName: "Example Engineering",
-        reasons: null,
-        projectNote: null,
-        saved: false,
-        frameable: false,
-        topic: null,
-        difficulty: null,
-      },
-      card,
+      { ...card, state: "continue_reading" },
+      { ...other("20", "A whole read"), estimatedMinutes: null },
     ]),
   );
-  const html = await render({ chip: "8-15" });
-  expect(html).toContain("Whole article · Length unknown");
-  expect(html).toContain(
-    'href="/out?item=20&amp;chip=8-15&amp;pos=1&amp;target=original"',
-  );
-  expect(html.match(/<article/g)).toHaveLength(2);
+  const words = (await render()).replace(/<[^>]+>/g, "|");
+  expect(words).toContain("|2 min read||Continue reading|");
+  expect(words).toContain("|Length unknown|");
+  expect(words.match(/\|Continue reading\|/g)).toHaveLength(1);
 });
 
 // P1-W4-S07, C-20: Save on the card; the other controls in its overflow menu.
@@ -304,6 +254,8 @@ test("every card offers Save and the four other controls", async () => {
     /<details[^>]*><summary[^>]*>.*More options.*<\/summary>/,
   );
   expect(html).toContain('aria-label="Save Why consensus"');
+  // ADR-0058: Read article is already the publisher's page; no second link to it.
+  expect(html).not.toContain("Open original website");
 });
 
 // ADR-0026: the card says why it was shown, and its menu can report a reason as wrong.
@@ -362,12 +314,7 @@ test("the header links to the Profile page", async () => {
 // no "More for your …" list.
 test("every card is full size in one sideways feed", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(
-    feedOf([
-      card,
-      { ...card, momentId: "2", sectionNumber: 2, sectionTitle: "Raft" },
-    ]),
-  );
+  getFeed.mockResolvedValue(feedOf([card, other("11", "Raft")]));
   const html = await render();
   expect(html).not.toContain("More for your");
   const feed = html.slice(html.indexOf('aria-label="Your feed"'));
@@ -434,64 +381,35 @@ test("the heading greets by first name before the device picks a line", async ()
     goals: ["system-design-interviews"],
     topics: ["backend"],
     level: "beginner",
-    breakLength: "3-8",
     onboardedAt: new Date("2026-01-01T00:00:00Z"),
     firstName: "Ada",
   });
   const html = await render();
-  expect(html).toContain("How long is this break?");
   expect(html).toMatch(/<h1[^>]*>Hey, Ada\.<\/h1>/);
 });
 
-// P1-W5-S02: the Now reading panel (C-22) and what comes after a finish.
-test("Now reading offers Mark section done and Dismiss for the open card", async () => {
+// P1-W5-S02: the Now reading panel (C-22) and what comes after a finish. ADR-0058: the
+// article opened last; the cookie is its id (an old "item.moment" one still names it).
+test("Now reading offers Mark article done and Dismiss for the open article", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
-  readingCookie = "10.1";
-  describe_.mockResolvedValueOnce({
-    articleTitle: "Consensus in practice",
-    sectionTitle: "Why consensus",
-  });
-  const html = await render();
-  expect(describe_).toHaveBeenCalledWith("10", "1");
-  expect(html).toContain("Now reading");
-  expect(html).toContain("Why consensus — Consensus in practice");
-  expect(html).toContain("Mark section done");
-  expect(html).toMatch(/<button[^>]*value="dismiss"/);
-});
-
-// A section titled like its article (the AWS posts) names it once.
-test("Now reading doesn't repeat a section title that matches the article", async () => {
-  current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([]));
-  readingCookie = "10.1";
-  describe_.mockResolvedValueOnce({
-    articleTitle: "Origin Range Requests",
-    sectionTitle: "Origin Range Requests",
-  });
-  expect(await render()).toMatch(
-    /Now reading<\/p><p[^>]*>Origin Range Requests<\/p>/,
-  );
-});
-
-test("a whole article's panel says Mark article done", async () => {
-  current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([]));
-  readingCookie = "20.";
-  describe_.mockResolvedValueOnce({
-    articleTitle: "A whole read",
-    sectionTitle: null,
-  });
-  const html = await render();
-  expect(describe_).toHaveBeenCalledWith("20", null);
-  expect(html).toMatch(/Now reading<\/p><p[^>]*>A whole read<\/p>/);
-  expect(html).toContain("Mark article done");
+  for (const cookie of ["10", "10.1", "10."]) {
+    readingCookie = cookie;
+    describe_.mockResolvedValueOnce({ articleTitle: "Consensus in practice" });
+    const html = await render();
+    expect(describe_).toHaveBeenLastCalledWith("10");
+    expect(html).toMatch(/Now reading<\/p><p[^>]*>Consensus in practice<\/p>/);
+    expect(html).toContain("Mark article done");
+    expect(html).not.toContain("Mark section done");
+    expect(html).not.toContain('name="momentId"');
+    expect(html).toMatch(/<button[^>]*value="dismiss"/);
+  }
 });
 
 test("a reading cookie that names nothing real shows no panel", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
-  readingCookie = "10.1";
+  readingCookie = "10";
   expect(await render()).not.toContain("Now reading");
   readingCookie = "garbage";
   describe_.mockClear();
@@ -499,86 +417,68 @@ test("a reading cookie that names nothing real shows no panel", async () => {
   expect(describe_).not.toHaveBeenCalled();
 });
 
-test("after a section is finished the next one is offered, or the end is said", async () => {
+// ADR-0058: no next section; a completed article says so and offers its quiz again.
+test("after an article is completed, it says Completed and offers Quiz me", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
-  describe_.mockResolvedValue({
-    articleTitle: "Consensus in practice",
-    sectionTitle: "Why consensus",
-  });
-  nextMoment.mockResolvedValueOnce({
-    momentId: "2",
-    title: "Raft in practice",
-    frameable: false,
-  });
-  const html = await render({ finished: "10.1" });
-  expect(nextMoment).toHaveBeenCalledWith("10", "1");
-  expect(html).toContain("Continue: ");
-  // Owner, 2026-10-26: a Continue open counts as continue_clicked, not a feed card.
-  expect(html).toContain(
-    'href="/out?item=10&amp;moment=2&amp;from=continue&amp;target=section"',
+  describe_.mockResolvedValue({ articleTitle: "Consensus in practice" });
+  offered.mockResolvedValueOnce(new Set(["10"]));
+  const html = await render({ finished: "10" });
+  expect(describe_).toHaveBeenCalledWith("10");
+  expect(offered).toHaveBeenCalledWith(["10"]);
+  expect(html.replace(/<[^>]+>/g, "")).toContain(
+    "Completed: Consensus in practice",
   );
-  // A page the reader can frame opens there, in this tab (ADR-0018).
-  nextMoment.mockResolvedValueOnce({
-    momentId: "2",
-    title: "Raft in practice",
-    frameable: true,
-  });
-  expect(await render({ finished: "10.1" })).toMatch(
-    /<a href="\/read\/10\?moment=2&amp;chip=3-8&amp;from=continue" data-read-item="10" data-read-moment="2"[^>]*>Raft in practice<\/a>/,
+  expect(html).toMatch(
+    /<form[^>]*>(?:(?!<\/form>)[^])*name="itemId" value="10"(?:(?!<\/form>)[^])*Quiz me/,
   );
-  nextMoment.mockResolvedValueOnce(null);
-  expect(await render({ finished: "10.1" })).toContain(
-    "That was the last section.",
-  );
+  expect(html).not.toContain("Next section");
+  expect(html).not.toContain("last section");
+  // No live question: Completed, without the quiz.
+  expect(await render({ finished: "10" })).not.toContain("Quiz me");
   describe_.mockReset();
   describe_.mockResolvedValue(null);
 });
 
-test("a finished param naming nothing real, or a whole article, says nothing more", async () => {
+test("a finished param naming nothing real says nothing", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
-  const unknown = await render({ finished: "10.999" });
-  expect(unknown).not.toContain("Continue:");
-  expect(unknown).not.toContain("last section");
-  nextMoment.mockClear();
-  const article = await render({ finished: "10." });
-  expect(article).not.toContain("Continue:");
-  expect(article).not.toContain("last section");
-  expect(nextMoment).not.toHaveBeenCalled();
+  expect(await render({ finished: "10" })).not.toContain("Completed:");
+  expect(await render({ finished: "x" })).not.toContain("Completed:");
 });
 
 test("card links carry what the return prompt asks about", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
-  expect(html).toMatch(/<a[^>]*data-item="10"[^>]*data-moment="1"/);
+  expect(html).toMatch(/<a[^>]*data-item="10"/);
+  expect(html).not.toContain("data-moment");
 });
 
-// P1-W5-S03 (Q-P1-40): half-read articles, above the feed in every chip.
-test("continue cards point at the next section and can be dismissed", async () => {
+// P1-W5-S03 (Q-P1-40), ADR-0058: articles opened and not completed, above the feed.
+const continuing = {
+  itemId: "30",
+  articleTitle: "Consensus in practice",
+  sourceName: "Example Engineering",
+  estimatedMinutes: 9,
+  frameable: false,
+};
+test("continue cards open the article and can be dismissed", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
-  continueCards.mockResolvedValueOnce([
-    {
-      itemId: "30",
-      momentId: "31",
-      sectionTitle: "Raft",
-      sectionNumber: 2,
-      sectionCount: 3,
-      articleTitle: "Consensus in practice",
-      frameable: false,
-    },
-  ]);
-  const html = await render({ chip: "1-3" });
+  continueCards.mockResolvedValueOnce([continuing]);
+  const html = await render();
   expect(continueCards).toHaveBeenCalledWith("u1", expect.any(Date), 3);
   expect(html).toContain("Continue reading");
-  expect(html).toContain('aria-label="Continue: Raft — Consensus in practice"');
-  expect(html).toContain("Section 2 of 3");
   expect(html).toContain(
-    'href="/out?item=30&amp;moment=31&amp;from=continue&amp;target=section"',
+    'aria-label="Continue reading: Consensus in practice"',
   );
-  expect(html).toMatch(/<a[^>]*data-item="30"[^>]*data-moment="31"/);
+  expect(html).toContain("Example Engineering · 9 min");
+  expect(html).not.toContain("Section ");
+  expect(html).toContain(
+    'href="/out?item=30&amp;from=continue&amp;target=article"',
+  );
+  expect(html).toMatch(/<a[^>]*data-item="30"/);
   expect(html).toContain("Dismiss");
 });
 
@@ -605,52 +505,35 @@ test("the Home tab is marked current", async () => {
 });
 
 // ADR-0018: closing the in-app reader comes back asking about what it showed.
-test("ask= opens the prompt for that card; a bad one is ignored", async () => {
+// ADR-0058: always the article; an old "item.moment" value still names it.
+test("ask= opens the prompt for that article; a bad one is ignored", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
-  const section = await render({ ask: "10.1" });
-  expect(section).toContain("Finished this section?");
-  expect(section).toContain('name="itemId" value="10"');
-  expect(section).toContain('name="momentId" value="1"');
-  expect(section).toContain('name="method" value="return_prompt"');
-  const article = await render({ ask: "20." });
-  expect(article).toContain("Finished this article?");
-  expect(article).not.toContain('name="momentId"');
-  for (const ask of ["10.x", "0.1", "javascript:1", ""]) {
+  for (const ask of ["10", "10.1"]) {
+    const html = await render({ ask });
+    expect(html).toContain("Finished this article?");
+    expect(html).toContain('name="itemId" value="10"');
+    expect(html).not.toContain('name="momentId"');
+    expect(html).toContain('name="method" value="return_prompt"');
+  }
+  for (const ask of ["10.x", "0", "javascript:1", ""]) {
     expect(await render({ ask })).not.toContain("Finished this");
   }
-  expect(await render({ ask: ["10.1", "11.1"] })).not.toContain(
-    "Finished this",
-  );
+  expect(await render({ ask: ["10", "11"] })).not.toContain("Finished this");
 });
 
 test("a frameable card opens in the in-app reader, in this tab", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([{ ...card, frameable: true }]));
-  continueCards.mockResolvedValueOnce([
-    {
-      itemId: "30",
-      momentId: "31",
-      sectionTitle: "Raft",
-      sectionNumber: 2,
-      sectionCount: 3,
-      articleTitle: "Consensus in practice",
-      frameable: true,
-    },
-  ]);
+  continueCards.mockResolvedValueOnce([{ ...continuing, frameable: true }]);
   const html = await render();
   expect(html).toMatch(
-    /<a href="\/read\/10\?moment=1&amp;chip=3-8&amp;pos=1" data-read-item="10" data-read-moment="1" class="[^"]*">(?:<svg[^]*?<\/svg>)?Read article<\/a>/,
+    /<a href="\/read\/10\?pos=1" data-read-item="10" class="[^"]*">(?:<svg[^]*?<\/svg>)?Read article<\/a>/,
   );
   // Continue too, without data-item: the visibility prompt mustn't arm for it; the
   // reader marker asks on Back instead.
   expect(html).toMatch(
-    /<a href="\/read\/30\?moment=31&amp;chip=3-8&amp;from=continue" data-read-item="30" data-read-moment="31" aria-label="Continue: Raft — Consensus in practice" class="[^"]*">Continue<\/a>/,
-  );
-  // Open original website still leaves for the browser, from the card's "…" menu
-  // (owner, 2026-10-26).
-  expect(html).toMatch(
-    /<details[^>]*>(?:(?!<\/details>)[^])*<a href="\/out\?item=10&amp;moment=1&amp;chip=3-8&amp;pos=1&amp;target=original" target="_blank" rel="noopener noreferrer"[^>]*>Open original website<\/a>/,
+    /<a href="\/read\/30\?from=continue" data-read-item="30" aria-label="Continue reading: Consensus in practice" class="[^"]*">Continue<\/a>/,
   );
 });
 
@@ -658,128 +541,57 @@ test("a frameable card opens in the in-app reader, in this tab", async () => {
 // 2026-10-27 beta check).
 test("the feed leaves out articles already in Continue reading", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(
-    feedOf([
-      card,
-      { ...card, itemId: "30", momentId: "32", sectionTitle: "Raft again" },
-    ]),
-  );
-  continueCards.mockResolvedValueOnce([
-    {
-      itemId: "30",
-      momentId: "31",
-      sectionTitle: "Raft",
-      sectionNumber: 2,
-      sectionCount: 3,
-      articleTitle: "Consensus in practice",
-      frameable: false,
-    },
-  ]);
+  getFeed.mockResolvedValue(feedOf([card, other("30", "Raft again")]));
+  continueCards.mockResolvedValueOnce([continuing]);
   const feed = (await render()).split('aria-label="Your feed"')[1] ?? "";
   expect(feed).toContain("Why consensus");
   expect(feed).not.toContain("Raft again");
 });
 
 // Q-P2-01, P2-W7-S03: a note on what's being read, written from the panel.
-test("Now reading offers a note on the section, filled in when there is one", async () => {
+test("Now reading offers a note on the article, filled in when there is one", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
-  readingCookie = "10.1";
-  describe_.mockResolvedValueOnce({
-    articleTitle: "Consensus in practice",
-    sectionTitle: "Why consensus",
-  });
+  readingCookie = "10";
+  describe_.mockResolvedValueOnce({ articleTitle: "Consensus in practice" });
   getNote.mockResolvedValueOnce("Terms are epochs");
   const html = await render();
-  expect(getNote).toHaveBeenCalledWith("u1", "10", "1");
+  expect(getNote).toHaveBeenCalledWith("u1", "10");
   expect(html).toContain("Your note");
   expect(html).toMatch(
     /<textarea[^>]*name="body"[^>]*>Terms are epochs<\/textarea>/,
   );
-  expect(html).toMatch(/<input[^>]*name="momentId"[^>]*value="1"/);
+  expect(html).not.toMatch(/<input[^>]*name="momentId"/);
   expect(html).toMatch(/<button[^>]*value="delete"/);
 });
 
-// P2-W7-S04: a card shows the user's note on its own section.
-test("cards show the user's notes on their sections, not on other sections", async () => {
+// P2-W7-S04: a card shows the user's note on its article. ADR-0058: a note written on
+// one of its sections before is listed in the Library and the reader, not on the card.
+test("cards show the user's note on their article, not earlier section notes", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([card]));
+  getFeed.mockResolvedValue(feedOf([card, other("20")]));
   onItems.mockResolvedValueOnce([
-    { itemId: "10", momentId: "1", body: "Mine on this section" },
-    { itemId: "10", momentId: "2", body: "Mine on another" },
+    { itemId: "10", sectionTitle: null, body: "Mine on this article" },
+    { itemId: "20", sectionTitle: "Raft", body: "Mine on a section" },
   ]);
   const html = await render();
-  expect(onItems).toHaveBeenCalledWith("u1", ["10"]);
-  expect(html).toContain("Mine on this section");
-  expect(html).not.toContain("Mine on another");
+  expect(onItems).toHaveBeenCalledWith("u1", ["10", "20"]);
+  expect(html).toContain("Mine on this article");
+  expect(html).not.toContain("Mine on a section");
 });
 
-test("an article card shows the article's note; a section card never does", async () => {
+// P2-W9-S02, ADR-0058: Quiz me from a card, on the whole article.
+test("a card with live questions offers Quiz me on its article", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(
-    feedOf([
-      {
-        kind: "article",
-        itemId: "20",
-        estimatedMinutes: null,
-        articleTitle: "A whole read",
-        author: null,
-        sourceName: "Example Engineering",
-        reasons: null,
-        projectNote: null,
-        saved: false,
-        frameable: false,
-        topic: null,
-        difficulty: null,
-      },
-      card,
-    ]),
-  );
-  onItems.mockResolvedValueOnce([
-    { itemId: "20", momentId: null, body: "On the whole read" },
-    { itemId: "10", momentId: null, body: "On the consensus article" },
-  ]);
-  const html = await render({ chip: "8-15" });
-  expect(html).toContain("On the whole read");
-  expect(html).not.toContain("On the consensus article");
-});
-
-// P2-W9-S02: Test 60s from a card, and after finishing a section.
-test("a card with live questions offers Test 60s on its section", async () => {
-  current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
-  offered.mockResolvedValueOnce(new Set(["10.1"]));
+  getFeed.mockResolvedValue(feedOf([card, other("11")]));
+  offered.mockResolvedValueOnce(new Set(["10"]));
   const html = await render();
-  expect(offered).toHaveBeenCalledWith([
-    { itemId: "10", momentId: "1" },
-    { itemId: "10", momentId: "2" },
-  ]);
-  expect(html.match(/aria-label="Test yourself: Why consensus"/g)).toHaveLength(
-    1,
-  );
+  expect(offered).toHaveBeenCalledWith(["10", "11"]);
+  expect(html.match(/aria-label="Quiz me: Why consensus"/g)).toHaveLength(1);
+  expect(html).not.toContain("Quiz me: Article 11");
   expect(html).toMatch(
-    /<form[^>]*>(?:(?!<\/form>)[^])*name="momentId" value="1"(?:(?!<\/form>)[^])*Test yourself: Why consensus/,
+    /<form[^>]*>(?:(?!<\/form>)[^])*name="itemId" value="10"(?:(?!<\/form>)[^])*Quiz me: Why consensus/,
   );
-});
-
-test("after finishing a section with live questions, the feed offers its test", async () => {
-  current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([]));
-  describe_.mockResolvedValue({
-    articleTitle: "Consensus in practice",
-    sectionTitle: "Why consensus",
-  });
-  nextMoment.mockResolvedValue(null);
-  offered.mockResolvedValue(new Set(["10.1"]));
-  const html = await render({ finished: "10.1" });
-  expect(html).toContain("Test yourself · 60s");
-  expect(html).toContain("That was the last section.");
-  offered.mockResolvedValue(new Set());
-  expect(await render({ finished: "10.1" })).not.toContain(
-    "Test yourself · 60s",
-  );
-  describe_.mockReset();
-  describe_.mockResolvedValue(null);
 });
 
 // P2-W9-S06 (Q-P2-17): when anything is due, the feed's second card is the review.
@@ -787,9 +599,7 @@ const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
 test("with concepts due, the second card is the review queue, saying why", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(
-    feedOf([card, { ...card, momentId: "2" }, { ...card, momentId: "3" }]),
-  );
+  getFeed.mockResolvedValue(feedOf([card, other("11"), other("12")]));
   dueReviews.mockResolvedValueOnce([
     { conceptId: "1", name: "Raft", daysSince: 2 },
     { conceptId: "2", name: "Quorum", daysSince: 3 },
@@ -800,8 +610,8 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(dueReviews).toHaveBeenCalledWith("u1");
   const items = html.split("<li").slice(1);
   const reviewAt = items.findIndex((li) => li.includes("Review 4 concepts"));
-  const firstCard = items.findIndex((li) => li.includes('data-moment="1"'));
-  const secondCard = items.findIndex((li) => li.includes('data-moment="2"'));
+  const firstCard = items.findIndex((li) => li.includes('data-item="10"'));
+  const secondCard = items.findIndex((li) => li.includes('data-item="11"'));
   expect(firstCard).toBeLessThan(reviewAt);
   expect(reviewAt).toBeLessThan(secondCard);
   expect(html).toContain("Review 4 concepts · about 2 min");
@@ -817,10 +627,10 @@ test("with concepts due, the second card is the review queue, saying why", async
   // The button starts the review itself, in the user's words (owner, 2026-10-30).
   expect(html).not.toContain("review queue");
   expect(words).toContain("Start quiz");
-  expect(html).toMatch(/<input type="hidden" name="chip" value="3-8"\/>/);
+  expect(html).not.toContain('name="chip"');
   // The ranked cards keep their positions: the second is still position 2.
-  expect(html).toMatch(/moment=2[^"]*pos=2/);
-  expect(html).toMatch(/moment=3[^"]*pos=3/);
+  expect(html).toContain("item=11&amp;pos=2");
+  expect(html).toContain("item=12&amp;pos=3");
 });
 
 test("an empty feed still shows the review when something is due (owner, 2026-10-28)", async () => {
@@ -830,7 +640,7 @@ test("an empty feed still shows the review when something is due (owner, 2026-10
     { conceptId: "1", name: "Raft", daysSince: 2 },
   ]);
   const html = await render();
-  expect(html).toContain("No moments yet.");
+  expect(html).toContain("Nothing to read yet.");
   expect(html).toContain("Review 1 concept · about 1 min");
   expect(text(html)).toContain("Raftlast recalled 2 days ago");
 });
@@ -844,7 +654,7 @@ test("with nothing due, the feed has no review card", async () => {
 // P3-W13-S05 (§6.1): today's challenge is a card while it's still to play.
 test("today's challenge is a card, saying why, until it's played", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
+  getFeed.mockResolvedValue(feedOf([card, other("11")]));
   dailyStatus.mockResolvedValueOnce({
     today: "open",
     streak: { days: 3, freezes: 0 },
@@ -857,7 +667,7 @@ test("today's challenge is a card, saying why, until it's played", async () => {
   expect(html).toContain("Keep your 3-day streak.");
   expect(html).toContain("Start today&#x27;s challenge");
   // The ranked cards keep their positions.
-  expect(html).toMatch(/moment=2[^"]*pos=2/);
+  expect(html).toContain("item=11&amp;pos=2");
   for (const today of [
     "none" as const,
     { attemptId: "71", finished: true, points: 300 },
@@ -899,7 +709,7 @@ const reading = {
 
 test("the path's next reading is the first card, saying why, as a path open", async () => {
   current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
+  getFeed.mockResolvedValue(feedOf([card, other("11")]));
   pathNext.mockResolvedValueOnce({
     kind: "reading",
     pathId: "6",
@@ -915,7 +725,7 @@ test("the path's next reading is the first card, saying why, as a path open", as
   expect(pathNext).toHaveBeenCalledWith("u1");
   const items = html.split("<li").slice(1);
   const pathAt = items.findIndex((li) => li.includes("Next in your path"));
-  const firstCard = items.findIndex((li) => li.includes('data-moment="1"'));
+  const firstCard = items.findIndex((li) => li.includes('data-item="10"'));
   expect(pathAt).toBeGreaterThanOrEqual(0);
   expect(pathAt).toBeLessThan(firstCard);
   expect(html.replace(/<[^>]+>/g, "")).toContain(
@@ -924,11 +734,9 @@ test("the path's next reading is the first card, saying why, as a path open", as
   expect(html).toContain(
     "Leader-follower replication · reading 2 of 3 · 4 min",
   );
-  expect(html).toContain(
-    'href="/read/50?moment=900&amp;chip=3-8&amp;from=path&amp;path=6"',
-  );
+  expect(html).toContain('href="/read/50?from=path&amp;path=6"');
   // The ranked cards keep their positions.
-  expect(html).toMatch(/moment=2[^"]*pos=2/);
+  expect(html).toContain("item=11&amp;pos=2");
   // The right rail links the path, and the review queue, now both live.
   const rail = html.slice(html.indexOf('aria-label="At a glance"'));
   expect(rail).toMatch(/href="\/paths\/6"[^]*?Your path[^]*?Replication/);
@@ -951,11 +759,11 @@ test("a checkpoint ready to take is the first card; none without a next step", a
   });
   // Alone on an empty feed, as the review is.
   const html = await render();
-  expect(html).toContain("No moments yet.");
+  expect(html).toContain("Nothing to read yet.");
   expect(html).toContain("Checkpoint · Quorums");
   expect(html).toContain("Pass 4 of 5 to unlock Leases.");
   expect(html).toMatch(
-    /name="sectionId" value="60"[^]*?name="back" value="\/\?chip=3-8"[^]*?Take the checkpoint/,
+    /name="sectionId" value="60"[^]*?name="back" value="\/"[^]*?Take the checkpoint/,
   );
   getFeed.mockResolvedValue(feedOf([card]));
   expect(await render()).not.toContain("Next in your path");
@@ -978,7 +786,7 @@ test("a path card on a section you've mastered offers to skip it (Q-P2-29)", asy
   const html = await render();
   expect(html).toContain("You know this");
   expect(html).toMatch(
-    /name="sectionId" value="60"[^]*?name="reason" value="mastered"[^]*?name="back" value="\/\?chip=3-8"/,
+    /name="sectionId" value="60"[^]*?name="reason" value="mastered"[^]*?name="back" value="\/"/,
   );
 });
 
@@ -1015,7 +823,7 @@ test("the next book session is a card after the path's, saying why", async () =>
   const items = html.split("<li").slice(1);
   const pathAt = items.findIndex((li) => li.includes("Next in your path"));
   const bookAt = items.findIndex((li) => li.includes("Next in your book"));
-  const firstCard = items.findIndex((li) => li.includes('data-moment="1"'));
+  const firstCard = items.findIndex((li) => li.includes('data-item="10"'));
   expect(pathAt).toBeGreaterThanOrEqual(0);
   expect([bookAt, firstCard]).toEqual([pathAt + 1, pathAt + 2]);
   expect(html.replace(/<[^>]+>/g, "")).toContain(
@@ -1023,7 +831,7 @@ test("the next book session is a card after the path's, saying why", async () =>
   );
   expect(html).toContain("Replication · session 9 of 18 · pages 41–46 · 6 min");
   expect(html).toMatch(/href="\/books\/7\?session=72"[^>]*>Read Followers/);
-  expect(html).toMatch(/moment=1[^"]*pos=1/);
+  expect(html).toContain("item=10&amp;pos=1");
 });
 
 test("without a path the book card comes first; an empty feed still shows it", async () => {
@@ -1033,10 +841,10 @@ test("without a path the book card comes first; an empty feed still shows it", a
   const items = (await render()).split("<li").slice(1);
   const bookAt = items.findIndex((li) => li.includes("Next in your book"));
   expect(bookAt).toBeGreaterThanOrEqual(0);
-  expect(items[bookAt + 1]).toContain('data-moment="1"');
+  expect(items[bookAt + 1]).toContain('data-item="10"');
   getFeed.mockResolvedValue(feedOf([]));
   const html = await render();
-  expect(html).toContain("No moments yet.");
+  expect(html).toContain("Nothing to read yet.");
   expect(html).toContain("Next in your book");
   nextSession.mockReset();
   nextSession.mockResolvedValue(null);
@@ -1050,78 +858,28 @@ test("a guest is sent to sign up before anything is read", async () => {
   expect(getFeed).not.toHaveBeenCalled();
 });
 
-// ADR-0044 (owner, 2026-11-23): on wide screens the challenge and the review move from
-// the sideways feed to "Also fits", with one explainer from the cards after the hero.
-test("Also fits: the challenge, the review sized to the break, and an explainer", async () => {
+// ADR-0058: Also fits sized its cards to the break; with no break length it is gone,
+// and the challenge and the review stay in the sideways feed on every screen.
+test("there is no Also fits grid; the challenge and the review are in the feed everywhere", async () => {
   current.mockResolvedValue(user);
   // An earlier test leaves a plan without the challenge in place.
   can.mockImplementation(() => Promise.resolve(true));
-  chipCookie = "1-3";
-  getFeed.mockResolvedValue(
-    feedOf([card, { ...card, momentId: "2" }, { ...card, momentId: "3" }]),
-  );
+  getFeed.mockResolvedValue(feedOf([card, other("11")]));
   dailyStatus.mockResolvedValueOnce({
     today: "open",
     streak: { days: 2, freezes: 0 },
   });
-  dueReviews.mockResolvedValueOnce(
-    Array.from({ length: 10 }, (_, i) => ({
-      conceptId: String(i),
-      name: `C${String(i)}`,
-      daysSince: 1,
-    })),
-  );
-  fitting.mockResolvedValueOnce({
-    explainerId: "7",
-    concept: "Pooling",
-    durationSeconds: 170,
-  });
+  dueReviews.mockResolvedValueOnce([
+    { conceptId: "1", name: "Raft", daysSince: 1 },
+  ]);
   const html = await render();
-  // The hero is the first ranked card: the explainer comes from those after it, and
-  // fits the 1–3 chip.
-  expect(fitting).toHaveBeenLastCalledWith(
-    "u1",
-    [
-      { itemId: "10", momentId: "2" },
-      { itemId: "10", momentId: "3" },
-    ],
-    180,
-  );
-  const grid = html.slice(html.indexOf('aria-labelledby="also-fits"'));
-  const words = text(grid);
-  expect(words).toContain("Also fits in 3 minutes");
-  expect(words).toContain("Review 9 cards");
-  expect(words).toContain("Pooling, explained");
-  expect(words).toContain("Daily challenge");
-  // In the sideways feed they're for phones only.
-  const items = html.slice(0, html.indexOf('aria-labelledby="also-fits"'));
-  const review = items.split("<li").find((li) => li.includes("Review 10"));
-  expect(review).toMatch(/class="[^"]*lg:hidden/);
-  const daily = items
-    .split("<li")
-    .find((li) => li.includes("Start today&#x27;s challenge"));
-  expect(daily).toMatch(/class="[^"]*lg:hidden/);
-});
-
-test("Also fits: a book card is the hero, so every ranked card may give the explainer", async () => {
-  current.mockResolvedValue(user);
-  getFeed.mockResolvedValue(feedOf([card]));
-  nextSession.mockResolvedValueOnce({
-    bookId: "b1",
-    bookTitle: "Designing Data Systems",
-    chapterTitle: "One",
-    sessionId: "s1",
-    title: "Replication",
-    minutes: 5,
-    firstPage: 1,
-    lastPage: 9,
-    place: 1,
-    of: 4,
-  });
-  await render();
-  expect(fitting).toHaveBeenLastCalledWith(
-    "u1",
-    [{ itemId: "10", momentId: "1" }],
-    480,
-  );
+  expect(html).not.toContain("also-fits");
+  expect(html).not.toContain("Also fits");
+  const items = html.split("<li");
+  const review = items.find((li) => li.includes("Review 1 concept"));
+  expect(review).toBeDefined();
+  expect(review).not.toMatch(/^[^>]*lg:hidden/);
+  const daily = items.find((li) => li.includes("Start today&#x27;s challenge"));
+  expect(daily).toBeDefined();
+  expect(daily).not.toMatch(/^[^>]*lg:hidden/);
 });

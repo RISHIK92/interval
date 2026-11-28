@@ -2,7 +2,6 @@ import { AiDrafted } from "../../ui/AiDrafted";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { CHIPS } from "../../../server/chips";
 import { quizzes, sessionReader } from "../../../server/container";
 import { points } from "@interval/scoring";
 import { BIGINT_ID } from "../../../server/ports";
@@ -19,8 +18,8 @@ import { Countdown } from "./Countdown";
 
 export const dynamic = "force-dynamic";
 
+// ADR-0058: no chip rides along any more; a stray ?chip= from an old link is ignored.
 const Query = z.object({
-  chip: z.enum(CHIPS),
   answered: z.string().regex(BIGINT_ID).optional(),
 });
 
@@ -93,12 +92,11 @@ export default async function QuizPage({
   const { attempt: attemptId } = await params;
   const parsed = Query.safeParse(await searchParams);
   if (!BIGINT_ID.test(attemptId) || !parsed.success) redirect("/");
-  const { chip, answered } = parsed.data;
+  const { answered } = parsed.data;
   const attempt = await quizzes().attempt(actor.userId, attemptId);
   if (attempt === null) redirect("/");
-  if (attempt.finishedAt !== null)
-    redirect(`/quiz/${attemptId}/results?chip=${chip}`);
-  const here = `/quiz/${attemptId}?chip=${chip}`;
+  if (attempt.finishedAt !== null) redirect(`/quiz/${attemptId}/results`);
+  const here = `/quiz/${attemptId}`;
   const { checkpoint } = attempt;
   const kind = attempt.review
     ? "review"
@@ -132,7 +130,7 @@ export default async function QuizPage({
           <>
             {/* P3-W13-S04, S03b (C-27, AI-3): the real answer and where it comes
               from: a hand-written question's quoted sentence and page, or a
-              moment's section, never its quote (Q-P2-12). */}
+              question's article (ADR-0058), never its quote (Q-P2-12). */}
             <dl className="grid grid-cols-2 gap-2 lg:mx-auto lg:w-full lg:max-w-[32rem] lg:gap-3">
               <div className="rounded-2xl bg-well px-4 py-3">
                 <dt className="text-sm text-ink-muted">Your guess</dt>
@@ -159,7 +157,7 @@ export default async function QuizPage({
                   <p>&ldquo;{feedback.source.citation}&rdquo;</p>
                 ) : null}
                 <SourceAnchor
-                  link={sourceLink(feedback.source, chip, actor.isGuest)}
+                  link={sourceLink(feedback.source, actor.isGuest)}
                   className="text-ink-muted underline underline-offset-2"
                 />
               </blockquote>
@@ -221,7 +219,6 @@ export default async function QuizPage({
             >
               <input type="hidden" name="attemptId" value={attemptId} />
               <input type="hidden" name="questionId" value={answered} />
-              <input type="hidden" name="chip" value={chip} />
               <fieldset className="flex flex-col gap-2">
                 <legend className="mb-1 text-sm text-ink-muted">
                   What&apos;s wrong with it?
@@ -269,7 +266,6 @@ export default async function QuizPage({
         >
           <input type="hidden" name="attemptId" value={attemptId} />
           <input type="hidden" name="questionId" value={question.questionId} />
-          <input type="hidden" name="chip" value={chip} />
           <label htmlFor="guess" className={QUESTION}>
             {question.stem}
             {question.aiDrafted ? <AiDrafted /> : null}
@@ -296,7 +292,6 @@ export default async function QuizPage({
         <form action={answerQuizAction} className="flex flex-col gap-4">
           <input type="hidden" name="attemptId" value={attemptId} />
           <input type="hidden" name="questionId" value={question.questionId} />
-          <input type="hidden" name="chip" value={chip} />
           <fieldset className={OPTIONS}>
             <legend className={`mb-3 lg:mb-5 ${QUESTION}`}>
               {question.stem}
@@ -330,7 +325,6 @@ export default async function QuizPage({
       </h1>
       <form id={FINISH_FORM} action={finishQuizAction}>
         <input type="hidden" name="attemptId" value={attemptId} />
-        <input type="hidden" name="chip" value={chip} />
       </form>
       <header className="flex items-center gap-3 lg:gap-4 lg:border-b lg:border-hairline lg:px-6 lg:py-4">
         {/* Owner, 2026-10-28: no Finish button; Close warns first. A native popover:
@@ -358,7 +352,6 @@ export default async function QuizPage({
           <div className="mt-4 flex flex-col gap-2">
             <form action={finishQuizAction}>
               <input type="hidden" name="attemptId" value={attemptId} />
-              <input type="hidden" name="chip" value={chip} />
               <input type="hidden" name="leave" value={EXIT_TEXT[kind].leave} />
               <button
                 type="submit"
@@ -422,9 +415,7 @@ export default async function QuizPage({
                 ? "Today's set, the same for everyone"
                 : attempt.sprint
                   ? "Questions picked for you"
-                  : attempt.momentId === null
-                    ? "Questions from this article"
-                    : "Questions from this section"}
+                  : "Questions from this article"}
         </p>
       </div>
     </main>

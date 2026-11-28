@@ -9,16 +9,17 @@ import {
   preferences,
   sessionReader,
 } from "../../../server/container";
-import { SESSION_MINUTES, sessionPlan } from "../../../server/explore";
+import { sessionPlan } from "../../../server/explore";
 import { outHref } from "../../../server/outbound";
 import { visitId } from "../../../server/visits";
 import { Page, PAGE_TITLE } from "../../ui/Page";
 
 export const dynamic = "force-dynamic";
 
-// "Make it a 4-min session" (ADR-0046; owner, 2026-11-26): an answer's cited moments in
-// prerequisite order, cut to about 4 minutes, the real total shown. Each opens its
-// deep link through /out; nothing is copied (Part I §3.2).
+// An Ask answer's reading session (ADR-0046; owner, 2026-11-26): its cited articles in
+// prerequisite order, the top three, their total minutes shown. ADR-0058: whole
+// articles, no longer cut to "4 minutes". Each opens its page through /out; nothing is
+// copied (Part I §3.2).
 export default async function AskSessionPage({
   searchParams,
 }: {
@@ -34,14 +35,15 @@ export default async function AskSessionPage({
   if (chosen === null) redirect("/onboarding");
   const id = z.uuid().safeParse((await searchParams)["question"]);
   if (!id.success) notFound();
-  const found = await asks().sessionMoments(id.data, actor.userId);
+  const found = await asks().sessionArticles(id.data, actor.userId);
   if (found === null) notFound();
-  const plan = sessionPlan(found.moments, found.prerequisites);
-  const total = plan.reduce((sum, m) => sum + m.minutes, 0);
+  const plan = sessionPlan(found.articles, found.prerequisites);
+  // An article with no body text to count adds nothing it can't vouch for.
+  const total = plan.reduce((sum, a) => sum + (a.minutes ?? 0), 0);
   if (plan.length > 0)
     events().emit(
       "ask_session_started",
-      { moment_count: plan.length, minutes: total },
+      { article_count: plan.length, minutes: total },
       { ...actor, sessionId: visitId(await cookies()) },
     );
   return (
@@ -56,11 +58,11 @@ export default async function AskSessionPage({
       <h1 className={PAGE_TITLE}>
         {plan.length === 0
           ? "Nothing to read here"
-          : `A ${String(SESSION_MINUTES)}-min session · ${String(total)} min`}
+          : `A reading session · ${String(total)} min`}
       </h1>
       {plan.length === 0 ? (
         <p className="text-ink-muted">
-          None of the answer&apos;s sources can be opened as a section any more.
+          None of the answer&apos;s sources can be opened any more.
         </p>
       ) : (
         <>
@@ -70,15 +72,14 @@ export default async function AskSessionPage({
           <ol className="flex flex-col">
             {plan.map((m, i) => (
               <li
-                key={m.momentId}
+                key={m.itemId}
                 className="border-t border-hairline first:border-t-0"
               >
                 <a
                   href={outHref({
                     itemId: m.itemId,
-                    momentId: m.momentId,
                     from: "explore",
-                    target: "section",
+                    target: "article",
                   })}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -92,7 +93,8 @@ export default async function AskSessionPage({
                       {m.title}
                     </span>
                     <span className="text-xs text-ink-muted">
-                      {m.sourceName} · {m.minutes} min
+                      {m.sourceName}
+                      {m.minutes === null ? "" : ` · ${String(m.minutes)} min`}
                     </span>
                   </span>
                 </a>

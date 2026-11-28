@@ -1,23 +1,87 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import type { Progress } from "./ports";
 
-vi.mock("./container", () => ({}));
+const recordOpen = vi.fn<Progress["recordOpen"]>(() => Promise.resolve());
+const countExploreOpen = vi.fn<Progress["countExploreOpen"]>(() =>
+  Promise.resolve(),
+);
+const emit = vi.fn();
+vi.mock("./container", () => ({
+  progress: () => ({ recordOpen, countExploreOpen }),
+  events: () => ({ emit }),
+}));
 
-// P4-W20-S03 (§5D): the marker the app's reader looks for, from a stored section link.
+const context = {
+  userId: "u1",
+  isGuest: false,
+  betaGroup: "student" as const,
+  sessionId: "visit-1",
+};
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+// ADR-0058: any open makes the article Continue reading; a feed card's open is counted
+// by the article alone.
+test("a feed card's open records the article, its arm and card_opened by id", async () => {
+  const { countOpen } = await import("./opens");
+  await countOpen(context, {
+    itemId: "5",
+    card: { pos: 2, via: "feed" },
+    from: undefined,
+    surface: "in_app",
+  });
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("u1", "5");
+  expect(countExploreOpen).toHaveBeenCalledExactlyOnceWith("u1", "5");
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "card_opened",
+    { position: 2, item_id: "5", surface: "in_app", via: "feed" },
+    context,
+  );
+});
+
+test.each(["library", "path", "explore", "reader"] as const)(
+  "an open from %s is still Continue reading, and counts no feed event",
+  async (from) => {
+    const { countOpen } = await import("./opens");
+    await countOpen(context, {
+      itemId: "5",
+      card: null,
+      from,
+      surface: "browser",
+    });
+    expect(recordOpen).toHaveBeenCalledExactlyOnceWith("u1", "5");
+    expect(countExploreOpen).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
+  },
+);
+
+test("a Continue link counts continue_clicked", async () => {
+  const { countOpen } = await import("./opens");
+  await countOpen(context, {
+    itemId: "5",
+    card: null,
+    from: "continue",
+    surface: "browser",
+  });
+  expect(emit).toHaveBeenCalledExactlyOnceWith("continue_clicked", {}, context);
+});
+
+// §8: the publisher's page, attributed, its own query and fragment kept as they are.
 test.each([
-  ["https://blog.dev/raft#leader-election", { id: "leader-election" }],
-  ["https://blog.dev/raft#caf%C3%A9", { id: "café" }],
+  ["https://blog.dev/raft", "https://blog.dev/raft?utm_source=interval"],
   [
-    "https://blog.dev/raft#:~:text=Leader%20election%20%2D%20terms",
-    { text: "Leader election - terms" },
+    "https://blog.dev/raft?a=%20",
+    "https://blog.dev/raft?a=%20&utm_source=interval",
   ],
   [
-    "https://blog.dev/raft#:~:text=Commas%2C%20too,end",
-    { text: "Commas, too" },
+    "https://blog.dev/raft#top",
+    "https://blog.dev/raft?utm_source=interval#top",
   ],
-  ["https://blog.dev/raft", null],
-  ["https://blog.dev/raft#", null],
-  ["https://blog.dev/raft#%E0%A4%A", null],
-])("%s", async (link, marker) => {
-  const { sectionMarker } = await import("./opens");
-  expect(sectionMarker(link)).toEqual(marker);
+  ["javascript:alert(1)", null],
+  ["not a url", null],
+])("attributed(%s)", async (stored, url) => {
+  const { attributed } = await import("./opens");
+  expect(attributed(stored)).toBe(url);
 });

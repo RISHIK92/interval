@@ -1141,8 +1141,8 @@ export interface PathSectionConcept {
 }
 
 export interface PathSession {
-  content_item_id: Int8 | null;
-  moment_id: Int8;
+  content_item_id: Int8;
+  moment_id: Int8 | null;
   ordinal: number;
   section_id: Int8;
 }
@@ -1305,14 +1305,14 @@ export interface QuestionConcept {
 export interface QuestionDrafting {
   attempt: number;
   content_item_id: Int8 | null;
-  moment_id: Int8;
+  moment_id: Int8 | null;
   retry_at: Timestamp;
 }
 
 export interface QuestionEstimateDrafted {
   content_hash: string;
   content_item_id: Int8 | null;
-  moment_id: Int8;
+  moment_id: Int8 | null;
 }
 
 export interface QuestionFlag {
@@ -1573,6 +1573,7 @@ export interface UserArticleFinished {
 
 export interface UserArticleOpened {
   content_item_id: Int8;
+  last_opened_at: Generated<Timestamp>;
   opened_at: Generated<Timestamp>;
   user_id: string;
 }
@@ -1705,8 +1706,8 @@ export interface UserPathSection {
 }
 
 export interface UserPathSession {
-  content_item_id: Int8 | null;
-  moment_id: Int8;
+  content_item_id: Int8;
+  moment_id: Int8 | null;
   ordinal: number;
   section_id: Int8;
   user_id: string;

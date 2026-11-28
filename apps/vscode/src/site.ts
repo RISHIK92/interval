@@ -1,5 +1,3 @@
-import type { Chip } from "@interval/api-client";
-
 // The device token travels with every request, so the site is https, or plain http to
 // this machine only, as `interval` allows (cli/interval/cli.go, safeSite).
 const THIS_MACHINE = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -51,19 +49,13 @@ function refused(why: string): SiteSetting {
   return { kind: "refused", reason: `interval.url is refused: ${why}.` };
 }
 
-export function statusUrl(site: Site, chip: Chip | undefined): string {
-  return withChip(new URL(`${site.base}/api/agent/status`), chip);
+export function statusUrl(site: Site): string {
+  return new URL(`${site.base}/api/agent/status`).toString();
 }
 
-// With no suggestions, the quick session is Home at the same break length (or the
-// user's own, when there's no answer to take it from).
-export function homeUrl(site: Site, chip: Chip | undefined): string {
-  return withChip(new URL(`${site.base}/`), chip);
-}
-
-function withChip(url: URL, chip: Chip | undefined): string {
-  if (chip !== undefined) url.searchParams.set("chip", chip);
-  return url.toString();
+// With no suggestions, the quick session is Home.
+export function homeUrl(site: Site): string {
+  return new URL(`${site.base}/`).toString();
 }
 
 // Only the configured site's pages open: a link elsewhere in an answer is refused, so a

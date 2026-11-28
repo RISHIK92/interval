@@ -88,8 +88,6 @@ test("an answer reads its citations' labels from the catalogue, dropping broken 
         name: "DDIA",
         feed_url: `https://${randomUUID()}.example.test/feed.xml`,
         rights_profile: "full_text_internal",
-        moments_seeded: true,
-        moments_enabled: true,
         topics: ["distributed-systems"],
       })
       .returning("id")
@@ -110,18 +108,6 @@ test("an answer reads its citations' labels from the catalogue, dropping broken 
       ),
     );
     if (item === undefined || broken === undefined) throw new Error("seed");
-    const moment = await trx
-      .insertInto("moment")
-      .values({
-        content_item_id: item.id,
-        ordinal: 0,
-        title: "ch. 6 Partitioning",
-        estimated_minutes: 4,
-        link: "https://example.test/ddia#6",
-        link_type: "anchor",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
     const concept = await trx
       .insertInto("concept")
       .values({
@@ -141,7 +127,8 @@ test("an answer reads its citations' labels from the catalogue, dropping broken 
         outcome: "answered",
         text: "Shard late [m1].",
         citations: JSON.stringify([
-          { passage: "m1", item_id: item.id, moment_id: moment.id },
+          // Written before ADR-0058: its moment is ignored, the article cited.
+          { passage: "m1", item_id: item.id, moment_id: "1" },
           { passage: "i2", item_id: broken.id },
           { passage: "c3", concept_id: concept.id },
         ]),
@@ -158,8 +145,7 @@ test("an answer reads its citations' labels from the catalogue, dropping broken 
           kind: "reading",
           passage: "m1",
           itemId: item.id,
-          momentId: moment.id,
-          label: "DDIA · ch. 6 Partitioning",
+          label: "DDIA · Designing data systems",
           topic: "distributed-systems",
         },
         {
@@ -290,19 +276,22 @@ test("ask, delete, ask: today's count still includes the deleted questions", asy
   });
 });
 
-test("a session's moments: only the owner's answered question, only openable cited moments", async () => {
+// ADR-0058: a reading session is the answer's cited articles, each once.
+test("a session's articles: only the owner's answered question, only openable cited articles", async () => {
   await inRollback(async (trx) => {
     const asks = kyselyAsks(trx);
     const me = await user(trx);
-    const seed = async (rights: "full_text_internal" | "metadata_only") => {
+    const article = async (
+      title: string,
+      minutes: number,
+      rights: "full_text_internal" | "metadata_only" = "full_text_internal",
+    ) => {
       const source = await trx
         .insertInto("source")
         .values({
           name: `s-${randomUUID()}`,
           feed_url: `https://${randomUUID()}.example.test/feed.xml`,
           rights_profile: rights,
-          moments_seeded: rights !== "metadata_only",
-          moments_enabled: rights !== "metadata_only",
         })
         .returning("id")
         .executeTakeFirstOrThrow();
@@ -312,30 +301,26 @@ test("a session's moments: only the owner's answered question, only openable cit
           source_id: source.id,
           guid: randomUUID(),
           canonical_url: `https://example.test/${randomUUID()}`,
-          title: "Item",
+          title,
         })
         .returning("id")
         .executeTakeFirstOrThrow();
+      if (rights === "full_text_internal")
+        await trx
+          .insertInto("content_item_section")
+          .values({
+            content_item_id: item.id,
+            ordinal: 0,
+            word_count: minutes * 230,
+          })
+          .execute();
       return { source: source.id, item: item.id };
     };
-    const shown = await seed("full_text_internal");
-    const [a, b] = await Promise.all(
-      [3, 2].map((minutes, ordinal) =>
-        trx
-          .insertInto("moment")
-          .values({
-            content_item_id: shown.item,
-            ordinal,
-            title: `Section ${String(ordinal)}`,
-            estimated_minutes: minutes,
-            link: `https://example.test/${randomUUID()}#s`,
-            link_type: "anchor",
-          })
-          .returning("id")
-          .executeTakeFirstOrThrow(),
-      ),
-    );
-    if (a === undefined || b === undefined) throw new Error("seed");
+    const sharding = await article("Sharding", 3);
+    const replication = await article("Replication", 2);
+    // A link to the publisher's page needs no full-text rights (ING-2).
+    const linked = await article("Linked", 0, "metadata_only");
+    const hidden = await article("Hidden", 1);
     const concepts = await Promise.all(
       ["Replication", "Sharding"].map((name) =>
         trx
@@ -347,17 +332,22 @@ test("a session's moments: only the owner's answered question, only openable cit
     );
     const [repl, shard] = concepts.map((c) => c.id);
     if (repl === undefined || shard === undefined) throw new Error("seed");
-    for (const [momentId, conceptId] of [
-      [a.id, shard],
-      [b.id, repl],
+    for (const [itemId, conceptId] of [
+      [sharding.item, shard],
+      [replication.item, repl],
     ] as const) {
       await trx
-        .insertInto("moment_tagging")
-        .values({ moment_id: momentId, difficulty: "beginner" })
+        .insertInto("item_tagging")
+        .values({
+          content_item_id: itemId,
+          difficulty: "beginner",
+          model: "test",
+          prompt_version: 1,
+        })
         .execute();
       await trx
-        .insertInto("moment_concept")
-        .values({ moment_id: momentId, concept_id: conceptId })
+        .insertInto("item_concept")
+        .values({ content_item_id: itemId, concept_id: conceptId })
         .execute();
     }
     await trx
@@ -366,23 +356,10 @@ test("a session's moments: only the owner's answered question, only openable cit
       .execute();
     const asked = await asks.submit(me, ask("s"));
     if (typeof asked === "string") throw new Error(asked);
-    expect(await asks.sessionMoments(asked.id, me)).toBeNull();
-    const hiddenSource = await seed("full_text_internal");
-    const hiddenMoment = await trx
-      .insertInto("moment")
-      .values({
-        content_item_id: hiddenSource.item,
-        ordinal: 0,
-        title: "Hidden",
-        estimated_minutes: 1,
-        link: "https://example.test/h#s",
-        link_type: "anchor",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    expect(await asks.sessionArticles(asked.id, me)).toBeNull();
     await trx
       .insertInto("user_hidden_source")
-      .values({ user_id: me, source_id: hiddenSource.source })
+      .values({ user_id: me, source_id: hidden.source })
       .execute();
     await trx
       .insertInto("ask_answer")
@@ -391,33 +368,36 @@ test("a session's moments: only the owner's answered question, only openable cit
         outcome: "answered",
         text: "x [m1]",
         citations: JSON.stringify([
-          { passage: `m${a.id}`, item_id: shown.item, moment_id: a.id },
-          { passage: "i9", item_id: shown.item },
-          {
-            passage: `m${hiddenMoment.id}`,
-            item_id: hiddenSource.item,
-            moment_id: hiddenMoment.id,
-          },
-          { passage: `m${b.id}`, item_id: shown.item, moment_id: b.id },
+          { passage: "a", item_id: sharding.item, moment_id: "1" },
+          { passage: "b", item_id: sharding.item },
+          { passage: "c", item_id: hidden.item },
+          { passage: "d", item_id: linked.item },
+          { passage: "e", item_id: replication.item },
         ]),
       })
       .execute();
-    expect(await asks.sessionMoments(asked.id, await user(trx))).toBeNull();
-    expect(await asks.sessionMoments(asked.id, me)).toEqual({
-      moments: [
+    expect(await asks.sessionArticles(asked.id, await user(trx))).toBeNull();
+    const source = expect.any(String) as string;
+    expect(await asks.sessionArticles(asked.id, me)).toEqual({
+      articles: [
         {
-          itemId: shown.item,
-          momentId: a.id,
-          title: "Section 0",
-          sourceName: expect.any(String) as string,
+          itemId: sharding.item,
+          title: "Sharding",
+          sourceName: source,
           minutes: 3,
           conceptIds: [shard],
         },
         {
-          itemId: shown.item,
-          momentId: b.id,
-          title: "Section 1",
-          sourceName: expect.any(String) as string,
+          itemId: linked.item,
+          title: "Linked",
+          sourceName: source,
+          minutes: null,
+          conceptIds: [],
+        },
+        {
+          itemId: replication.item,
+          title: "Replication",
+          sourceName: source,
           minutes: 2,
           conceptIds: [repl],
         },

@@ -10,14 +10,14 @@ import type {
   Quizzes,
 } from "../../server/ports";
 
-// §4.1, §5I, C-06, Q-P1-19, P1-W5-S05: what you saved and what you finished.
+// §4.1, §5I, C-06, Q-P1-19, P1-W5-S05: what you saved and what you read. ADR-0058: an
+// article's state is all it says of how far.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
   Promise.resolve({
     goals: ["system-design-interviews"],
     topics: ["backend"],
     level: "beginner",
-    breakLength: "3-8",
     firstName: null,
   }),
 );
@@ -58,13 +58,9 @@ async function page(params: Record<string, string> = {}): Promise<string> {
   );
 }
 
-// Not started, four sections, opens in the browser: the fields a test doesn't care
-// about.
+// Unread, opens in the browser: the fields a test doesn't care about.
 const fresh = {
-  finishedSections: 0,
-  totalSections: 4,
-  finished: false,
-  nextMomentId: "71",
+  state: "unread" as const,
   frameable: false,
   linkBroken: false,
 };
@@ -84,10 +80,10 @@ test("empty states say so", async () => {
   expect(history).toHaveBeenCalledWith("g1", 50);
 });
 
-// The link follows the reader (owner, 2026-10-26): Continue reading at the next
-// section, Open article when none is done, Read again when finished; in Interval's
-// reader when the page can be framed, else the browser.
-test("saves and history link by progress, in the reader when the page allows", async () => {
+// The link follows the article's state (ADR-0058): Open article when unread, Continue
+// reading when opened, Read again when completed; in Interval's reader when the page
+// can be framed, else the browser.
+test("saves and history link by state, in the reader when the page allows", async () => {
   current.mockResolvedValue(user);
   saves.mockResolvedValueOnce([
     {
@@ -103,8 +99,7 @@ test("saves and history link by progress, in the reader when the page allows", a
       articleTitle: "Paxos made plain",
       sourceName: "Example Engineering",
       savedAt: new Date(),
-      finishedSections: 2,
-      nextMomentId: "103",
+      state: "continue_reading",
     },
   ]);
   history.mockResolvedValueOnce([
@@ -113,44 +108,40 @@ test("saves and history link by progress, in the reader when the page allows", a
       itemId: "8",
       articleTitle: "Consensus in practice",
       sourceName: "Other Blog",
-      finishedSections: 4,
-      finished: true,
-      nextMomentId: null,
+      state: "completed",
       frameable: true,
-      lastFinishedAt: new Date(),
+      lastReadAt: new Date(),
     },
     {
       ...fresh,
       itemId: "9",
       articleTitle: "Half read",
       sourceName: "Other Blog",
-      finishedSections: 2,
-      nextMomentId: "93",
+      state: "continue_reading",
       frameable: true,
-      lastFinishedAt: new Date(),
+      lastReadAt: new Date(),
     },
   ]);
   const html = await page();
   expect(text(html)).toContain("Raft in practice · Example Engineering");
-  // Not started, not framable: the article in a new tab.
+  // Unread, not framable: the article in a new tab.
   expect(html).toMatch(
     /<a href="\/out\?item=7&amp;from=library&amp;target=original" data-item="7" target="_blank" rel="noopener noreferrer" aria-label="Open article: Raft in practice"[^>]*>Open article<\/a>/,
   );
-  // Half read, not framable: its next section in a new tab.
+  // Opened, not framable: the article again, in a new tab, marked so coming back to
+  // this tab asks, as on Home (owner, 2026-10-26).
   expect(html).toMatch(
-    // Marked so coming back to this tab asks, as on Home (owner, 2026-10-26).
-    /<a href="\/out\?item=10&amp;moment=103&amp;from=library&amp;target=section" data-item="10" data-moment="103" target="_blank"[^>]*>Continue reading<\/a>/,
+    /<a href="\/out\?item=10&amp;from=library&amp;target=original" data-item="10" target="_blank"[^>]*>Continue reading<\/a>/,
   );
-  expect(html).toContain("2 of 4 sections");
-  // Finished, framable: from the top in the reader, this tab, marked for Back.
+  // Completed, framable: in the reader, this tab, marked for Back.
   expect(html).toMatch(
-    /<a href="\/read\/8\?chip=3-8&amp;from=library" data-read-item="8" aria-label="Read again: Consensus in practice"[^>]*>Read again<\/a>/,
+    /<a href="\/read\/8\?from=library" data-read-item="8" aria-label="Read again: Consensus in practice"[^>]*>Read again<\/a>/,
   );
-  // Half read, framable: the next section in the reader.
   expect(html).toMatch(
-    /<a href="\/read\/9\?moment=93&amp;chip=3-8&amp;from=library" data-read-item="9" data-read-moment="93"[^>]*>Continue reading<\/a>/,
+    /<a href="\/read\/9\?from=library" data-read-item="9"[^>]*>Continue reading<\/a>/,
   );
-  expect(html).toMatch(/<p[^>]*>Finished<\/p>/);
+  expect(html.match(/<p[^>]*>Completed<\/p>/g)).toHaveLength(1);
+  expect(html).not.toContain("sections");
   expect(html).toMatch(/<input[^>]*name="itemId"[^>]*value="7"/);
   expect(html).toContain("Unsave");
   expect(html).not.toContain("Open original website");
@@ -159,11 +150,11 @@ test("saves and history link by progress, in the reader when the page allows", a
 // Closing a reader opened here comes back asking (owner, 2026-10-26).
 test("ask= opens the finish prompt, which comes back to the Library", async () => {
   current.mockResolvedValue(user);
-  const html = await page({ ask: "9.93" });
-  expect(html).toContain("Finished this section?");
+  const html = await page({ ask: "9" });
   expect(html).toContain('name="back" value="/library"');
-  expect(html).toMatch(/name="momentId" value="93"/);
-  expect(await page({ ask: "nope" })).not.toContain("Finished this");
+  expect(html).toMatch(/name="itemId" value="9"/);
+  expect(html).not.toContain("momentId");
+  expect(await page({ ask: "nope" })).not.toMatch(/name="itemId" value=/);
 });
 
 test("an item whose link broke stays, marked, with no link to follow", async () => {
@@ -184,11 +175,8 @@ test("an item whose link broke stays, marked, with no link to follow", async () 
       itemId: "8",
       articleTitle: "Gone too",
       sourceName: "Other Blog",
-      finishedSections: 1,
-      totalSections: 1,
-      finished: true,
-      nextMomentId: null,
-      lastFinishedAt: new Date(),
+      state: "completed",
+      lastReadAt: new Date(),
       linkBroken: true,
     },
   ]);
@@ -275,13 +263,13 @@ test("no session goes to /join; not onboarded goes to /onboarding", async () => 
   await expect(page()).rejects.toThrow("redirect:/onboarding");
 });
 
-// P2-W7-S04 (§5I, Q-P2-01): the Notes section, each note back to its section.
+// P2-W7-S04 (§5I, Q-P2-01): the Notes section, each note back to its article; a note
+// written on a section before ADR-0058 is named by its section.
 test("Notes lists each note with its article, section and an edit by its id", async () => {
   current.mockResolvedValue(user);
   const note: NoteEntry = {
     noteId: "42",
     itemId: "70",
-    momentId: "7",
     sectionTitle: "Raft in one page",
     articleTitle: "Consensus in practice",
     sourceName: "Example Engineering",
@@ -291,19 +279,15 @@ test("Notes lists each note with its article, section and an edit by its id", as
   };
   list.mockResolvedValueOnce([
     note,
-    // Its section was re-segmented away: still listed, on the article.
-    { ...note, noteId: "43", momentId: null, body: "Older" },
+    { ...note, noteId: "43", sectionTitle: null, body: "Older" },
   ]);
   const html = await page();
   const notes = html.slice(html.indexOf('aria-label="Notes"><h2'));
   expect(text(notes)).toContain("Consensus in practice · Example Engineering");
   expect(text(notes)).toContain("Raft in one page");
+  expect(text(notes)).toContain("Whole article");
   expect(text(notes)).toContain("Terms are epochs");
-  expect(notes).toContain(
-    'href="/read/70?moment=7&amp;chip=3-8&amp;from=library"',
-  );
-  // The fallen-back note opens the article, and is edited by its own id.
-  expect(notes).toContain('href="/read/70?chip=3-8&amp;from=library"');
+  expect(notes.match(/href="\/read\/70\?from=library"/g)).toHaveLength(2);
   expect(notes).toMatch(/<input[^>]*name="noteId"[^>]*value="43"/);
   expect(notes).toMatch(/<button[^>]*value="delete"/);
   // The Notes tile is no longer "Coming later".
@@ -324,7 +308,6 @@ test("note links follow the page: the browser when it can't be framed, or Link b
   const note: NoteEntry = {
     noteId: "42",
     itemId: "70",
-    momentId: "7",
     sectionTitle: "Raft in one page",
     articleTitle: "Consensus in practice",
     sourceName: "Example Engineering",
@@ -334,20 +317,17 @@ test("note links follow the page: the browser when it can't be framed, or Link b
   };
   list.mockResolvedValueOnce([
     note,
-    { ...note, noteId: "43", momentId: null, sectionTitle: null },
+    { ...note, noteId: "43", sectionTitle: null },
     { ...note, noteId: "44", linkBroken: true },
   ]);
   const html = await page();
   const notes = html.slice(html.indexOf('aria-label="Notes"><h2'));
   expect(notes).toContain(
-    'href="/out?item=70&amp;moment=7&amp;from=library&amp;target=section"',
-  );
-  expect(notes).toContain(
     'href="/out?item=70&amp;from=library&amp;target=original"',
   );
   expect(text(notes)).toContain("Link broken");
   // Each row's controls are named by what the note is on (screen readers).
-  expect(notes).toContain('aria-label="Open section: Raft in one page"');
+  expect(notes).toContain('aria-label="Open article: Raft in one page"');
   expect(notes).toContain('aria-label="Note on Raft in one page"');
   expect(notes).toContain('aria-label="Note on Consensus in practice"');
 });
@@ -369,9 +349,7 @@ test("the review queue comes first, with the count, the concepts and a time", as
   );
   expect(words).toContain("4 concepts due · about 2 min");
   expect(words).toMatch(/Raft[^]*Quorum[^]*Write-ahead log[^]*MVCC/);
-  expect(html).toMatch(
-    /<form[^>]*>(?:(?!<\/form>)[^])*name="chip" value="3-8"(?:(?!<\/form>)[^])*Start review/,
-  );
+  expect(html).toMatch(/<form[^>]*>(?:(?!<\/form>)[^])*Start review/);
 });
 
 test("with nothing due, the queue says so and offers no review", async () => {

@@ -137,11 +137,11 @@ test("Listen queues, then plays the first from its saved place, at this device's
   });
   t.stored.set("interval.listen.speed", "1.5");
   const player = t.make();
-  expect(await player.enqueue("5", "9")).toBe(true);
+  expect(await player.enqueue("5")).toBe(true);
   expect(t.calls[0]).toEqual({
     method: "POST",
     path: "/api/listen",
-    body: { itemId: "5", momentId: "9" },
+    body: { itemId: "5" },
   });
   expect(t.media.src).toBe("/media/explainers/c7/7/r/index.m3u8");
   expect(t.media.playbackRate).toBe(1.5);

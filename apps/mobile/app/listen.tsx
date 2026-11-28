@@ -68,7 +68,7 @@ export default function ListenScreen() {
       </Text>
       {shown === null ? (
         <Text style={[styles.center, { color: c["ink-muted"] }]}>
-          Nothing queued. Listen in the reader adds a section’s AI explainers.
+          Nothing queued. Listen in the reader adds an article’s AI explainers.
         </Text>
       ) : (
         <Text

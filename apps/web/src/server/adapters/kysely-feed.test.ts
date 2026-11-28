@@ -24,10 +24,12 @@ type Seeded = {
   userId: string;
   otherId: string;
   itemId: string;
-  momentIds: string[];
+  otherItemId: string;
+  momentId: string;
 };
 
-// One source, one item with two moments, and two users (P1-W4-S04).
+// One source, two items (the first with a moment left from before ADR-0058), and two
+// users (P1-W4-S04).
 async function seed(trx: Transaction<DB>): Promise<Seeded> {
   const source = await trx
     .insertInto("source")
@@ -52,28 +54,28 @@ async function seed(trx: Transaction<DB>): Promise<Seeded> {
     })
     .returning("id")
     .executeTakeFirstOrThrow();
-  const moments = await trx
-    .insertInto("moment")
-    .values([
-      {
-        content_item_id: item.id,
-        ordinal: 0,
-        title: "Why consensus",
-        estimated_minutes: 2,
-        link: "https://webfeed.example.test/post",
-        link_type: "page_top",
-      },
-      {
-        content_item_id: item.id,
-        ordinal: 1,
-        title: "Raft in one page",
-        estimated_minutes: 3,
-        link: "https://webfeed.example.test/post#raft",
-        link_type: "anchor",
-      },
-    ])
+  const otherItem = await trx
+    .insertInto("content_item")
+    .values({
+      source_id: source.id,
+      guid: "g2",
+      canonical_url: "https://webfeed.example.test/other",
+      title: "Another post",
+    })
     .returning("id")
-    .execute();
+    .executeTakeFirstOrThrow();
+  const moment = await trx
+    .insertInto("moment")
+    .values({
+      content_item_id: item.id,
+      ordinal: 0,
+      title: "Why consensus",
+      estimated_minutes: 2,
+      link: "https://webfeed.example.test/post",
+      link_type: "page_top",
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
   const code = await trx
     .insertInto("invite_code")
     .values({
@@ -101,7 +103,8 @@ async function seed(trx: Transaction<DB>): Promise<Seeded> {
     userId,
     otherId,
     itemId: item.id,
-    momentIds: moments.map((m) => m.id),
+    otherItemId: otherItem.id,
+    momentId: moment.id,
   };
 }
 
@@ -116,16 +119,49 @@ async function inRollback(
   ).rejects.toBeInstanceOf(Rollback);
 }
 
+// ADR-0058: the worker stores one ranked list of articles under FEED_CHIP.
+const entry = (userId: string, itemId: string, rank: number) =>
+  ({
+    user_id: userId,
+    chip: "3-8",
+    content_item_id: itemId,
+    moment_id: null,
+    rank,
+    top_signal: "quality",
+  }) as const;
+
+async function computed(trx: Transaction<DB>, ...userIds: string[]) {
+  await trx
+    .insertInto("user_feed_state")
+    .values(userIds.map((user_id) => ({ user_id, computed_at: new Date() })))
+    .execute();
+}
+
+const articleCard = (itemId: string) => ({
+  itemId,
+  estimatedMinutes: null,
+  articleTitle: "Consensus in practice",
+  author: "Rae Writer",
+  sourceName: "webfeed-test",
+  reasons: null,
+  projectNote: null,
+  saved: false,
+  frameable: false,
+  topic: null,
+  difficulty: null,
+  state: "unread",
+});
+
 test("a feed never computed reads as not computed", async () => {
   await inRollback(async (trx, { userId }) => {
-    expect(await kyselyFeedReader(trx).read(userId, "3-8", 50)).toEqual({
+    expect(await kyselyFeedReader(trx).read(userId, 50)).toEqual({
       computed: false,
       cards: [],
     });
   });
 });
 
-test("read returns the user's own cards in rank order, in one query", async () => {
+test("read returns the user's own article cards in rank order, in one query", async () => {
   let queries = 0;
   const counting: KyselyPlugin = {
     transformQuery: ({ node }) => {
@@ -134,166 +170,109 @@ test("read returns the user's own cards in rank order, in one query", async () =
     },
     transformResult: ({ result }) => Promise.resolve(result),
   };
-  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
-    const [first, second] = momentIds;
-    if (first === undefined || second === undefined) throw new Error("seed");
-    // Only the second section is in this user's 3-8 feed; the count still covers
-    // both. Another chip's entries and another user's stay out.
+  await inRollback(async (trx, { userId, otherId, itemId, otherItemId }) => {
+    // Another user's entries stay out.
     await trx
       .insertInto("user_feed_entry")
       .values([
-        {
-          user_id: userId,
-          chip: "3-8",
-          content_item_id: itemId,
-          moment_id: second,
-          rank: 1,
-          top_signal: "topic_match",
-        },
-        {
-          user_id: userId,
-          chip: "1-3",
-          content_item_id: itemId,
-          moment_id: first,
-          rank: 1,
-          top_signal: "time_fit",
-        },
-        {
-          user_id: otherId,
-          chip: "3-8",
-          content_item_id: itemId,
-          moment_id: first,
-          rank: 1,
-          top_signal: "quality",
-        },
+        entry(userId, otherItemId, 2),
+        entry(userId, itemId, 1),
+        entry(otherId, otherItemId, 1),
       ])
       .execute();
-    await trx
-      .insertInto("user_feed_state")
-      .values([
-        { user_id: userId, computed_at: new Date() },
-        { user_id: otherId, computed_at: new Date() },
-      ])
-      .execute();
+    await computed(trx, userId, otherId);
     const result = await kyselyFeedReader(trx.withPlugin(counting)).read(
       userId,
-      "3-8",
       50,
     );
     expect(queries).toBe(1);
-    expect(result).toEqual({
-      computed: true,
-      cards: [
-        {
-          kind: "moment",
-          itemId,
-          momentId: second,
-          sectionTitle: "Raft in one page",
-          sectionNumber: 2,
-          sectionCount: 2,
-          estimatedMinutes: 3,
-          articleTitle: "Consensus in practice",
-          author: "Rae Writer",
-          sourceName: "webfeed-test",
-          reasons: null,
-          projectNote: null,
-          saved: false,
-          frameable: false,
-          topic: null,
-          difficulty: null,
-        },
-      ],
-    });
+    expect(result.computed).toBe(true);
+    expect(result.cards.map((c) => c.itemId)).toEqual([itemId, otherItemId]);
+    expect(result.cards[0]).toEqual(articleCard(itemId));
     expect(JSON.stringify(result)).not.toContain("SUMMARY TEXT");
   });
 });
 
-// P1-W4-S05b: 8-15 holds whole articles too; an article has no moment, and its length
-// is unknown without stored sections (Q-P1-39).
-test("a whole article reads as an article card, before or after moments", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const [first] = momentIds;
-    if (first === undefined) throw new Error("seed");
+// ADR-0058: until stage C drops the chip column, only FEED_CHIP's article entries are
+// the feed; another chip's and a moment entry stored before the switch are not read.
+test("only the one list's article entries are read", async () => {
+  await inRollback(async (trx, { userId, itemId, otherItemId, momentId }) => {
     await trx
       .insertInto("user_feed_entry")
       .values([
-        {
-          user_id: userId,
-          chip: "8-15",
-          content_item_id: itemId,
-          moment_id: null,
-          rank: 1,
-          top_signal: "time_fit",
-        },
-        {
-          user_id: userId,
-          chip: "8-15",
-          content_item_id: itemId,
-          moment_id: first,
-          rank: 2,
-          top_signal: "quality",
-        },
+        { ...entry(userId, itemId, 1), chip: "8-15" },
+        { ...entry(userId, itemId, 2), moment_id: momentId },
+        entry(userId, otherItemId, 3),
       ])
       .execute();
+    await computed(trx, userId);
+    const { cards } = await kyselyFeedReader(trx).read(userId, 50);
+    expect(cards.map((c) => c.itemId)).toEqual([otherItemId]);
+    await trx.deleteFrom("starter_feed_entry").execute();
+    const starter = { topic: "databases", level: "beginner" } as const;
     await trx
-      .insertInto("user_feed_state")
-      .values({ user_id: userId, computed_at: new Date() })
+      .insertInto("starter_feed_entry")
+      .values([
+        { ...starter, content_item_id: itemId, chip: "1-3", rank: 1 },
+        {
+          ...starter,
+          content_item_id: itemId,
+          chip: "3-8",
+          moment_id: momentId,
+          rank: 2,
+        },
+        { ...starter, content_item_id: otherItemId, chip: "3-8", rank: 3 },
+      ])
       .execute();
-    const { computed, cards } = await kyselyFeedReader(trx).read(
-      userId,
-      "8-15",
-      50,
-    );
-    expect(computed).toBe(true);
-    expect(cards[0]).toEqual({
-      kind: "article",
-      itemId,
-      estimatedMinutes: null,
-      articleTitle: "Consensus in practice",
-      author: "Rae Writer",
-      sourceName: "webfeed-test",
-      reasons: null,
-      projectNote: null,
-      saved: false,
-      frameable: false,
-      topic: null,
-      difficulty: null,
-    });
-    expect(cards.map((c) => c.kind)).toEqual(["article", "moment"]);
+    expect(
+      (
+        await kyselyFeedReader(trx).starter(userId, "databases", "beginner", 50)
+      ).map((c) => c.itemId),
+    ).toEqual([otherItemId]);
   });
 });
 
-test("a computed but empty chip reads as computed with no cards", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const [first] = momentIds;
-    if (first === undefined) throw new Error("seed");
+// ADR-0058: an article opened and not completed is Continue reading.
+test("a card opened by the user reads as continue_reading", async () => {
+  await inRollback(async (trx, { userId, otherId, itemId }) => {
     await trx
       .insertInto("user_feed_entry")
-      .values({
-        user_id: userId,
-        chip: "3-8",
-        content_item_id: itemId,
-        moment_id: first,
-        rank: 1,
-        top_signal: "quality",
-      })
+      .values(entry(userId, itemId, 1))
       .execute();
+    await computed(trx, userId);
+    const state = async () =>
+      (await kyselyFeedReader(trx).read(userId, 50)).cards[0]?.state;
+    expect(await state()).toBe("unread");
     await trx
-      .insertInto("user_feed_state")
-      .values({ user_id: userId, computed_at: new Date() })
+      .insertInto("user_article_opened")
+      .values({ user_id: otherId, content_item_id: itemId })
       .execute();
-    expect(await kyselyFeedReader(trx).read(userId, "8-15", 50)).toEqual({
+    expect(await state()).toBe("unread");
+    await trx
+      .insertInto("user_article_opened")
+      .values({ user_id: userId, content_item_id: itemId })
+      .execute();
+    expect(await state()).toBe("continue_reading");
+  });
+});
+
+test("a computed but empty feed reads as computed with no cards", async () => {
+  await inRollback(async (trx, { userId }) => {
+    await computed(trx, userId);
+    expect(await kyselyFeedReader(trx).read(userId, 50)).toEqual({
       computed: true,
       cards: [],
     });
   });
 });
 
-test("the starter feed is read per topic, level and chip", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const [first, second] = momentIds;
-    if (first === undefined || second === undefined) throw new Error("seed");
-    const beginner = { topic: "databases", level: "beginner" } as const;
+test("the starter feed is read per topic and level", async () => {
+  await inRollback(async (trx, { userId, itemId, otherItemId }) => {
+    const beginner = {
+      topic: "databases",
+      level: "beginner",
+      chip: "3-8",
+    } as const;
     // The shared database may hold real starter feeds; this transaction rolls back.
     await trx
       .deleteFrom("starter_feed_entry")
@@ -303,73 +282,38 @@ test("the starter feed is read per topic, level and chip", async () => {
     await trx
       .insertInto("starter_feed_entry")
       .values([
-        {
-          ...beginner,
-          content_item_id: itemId,
-          chip: "3-8",
-          moment_id: second,
-          rank: 1,
-        },
-        {
-          ...beginner,
-          content_item_id: itemId,
-          chip: "3-8",
-          moment_id: first,
-          rank: 2,
-        },
-        {
-          ...beginner,
-          content_item_id: itemId,
-          chip: "1-3",
-          moment_id: first,
-          rank: 1,
-        },
-        {
-          ...beginner,
-          level: "advanced",
-          chip: "3-8",
-          content_item_id: itemId,
-          moment_id: first,
-          rank: 1,
-        },
+        { ...beginner, content_item_id: otherItemId, rank: 1 },
+        { ...beginner, content_item_id: itemId, rank: 2 },
+        { ...beginner, level: "advanced", content_item_id: itemId, rank: 1 },
       ])
       .execute();
     const cards = await kyselyFeedReader(trx).starter(
       userId,
       "databases",
       "beginner",
-      "3-8",
       50,
     );
-    expect(cards.map((c) => (c.kind === "moment" ? c.momentId : null))).toEqual(
-      [second, first],
-    );
+    expect(cards.map((c) => c.itemId)).toEqual([otherItemId, itemId]);
   });
 });
 
 // ADR-0049: a topic has reading once its starter feed has cards from sources tagged with
 // it whose rights allow reading (ING-2). Concept tags on other sources' items don't count.
+// ADR-0058: the per-source moments switch no longer matters; only the rights do.
 test("a topic has reading only from its own tagged, readable sources", async () => {
-  await inRollback(async (trx, { itemId, momentIds }) => {
-    const [first, second] = momentIds;
-    if (first === undefined || second === undefined) throw new Error("seed");
+  await inRollback(async (trx, { itemId }) => {
     await trx.deleteFrom("starter_feed_entry").execute();
     const reader = kyselyFeedReader(trx);
     expect(await reader.topicsWithReading()).toEqual([]);
-    const entry = {
-      topic: "software-design",
-      level: "beginner",
-      content_item_id: itemId,
-      chip: "3-8",
-    } as const;
     await trx
       .insertInto("starter_feed_entry")
-      .values([
-        { ...entry, moment_id: first, rank: 1 },
-        { ...entry, moment_id: second, rank: 2 },
-        // The whole article too, which a metadata-only source may still show.
-        { ...entry, moment_id: null, rank: 3 },
-      ])
+      .values({
+        topic: "software-design",
+        level: "beginner",
+        content_item_id: itemId,
+        chip: "3-8",
+        rank: 1,
+      })
       .execute();
     const source = async (fields: {
       topics: string[];
@@ -377,11 +321,14 @@ test("a topic has reading only from its own tagged, readable sources", async () 
       moments_seeded?: boolean;
       moments_switched_off?: boolean;
     }) => {
-      const seeded = fields.moments_seeded ?? true;
-      const off = fields.moments_switched_off ?? false;
       await trx
         .updateTable("source")
-        .set({ ...fields, moments_enabled: seeded && !off })
+        .set({
+          ...fields,
+          moments_enabled:
+            (fields.moments_seeded ?? true) &&
+            !(fields.moments_switched_off ?? false),
+        })
         .where("name", "=", "webfeed-test")
         .execute();
     };
@@ -390,9 +337,8 @@ test("a topic has reading only from its own tagged, readable sources", async () 
     expect(await reader.topicsWithReading()).toEqual([]);
     await source({ topics: ["backend", "software-design"] });
     expect(await reader.topicsWithReading()).toEqual(["software-design"]);
-    // Moments switched off: only the article card is left, and it isn't reading here.
     await source({ topics: ["software-design"], moments_switched_off: true });
-    expect(await reader.topicsWithReading()).toEqual([]);
+    expect(await reader.topicsWithReading()).toEqual(["software-design"]);
     await source({
       topics: ["software-design"],
       rights_profile: "metadata_only",
@@ -410,49 +356,22 @@ test("toCard drops a row with missing fields and logs only its id and column nam
       return true;
     },
   );
-  const card = toCard({
-    rank: 1,
-    kind: "moment",
+  const row = {
     content_item_id: "8",
-    moment_id: "9",
-    section_title: "Secret-ish title",
-    section_number: 1,
-    section_count: 1,
     estimated_minutes: null,
     article_title: "Article",
-    author: "Someone",
+    author: null,
     source_name: "Source",
-    reasons: null,
-    reason_kinds: [],
+    reasons: "New this week from Source.",
+    reason_kinds: ["freshness", "not_a_kind"],
     saved: false,
+    opened: false,
     frameable: false,
     source_topic: null,
     difficulty: null,
-  });
-
-  expect(card).toBeNull();
-  expect(
-    toCard({
-      rank: 1,
-      kind: "article",
-      content_item_id: "8",
-      moment_id: null,
-      section_title: null,
-      section_number: null,
-      section_count: null,
-      estimated_minutes: null,
-      article_title: "Article",
-      author: null,
-      source_name: "Source",
-      reasons: "New this week from Source.",
-      reason_kinds: ["freshness", "not_a_kind"],
-      saved: false,
-      frameable: false,
-      source_topic: null,
-      difficulty: null,
-    }),
-  ).toEqual({
-    kind: "article",
+  };
+  expect(toCard({ ...row, source_name: null })).toBeNull();
+  expect(toCard(row)).toEqual({
     itemId: "8",
     estimatedMinutes: null,
     articleTitle: "Article",
@@ -468,28 +387,23 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     frameable: false,
     topic: null,
     difficulty: null,
+    state: "unread",
   });
   expect(lines).toHaveLength(1);
   const logged = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
-  expect(logged).toMatchObject({
-    momentId: "9",
-    missing: ["estimated_minutes"],
-  });
-  expect(lines[0]).not.toContain("Secret-ish title");
+  expect(logged).toMatchObject({ itemId: "8", missing: ["source_name"] });
+  expect(lines[0]).not.toContain("Article");
 });
-
 // P1-W4-S07: Not interested and Hide source take effect before the recompute lands.
 test("the user's not-interested items and hidden sources are left out at once", async () => {
-  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
-    const [first] = momentIds;
-    if (first === undefined) throw new Error("seed");
+  await inRollback(async (trx, { userId, otherId, itemId }) => {
     await trx
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
         chip: "3-8",
         content_item_id: itemId,
-        moment_id: first,
+        moment_id: null,
         rank: 1,
         top_signal: "quality",
       })
@@ -510,14 +424,13 @@ test("the user's not-interested items and hidden sources are left out at once", 
         level: "beginner",
         chip: "3-8",
         content_item_id: itemId,
-        moment_id: first,
+        moment_id: null,
         rank: 1,
       })
       .execute();
     const reader = kyselyFeedReader(trx);
-    const read = () => reader.read(userId, "3-8", 50);
-    const starter = () =>
-      reader.starter(userId, "databases", "beginner", "3-8", 50);
+    const read = () => reader.read(userId, 50);
+    const starter = () => reader.starter(userId, "databases", "beginner", 50);
     expect((await read()).cards).toHaveLength(1);
     expect(await starter()).toHaveLength(1);
 
@@ -572,88 +485,46 @@ test("the user's not-interested items and hidden sources are left out at once", 
   });
 });
 
-// A finished section, or a finished article, leaves the feed at once, not at the next
-// recompute (owner report, 2026-10-26: a card marked done kept showing).
-test("finished sections and finished articles are left out at once", async () => {
-  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
-    const [first, second] = momentIds;
-    if (first === undefined || second === undefined) throw new Error("seed");
+// A completed article leaves the feed at once, not at the next recompute (owner report,
+// 2026-10-26: a card marked done kept showing).
+test("completed articles are left out at once", async () => {
+  await inRollback(async (trx, { userId, otherId, itemId, otherItemId }) => {
     await trx
       .insertInto("user_feed_entry")
-      .values([
-        {
-          user_id: userId,
-          chip: "3-8",
-          content_item_id: itemId,
-          moment_id: first,
-          rank: 1,
-          top_signal: "quality",
-        },
-        {
-          user_id: userId,
-          chip: "3-8",
-          content_item_id: itemId,
-          moment_id: second,
-          rank: 2,
-          top_signal: "quality",
-        },
-        {
-          user_id: userId,
-          chip: "8-15",
-          content_item_id: itemId,
-          moment_id: null,
-          rank: 1,
-          top_signal: "quality",
-        },
-      ])
+      .values([entry(userId, itemId, 1), entry(userId, otherItemId, 2)])
       .execute();
+    await computed(trx, userId);
+    const ids = async () =>
+      (await kyselyFeedReader(trx).read(userId, 50)).cards.map((c) => c.itemId);
+    expect(await ids()).toEqual([itemId, otherItemId]);
+    // Someone else's completion changes nothing here.
     await trx
-      .insertInto("user_feed_state")
-      .values({ user_id: userId, computed_at: new Date() })
+      .insertInto("user_article_finished")
+      .values({
+        user_id: otherId,
+        content_item_id: itemId,
+        method: "mark_done",
+      })
       .execute();
-    const reader = kyselyFeedReader(trx);
-    const ids = async (chip: "3-8" | "8-15") =>
-      (await reader.read(userId, chip, 50)).cards.map((c) =>
-        c.kind === "moment" ? c.momentId : `article ${c.itemId}`,
-      );
-    expect(await ids("3-8")).toEqual([first, second]);
-
-    // Someone else's finish changes nothing here.
-    await trx
-      .insertInto("user_moment_finished")
-      .values({ user_id: otherId, moment_id: first, method: "mark_done" })
-      .execute();
-    expect(await ids("3-8")).toEqual([first, second]);
-
-    await trx
-      .insertInto("user_moment_finished")
-      .values({ user_id: userId, moment_id: first, method: "mark_done" })
-      .execute();
-    expect(await ids("3-8")).toEqual([second]);
-    expect(await ids("8-15")).toEqual([`article ${itemId}`]);
-
-    // The whole article finished: its whole-article card and its other sections go.
+    expect(await ids()).toEqual([itemId, otherItemId]);
     await trx
       .insertInto("user_article_finished")
       .values({ user_id: userId, content_item_id: itemId, method: "mark_done" })
       .execute();
-    expect(await ids("3-8")).toEqual([]);
-    expect(await ids("8-15")).toEqual([]);
+    expect(await ids()).toEqual([otherItemId]);
   });
 });
 
 // ADR-0018: a card says whether the in-app reader may frame its page; unknown is no.
 test("cards say whether their page can be framed, unknown reading as no", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const [first] = momentIds;
-    if (first === undefined) throw new Error("seed");
+  await inRollback(async (trx, { userId, itemId }) => {
     await trx
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
         chip: "3-8",
         content_item_id: itemId,
-        moment_id: first,
+        moment_id: null,
         rank: 1,
         top_signal: "quality",
       })
@@ -663,7 +534,7 @@ test("cards say whether their page can be framed, unknown reading as no", async 
       .values({ user_id: userId, computed_at: new Date() })
       .execute();
     const framed = async () =>
-      (await kyselyFeedReader(trx).read(userId, "3-8", 50)).cards[0]?.frameable;
+      (await kyselyFeedReader(trx).read(userId, 50)).cards[0]?.frameable;
     expect(await framed()).toBe(false);
     await trx
       .updateTable("content_item")
@@ -677,16 +548,14 @@ test("cards say whether their page can be framed, unknown reading as no", async 
 // ADR-0019: a card's picture comes from its source's first topic Interval knows; ADR-0027:
 // it carries the difficulty the ranking stored for its label.
 test("cards carry their source's first known topic, or none, and their difficulty", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const [first] = momentIds;
-    if (first === undefined) throw new Error("seed");
+  await inRollback(async (trx, { userId, itemId }) => {
     await trx
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
         chip: "3-8",
         content_item_id: itemId,
-        moment_id: first,
+        moment_id: null,
         rank: 1,
         top_signal: "quality",
         difficulty: "intermediate",
@@ -696,7 +565,7 @@ test("cards carry their source's first known topic, or none, and their difficult
       .insertInto("user_feed_state")
       .values({ user_id: userId, computed_at: new Date() })
       .execute();
-    const [card] = (await kyselyFeedReader(trx).read(userId, "3-8", 50)).cards;
+    const [card] = (await kyselyFeedReader(trx).read(userId, 50)).cards;
     expect(card?.difficulty).toBe("intermediate");
     const topic = async (topics: string[]) => {
       await trx
@@ -704,8 +573,7 @@ test("cards carry their source's first known topic, or none, and their difficult
         .set({ topics })
         .where("name", "=", "webfeed-test")
         .execute();
-      return (await kyselyFeedReader(trx).read(userId, "3-8", 50)).cards[0]
-        ?.topic;
+      return (await kyselyFeedReader(trx).read(userId, 50)).cards[0]?.topic;
     };
     expect(await topic([])).toBeNull();
     expect(await topic(["frontend", "databases", "backend"])).toBe("databases");
@@ -714,16 +582,14 @@ test("cards carry their source's first known topic, or none, and their difficult
 
 // P1-W5-S04: a card knows whether the user saved its article.
 test("cards say whether the user saved their article", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const [first] = momentIds;
-    if (first === undefined) throw new Error("seed");
+  await inRollback(async (trx, { userId, itemId }) => {
     await trx
       .insertInto("user_feed_entry")
       .values({
         user_id: userId,
         chip: "3-8",
         content_item_id: itemId,
-        moment_id: first,
+        moment_id: null,
         rank: 1,
         top_signal: "quality",
       })
@@ -733,21 +599,19 @@ test("cards say whether the user saved their article", async () => {
       .values({ user_id: userId, computed_at: new Date() })
       .execute();
     const reader = kyselyFeedReader(trx);
-    expect((await reader.read(userId, "3-8", 50)).cards[0]?.saved).toBe(false);
+    expect((await reader.read(userId, 50)).cards[0]?.saved).toBe(false);
     await trx
       .insertInto("user_save")
       .values({ user_id: userId, content_item_id: itemId })
       .execute();
-    expect((await reader.read(userId, "3-8", 50)).cards[0]?.saved).toBe(true);
+    expect((await reader.read(userId, 50)).cards[0]?.saved).toBe(true);
   });
 });
 
 // P2-W12-S05 (§5B, AI-3): a user's line about their own project shows only in their
 // own feed, never in another user's with the same item, nor in a starter feed.
 test("a project note shows only in its own user's feed", async () => {
-  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
-    const [first] = momentIds;
-    if (first === undefined) throw new Error("seed");
+  await inRollback(async (trx, { userId, otherId, itemId }) => {
     for (const user of [userId, otherId]) {
       await trx
         .insertInto("user_feed_entry")
@@ -755,7 +619,7 @@ test("a project note shows only in its own user's feed", async () => {
           user_id: user,
           chip: "3-8",
           content_item_id: itemId,
-          moment_id: first,
+          moment_id: null,
           rank: 1,
           top_signal: "project_match",
         })
@@ -791,19 +655,19 @@ test("a project note shows only in its own user's feed", async () => {
       })
       .execute();
     const reader = kyselyFeedReader(trx);
-    const [mine] = (await reader.read(userId, "3-8", 50)).cards;
+    const [mine] = (await reader.read(userId, 50)).cards;
     expect(mine?.projectNote).toEqual({
       text: "Velox elects its leader the same way.",
       repositories: ["octo/velox"],
     });
-    const [theirs] = (await reader.read(otherId, "3-8", 50)).cards;
+    const [theirs] = (await reader.read(otherId, 50)).cards;
     expect(theirs?.projectNote).toBeNull();
     // Once the repository is no longer shared, its line is gone at once.
     await trx
       .deleteFrom("github_repository")
       .where("user_id", "=", userId)
       .execute();
-    const [unshared] = (await reader.read(userId, "3-8", 50)).cards;
+    const [unshared] = (await reader.read(userId, 50)).cards;
     expect(unshared?.projectNote).toBeNull();
     // A starter feed holding the same item carries no project note either.
     await trx
@@ -818,80 +682,27 @@ test("a project note shows only in its own user's feed", async () => {
         level: "beginner",
         chip: "3-8",
         content_item_id: itemId,
-        moment_id: first,
+        moment_id: null,
         rank: 1,
       })
       .execute();
-    const starter = await reader.starter(
-      userId,
-      "databases",
-      "beginner",
-      "3-8",
-      50,
-    );
+    const starter = await reader.starter(userId, "databases", "beginner", 50);
     expect(starter.map((c) => c.projectNote)).toEqual([null]);
   });
 });
 
 // Owner, 2026-10-29 (Q-P2-43 update): a card with the user's own project line leads
-// the chip, whatever its rank.
+// the feed, whatever its rank.
 test("a card with the user's project line comes first", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const [first, second] = momentIds;
-    if (first === undefined || second === undefined) throw new Error("seed");
-    const other = await trx
-      .insertInto("content_item")
-      .values({
-        source_id: (
-          await trx
-            .selectFrom("content_item")
-            .select("source_id")
-            .where("id", "=", itemId)
-            .executeTakeFirstOrThrow()
-        ).source_id,
-        guid: "g-other",
-        canonical_url: "https://webfeed.example.test/other",
-        title: "Another post",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-    const otherMoment = await trx
-      .insertInto("moment")
-      .values({
-        content_item_id: other.id,
-        ordinal: 0,
-        title: "Top of another post",
-        estimated_minutes: 2,
-        link: "https://webfeed.example.test/other",
-        link_type: "page_top",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+  await inRollback(async (trx, { userId, itemId, otherItemId }) => {
     await trx
       .insertInto("user_feed_entry")
       .values([
-        {
-          user_id: userId,
-          chip: "3-8",
-          content_item_id: other.id,
-          moment_id: otherMoment.id,
-          rank: 1,
-          top_signal: "topic_match",
-        },
-        {
-          user_id: userId,
-          chip: "3-8",
-          content_item_id: itemId,
-          moment_id: second,
-          rank: 2,
-          top_signal: "project_match",
-        },
+        entry(userId, otherItemId, 1),
+        { ...entry(userId, itemId, 2), top_signal: "project_match" },
       ])
       .execute();
-    await trx
-      .insertInto("user_feed_state")
-      .values({ user_id: userId, computed_at: new Date() })
-      .execute();
+    await computed(trx, userId);
     await trx
       .insertInto("github_account")
       .values({ user_id: userId, github_user_id: "78", login: "octo" })
@@ -917,7 +728,7 @@ test("a card with the user's project line comes first", async () => {
         model: "m",
       })
       .execute();
-    const { cards } = await kyselyFeedReader(trx).read(userId, "3-8", 50);
-    expect(cards.map((c) => c.itemId)).toEqual([itemId, other.id]);
+    const { cards } = await kyselyFeedReader(trx).read(userId, 50);
+    expect(cards.map((c) => c.itemId)).toEqual([itemId, otherItemId]);
   });
 });

@@ -9,8 +9,8 @@ export function kyselyAdminQuestions(db: Kysely<DB>): AdminQuestions {
       const rows = await db
         .selectFrom("question_review as r")
         .innerJoin("question as q", "q.id", "r.question_id")
-        .leftJoin("moment as m", "m.id", "q.moment_id")
-        .leftJoin("content_item as c", "c.id", "m.content_item_id")
+        // ADR-0058: a question's home is its article, linked to its page.
+        .leftJoin("content_item as c", "c.id", "q.content_item_id")
         .select([
           "q.id",
           "r.reason",
@@ -24,8 +24,7 @@ export function kyselyAdminQuestions(db: Kysely<DB>): AdminQuestions {
           "q.unit",
           "q.citation",
           sql<string>`coalesce(c.title, q.source_title)`.as("article_title"),
-          "m.title as section_title",
-          sql<string>`coalesce(m.link, q.source_url)`.as("link"),
+          sql<string>`coalesce(c.canonical_url, q.source_url)`.as("link"),
         ])
         .where("r.decision", "is", null)
         .where("q.status", "in", ["live", "flagged"])
@@ -41,7 +40,6 @@ export function kyselyAdminQuestions(db: Kysely<DB>): AdminQuestions {
           stem: r.stem,
           citation: r.citation,
           articleTitle: r.article_title,
-          sectionTitle: r.section_title,
           link: r.link,
         };
         // question_shape: a choice has options and a key, an estimate its answer.

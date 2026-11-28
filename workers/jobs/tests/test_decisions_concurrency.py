@@ -4,21 +4,18 @@ first, then replace its answers, not fail on a key."""
 
 import os
 import threading
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 
 import psycopg
 import pytest
 
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import FeedEntry, MomentRow
+from interval_jobs.ports import FeedEntry
 
 URL = os.environ.get("DATABASE_URL", "")
 NAME = "decisions-concurrency-test"
 SLUG = "decisions-concurrency-test"
 MODEL = "perplexity/pplx-decider-v1.2"
-
-# (store, item id, moment id, hash, probability) -> one save
-Save = Callable[[PostgresStore, int, int, str, float], None]
 
 
 def cleanup() -> None:
@@ -32,7 +29,7 @@ def cleanup() -> None:
 
 
 @pytest.fixture
-def ids() -> Iterator[tuple[int, int]]:
+def item_id() -> Iterator[int]:
     assert URL, "DATABASE_URL is not set; copy .env.example to .env"
     cleanup()
     with psycopg.connect(URL) as conn:
@@ -50,11 +47,6 @@ def ids() -> Iterator[tuple[int, int]]:
             rights_profile="full_text_internal",
             homepage=None,
         )
-        conn.execute(
-            "update source set moments_seeded = true, moments_enabled = true "
-            "where id = %s",
-            (sid,),
-        )
         item = s.items.upsert_from_feed(
             sid,
             FeedEntry(
@@ -68,39 +60,26 @@ def ids() -> Iterator[tuple[int, int]]:
             ),
             keep_excerpt=False,
         )
-        s.moments.replace(
-            item,
-            [MomentRow(0, "a", 1, "https://concurrency.example.test/a", "page_top")],
-        )
-        row = conn.execute(
-            "select id from moment where content_item_id = %s", (item,)
-        ).fetchone()
-        assert row is not None
-    yield item, int(row[0])
+    yield item
     cleanup()
 
 
-def save_moment(s: PostgresStore, _item: int, moment: int, h: str, p: float) -> None:
-    s.decisions.save_moment(moment, MODEL, h, 1.0, {SLUG: p})
-
-
-def save_item(s: PostgresStore, item: int, _moment: int, h: str, p: float) -> None:
+def save(s: PostgresStore, item: int, h: str, p: float) -> None:
     s.decisions.save_item(item, MODEL, h, 1.0, {SLUG: p})
 
 
-@pytest.mark.parametrize("save", [save_moment, save_item])
 def test_a_second_writer_waits_for_the_first_and_then_replaces_its_answers(
-    ids: tuple[int, int], save: Save
+    item_id: int,
 ) -> None:
-    item, moment = ids
+    item = item_id
     errors: list[BaseException] = []
     with psycopg.connect(URL) as first:
-        save(PostgresStore(first), item, moment, "h1", 0.2)
+        save(PostgresStore(first), item, "h1", 0.2)
 
         def second() -> None:
             try:
                 with psycopg.connect(URL) as conn:
-                    save(PostgresStore(conn), item, moment, "h2", 0.9)
+                    save(PostgresStore(conn), item, "h2", 0.9)
             except BaseException as error:  # reported by the assertion below
                 errors.append(error)
 
@@ -113,11 +92,5 @@ def test_a_second_writer_waits_for_the_first_and_then_replaces_its_answers(
     assert errors == []
     with psycopg.connect(URL) as conn:
         s = PostgresStore(conn)
-        assert s.decisions.moment_hashes(item, MODEL) == (
-            {moment: "h2"} if save is save_moment else {}
-        )
-        if save is save_item:
-            assert s.decisions.item_hash(item, MODEL) == "h2"
-        got = s.decisions.read(item, MODEL)
-        answers = got.moments[moment][1] if save is save_moment else got.item
-        assert answers == {SLUG: 0.9}
+        assert s.decisions.item_hash(item, MODEL) == "h2"
+        assert s.decisions.read(item, MODEL).item == {SLUG: 0.9}

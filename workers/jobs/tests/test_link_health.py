@@ -15,7 +15,6 @@ from interval_jobs.ports import (
     Fetched,
     FetchError,
     FetchStatusError,
-    MomentRow,
     RobotsDisallowed,
 )
 
@@ -143,7 +142,6 @@ def test_a_broken_item_is_not_offered_to_ranking() -> None:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    store.sources.set_moments_enabled(source, True)
     item_id = store.items.upsert_from_feed(
         source,
         FeedEntry(
@@ -156,9 +154,6 @@ def test_a_broken_item_is_not_offered_to_ranking() -> None:
             summary=None,
         ),
         keep_excerpt=False,
-    )
-    store.moments.replace(
-        item_id, [MomentRow(0, "M", 1, "https://full.example.test/m", "page_top")]
     )
     assert item_id in shown_items(store)
     store.items.set_link_broken(item_id, NOW)

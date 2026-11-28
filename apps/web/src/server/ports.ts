@@ -46,9 +46,13 @@ export function isReasonKind(kind: string): kind is ReasonKind {
   return (REASON_KINDS as readonly string[]).includes(kind);
 }
 
-// What a card may show (§3.2, ING-2): no summary or body text. A moment, or in the
-// 8–15 chip a whole article (Q-P1-16, P1-W4-S05b).
-type CardBase = {
+// ADR-0058: an article is the only reading unit, and it is in one of these states for
+// a user: not yet opened, opened and not completed ("Continue reading"), or completed.
+export type ArticleState = "unread" | "continue_reading" | "completed";
+
+// What a card may show (§3.2, ING-2): no summary or body text. ADR-0058: always a
+// whole article, never a section of one.
+export type FeedCard = {
   itemId: string;
   articleTitle: string;
   author: string | null;
@@ -66,29 +70,22 @@ type CardBase = {
   topic: Topic | null; // its source's first known topic, for the picture (ADR-0019)
   // ADR-0027: its difficulty label, as the ranking saw it (an admin's tag first).
   difficulty: Difficulty | null;
-};
-export type MomentFeedCard = CardBase & {
-  kind: "moment";
-  momentId: string;
-  sectionTitle: string;
-  sectionNumber: number;
-  sectionCount: number;
-  estimatedMinutes: number;
-};
-export type ArticleFeedCard = CardBase & {
-  kind: "article";
   estimatedMinutes: number | null; // null: no body text to count (Q-P1-39)
+  // A feed leaves completed articles out, so a card is unread or continue_reading.
+  state: ArticleState;
 };
-export type FeedCard = MomentFeedCard | ArticleFeedCard;
+
+// ADR-0058: one list until stage C drops the chip column. The worker stores the one
+// ranked list of articles under this chip, and the preferences row's NOT NULL
+// break_length gets it too; nothing reads it as a break length any more.
+export const FEED_CHIP: BreakLength = "3-8";
 
 // CACHE-1, P1-W4-S04: the worker stores each user's ranked feed; this only reads it.
 export interface FeedReader {
-  // One query: one time chip's stored cards in rank order (Q-P1-16), and whether the
-  // feed was ever computed (a first visit waits for it, ADR-0008). Empty and computed
-  // is a real, empty feed.
+  // One query: the stored cards in rank order, and whether the feed was ever computed
+  // (a first visit waits for it, ADR-0008). Empty and computed is a real, empty feed.
   read(
     userId: string,
-    chip: BreakLength,
     limit: number,
   ): Promise<{ computed: boolean; cards: FeedCard[] }>;
   // A new guest's feed while their own is computed (ADR-0008). Both leave out the
@@ -97,11 +94,10 @@ export interface FeedReader {
     userId: string,
     topic: Topic,
     level: Difficulty,
-    chip: BreakLength,
     limit: number,
   ): Promise<FeedCard[]>;
   // ADR-0049: the topics whose starter feeds have cards from sources tagged with that
-  // topic and readable under their rights (ING-2), at any level or chip.
+  // topic and readable under their rights (ING-2), at any level.
   topicsWithReading(): Promise<Topic[]>;
 }
 
@@ -114,45 +110,31 @@ export type Inferred = {
 };
 
 // Where a card's link goes (§3.2, P1-W5-S01): looked up by id, never taken from
-// input, so /out can't send anyone elsewhere. A moment goes to its section while its
-// source allows moments (ING-2); otherwise, and for a whole article, to the page.
-export type OutboundLink = {
-  url: string;
-  linkType: "anchor" | "text_fragment" | "page_top" | "article";
-};
+// input, so /out can't send anyone elsewhere. ADR-0058: always the article's own page.
+export type OutboundLink = { url: string; linkType: "article" };
 // What the in-app reader shows around the publisher's framed page (ADR-0018): titles,
 // the user's note and save, never the page's text (§3.2, ING-2).
 export type ReaderPage = {
   link: OutboundLink; // as resolve() gives it
   frameable: boolean; // false while unknown
   articleTitle: string;
-  sectionTitle: string | null; // null when the link is the article's page
   sourceName: string;
   // The entry's explanation in the user's feed (ADR-0027), if it is in it.
   reasons: string | null;
   saved: boolean;
-  nextMomentId: string | null; // the section after the one reached, by order
-  // P4-W20-S03: what the app's reader measures: the reached section's minutes and
-  // where the next section starts (its link). Null with no section reached / no next.
-  estimatedMinutes: number | null;
-  nextLink: string | null;
+  // ADR-0058: the reader's Done becomes Completed.
+  state: ArticleState;
+  estimatedMinutes: number | null; // null: no body text to count (Q-P1-39)
 };
 export interface OutboundLinks {
-  resolve(
-    itemId: string,
-    momentId: string | null,
-  ): Promise<OutboundLink | null>;
+  resolve(itemId: string): Promise<OutboundLink | null>;
   // Null when resolve() finds nothing.
-  reader(
-    userId: string,
-    itemId: string,
-    momentId: string | null,
-  ): Promise<ReaderPage | null>;
+  reader(userId: string, itemId: string): Promise<ReaderPage | null>;
 }
 
-// Finishing sections and articles (§5D, C-22, Q-P1-35, P1-W5-S02). Each finish
-// returns whether it changed anything: the first is kept, and only it counts.
-// auto: the app's reader saw the section read through (P4-W20-S03).
+// Completing articles (§5D, C-22, Q-P1-35, P1-W5-S02; ADR-0058). A finish returns
+// whether it changed anything: the first is kept, and only it counts.
+// auto: the app's reader saw the article read through (P4-W20-S03).
 export type FinishMethod = "return_prompt" | "mark_done" | "auto";
 export type ConceptsByTopic = {
   topic: Topic;
@@ -160,45 +142,22 @@ export type ConceptsByTopic = {
   concepts: { slug: string; name: string; state: LearnerState; due: boolean }[];
 };
 export interface Progress {
-  // The moment must belong to the item, as the panel and prompt name it.
-  finishMoment(
-    userId: string,
-    itemId: string,
-    momentId: string,
-    method: FinishMethod,
-  ): Promise<boolean>;
   finishArticle(
     userId: string,
     itemId: string,
     method: FinishMethod,
   ): Promise<boolean>;
-  // For the Now reading panel; null for ids that name nothing (a moment of another
-  // article included) and for a section whose source no longer allows moments (ING-2).
-  describe(
-    itemId: string,
-    momentId: string | null,
-  ): Promise<{ articleTitle: string; sectionTitle: string | null } | null>;
+  // For the Now reading panel; null for an id that names nothing.
+  describe(itemId: string): Promise<{ articleTitle: string } | null>;
   // Q-P2-04, P2-W7-S02: the concepts the user has evidence for (PER-2), grouped by
   // topic, each with its state (P2-W9-S03); the most recently updated topic and
   // concept first.
   concepts(userId: string): Promise<ConceptsByTopic[]>;
-  // The section after this one, by order; null after the last.
-  nextMoment(
-    itemId: string,
-    momentId: string,
-  ): Promise<{ momentId: string; title: string; frameable: boolean } | null>;
-  // P1-W5-S03 (Q-P1-35): the article, once every one of its sections is finished.
-  finishArticleIfComplete(
-    userId: string,
-    itemId: string,
-    method: FinishMethod,
-  ): Promise<boolean>;
-  // A section opened through /out: read, for continue cards, but not finished
-  // (owner, 2026-10-26). The first open is kept; a moment of another item is ignored.
-  recordOpen(userId: string, itemId: string, momentId: string): Promise<void>;
-  // Q-P1-40: articles with a section read (opened or finished) and one unread, the
-  // last read within 30 days of `now`, not finished, not dismissed since that read;
-  // most recent first.
+  // An article opened through /out or the reader: Continue reading until it is
+  // completed (ADR-0058). The first open is kept; the last is moved on.
+  recordOpen(userId: string, itemId: string): Promise<void>;
+  // Q-P1-40, ADR-0058: articles last opened within 30 days of `now`, not completed, not
+  // dismissed; most recently opened first.
   continueCards(
     userId: string,
     now: Date,
@@ -208,34 +167,24 @@ export interface Progress {
   // Exploration outcomes (REC-4, P1-W4-S09): a feed card's first open counts as shown
   // for the arm that placed it, if any; the user's first finish of that article then
   // counts as finished. Each once per user and article.
-  countExploreOpen(
-    userId: string,
-    chip: BreakLength,
-    itemId: string,
-    momentId: string | null,
-  ): Promise<void>;
+  countExploreOpen(userId: string, itemId: string): Promise<void>;
   countExploreFinish(userId: string, itemId: string): Promise<void>;
 }
 
 export type ContinueCard = {
   itemId: string;
-  momentId: string; // the next unread section, in order
-  sectionTitle: string;
-  sectionNumber: number;
-  sectionCount: number;
   articleTitle: string;
+  sourceName: string;
+  estimatedMinutes: number | null;
   frameable: boolean; // ADR-0018, as on feed cards
 };
 
 // Saves and history (§5I, P1-W5-S04), for the Library (W5-S05): ids, titles and
 // sources only, never an article's text.
-// How far the user read a Library item, for its link (owner, 2026-10-26): continue at
-// the next section, open it fresh, or read it again; in the reader when framable.
+// ADR-0058: how far the user read a Library item is its state alone: Continue reading
+// or Completed (or unread, for a save never opened); in the reader when framable.
 type LibraryProgress = {
-  finishedSections: number;
-  totalSections: number;
-  finished: boolean; // every section, or the whole article
-  nextMomentId: string | null; // the first section by order not yet finished
+  state: ArticleState;
   frameable: boolean; // ADR-0018 (false while unknown)
   linkBroken: boolean; // the weekly check found it gone (P1-W6-S03)
 };
@@ -249,11 +198,12 @@ export type HistoryItem = LibraryProgress & {
   itemId: string;
   articleTitle: string;
   sourceName: string;
-  lastFinishedAt: Date;
+  // The later of its completion and its last open (ADR-0058).
+  lastReadAt: Date;
 };
 export interface Library {
   saves(userId: string, limit: number): Promise<SavedItem[]>;
-  // Articles with a finished section, or finished whole; newest finish first.
+  // ADR-0058: articles opened or completed; newest first.
   history(userId: string, limit: number): Promise<HistoryItem[]>;
 }
 
@@ -288,9 +238,9 @@ export interface Feedback {
   resetInferred(userId: string): Promise<void>;
 }
 
-// Test 60s (Q-P2-14, P2-W9-S01): a 60-second sprint over a moment's (or, momentId
-// null, an article's) concepts. The server holds the clock and serves one question at
-// a time; the key never leaves it before the answer.
+// Test 60s (Q-P2-14, P2-W9-S01): a 60-second sprint over an article's questions
+// (ADR-0058: "Quiz me", one quiz per article). The server holds the clock and serves one
+// question at a time; the key never leaves it before the answer.
 export const QUIZ_SECONDS = 60;
 export type QuizQuestion = {
   questionId: string;
@@ -323,18 +273,17 @@ export type MatchApplied = {
   outcome: "finished" | "abandoned";
   won: boolean;
   abandoned: boolean;
-  // P3-W18-S03 (§6.1): its wrong answers' sections, back to reading as a sprint's are.
-  missed: { itemId: string; momentId: string }[];
+  // P3-W18-S03 (§6.1): its wrong answers' articles, back to reading as a sprint's are.
+  missed: { itemId: string }[];
 };
 
 export interface Quizzes {
-  // Null when the target has no live question its source's rights allow (ING-2).
-  // A start while the user's sprint on the same target still runs returns that one
+  // Null when the article has no live question its source's rights allow (ING-2).
+  // A start while the user's sprint on the same article still runs returns that one
   // (LOAD-5: a double-tap starts one quiz), firstTime false.
   start(
     userId: string,
     itemId: string,
-    momentId: string | null,
   ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
   // The open question (the same one until it's answered), else the next; "over" when
   // the clock has run out or nothing is left; null when the attempt isn't the user's.
@@ -363,10 +312,8 @@ export interface Quizzes {
   // minutes) closed and rated; what it closed, so its finish can be recorded (owner,
   // 2026-10-28, Q-P2-28). Callers close before a start: the starts don't.
   closeStale(userId: string): Promise<(QuizFinish & { attemptId: string })[]>;
-  // P2-W9-S02: which of these targets would start a quiz, as `quizKey` keys.
-  offered(
-    targets: { itemId: string; momentId: string | null }[],
-  ): Promise<Set<string>>;
+  // P2-W9-S02: which of these articles would start a quiz, by item id.
+  offered(itemIds: string[]): Promise<Set<string>>;
   // The attempt's header and results; null when it isn't the user's.
   attempt(userId: string, attemptId: string): Promise<QuizAttempt | null>;
   // P2-W9-S05 (Q-P2-17): the concepts due for review that have a live question to
@@ -376,12 +323,8 @@ export interface Quizzes {
     userId: string,
   ): Promise<{ conceptId: string; name: string; daysSince: number | null }[]>;
   // A review session over them, untimed; the running one if there is one; null when
-  // nothing is due. `limit`: only the first that many, most overdue first (ADR-0044's
-  // review sized to the break); the rest stay due.
-  startReview(
-    userId: string,
-    limit?: number,
-  ): Promise<{
+  // nothing is due.
+  startReview(userId: string): Promise<{
     attemptId: string;
     concepts: number;
     firstTime: boolean;
@@ -452,9 +395,9 @@ export type QuizFinish = {
   sprint: boolean; // a game from Play (P3-W13-S02), recorded as one
   estimation: { points: number } | null; // a sprint over estimates (P3-W13-S04)
   daily: { points: number } | null; // the daily challenge (P3-W13-S05)
-  // P3-W18-S03 (§6.1): the sections a game sent back to reading, as its results
+  // P3-W18-S03 (§6.1): the articles a game sent back to reading, as its results
   // page's Read again lists them (a hand-written page has no item and isn't here).
-  missed: { itemId: string; momentId: string }[];
+  missed: { itemId: string }[];
 };
 // Where a checkpoint belongs: a section of a topic path (P2-W10-S04) or a chapter of
 // the user's book (P2-W11-S06).
@@ -476,7 +419,7 @@ export type DailyStatus = {
 };
 // A dot per question in set order: 1 a right choice, an estimate's points out of 100,
 // 0 a miss or a question not reached. The streak is as of that day. A question deleted
-// since (purged with its moment, ING-2) loses its dot but keeps its points.
+// since (purged with its article's rights, ING-2) loses its dot but keeps its points.
 export type DailyShare = {
   day: string;
   points: number;
@@ -484,8 +427,6 @@ export type DailyShare = {
   dots: number[];
 };
 
-export const quizKey = (itemId: string, momentId: string | null): string =>
-  `${itemId}.${momentId ?? ""}`;
 export type QuizAttempt = {
   // A review session (P2-W9-S05) has no article and no clock.
   review: boolean;
@@ -504,8 +445,7 @@ export type QuizAttempt = {
     shareId: string;
   } | null;
   itemId: string | null;
-  momentId: string | null;
-  title: string; // the section's, else the article's; "Review", "60-second sprint"
+  title: string; // the article's; "Review", "60-second sprint"
   startedAt: Date;
   endsAt: Date | null;
   // By the database's clock, which holds the sprint's (0 once it has run out); null
@@ -518,13 +458,8 @@ export type QuizAttempt = {
   // The concepts its answered questions test, with the user's state (null: unseen).
   concepts: { name: string; state: LearnerState | null }[];
   checkpoint: CheckpointInfo | null;
-  // A sprint's wrong answers' sections, to read again (§6.1); empty otherwise.
-  missed: {
-    itemId: string;
-    momentId: string;
-    sectionTitle: string;
-    frameable: boolean;
-  }[];
+  // A sprint's wrong answers' articles, to read again (§6.1); empty otherwise.
+  missed: { itemId: string; articleTitle: string; frameable: boolean }[];
 };
 // P2-W10-S04 (Q-P2-26): up to 5 questions; 4 of 5 pass, all but one of fewer.
 export const CHECKPOINT_SIZE = 5;
@@ -564,52 +499,41 @@ export type EstimateReveal = {
   answer: number;
   unit: string;
   score: number;
-  // null: its moment's source no longer allows moments, or its link broke (ING-2).
+  // null: its article's rights no longer allow it, or its link broke (ING-2).
   source: EstimateSource | null;
 };
 export type EstimateSource =
   // A hand-written question's page and the sentence quoted from it (P3-W13-S03).
   | { kind: "page"; url: string; title: string; citation: string }
-  // A moment's section, read through the reader; never its quote (Q-P2-12).
+  // An article, read through the reader; never its quote (Q-P2-12).
   | {
-      kind: "section";
+      kind: "article";
       itemId: string;
-      momentId: string;
-      sectionTitle: string;
+      articleTitle: string;
       frameable: boolean;
     };
 
-// Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on a section, or on the
-// article when momentId is null. Never shown to anyone else.
+// Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on an article. Never shown to
+// anyone else. ADR-0058: new notes are per article; notes written on a section before
+// it are still listed (with their section title) until stage C joins them into the
+// article's note.
 export interface Notes {
-  get(
-    userId: string,
-    itemId: string,
-    momentId: string | null,
-  ): Promise<string | null>;
-  // Writes or replaces it; false when the ids name no section of that article.
-  save(
-    userId: string,
-    itemId: string,
-    momentId: string | null,
-    body: string,
-  ): Promise<boolean>;
+  // The article's own note.
+  get(userId: string, itemId: string): Promise<string | null>;
+  // Writes or replaces it; false when the id names no article.
+  save(userId: string, itemId: string, body: string): Promise<boolean>;
   // False when there was none.
-  remove(
-    userId: string,
-    itemId: string,
-    momentId: string | null,
-  ): Promise<boolean>;
+  remove(userId: string, itemId: string): Promise<boolean>;
   // P2-W7-S04: the Library's list, newest edit first.
   list(userId: string, limit: number): Promise<NoteEntry[]>;
-  // Notes on these items' own sections or the articles themselves, for their cards;
-  // not those whose section was re-segmented away.
+  // Notes on these articles, the article's own (sectionTitle null) and the earlier
+  // section notes, for their cards and the reader.
   onItems(
     userId: string,
     itemIds: string[],
-  ): Promise<{ itemId: string; momentId: string | null; body: string }[]>;
-  // By the note's own id (the Library), which also reaches a note whose section was
-  // re-segmented away; what it was on, or null when the user has no such note.
+  ): Promise<{ itemId: string; sectionTitle: string | null; body: string }[]>;
+  // By the note's own id (the Library), which also reaches an earlier section note;
+  // what it was on, or null when the user has no such note.
   update(
     userId: string,
     noteId: string,
@@ -617,10 +541,10 @@ export interface Notes {
   ): Promise<NoteTarget | null>;
   removeById(userId: string, noteId: string): Promise<NoteTarget | null>;
 }
-export type NoteTarget = { itemId: string; momentId: string | null };
+export type NoteTarget = { itemId: string };
 export type NoteEntry = NoteTarget & {
   noteId: string;
-  // The section's title, kept when the section is gone; null on the article's note.
+  // An earlier section note's title (ADR-0058); null on the article's note.
   sectionTitle: string | null;
   articleTitle: string;
   sourceName: string;
@@ -1216,28 +1140,16 @@ export type ReviewItem = {
     level: number | null;
     wordCount: number;
   }[];
-  // heading is null for the intro moment, which starts at the top of the page.
-  moments: {
-    ordinal: number;
-    title: string;
-    heading: string | null;
-    estimatedMinutes: number;
-    oversized: boolean;
-  }[];
-  // The model's tags (AI-3); moment tags by ordinal.
-  modelTags: { item: ReviewTags | null; moments: Map<number, ReviewTags> };
-  // The admin's corrections, kept apart and keyed by heading so they survive
-  // re-ingestion: boundaries are the headings moments start at; tag overrides are by
-  // heading, "" for the item itself.
-  boundaries: string[] | null;
-  tagOverrides: Map<string, ReviewTags>;
+  // The model's tags (AI-3) and the admin's correction, kept apart so it survives
+  // re-ingestion. ADR-0058: the whole article only; there are no moments to tag.
+  modelTags: ReviewTags | null;
+  tagOverride: ReviewTags | null;
 };
 
 export type ReviewListing = {
   id: string;
   title: string;
   sourceName: string;
-  momentCount: number;
   // ADR-0026: users' "a reason is wrong" reports on it, by reason, most first.
   reports: { reason: ReasonKind; count: number }[];
 };
@@ -1247,32 +1159,17 @@ export interface AdminReview {
   item(id: string): Promise<ReviewItem | null>;
   // Slugs of the concepts that may be tagged (not retired).
   activeConcepts(): Promise<string[]>;
-  // null clears the override, so the 2-8 minute rules apply again.
-  setBoundaries(
-    itemId: string,
-    headings: string[] | null,
-    by: string,
-  ): Promise<void>;
-  // heading "" is the item itself; null clears the override.
-  setTags(
-    itemId: string,
-    heading: string,
-    tags: ReviewTags | null,
-    by: string,
-  ): Promise<void>;
+  // The whole article's override (ADR-0058); null clears it.
+  setTags(itemId: string, tags: ReviewTags | null, by: string): Promise<void>;
 }
 
-// §3.2, P1-W3-S06: the per-source moments switch. The seed file owns every other
-// setting, including whether a source is polled at all (ADR-0006 C-28).
-export type SourceSwitch = {
+// The admin's list of sources. The seed file owns every setting, including whether a
+// source is polled at all (ADR-0006 C-28); ADR-0058 removed the moments switch.
+export type AdminSource = {
   id: string;
   name: string;
   rightsProfile: string;
   active: boolean;
-  // What the seed file says, whether an admin switched moments off, and the result.
-  momentsSeeded: boolean;
-  momentsSwitchedOff: boolean;
-  momentsEnabled: boolean;
 };
 
 // Ranking inspection (REC-2, P1-W6-S01): how the worker made each score, by rule.
@@ -1285,9 +1182,7 @@ export type ScoreBreakdown = {
 
 export type InspectedEntry = {
   rank: number;
-  kind: "moment" | "article";
   articleTitle: string;
-  sectionTitle: string | null;
   sourceName: string;
   topSignal: string;
   explored: { kind: string; arm: string } | null; // placed by exploration (REC-4)
@@ -1297,8 +1192,8 @@ export type InspectedEntry = {
 export type RankingSetting = { key: string; value: number; note: string };
 
 export interface RankingInspection {
-  // The user's own feed for a chip, in rank order, as the feed shows it.
-  entries(userId: string, chip: BreakLength): Promise<InspectedEntry[]>;
+  // The user's own feed, in rank order, as the feed shows it.
+  entries(userId: string): Promise<InspectedEntry[]>;
   settings(): Promise<RankingSetting[]>;
   setSetting(
     key: string,
@@ -1314,9 +1209,8 @@ export type ReviewQuestion = {
   reason: ReviewReason;
   stem: string;
   citation: string;
-  // A hand-written question's source page has no section (P3-W13-S03).
+  // Its article (ADR-0058), or a hand-written question's source page (P3-W13-S03).
   articleTitle: string;
-  sectionTitle: string | null;
   link: string;
 } & (
   | {
@@ -1363,12 +1257,11 @@ export interface AdminQuestions {
 export type PathStatus = "draft" | "live" | "retired";
 export type ReviewPathSession = {
   ordinal: number;
-  momentId: string;
-  sectionTitle: string;
+  itemId: string; // ADR-0058: a session is a whole article
   articleTitle: string;
   sourceName: string;
   link: string;
-  // The moment's rights now (ING-2): its source may have been switched off since.
+  // Its rights now (ING-2): its source may have been lowered since.
   allowed: boolean;
 };
 export type ReviewPathSection = {
@@ -1415,13 +1308,12 @@ export type PathSummary = {
   topic: Topic | null;
   fitsGoal: boolean;
 };
+// ADR-0058: a reading is a whole article.
 export type PathReading = {
-  momentId: string;
   itemId: string;
-  sectionTitle: string;
   articleTitle: string;
   sourceName: string;
-  minutes: number;
+  minutes: number | null; // null: no body text to count (Q-P1-39)
   frameable: boolean;
   linkBroken: boolean;
   finished: boolean;
@@ -1430,7 +1322,7 @@ export type PathReading = {
 // What a link to a reading needs (ReadingLink).
 export type ReadingTarget = Pick<
   PathReading,
-  "itemId" | "momentId" | "sectionTitle" | "frameable" | "linkBroken"
+  "itemId" | "articleTitle" | "frameable" | "linkBroken"
 >;
 export type PathFoundation = {
   conceptId: string;
@@ -1496,7 +1388,7 @@ export interface Paths {
   // Not a passed or skipped section; no practiced credit, and the next ones open.
   skipSection(userId: string, sectionId: string): Promise<string | null>;
   unskipSection(userId: string, sectionId: string): Promise<string | null>;
-  // Up to 5 other moments on the section's concepts, rights allowing, link working,
+  // Up to 5 other articles on the section's concepts, rights allowing, link working,
   // not already in the section; empty when the session can't be swapped.
   alternatives(
     userId: string,
@@ -1508,7 +1400,7 @@ export interface Paths {
     userId: string,
     sectionId: string,
     ordinal: number,
-    momentId: string,
+    itemId: string,
   ): Promise<string | null>;
 }
 // P2-W10-S06 (REC-1, Q-P2-27): the active path's next step, the feed's first card.
@@ -1535,20 +1427,14 @@ export type PathNext =
       next: string[] | null; // the concepts it unlocks; null for the last section
     };
 export type PathAlternative = {
-  momentId: string;
-  sectionTitle: string;
+  itemId: string;
   articleTitle: string;
   sourceName: string;
-  minutes: number;
+  minutes: number | null;
 };
 
 export interface AdminSources {
-  list(): Promise<SourceSwitch[]>;
-  get(id: string): Promise<SourceSwitch | null>;
-  // Switching off removes the source's moments at once (the database's purge trigger).
-  setMomentsSwitchedOff(id: string, off: boolean, by: string): Promise<void>;
-  // Items whose stored full text can be segmented again when moments come back.
-  fullTextItemIds(id: string): Promise<string[]>;
+  list(): Promise<AdminSource[]>;
 }
 
 // §5A, PER-1, C-21, P1-W4-S01: the explicit layer. Feedback and inference never write
@@ -1575,11 +1461,6 @@ export const LEVELS = [
   "intermediate",
   "advanced",
 ] as const satisfies readonly Difficulty[];
-export const BREAK_LENGTHS = [
-  "1-3",
-  "3-8",
-  "8-15",
-] as const satisfies readonly BreakLength[];
 
 // ADR-0015: learning goals, in the enum's order. The book goal is live with PDF books
 // (Q-P2-36, P2-W11-S05), the stack goal with GitHub projects (P2-W12-S04).
@@ -1600,7 +1481,6 @@ export type Preferences = {
   goals: LearningGoal[];
   topics: Topic[];
   level: Difficulty;
-  breakLength: BreakLength;
 };
 
 export interface PreferencesStore {
@@ -2123,21 +2003,17 @@ export interface AdminTechnologies {
 }
 
 // Concept explainers (§5G, ADR-0038, P4-W22-S01): scripts waiting for the owner, each
-// with its citations as the sections they quote (deep links, §3.2).
+// with its citations as the articles they quote (deep links, §3.2; ADR-0058).
 export type ExplainerReview = {
   id: string;
   concept: string;
   script: string;
   model: string;
   createdAt: Date;
-  // Cited sections gone since (re-segmented): not shown, but counted.
+  // Citations naming no article any more: not shown, but counted.
   missing: number;
-  citations: {
-    momentId: string;
-    articleTitle: string;
-    sectionTitle: string;
-    link: string;
-  }[];
+  // ADR-0058: the cited articles, each once.
+  citations: { itemId: string; articleTitle: string; link: string }[];
 };
 export interface AdminExplainers {
   pending(): Promise<ExplainerReview[]>;
@@ -2177,21 +2053,8 @@ export interface AdminScenes {
 // they are in each, and Up next along the concept graph (wireframe 07). Per account,
 // shared by the PWA and the app.
 export interface Listening {
-  // Approved, voiced explainers of what the reader shows: the section's concepts, or the
-  // article's when no section was reached. By concept name.
-  voiced(itemId: string, momentId: string | null): Promise<string[]>;
-  // ADR-0044's "Also fits" explainer: along `cards` in order (a section's concepts, or
-  // an article's), the first concept with an approved, voiced explainer this user
-  // hasn't finished and that lasts at most `maxSeconds`; by name within a card.
-  fitting(
-    userId: string,
-    cards: { itemId: string; momentId: string | null }[],
-    maxSeconds: number,
-  ): Promise<{
-    explainerId: string;
-    concept: string;
-    durationSeconds: number;
-  } | null>;
+  // Approved, voiced explainers of the article's concepts, by concept name.
+  voiced(itemId: string): Promise<string[]>;
   queue(userId: string): Promise<ListenResponse>;
   // Appended in order; ones already queued stay where they are. Returns the given ids
   // that are approved and voiced (queued now or before), in the given order.
@@ -2653,15 +2516,11 @@ export interface HldTournaments {
 }
 
 // ADR-0046: Explore. Search covers what cards already show (titles, authors, sources,
-// moment titles, concept and technology names, excerpt sources' excerpts) and the
-// user's own saves and notes; never private text (ING-2). Hidden sources, broken links
-// and switched-off sources are left out everywhere on the page.
+// concept and technology names, excerpt sources' excerpts) and the user's own saves
+// and notes; never private text (ING-2). Hidden sources, broken links and switched-off
+// sources are left out everywhere on the page. ADR-0058: a result is an article.
 export type ExploreResult = {
   itemId: string;
-  // The section that matched, when one did and its source makes moments; the result
-  // then opens that deep link.
-  momentId: string | null;
-  title: string;
   articleTitle: string;
   sourceName: string;
   author: string | null;
@@ -2675,14 +2534,13 @@ export type ExploreResult = {
 export type SpaceStats = { topic: Topic; learners: number; fresh: number };
 
 // "A gap worth closing": an unmastered concept linked to two mastered ones, opened at
-// its shortest moment.
+// its shortest article (ADR-0058).
 export type ExploreGap = {
   conceptId: string;
   concept: string;
   topic: Topic | null;
   known: [string, string];
   itemId: string;
-  momentId: string;
   minutes: number;
 };
 
@@ -2729,14 +2587,13 @@ export const ASK_MAX_FOLLOW_UPS = 3;
 export type AskOutcome =
   "answered" | "nothing_found" | "over_budget" | "unavailable";
 
-// A cited passage, as its chip shows it: a moment or item opens its deep link; an
+// A cited passage, as its chip shows it: an article opens its link (ADR-0058); an
 // approved concept explainer is named only.
 export type AskCitation =
   | {
       kind: "reading";
       passage: string;
       itemId: string;
-      momentId: string | null;
       label: string;
       topic: Topic | null;
     }
@@ -2763,14 +2620,14 @@ export type AskSubmit = {
   followUpOf: string | null;
 };
 
-// "Make it a 4-min session" (owner, 2026-11-26): an answer's cited moments the user may
-// still open, with their concepts, and the prerequisite edges among those concepts.
-export type SessionMoment = {
+// An Ask answer's reading session (owner, 2026-11-26; ADR-0058): its cited articles the
+// user may still open, with their concepts, and the prerequisite edges among those
+// concepts.
+export type SessionArticle = {
   itemId: string;
-  momentId: string;
   title: string;
   sourceName: string;
-  minutes: number;
+  minutes: number | null; // null: no body text to count (Q-P1-39)
   conceptIds: string[];
 };
 
@@ -2789,12 +2646,13 @@ export interface Asks {
   get(id: string, userId: string): Promise<AskThread | null>;
   latest(userId: string): Promise<AskThread | null>;
   remove(id: string, userId: string): Promise<boolean>;
-  // Null when the question isn't the user's or has no answer; moments in citation order.
-  sessionMoments(
+  // Null when the question isn't the user's or has no answer; articles in citation
+  // order, each once.
+  sessionArticles(
     id: string,
     userId: string,
   ): Promise<{
-    moments: SessionMoment[];
+    articles: SessionArticle[];
     prerequisites: [from: string, to: string][];
   } | null>;
   // Questions asked since `since`, deleted ones included (owner, 2026-11-26).

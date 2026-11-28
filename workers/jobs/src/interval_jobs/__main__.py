@@ -2,7 +2,6 @@
 
 Usage:
   python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile P
-  python -m interval_jobs segment-item --content-item-id ID
   python -m interval_jobs recompute-due
   python -m interval_jobs issue-invites --group student --uses 30 --days 30 [--count N]
   python -m interval_jobs purge-guests
@@ -84,27 +83,28 @@ from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.leagues import close_leagues_due, say_leagues
-from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
 from interval_jobs.lld_practice import relay_practice
 from interval_jobs.match_results import relay
 from interval_jobs.native_push import push_test
 from interval_jobs.path_proposer import propose
-from interval_jobs.pipeline import BATCH_PREFIX, Pipeline, notes_batched
+from interval_jobs.pipeline import (
+    BATCH_PREFIX,
+    Pipeline,
+    notes_batched,
+    questions_job,
+)
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError, Store
 from interval_jobs.pronunciations import PronunciationSeedError
 from interval_jobs.pronunciations import parse_seed as parse_pronunciations
 from interval_jobs.question_batches import collect, submit
-from interval_jobs.question_trial import TrialError, run_trial, trial_moments
-from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
-from interval_jobs.ranking.scoring import BREAK_MINUTES
+from interval_jobs.question_trial import TrialError, run_trial, trial_articles
 from interval_jobs.recalibration import recalibrate
 from interval_jobs.reminders import run_push_due, run_window_reminders
 from interval_jobs.rewrite_stems import RETRY_AFTER, rewrite_stems
 from interval_jobs.scenes import draw as draw_scenes
 from interval_jobs.seasons import close_season
-from interval_jobs.segment import segment_item
 from interval_jobs.snapshots import prune_snapshots
 from interval_jobs.tagging import TaggingError
 from interval_jobs.tagging_eval import (
@@ -145,13 +145,6 @@ def main(argv: list[str]) -> None:
         "--rights-profile", required=True, choices=get_args(RightsProfile.__value__)
     )
     one.add_argument("--homepage")
-    seg = commands.add_parser("segment-item", help="split one stored item into moments")
-    seg.add_argument("--content-item-id", type=int, required=True)
-    links = commands.add_parser(
-        "check-links",
-        help="check that moment links land on their sections (P1-W6-S02)",
-    )
-    links.add_argument("--source-id", type=int)
     commands.add_parser(
         "push-due",
         help="send the opt-in pushes whose hour has come (hourly, P4-W24-S01b)",
@@ -201,7 +194,7 @@ def main(argv: list[str]) -> None:
     draft.add_argument("--file", type=Path, default=CONCEPT_FILE)
     evaluate = commands.add_parser(
         "eval-tagging",
-        help="score a tagging model against owner-labelled moments (AI-5)",
+        help="score a tagging model against owner-labelled articles (AI-5)",
     )
     evaluate.add_argument("--labels", type=Path, required=True)
     evaluate.add_argument("--model", required=True, help="OpenRouter model id")
@@ -271,7 +264,7 @@ def main(argv: list[str]) -> None:
     discover.add_argument("--source-id", type=int)
     commands.add_parser(
         "enqueue-questions",
-        help="queue question drafting for every tagged full-text moment (Q-1)",
+        help="queue question drafting for every tagged full-text article (Q-1)",
     )
     commands.add_parser(
         "question-batches",
@@ -280,7 +273,7 @@ def main(argv: list[str]) -> None:
     )
     trial = commands.add_parser(
         "question-trial",
-        help="draft and validate the first N target moments on QUESTIONS_MODEL="
+        help="draft and validate the first N target articles on QUESTIONS_MODEL="
         "batch:<model> and report, saving nothing to the bank (Q-P2-13)",
     )
     trial.add_argument("--limit", type=int, default=10)
@@ -425,11 +418,7 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         for topic, level in STARTERS:
             with services() as s:
                 recompute_starter(s.store, topic, level, None, now)
-        print(
-            json.dumps(
-                {"queued": queued, "starter_feeds": len(STARTERS) * len(BREAK_MINUTES)}
-            )
-        )
+        print(json.dumps({"queued": queued, "starter_feeds": len(STARTERS)}))
         return
 
     if args.command == "poll-due":
@@ -534,7 +523,7 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.command == "question-trial":
         with services() as s:
             try:
-                moments = trial_moments(s.store, args.limit)
+                articles = trial_articles(s.store, args.limit)
             except TrialError as error:
                 sys.exit(f"question-trial: {error}")
         with model_job("QUESTIONS_MODEL") as job:
@@ -545,7 +534,7 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
                     report = run_trial(
                         gateway,
                         job.model.removeprefix(BATCH_PREFIX),
-                        moments,
+                        articles,
                         draft_batch=args.draft_batch,
                     )
                 except TrialError as error:
@@ -888,11 +877,6 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     with services() as s:
         if args.command == "purge-guests":
             result = {"purged": s.store.users.purge_inactive_guests(datetime.now(UTC))}
-        elif args.command == "check-links":
-            result = dict(check_links(s.store.moments, s.fetcher, args.source_id))
-        elif args.command == "segment-item":
-            rows = segment_item(s.store, args.content_item_id)
-            result = {"content_item_id": args.content_item_id, "moments": len(rows)}
         else:
             source_id = s.store.sources.upsert(
                 name=args.name,
@@ -1209,17 +1193,14 @@ def _question_batches() -> None:
 
 
 def _enqueue_questions() -> int:
-    """Q-1 backfill: every target moment; drafting skips ones already done (AI-4)."""
+    """Q-1 backfill: every target article; drafting skips ones already done (AI-4)."""
     with services() as s:
-        moments = s.store.questions.targets(None)
+        items = s.store.questions.targets(None)
     queue = queue_for_enqueue()
-    for moment_id in moments:
-        queue.enqueue(
-            "generate_questions",
-            {"moment_id": moment_id, "attempt": 0, "broken": 0},
-            idempotency_key=f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}",
-        )
-    return len(moments)
+    for item_id in items:
+        name, payload, key = questions_job(item_id)
+        queue.enqueue(name, payload, idempotency_key=key)
+    return len(items)
 
 
 def _enqueue_discover(source_id: int | None) -> int:

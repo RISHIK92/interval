@@ -8,7 +8,12 @@ const Reasons = z
   .object({ text: z.string(), kinds: z.array(z.string()) })
   .nullable();
 
-const CardBase = z.object({
+// ADR-0058: an article is the only reading unit: unread, opened and not completed
+// ("Continue reading"), or completed.
+const ARTICLE_STATES = ["unread", "continue_reading", "completed"] as const;
+const ArticleState = z.enum(ARTICLE_STATES);
+
+export const FeedCard = z.object({
   itemId: z.string(),
   articleTitle: z.string(),
   author: z.string().nullable(),
@@ -23,33 +28,15 @@ const CardBase = z.object({
   frameable: z.boolean(),
   topic: z.string().nullable(),
   difficulty: z.string().nullable(),
+  estimatedMinutes: z.number().nullable(), // null: no body text to count
+  state: ArticleState,
 });
-
-export const FeedCard = z.discriminatedUnion("kind", [
-  CardBase.extend({
-    kind: z.literal("moment"),
-    momentId: z.string(),
-    sectionTitle: z.string(),
-    sectionNumber: z.number().int(),
-    sectionCount: z.number().int(),
-    estimatedMinutes: z.number(),
-  }),
-  CardBase.extend({
-    kind: z.literal("article"),
-    estimatedMinutes: z.number().nullable(),
-  }),
-]);
 export type FeedCard = z.infer<typeof FeedCard>;
-
-export const CHIPS = ["1-3", "3-8", "8-15"] as const;
-export type Chip = (typeof CHIPS)[number];
 
 // A first visit waits for its feed or gets the starter feed (ADR-0008), as the PWA's;
 // an account not yet onboarded gets 409 instead (onboarding is on the web).
-export const FeedResponse = z.object({
-  chip: z.enum(CHIPS),
-  cards: z.array(FeedCard),
-});
+// ADR-0058: one list, with no time chip.
+export const FeedResponse = z.object({ cards: z.array(FeedCard) });
 export type FeedResponse = z.infer<typeof FeedResponse>;
 
 // The card controls (§5C, Q-P1-15), as the PWA's card menu has them.
@@ -72,39 +59,28 @@ export type FeedSetup = z.infer<typeof FeedSetup>;
 
 // P4-W20-S02 (ADR-0018, §3.2): what the app's reader shows around the publisher's live
 // page: titles, the user's save and note, never the page's text. `url` opens in the
-// WebView when `inApp`; anything not https goes to the browser.
-// P4-W20-S03 (§5D): where a section starts in the publisher's page: an element's id
-// (an anchor link) or a heading's text (a text fragment).
-export const Marker = z.union([
-  z.object({ id: z.string().min(1) }),
-  z.object({ text: z.string().min(1) }),
-]);
-export type Marker = z.infer<typeof Marker>;
-
+// WebView when `inApp`; anything not https goes to the browser. ADR-0058: always the
+// whole article.
 export const ReaderResponse = z.object({
   url: z.string(),
   inApp: z.boolean(),
   title: z.string(),
   domain: z.string(),
   saved: z.boolean(),
-  // The section reached; null when the link fell back to the article's page.
-  reached: z.string().nullable(),
-  nextMomentId: z.string().nullable(),
+  state: ArticleState,
   note: z.string().nullable(),
-  // Test 60s has a live question on what's shown (P4-W21-S01).
+  // Notes the user wrote on a section before ADR-0058, shown under the article until
+  // stage C joins them into its note.
+  sectionNotes: z.array(
+    z.object({ sectionTitle: z.string(), body: z.string() }),
+  ),
+  // Test 60s has a live question on what's shown (P4-W21-S01): its Quiz me.
   testable: z.boolean(),
   // A concept of what's shown has a voiced AI explainer: Listen (P4-W23-S02).
   listen: z.boolean(),
-  // What the reader measures to finish the section by itself: its start, the next
-  // section's start (null: the page's end, it is the last) and its minutes. Null when
-  // there is no section to measure (an article or page-top link).
-  measure: z
-    .object({
-      start: Marker,
-      end: Marker.nullable(),
-      minutes: z.number().int().positive(),
-    })
-    .nullable(),
+  // P4-W20-S03: the reader completes the article by itself once the page has been read
+  // to its end for about this long; null when its length is unknown.
+  measure: z.object({ minutes: z.number().int().positive() }).nullable(),
 });
 export type ReaderResponse = z.infer<typeof ReaderResponse>;
 // As the web's notes (P2-W7-S03).
@@ -180,7 +156,7 @@ export const QuizView = z.object({
 });
 export type QuizView = z.infer<typeof QuizView>;
 
-// Where an estimate's answer comes from (AI-3): a quoted page, or a section to read.
+// Where an estimate's answer comes from (AI-3): a quoted page, or an article to read.
 export const EstimateSource = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("page"),
@@ -189,10 +165,9 @@ export const EstimateSource = z.discriminatedUnion("kind", [
     citation: z.string(),
   }),
   z.object({
-    kind: z.literal("section"),
+    kind: z.literal("article"),
     itemId: ID,
-    momentId: ID,
-    sectionTitle: z.string(),
+    articleTitle: z.string(),
   }),
 ]);
 export const AnswerResult = z.discriminatedUnion("kind", [
@@ -224,10 +199,8 @@ export const QuizResults = z.object({
   // A game's score (a sprint's: its right answers); null for Test 60s.
   points: z.number().nullable(),
   daily: z.object({ shareId: ID, streak: Streak }).nullable(),
-  // Sections to read again (§6.1).
-  missed: z.array(
-    z.object({ itemId: ID, momentId: ID, sectionTitle: z.string() }),
-  ),
+  // Articles to read again (§6.1, ADR-0058).
+  missed: z.array(z.object({ itemId: ID, articleTitle: z.string() })),
 });
 export type QuizResults = z.infer<typeof QuizResults>;
 
@@ -310,13 +283,12 @@ export const PathResponse = z.object({
       size: z.number().int().nonnegative(),
       passMark: z.number().int().nonnegative(),
       readings: z.array(
+        // ADR-0058: a reading is an article.
         z.object({
           itemId: ID,
-          momentId: ID,
-          sectionTitle: z.string(),
           articleTitle: z.string(),
           sourceName: z.string(),
-          minutes: z.number().nonnegative(),
+          minutes: z.number().nonnegative().nullable(), // null: no body text to count
           linkBroken: z.boolean(),
           finished: z.boolean(),
         }),
@@ -479,9 +451,9 @@ const AgentSuggestion = z.object({
   minutes: z.number().int().nullable(),
   url: z.string(),
 });
+// ADR-0058: no time chip; the suggestions are the feed's first articles.
 export const AgentStatus = z.object({
   task: AgentTask,
-  chip: z.enum(CHIPS),
   suggestions: z.array(AgentSuggestion).max(3),
 });
 export type AgentStatus = z.infer<typeof AgentStatus>;

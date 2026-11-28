@@ -1,4 +1,3 @@
-import type { Chip } from "../server/chips";
 import { startReviewAction } from "./quiz/actions";
 import { reviewMinutes } from "./reviewTime";
 import { Card } from "./ui/Card";
@@ -21,10 +20,8 @@ const recalled = (days: number | null) =>
 // tile (the quiz's option shape) saying when it was last recalled.
 export function ReviewCard({
   due,
-  chip,
 }: {
   due: { name: string; daysSince: number | null }[];
-  chip: Chip; // the quiz returns to this time chip's feed
 }) {
   const one = due.length === 1;
   const more = due.length - NAMED;
@@ -103,7 +100,6 @@ export function ReviewCard({
             action={startReviewAction}
             className="mt-auto flex pt-4 lg:pt-0"
           >
-            <input type="hidden" name="chip" value={chip} />
             <button
               type="submit"
               className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page lg:h-[50px] lg:text-base"

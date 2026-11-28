@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import type { Difficulty, Topic } from "@interval/db";
 import { LEVEL_NAMES, TOPIC_NAMES } from "./ChoicesFields";
 import type { FeedCard } from "../server/ports";
-import { SectionProgress } from "./SectionProgress";
 import { AiBox } from "./ui/AiBox";
 import { Card } from "./ui/Card";
 import { TopicArt } from "./ui/TopicArt";
@@ -10,7 +9,7 @@ import { TopicArt } from "./ui/TopicArt";
 // A feed card (design screen 2, ADR-0019): every card has the hero's shape, one at a
 // time in Home's sideways row, with its topic's picture when the source names one.
 // Deep links to the publisher, never copies (§3.2). A `read` link to the browser
-// carries data-item (and data-moment) so the return prompt can ask about it; one into
+// carries data-item so the return prompt can ask about it; one into
 // the in-app reader (ADR-0018) stays in this tab and asks on close.
 // The web design's pill carries a play mark; phones keep the plain pill.
 const PLAY = (
@@ -26,9 +25,8 @@ const PLAY = (
 export function FeedCardLayout({
   title,
   attribution,
-  context,
-  section,
   length,
+  state,
   reasons,
   projectNote = null,
   read,
@@ -39,34 +37,28 @@ export function FeedCardLayout({
 }: {
   title: string;
   attribution: string;
-  context: string | null;
-  section: { number: number; count: number } | null;
   length: string;
+  // ADR-0058: "Continue reading" or "Completed"; null for an unread article.
+  state: string | null;
   reasons: FeedCard["reasons"];
   projectNote?: FeedCard["projectNote"];
   read: {
     href: string;
     label: string;
     item: string;
-    moment?: string;
     inApp: boolean;
   };
   topic: Topic | null;
   // ADR-0027: small labels beside the length.
   difficulty?: Difficulty | null;
   controls: ReactNode;
-  // P2-W7-S04: the user's own note on this section or article (Q-P2-01).
+  // P2-W7-S04: the user's own note on this article (Q-P2-01).
   yourNote?: string | null;
 }) {
   const className =
     "inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page lg:h-[50px] lg:basis-45 lg:py-0 lg:text-base";
   const readLink = read.inApp ? (
-    <a
-      href={read.href}
-      data-read-item={read.item}
-      data-read-moment={read.moment}
-      className={className}
-    >
+    <a href={read.href} data-read-item={read.item} className={className}>
       {PLAY}
       {read.label}
     </a>
@@ -74,7 +66,6 @@ export function FeedCardLayout({
     <a
       href={read.href}
       data-item={read.item}
-      data-moment={read.moment}
       target="_blank"
       rel="noopener noreferrer"
       className={className}
@@ -99,13 +90,10 @@ export function FeedCardLayout({
           <h2 className="mt-1 text-title lg:mt-2.5 lg:text-[26px] lg:leading-[1.15] lg:tracking-[-0.02em]">
             {title}
           </h2>
-          {context === null ? null : (
-            <p className="text-ink-muted">{context}</p>
-          )}
-          {section === null ? null : (
-            <SectionProgress number={section.number} count={section.count} />
-          )}
           <p className="mt-3 text-ink-muted">{length}</p>
+          {state === null ? null : (
+            <p className="text-sm font-semibold text-go-text">{state}</p>
+          )}
           {difficulty === null && topic === null ? null : (
             <p className="text-sm text-ink-muted">
               {[

@@ -1,9 +1,4 @@
-import {
-  CHIPS,
-  type Chip,
-  NOTE_MAX,
-  type ReaderResponse,
-} from "@interval/api-client";
+import { NOTE_MAX, type ReaderResponse } from "@interval/api-client";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -29,8 +24,8 @@ import {
 
 // ADR-0018: without a load by then the page may be blank, so the browser is offered.
 const STUCK_MS = 6000;
-// P4-W20-S03 (§5D, owner 2026-11-09): a section is read through once the screen's bottom
-// has passed 90% of it and the reader has been open half its minutes, 30 s at least.
+// P4-W20-S03 (§5D, owner 2026-11-09): an article is read through once the screen's bottom
+// has passed 90% of its page and the reader has been open half its minutes, 30 s at least.
 const READ_THROUGH = 0.9;
 const TIME_SHARE = 0.5;
 const MIN_SECONDS = 30;
@@ -44,8 +39,6 @@ type State =
 
 const one = (value: string | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
-const isChip = (value: string | undefined): value is Chip =>
-  CHIPS.some((chip) => chip === value);
 
 const leave = () => {
   if (router.canGoBack()) router.back();
@@ -54,16 +47,13 @@ const leave = () => {
 
 // P4-W20-S02 (ADR-0018, §3.2, ING-2): the publisher's live page, never a copy, with
 // Interval's header above and its row below, as the web reader. The card's why stays on
-// the card (owner, 2026-11-09).
+// the card (owner, 2026-11-09). ADR-0058: always the whole article.
 export default function ReaderScreen() {
   const c = useColors();
   const params = useLocalSearchParams();
   const item = one(params.item) ?? "";
-  const moment = one(params.moment);
-  const chipParam = one(params.chip);
-  const chip = isChip(chipParam) ? chipParam : undefined;
-  const pos = chip === undefined ? undefined : one(params.pos);
-  const path = chip === undefined ? one(params.path) : undefined;
+  const pos = one(params.pos);
+  const path = pos === undefined ? one(params.path) : undefined;
   const [state, setState] = useState<State>({ status: "loading" });
   // ADR-0018: "stalled" offers the browser below the page; a late load clears it,
   // a failed one ("broken") doesn't. Either can be dismissed.
@@ -71,9 +61,11 @@ export default function ReaderScreen() {
     "loading",
   );
   const [saved, setSaved] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
   const [noteStatus, setNoteStatus] = useState<string | null>(null);
+  const [sectionNotesOpen, setSectionNotesOpen] = useState(false);
   const [rowStatus, setRowStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,8 +76,6 @@ export default function ReaderScreen() {
     setNoteStatus(null);
     setRowStatus(null);
     void readPage(item, {
-      ...(moment === undefined ? {} : { moment }),
-      ...(chip === undefined ? {} : { chip }),
       ...(pos === undefined ? {} : { pos }),
       ...(path === undefined ? {} : { path }),
     })
@@ -98,17 +88,18 @@ export default function ReaderScreen() {
         setState(loaded);
         if (loaded.status === "ok") {
           setSaved(loaded.page.saved);
+          setCompleted(loaded.page.state === "completed");
           setNote(loaded.page.note ?? "");
         }
       });
     return () => {
       current = false;
     };
-  }, [item, moment, chip, pos, path]);
+  }, [item, pos, path]);
 
   const page = state.status === "ok" ? state.page : null;
   const onMeasure = useAutoFinish(page, item, () => {
-    setRowStatus("Section finished");
+    setCompleted(true);
   });
   useEffect(() => {
     if (page === null || !page.inApp) return;
@@ -139,7 +130,7 @@ export default function ReaderScreen() {
   const openOutside = () => {
     // A page not on https was already counted as a browser open with its click.
     if (page.inApp)
-      void recordOutbound(item, page.reached).catch((error: unknown) => {
+      void recordOutbound(item).catch((error: unknown) => {
         console.warn("reader: click not recorded", error);
       });
     void Linking.openURL(page.url).catch((error: unknown) => {
@@ -160,7 +151,7 @@ export default function ReaderScreen() {
   };
   const saveNote = () => {
     setNoteStatus("Saving…");
-    void writeNote(item, page.reached, note.trim())
+    void writeNote(item, note.trim())
       .catch((error: unknown) => {
         console.warn("reader: note not sent", error);
         return false;
@@ -171,7 +162,7 @@ export default function ReaderScreen() {
   };
   const done = () => {
     setRowStatus(null);
-    void markDone(item, page.reached)
+    void markDone(item)
       .catch((error: unknown) => {
         console.warn("reader: finish not sent", error);
         return false;
@@ -181,14 +172,10 @@ export default function ReaderScreen() {
         else setRowStatus("Couldn't mark this done. Try again.");
       });
   };
-  const next = page.nextMomentId;
-  const testMe = () => {
-    void startQuiz({
-      itemId: item,
-      ...(page.reached === null ? {} : { momentId: page.reached }),
-    })
+  const quizMe = () => {
+    void startQuiz({ itemId: item })
       .catch((error: unknown) => {
-        console.warn("reader: test not started", error);
+        console.warn("reader: quiz not started", error);
         return { status: "failed" } as const;
       })
       .then((got) => {
@@ -196,8 +183,8 @@ export default function ReaderScreen() {
         else
           setRowStatus(
             got.status === "none"
-              ? "No questions on this section yet."
-              : "Couldn't start the test. Try again.",
+              ? "No questions on this article yet."
+              : "Couldn't start the quiz. Try again.",
           );
       });
   };
@@ -235,14 +222,10 @@ export default function ReaderScreen() {
             onHttpError={() => {
               setPhase("broken");
             }}
-            {...(page.measure === null
+            {...(page.measure === null || page.state === "completed"
               ? {}
               : {
-                  injectedJavaScript: progressScript(
-                    page.url,
-                    page.measure.start,
-                    page.measure.end,
-                  ),
+                  injectedJavaScript: progressScript(page.url),
                   onMessage: (event: { nativeEvent: { data: string } }) => {
                     onMeasure(event.nativeEvent.data);
                   },
@@ -302,7 +285,7 @@ export default function ReaderScreen() {
               setNote(text);
               setNoteStatus(null);
             }}
-            placeholder="A private note on this section"
+            placeholder="A private note on this article"
             placeholderTextColor={c["ink-muted"]}
             style={[
               styles.noteInput,
@@ -338,7 +321,7 @@ export default function ReaderScreen() {
           onPress={save}
         />
         <RoundButton label="Highlight" glyph="✎" later />
-        {/* P4-W23-S02: the AI explainers of what's shown, queued and played. */}
+        {/* P4-W23-S02: the AI explainers of the article, queued and played. */}
         <RoundButton
           label="Listen"
           glyph="♫"
@@ -346,20 +329,21 @@ export default function ReaderScreen() {
           why="No AI explainer here yet"
           onPress={() => {
             void listen()
-              .enqueue(item, page.reached)
+              .enqueue(item)
               .then((queued) => {
                 if (queued) router.push("/listen");
                 else setRowStatus("Nothing to listen to here right now.");
               });
           }}
         />
-        {/* Test 60s on what's shown, once it has a live question (P4-W21-S01). */}
+        {/* Test 60s on the article, once it has a live question (P4-W21-S01); it
+          stays once the article is completed (ADR-0058). */}
         <RoundButton
-          label="Test me"
+          label="Quiz me"
           glyph="⚡"
           later={!page.testable}
           why="No questions yet"
-          onPress={testMe}
+          onPress={quizMe}
         />
         <RoundButton
           label="Note"
@@ -369,27 +353,59 @@ export default function ReaderScreen() {
           }}
         />
         <View style={styles.end}>
-          <RoundButton label="Mark done" glyph="✓" onPress={done} />
-          {next === null ? null : (
-            <RoundButton
-              label="Next section"
-              glyph="→"
-              strong
-              onPress={() => {
-                router.setParams({ moment: next });
-              }}
-            />
+          {completed ? (
+            // ADR-0058: Completed replaces Done; Quiz me stays in the row.
+            <View accessibilityLiveRegion="polite" style={styles.row}>
+              <Text
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                style={{ color: c["ink-muted"] }}
+              >
+                ✓
+              </Text>
+              <Text style={[styles.strong, { color: c["ink-muted"] }]}>
+                Completed
+              </Text>
+            </View>
+          ) : (
+            // Done completes the article and goes back (ADR-0018, ADR-0058).
+            <RoundButton label="Done" glyph="✓" strong onPress={done} />
           )}
         </View>
       </View>
+      {/* ADR-0058: notes written on a section before it, folded away below the row. */}
+      {page.sectionNotes.length === 0 ? null : (
+        <View style={styles.sectionNotes}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: sectionNotesOpen }}
+            onPress={() => {
+              setSectionNotesOpen(!sectionNotesOpen);
+            }}
+          >
+            <Text style={{ color: c["ink-muted"] }}>
+              {`Notes on sections (${String(page.sectionNotes.length)})`}
+            </Text>
+          </Pressable>
+          {sectionNotesOpen
+            ? page.sectionNotes.map((n, i) => (
+                <View key={i}>
+                  <Text style={[styles.strong, { color: c.ink }]}>
+                    {n.sectionTitle}
+                  </Text>
+                  <Text style={{ color: c["ink-muted"] }}>{n.body}</Text>
+                </View>
+              ))
+            : null}
+        </View>
+      )}
     </View>
   );
 }
 
 // The page script's word (lib/progress-script.ts), checked: the page could post too.
-function measured(
-  data: string,
-): { type: "progress"; value: number } | { type: "unmeasurable" } | null {
+// How far down the page, 0 to 1; null for anything else.
+function measured(data: string): number | null {
   let message: unknown;
   try {
     message = JSON.parse(data);
@@ -397,8 +413,6 @@ function measured(
     return null;
   }
   if (typeof message !== "object" || message === null) return null;
-  if ("type" in message && message.type === "unmeasurable")
-    return { type: "unmeasurable" };
   if (
     "type" in message &&
     message.type === "progress" &&
@@ -407,12 +421,13 @@ function measured(
     message.value >= 0 &&
     message.value <= 1
   )
-    return { type: "progress", value: message.value };
+    return message.value;
   return null;
 }
 
-// P4-W20-S03 (§5D): finishes the section once, by itself, when it has been read through
-// (owner, 2026-11-09: a quiet line, the reader stays). A failed send is tried again.
+// P4-W20-S03 (§5D): completes the article once, by itself, when it has been read
+// through (owner, 2026-11-09: quietly, the reader stays; ADR-0058: Completed replaces
+// Done). A failed send is tried again.
 function useAutoFinish(
   page: ReaderResponse | null,
   item: string,
@@ -421,31 +436,29 @@ function useAutoFinish(
   const opened = useRef(0);
   const furthest = useRef(0);
   const sent = useRef(false);
-  // Which section's clock this is: an answer for an earlier one (after Next section)
-  // changes nothing here.
-  const section = useRef(0);
+  // Which page's clock this is: an answer for an earlier one changes nothing here.
+  const clock = useRef(0);
   const retry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // The latest callback, so a new one each render doesn't restart the clock.
   const onFinished = useRef(finished);
   onFinished.current = finished;
-  const reached = page?.reached ?? null;
   const floorMs =
-    page?.measure == null
+    page?.measure == null || page.state === "completed"
       ? null
       : Math.max(MIN_SECONDS, page.measure.minutes * 60 * TIME_SHARE) * 1000;
   const check = useCallback(() => {
-    if (reached === null || floorMs === null || sent.current) return;
+    if (floorMs === null || sent.current) return;
     if (furthest.current < READ_THROUGH) return;
     if (Date.now() - opened.current < floorMs) return;
     sent.current = true;
-    const mine = section.current;
-    void markDone(item, reached, "auto")
+    const mine = clock.current;
+    void markDone(item, "auto")
       .catch((error: unknown) => {
         console.warn("reader: automatic finish not sent", error);
         return false;
       })
       .then((ok) => {
-        if (mine !== section.current) return;
+        if (mine !== clock.current) return;
         if (ok) {
           onFinished.current();
           return;
@@ -453,37 +466,34 @@ function useAutoFinish(
         sent.current = false;
         retry.current = setTimeout(check, RETRY_MS);
       });
-  }, [item, reached, floorMs]);
+  }, [item, floorMs]);
   useEffect(() => {
     if (floorMs === null) return;
-    section.current += 1;
+    clock.current += 1;
     opened.current = Date.now();
     furthest.current = 0;
     sent.current = false;
     // Read through before the floor: it finishes when the floor passes.
     const timer = setTimeout(check, floorMs);
     return () => {
-      section.current += 1;
+      clock.current += 1;
       clearTimeout(timer);
       clearTimeout(retry.current);
     };
   }, [page, floorMs, check]);
   return (data: string) => {
-    const message = measured(data);
-    if (message === null) {
+    const seen = measured(data);
+    if (seen === null) {
       console.warn("reader: a message not from the measuring script");
-    } else if (message.type === "unmeasurable") {
-      // Owner, 2026-11-09: no automatic finish; Mark done stays.
-      console.warn("reader: the section isn't in the page", { item, reached });
     } else {
-      furthest.current = Math.max(furthest.current, message.value);
+      furthest.current = Math.max(furthest.current, seen);
       check();
     }
   };
 }
 
-// Shown, not usable yet (owner, ADR-0018 and 2026-11-09): Highlight comes later. Test me
-// waits for its section's questions, Listen for a voiced explainer (P4-W23-S02).
+// Shown, not usable yet (owner, ADR-0018 and 2026-11-09): Highlight comes later. Quiz me
+// waits for the article's questions, Listen for a voiced explainer (P4-W23-S02).
 function RoundButton({
   label,
   glyph,
@@ -547,6 +557,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   footer: { borderTopWidth: 1, paddingHorizontal: 16, paddingVertical: 8 },
   end: { marginLeft: "auto", flexDirection: "row", gap: 8 },
+  sectionNotes: { paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
   round: {
     width: 36,
     height: 36,

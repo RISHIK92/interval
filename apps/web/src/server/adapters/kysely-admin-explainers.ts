@@ -1,17 +1,13 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { z } from "zod";
 import type { AdminExplainers, ExplainerReview } from "../ports";
+import { citedArticles } from "./explainer-citations";
 
 // P4-W22-S01 (§5G, ADR-0038): the owner's review of explainer scripts. A citation whose
-// section is gone (re-segmented) is left out rather than shown without its link, and
-// counted; a script left with fewer than two sources can't be approved (AI-1).
+// article is gone is left out rather than shown without its link, and counted; a script
+// left with fewer than two cited articles can't be approved (AI-1). ADR-0058: sources
+// are articles; a moment-era citation counts by its moment's article.
 const MIN_SOURCES = 2;
-const Cited = z.array(
-  z.object({ moment_id: z.union([z.number(), z.string()]) }),
-);
-const cited = (raw: unknown) =>
-  Cited.parse(raw).map((c) => String(c.moment_id));
 export function kyselyAdminExplainers(db: Kysely<DB>): AdminExplainers {
   return {
     pending: async () => {
@@ -29,44 +25,24 @@ export function kyselyAdminExplainers(db: Kysely<DB>): AdminExplainers {
         .where("x.status", "=", "pending")
         .orderBy("x.created_at")
         .execute();
-      const ids = rows.flatMap((r) => cited(r.citations));
-      const sections =
-        ids.length === 0
-          ? []
-          : await db
-              .selectFrom("moment as m")
-              .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
-              .select([
-                "m.id",
-                "m.title as sectionTitle",
-                "ci.title as articleTitle",
-                "m.link",
-              ])
-              .where("m.id", "in", ids)
-              .execute();
-      const byId = new Map(sections.map((s) => [s.id, s]));
-      return rows.map((r): ExplainerReview => {
-        const found = cited(r.citations).flatMap((id) => {
-          const m = byId.get(id);
-          return m === undefined
-            ? []
-            : [
-                {
-                  momentId: m.id,
-                  articleTitle: m.articleTitle,
-                  sectionTitle: m.sectionTitle,
-                  link: m.link,
-                },
-              ];
-        });
+      const cited = await citedArticles(
+        db,
+        rows.map((r) => r.citations),
+      );
+      return rows.map((r, i): ExplainerReview => {
+        const { articles, missing } = cited[i] ?? { articles: [], missing: 0 };
         return {
           id: r.id,
           concept: r.concept,
           script: r.script,
           model: r.model,
           createdAt: r.createdAt,
-          missing: cited(r.citations).length - found.length,
-          citations: found,
+          missing,
+          citations: articles.map((a) => ({
+            itemId: a.itemId,
+            articleTitle: a.title,
+            link: a.link,
+          })),
         };
       });
     },
@@ -82,8 +58,12 @@ export function kyselyAdminExplainers(db: Kysely<DB>): AdminExplainers {
         .where("status", "=", "pending")
         .$if(decision === "approved", (q) =>
           q.where(
-            sql<boolean>`(select count(*) from jsonb_array_elements(citations) e
-              join moment m on m.id = (e ->> 'moment_id')::bigint) >= ${MIN_SOURCES}`,
+            sql<boolean>`(select count(distinct ci.id)
+              from jsonb_array_elements(citations) e
+              join content_item ci on ci.id = coalesce(
+                (e ->> 'content_item_id')::bigint,
+                (select m.content_item_id from moment m
+                 where m.id = (e ->> 'moment_id')::bigint))) >= ${MIN_SOURCES}`,
           ),
         )
         .executeTakeFirst();

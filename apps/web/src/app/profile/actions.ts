@@ -72,7 +72,6 @@ export async function updatePreferencesAction(form: FormData): Promise<void> {
       goals: form.getAll("goal").filter((v) => typeof v === "string"),
       topics: form.getAll("topic").filter((v) => typeof v === "string"),
       level: textField(form, "level"),
-      breakLength: textField(form, "breakLength"),
     },
     await offeredTopics(feedReader()),
   );

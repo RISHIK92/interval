@@ -18,7 +18,7 @@ export async function applyMatchEvidence(actor: Actor): Promise<void> {
       for (const m of missed)
         events().emit(
           "concept_missed",
-          { game: "live", item_id: m.itemId, moment_id: m.momentId },
+          { game: "live", item_id: m.itemId },
           context,
         );
     }

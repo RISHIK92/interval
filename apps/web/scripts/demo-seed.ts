@@ -16,7 +16,6 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type {
-  BreakLength,
   DB,
   Difficulty,
   LearnerState,
@@ -27,7 +26,7 @@ import { Redis } from "ioredis";
 import { type Kysely, sql } from "kysely";
 import { createDb } from "../src/server/adapters/kysely";
 import { valkeyLeaderboards } from "../src/server/adapters/valkey-leaderboards";
-import { GOALS, type ReasonKind, TOPICS } from "../src/server/ports";
+import { FEED_CHIP, GOALS, type ReasonKind, TOPICS } from "../src/server/ports";
 
 const LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"];
 
@@ -72,7 +71,6 @@ const ONBOARDING: Partial<
     {
       topics: Topic[];
       level: Difficulty;
-      breakLength: BreakLength;
       goals: LearningGoal[];
     }
   >
@@ -80,13 +78,11 @@ const ONBOARDING: Partial<
   "walk-a": {
     topics: ["system-design", "databases", "distributed-systems", "backend"],
     level: "intermediate",
-    breakLength: "3-8",
     goals: ["system-design-interviews", "stay-sharp"],
   },
   "walk-b": {
     topics: ["databases", "backend"],
     level: "advanced",
-    breakLength: "3-8",
     goals: ["stack-i-use"],
   },
 };
@@ -564,12 +560,7 @@ const QUESTIONS: {
   },
 ];
 
-const CHIPS: { chip: BreakLength; min: number; max: number }[] = [
-  { chip: "1-3", min: 1, max: 3 },
-  { chip: "3-8", min: 4, max: 8 },
-  { chip: "8-15", min: 9, max: 15 },
-];
-const FEED_PER_CHIP = 8;
+const FEED_LENGTH = 8;
 
 const linkOf = (item: Item) =>
   `https://example.com/demo/${item.source}/${item.key}`;
@@ -606,7 +597,7 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
         user_id: user,
         topics: choice.topics,
         level: choice.level,
-        break_length: choice.breakLength,
+        break_length: FEED_CHIP,
         goals: choice.goals,
         onboarded_at: ago(14 * DAY),
       })
@@ -831,24 +822,15 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
       sections: [
         {
           concepts: ["demo-consistent-hashing", "demo-load-balancing"],
-          sessions: [
-            ["hash-ring", 0],
-            ["l4-l7", 0],
-          ],
+          sessions: ["hash-ring", "l4-l7"],
         },
         {
           concepts: ["demo-caching"],
-          sessions: [
-            ["cache-invalidation", 0],
-            ["cache-invalidation", 2],
-          ],
+          sessions: ["cache-invalidation"],
         },
         {
           concepts: ["demo-raft"],
-          sessions: [
-            ["raft-election", 0],
-            ["raft-election", 1],
-          ],
+          sessions: ["raft-election"],
         },
       ],
     },
@@ -858,24 +840,15 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
       sections: [
         {
           concepts: ["demo-b-tree-indexes"],
-          sessions: [
-            ["b-tree", 0],
-            ["b-tree", 1],
-          ],
+          sessions: ["b-tree"],
         },
         {
           concepts: ["demo-mvcc"],
-          sessions: [
-            ["mvcc", 0],
-            ["mvcc", 2],
-          ],
+          sessions: ["mvcc"],
         },
         {
           concepts: ["demo-write-ahead-log"],
-          sessions: [
-            ["wal", 0],
-            ["wal", 1],
-          ],
+          sessions: ["wal"],
         },
       ],
     },
@@ -921,13 +894,27 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
           .values({ section_id: section.id, concept_id: concept(slug) })
           .onConflict((oc) => oc.doNothing())
           .execute();
-      for (const [n, [key, m]] of s.sessions.entries()) {
-        const moment_id = momentOf(key, m);
+      // ADR-0058: a session is an article, once per section; a rerun drops the
+      // sessions an earlier seed made per moment beyond them.
+      await db
+        .deleteFrom("path_session")
+        .where("section_id", "=", section.id)
+        .where("ordinal", ">=", s.sessions.length)
+        .execute();
+      for (const [n, key] of s.sessions.entries()) {
+        const content_item_id = item(key);
         await db
           .insertInto("path_session")
-          .values({ section_id: section.id, ordinal: n, moment_id })
+          .values({
+            section_id: section.id,
+            ordinal: n,
+            moment_id: null,
+            content_item_id,
+          })
           .onConflict((oc) =>
-            oc.columns(["section_id", "ordinal"]).doUpdateSet({ moment_id }),
+            oc
+              .columns(["section_id", "ordinal"])
+              .doUpdateSet({ moment_id: null, content_item_id }),
           )
           .execute();
       }
@@ -935,7 +922,8 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
   }
 
   // Walker a's reading: the hash ring part-read (Continue reading), the path's first
-  // section read and its checkpoint passed, and one reading into the second.
+  // section read and its checkpoint passed, and one reading into the second. ADR-0058:
+  // a reading is completed by its article's finish, so the read ones get one too.
   const a = "walk-a";
   const finished: [string, number, number][] = [
     ["hash-ring", 0, 2 * DAY],
@@ -956,6 +944,17 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
       .onConflict((oc) => oc.doNothing())
       .execute();
     count("user_moment_finished");
+    if (key === "hash-ring") continue;
+    await db
+      .insertInto("user_article_finished")
+      .values({
+        user_id: a,
+        content_item_id: item(key),
+        method: "mark_done",
+        finished_at: ago(when),
+      })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
   }
   await db
     .insertInto("user_moment_opened")
@@ -1353,8 +1352,6 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
     }
     return sets;
   };
-  const itemMinutes = (i: Item) =>
-    i.sections.reduce((t, s) => t + s.minutes, 0);
   for (const prefs of preferences) {
     const user = prefs.user_id;
     const goalSets = await goalConcepts(user, prefs.goals);
@@ -1389,38 +1386,14 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
       topicsOf(i, ordinal).some((t) => prefs.topics.includes(t));
     const levelGap = (d: Difficulty) =>
       Math.abs(LEVELS.indexOf(d) - LEVELS.indexOf(prefs.level));
-    for (const { chip, min, max } of CHIPS) {
-      const pool = [
-        ...moments
-          .filter(
-            (m) =>
-              m.minutes >= min &&
-              m.minutes <= max &&
-              onTopic(m.item, m.ordinal),
-          )
-          .map((m) => ({
-            item: m.item,
-            itemId: m.itemId,
-            momentId: m.id,
-            ordinal: m.ordinal,
-          })),
-        // Whole articles: the full-text ones that fit the chip, and every excerpt one.
-        ...ITEMS.filter((i) => {
-          const minutes = itemMinutes(i);
-          return (
-            onTopic(i, null) &&
-            (i.sections.length === 0
-              ? chip !== "1-3"
-              : minutes >= min && minutes <= max)
-          );
-        }).map((i) => ({
-          item: i,
-          itemId: item(i.key),
-          momentId: null,
-          ordinal: null,
-        })),
-      ];
-      // The sources take turns, so a chip doesn't open on one publisher's run.
+    {
+      // ADR-0058: one ranked list of whole articles, under FEED_CHIP as the worker
+      // stores it until stage C drops the chip column.
+      const pool = ITEMS.filter((i) => onTopic(i, null)).map((i) => ({
+        item: i,
+        itemId: item(i.key),
+      }));
+      // The sources take turns, so the feed doesn't open on one publisher's run.
       const bySource = SOURCES.map((s) =>
         pool
           .filter((p) => p.item.source === s.key)
@@ -1434,19 +1407,19 @@ async function seed(db: Kysely<DB>): Promise<Record<string, number>> {
           const next = list[i];
           if (next !== undefined) ordered.push(next);
         }
-      // Replaced whole, as the worker does: a smaller pool leaves no stale ranks.
+      // Replaced whole, as the worker does: a smaller pool leaves no stale ranks, and
+      // the per-chip lists from before ADR-0058 go.
       await db
         .deleteFrom("user_feed_entry")
         .where("user_id", "=", user)
-        .where("chip", "=", chip)
         .execute();
-      const rows = ordered.slice(0, FEED_PER_CHIP).map((card, n) => {
-        const reason = reasonFor(card.item, card.ordinal);
+      const rows = ordered.slice(0, FEED_LENGTH).map((card, n) => {
+        const reason = reasonFor(card.item, null);
         return {
           user_id: user,
-          chip,
+          chip: FEED_CHIP,
           rank: n + 1,
-          moment_id: card.momentId,
+          moment_id: null,
           content_item_id: card.itemId,
           // Every card here matched the user's topics.
           top_signal: reason.kind ?? "topic_match",

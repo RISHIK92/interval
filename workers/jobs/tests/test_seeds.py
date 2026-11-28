@@ -13,7 +13,6 @@ GOOD = """\
   homepage: https://example.test/
   feed_url: https://example.test/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   quality_score: 4
   topics: [backend, system-design]
@@ -42,12 +41,7 @@ def test_defaults_are_conservative() -> None:
         "- name: Bare\n  feed_url: https://bare.test/f\n  rights_profile: excerpt\n",
         "s.yaml",
     )
-    assert (seed.moments_enabled, seed.paywalled, seed.quality_score, seed.topics) == (
-        False,
-        False,
-        None,
-        (),
-    )
+    assert (seed.paywalled, seed.quality_score, seed.topics) == (False, None, ())
 
 
 def error(text: str) -> SeedError:
@@ -64,32 +58,33 @@ def error(text: str) -> SeedError:
             4,
             "rights_profile",
         ),
-        (GOOD + "  colour: blue\n", 9, "colour"),
+        (GOOD + "  colour: blue\n", 8, "colour"),
         (GOOD.replace("- name: Example Engineering\n  ", "- "), 1, "name"),
-        (GOOD.replace("full_text_internal", "excerpt"), 5, "moments"),
-        (GOOD.replace("quality_score: 4", "quality_score: 0"), 7, "quality_score"),
-        (GOOD.replace("quality_score: 4", "quality_score: 6"), 7, "quality_score"),
-        (GOOD.replace("quality_score: 4", "quality_score: four"), 7, "quality_score"),
-        (GOOD.replace("paywalled: false", "paywalled: maybe"), 6, "paywalled"),
-        (GOOD.replace("[backend, system-design]", "[Backend Systems]"), 8, "topics"),
+        # ADR-0058: moments are gone, and a stale switch is an unknown field.
+        (GOOD + "  moments_enabled: true\n", 8, "moments_enabled"),
+        (GOOD.replace("quality_score: 4", "quality_score: 0"), 6, "quality_score"),
+        (GOOD.replace("quality_score: 4", "quality_score: 6"), 6, "quality_score"),
+        (GOOD.replace("quality_score: 4", "quality_score: four"), 6, "quality_score"),
+        (GOOD.replace("paywalled: false", "paywalled: maybe"), 5, "paywalled"),
+        (GOOD.replace("[backend, system-design]", "[Backend Systems]"), 7, "topics"),
         (
             GOOD
             + GOOD.replace("https://example.test/feed.xml", "https://other.test/f"),
-            9,
+            8,
             "duplicate name",
         ),
-        (GOOD + GOOD.replace("Example Engineering", "Other"), 11, "duplicate feed_url"),
-        (GOOD.replace("paywalled: false", "paywalled: yes"), 6, "true or false"),
-        (GOOD.replace("paywalled: false", "paywalled: on"), 6, "true or false"),
-        (GOOD.replace("quality_score: 4", "quality_score: 0x3"), 7, "quality_score"),
+        (GOOD + GOOD.replace("Example Engineering", "Other"), 10, "duplicate feed_url"),
+        (GOOD.replace("paywalled: false", "paywalled: yes"), 5, "true or false"),
+        (GOOD.replace("paywalled: false", "paywalled: on"), 5, "true or false"),
+        (GOOD.replace("quality_score: 4", "quality_score: 0x3"), 6, "quality_score"),
         (
             GOOD.replace("quality_score: 4", "quality_score: !!int x"),
-            7,
+            6,
             "quality_score",
         ),
-        (GOOD + "  rights_profile: metadata_only\n", 9, "rights_profile twice"),
-        (GOOD.replace("[backend, system-design]", "[backend, backend]"), 8, "topics"),
-        (GOOD.replace("[backend, system-design]", "[1, backend]"), 8, "topics"),
+        (GOOD + "  rights_profile: metadata_only\n", 8, "rights_profile twice"),
+        (GOOD.replace("[backend, system-design]", "[backend, backend]"), 7, "topics"),
+        (GOOD.replace("[backend, system-design]", "[1, backend]"), 7, "topics"),
         ("[]\n", 1, "no sources"),
         ("# only a comment\n", 1, "no sources"),
         ("name: not a list\n", 1, "list"),

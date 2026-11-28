@@ -1,27 +1,26 @@
 """Rule-based scoring and re-ranking (REC-2, REC-3, Q-P1-13, P1-W4-S03).
 
-Score = weighted sum of topic match, goal match (ADR-0015), level fit (Q-P1-10),
-source quality (ING-6),
-freshness and time fit to the user's break, minus penalties for Less like this and for
-concepts of items the user said Not interested to (Q-P1-15). Hidden sources and Not
-interested items never get here (W4-S02). Every weight is a row of `ranking_config`,
-which the owner tunes in Week 6.
+Score = weighted sum of topic match, goal match (ADR-0015), project match, level fit
+(Q-P1-10), source quality (ING-6) and freshness, minus penalties for Less like this and
+for concepts of items the user said Not interested to (Q-P1-15). There is no time fit:
+the feed is one list of articles, not one per break length (ADR-0058). Hidden sources
+and Not interested items never get here (W4-S02). Every weight is a row of
+`ranking_config`, which the owner tunes in Week 6.
 
 Re-ranking (REC-3) takes the best by MMR, `lambda * score - (1 - lambda) * max
 similarity` to what is already picked, with scores scaled to 0-1 first so lambda means
-the same whatever the weights; it skips a moment once its source has reached the cap.
-Two moments are as similar as their items' concepts overlap (Jaccard), and moments of
-one item or one source are at least 1.0 and 0.5 alike. Novelty slots come
-with Thompson sampling (W4-S09).
+the same whatever the weights; it skips an article once its source has reached the
+cap. Two articles are as similar as their concepts overlap (Jaccard), and two of one
+source are at least 0.5 alike. Novelty slots come with Thompson sampling (W4-S09).
 """
 
 import math
 from dataclasses import dataclass
 from datetime import datetime
 
-from interval_db.generated import BreakLength, Difficulty, LearningGoal
+from interval_db.generated import Difficulty, LearningGoal
 from interval_jobs import log
-from interval_jobs.ports import Arm, Breakdown, EntryFacts, EntryKey
+from interval_jobs.ports import Arm, Breakdown, EntryFacts
 from interval_jobs.ranking.candidates import Candidate
 
 SIGNALS = (
@@ -31,18 +30,9 @@ SIGNALS = (
     "level_fit",
     "quality",
     "freshness",
-    "time_fit",
 )
 PENALTIES = ("less_like_this", "not_interested_concepts")
 _LEVELS: dict[Difficulty, int] = {"beginner": 0, "intermediate": 1, "advanced": 2}
-BREAK_MINUTES: dict[BreakLength, tuple[int, int]] = {
-    "1-3": (1, 3),
-    "3-8": (3, 8),
-    "8-15": (8, 15),
-}
-# Only the long break wants long reads (owner, 2026-10-26): there, a 1-minute moment
-# fits this much, rising to full fit at the break's lower bound.
-_SHORT_IN_LONG_BREAK = 0.3
 
 
 class RankingConfigError(ValueError):
@@ -56,7 +46,7 @@ class RankingConfig:
     half_life_days: float
     mmr_lambda: float
     per_source_cap: int
-    explore_share: float  # REC-4: the share of a user's slots per chip (P1-W4-S09)
+    explore_share: float  # REC-4: the share of a user's slots (P1-W4-S09)
 
     @staticmethod
     def from_rows(rows: dict[str, float]) -> "RankingConfig":
@@ -102,7 +92,6 @@ class RankingConfig:
 class UserSignals:
     topics: frozenset[str]  # the user's chosen topics (explicit, PER-1)
     level: Difficulty
-    break_length: BreakLength
     less_liked: frozenset[int]  # item ids
     avoided_concepts: frozenset[str]  # concepts of Not interested items
     # ADR-0015: the user's goals that point at concepts, in their order, with the sets.
@@ -113,7 +102,6 @@ class UserSignals:
 
 @dataclass(frozen=True)
 class Scored:
-    moment_id: int | None  # None: the whole article
     item_id: int
     source_id: int
     score: float
@@ -122,10 +110,6 @@ class Scored:
     facts: EntryFacts  # what the explanation is filled from
     breakdown: Breakdown  # for the owner's ranking inspection (P1-W6-S01)
     arm: Arm | None = None  # set by exploration (P1-W4-S09)
-
-    @property
-    def key(self) -> EntryKey:
-        return (self.item_id, self.moment_id)
 
 
 def _goal_share(
@@ -151,36 +135,19 @@ def _freshness(published: datetime | None, now: datetime, half_life: float) -> f
     return math.exp(-math.log(2) * age_days / half_life)
 
 
-def _time_fit(minutes: int | None, break_length: BreakLength) -> float:
-    if minutes is None:
-        return 0.5  # length unknown (Q-P1-39): neither a fit nor a miss (owner)
-    low, limit = BREAK_MINUTES[break_length]
-    if minutes > limit:
-        # Past the break's length, fit falls off over the same length again.
-        return max(0.0, 1.0 - (minutes - limit) / limit)
-    if break_length == "8-15" and minutes < low:
-        rise = (1.0 - _SHORT_IN_LONG_BREAK) * (minutes - 1) / (low - 1)
-        return _SHORT_IN_LONG_BREAK + max(0.0, rise)
-    return 1.0
-
-
 def score(
     candidates: list[Candidate],
-    facts: dict[EntryKey, EntryFacts],
+    facts: dict[int, EntryFacts],
     user: UserSignals,
     config: RankingConfig,
     now: datetime,
 ) -> list[Scored]:
     scored: list[Scored] = []
     for candidate in candidates:
-        fact = facts.get(candidate.key)
+        fact = facts.get(candidate.item_id)
         if fact is None:
-            # Re-segmented or deleted between the candidate and facts reads: it is gone.
-            log.info(
-                "ranking: candidate gone",
-                item_id=candidate.item_id,
-                moment_id=candidate.moment_id,
-            )
+            # Deleted between the candidate and facts reads: it is gone.
+            log.info("ranking: candidate gone", item_id=candidate.item_id)
             continue
         parts = {
             # On a chosen topic, whichever generator found it.
@@ -196,7 +163,6 @@ def score(
             "level_fit": _level_fit(fact.difficulty, user.level),
             "quality": (fact.quality - 1) / 4 if fact.quality is not None else 0.5,
             "freshness": _freshness(fact.published_at, now, config.half_life_days),
-            "time_fit": _time_fit(fact.minutes, user.break_length),
         }
         weighted = {name: config.weights[name] * value for name, value in parts.items()}
         avoided = (
@@ -213,7 +179,6 @@ def score(
         top = max(weighted, key=lambda name: weighted[name])
         scored.append(
             Scored(
-                candidate.moment_id,
                 candidate.item_id,
                 candidate.source_id,
                 sum(weighted.values()) - penalty,
@@ -226,8 +191,6 @@ def score(
 
 
 def _similarity(a: EntryFacts, b: EntryFacts) -> float:
-    if a.item_id == b.item_id:
-        return 1.0
     union = a.concepts | b.concepts
     overlap = len(a.concepts & b.concepts) / len(union) if union else 0.0
     return max(overlap, 0.5 if a.source_id == b.source_id else 0.0)
@@ -235,15 +198,15 @@ def _similarity(a: EntryFacts, b: EntryFacts) -> float:
 
 def rerank(
     scored: list[Scored],
-    facts: dict[EntryKey, EntryFacts],
+    facts: dict[int, EntryFacts],
     config: RankingConfig,
     limit: int,
 ) -> list[Scored]:
-    # Ties: lower item ids first, then the article before its moments, in order.
-    remaining = sorted(scored, key=lambda s: (-s.score, s.item_id, s.moment_id or 0))
+    # Ties: lower item ids first.
+    remaining = sorted(scored, key=lambda s: (-s.score, s.item_id))
     low = min((s.score for s in scored), default=0.0)
     spread = max((s.score for s in scored), default=0.0) - low
-    scaled = {s.key: (s.score - low) / spread if spread else 1.0 for s in scored}
+    scaled = {s.item_id: (s.score - low) / spread if spread else 1.0 for s in scored}
     picked: list[Scored] = []
     per_source: dict[int, int] = {}
     lam = config.mmr_lambda
@@ -257,11 +220,11 @@ def rerank(
             break
 
         def mmr(candidate: Scored) -> float:
-            fact = facts[candidate.key]
+            fact = facts[candidate.item_id]
             nearest = max(
-                (_similarity(fact, facts[p.key]) for p in picked), default=0.0
+                (_similarity(fact, facts[p.item_id]) for p in picked), default=0.0
             )
-            return lam * scaled[candidate.key] - (1 - lam) * nearest
+            return lam * scaled[candidate.item_id] - (1 - lam) * nearest
 
         best = max(allowed, key=mmr)
         picked.append(best)

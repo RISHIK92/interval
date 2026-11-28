@@ -61,7 +61,6 @@ test("asking queues the question, then shows the answer once written", async () 
           kind: "reading",
           passage: "m9",
           itemId: "5",
-          momentId: "9",
           label: "DDIA · Partitioning",
           topic: "databases",
         },

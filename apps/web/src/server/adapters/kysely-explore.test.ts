@@ -62,8 +62,6 @@ async function source(
       name: values.name ?? `explore-${randomUUID()}`,
       feed_url: `https://${randomUUID()}.example.test/feed.xml`,
       rights_profile: rights,
-      moments_seeded: rights === "full_text_internal",
-      moments_enabled: rights === "full_text_internal",
       active: values.active ?? true,
       topics: values.topics ?? ["databases"],
     })
@@ -100,26 +98,16 @@ async function item(
   return row.id;
 }
 
-async function moment(
+// An article's reading time: item_minutes counts its sections' words, 230 a minute.
+async function lasts(
   trx: Transaction<DB>,
   itemId: string,
-  title: string,
-  minutes = 3,
-  ordinal = 0,
-): Promise<string> {
-  const row = await trx
-    .insertInto("moment")
-    .values({
-      content_item_id: itemId,
-      ordinal,
-      title,
-      estimated_minutes: minutes,
-      link: `https://example.test/${randomUUID()}#s`,
-      link_type: "anchor",
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  return row.id;
+  minutes: number,
+): Promise<void> {
+  await trx
+    .insertInto("content_item_section")
+    .values({ content_item_id: itemId, ordinal: 0, word_count: minutes * 230 })
+    .execute();
 }
 
 async function concept(
@@ -154,22 +142,6 @@ async function tagItem(
   await trx
     .insertInto("item_concept")
     .values({ content_item_id: itemId, concept_id: conceptId })
-    .execute();
-}
-
-async function tagMoment(
-  trx: Transaction<DB>,
-  momentId: string,
-  conceptId: string,
-): Promise<void> {
-  await trx
-    .insertInto("moment_tagging")
-    .values({ moment_id: momentId, difficulty: "beginner" })
-    .onConflict((c) => c.column("moment_id").doNothing())
-    .execute();
-  await trx
-    .insertInto("moment_concept")
-    .values({ moment_id: momentId, concept_id: conceptId })
     .execute();
 }
 
@@ -220,27 +192,24 @@ test("an excerpt is searched only where the source stores one; metadata_only by 
     const [found] = await explore.search(me, m, 20);
     expect(found).toMatchObject({
       itemId: metadataOnly,
-      momentId: null,
-      title: `Caching ${m}`,
+      articleTitle: `Caching ${m}`,
     });
   });
 });
 
-test("a matching section is the result's deep link, with its own title and minutes", async () => {
+// ADR-0058: a result is the whole article, with its reading time.
+test("a result is the whole article with its minutes", async () => {
   await inRollback(async (trx) => {
     const explore = kyselyExplore(trx);
     const me = await user(trx);
     const w = word();
     const src = await source(trx);
-    const itemId = await item(trx, src, { title: "Designing data systems" });
-    await moment(trx, itemId, "Introduction", 2, 0);
-    const section = await moment(trx, itemId, `Partitioning ${w}`, 6, 1);
+    const itemId = await item(trx, src, { title: `Designing ${w}` });
+    await lasts(trx, itemId, 6);
     expect(await explore.search(me, w, 20)).toEqual([
       {
         itemId,
-        momentId: section,
-        title: `Partitioning ${w}`,
-        articleTitle: "Designing data systems",
+        articleTitle: `Designing ${w}`,
         sourceName: expect.any(String) as string,
         author: null,
         minutes: 6,
@@ -321,11 +290,10 @@ test("spaces count learners and this week's unopened items per topic", async () 
     const src = await source(trx, { topics: ["backend"] });
     const unopened = await item(trx, src);
     const opened = await item(trx, src);
-    const openedMoment = await moment(trx, opened, "Section");
-    await moment(trx, unopened, "Section");
+    // ADR-0058: opened is the article's.
     await trx
-      .insertInto("user_moment_opened")
-      .values({ user_id: me, moment_id: openedMoment })
+      .insertInto("user_article_opened")
+      .values({ user_id: me, content_item_id: opened })
       .execute();
     const after = await explore.spaces(me, now);
     expect(learners("backend", after)).toBe(learners("backend", before) + 1);
@@ -342,7 +310,7 @@ test("spaces count learners and this week's unopened items per topic", async () 
   });
 });
 
-test("the gap is an unmastered concept between two mastered ones, at its shortest moment, until dismissed", async () => {
+test("the gap is an unmastered concept between two mastered ones, at its shortest article, until dismissed", async () => {
   await inRollback(async (trx) => {
     const explore = kyselyExplore(trx);
     const me = await user(trx);
@@ -371,20 +339,27 @@ test("the gap is an unmastered concept between two mastered ones, at its shortes
         { from_id: replication, to_id: lonely, type: "related_to" },
       ])
       .execute();
-    const itemId = await item(trx, await source(trx));
-    const long = await moment(trx, itemId, "Long", 9, 0);
-    const short = await moment(trx, itemId, "Short", 4, 1);
-    const lonelyMoment = await moment(trx, itemId, "Lonely", 1, 2);
-    await tagMoment(trx, long, consistency);
-    await tagMoment(trx, short, consistency);
-    await tagMoment(trx, lonelyMoment, lonely);
+    const src = await source(trx);
+    const [long, itemId, lonelyItem, unknown] = [
+      await item(trx, src, { title: "Long" }),
+      await item(trx, src, { title: "Short" }),
+      await item(trx, src, { title: "Lonely" }),
+      await item(trx, src, { title: "No length" }),
+    ];
+    await lasts(trx, long, 9);
+    await lasts(trx, itemId, 4);
+    await lasts(trx, lonelyItem, 1);
+    await tagItem(trx, long, consistency);
+    await tagItem(trx, itemId, consistency);
+    // With no body text its length is unknown, so it isn't "the shortest".
+    await tagItem(trx, unknown, consistency);
+    await tagItem(trx, lonelyItem, lonely);
     expect(await explore.gap(me)).toEqual({
       conceptId: consistency,
       concept: "Consistency models",
       topic: "databases",
       known: ["Caching", "Replication"],
       itemId,
-      momentId: short,
       minutes: 4,
     });
     await explore.dismissGap(me, consistency);

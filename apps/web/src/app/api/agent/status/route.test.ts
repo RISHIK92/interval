@@ -27,7 +27,6 @@ const chosen = {
   goals: [],
   topics: ["backend"],
   level: "beginner",
-  breakLength: "1-3",
   onboardedAt: new Date("2026-01-01T00:00:00Z"),
   firstName: "Ada",
 } as const;
@@ -36,12 +35,7 @@ const get = vi.fn<() => Promise<(Preferences & { onboardedAt: Date }) | null>>(
     Promise.resolve(chosen as unknown as Preferences & { onboardedAt: Date }),
 );
 const card: FeedCard = {
-  kind: "moment",
   itemId: "10",
-  momentId: "1",
-  sectionTitle: "Why consensus",
-  sectionNumber: 1,
-  sectionCount: 2,
   estimatedMinutes: 2,
   articleTitle: "Consensus in practice",
   author: null,
@@ -52,25 +46,21 @@ const card: FeedCard = {
   frameable: true,
   topic: null,
   difficulty: null,
+  state: "unread",
 };
 const read = vi.fn<FeedReader["read"]>(() =>
   Promise.resolve({
     computed: true,
     cards: [
       card,
-      { ...card, momentId: "2", frameable: false, sectionTitle: "Terms" },
-      {
-        ...card,
-        kind: "article",
-        estimatedMinutes: null,
-        articleTitle: "Leases",
-      },
-      { ...card, momentId: "4" },
+      { ...card, itemId: "11", frameable: false, articleTitle: "Terms" },
+      { ...card, itemId: "12", estimatedMinutes: null, articleTitle: "Leases" },
+      { ...card, itemId: "13" },
     ],
   }),
 );
 const starter = vi.fn<FeedReader["starter"]>(() =>
-  Promise.resolve([{ ...card, sectionTitle: "Starter pick" }]),
+  Promise.resolve([{ ...card, articleTitle: "Starter pick" }]),
 );
 vi.mock("../../../../server/container", () => ({
   entitlements: () => ({ can }),
@@ -95,29 +85,29 @@ const call = (query = "", auth: string | null = `Bearer ${TOKEN}`) =>
     }),
   );
 
-test("the task, the break's chip and 3 links into the web app; nothing else", async () => {
+// ADR-0058: no chip; each suggestion is an article.
+test("the task and 3 links into the web app; nothing else", async () => {
   const response = await call();
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("no-store");
   const body: unknown = await response.json();
   expect(AgentStatus.strict().parse(body)).toEqual({
     task: { state: "idle" },
-    chip: "1-3",
     suggestions: [
       {
-        title: "Why consensus",
+        title: "Consensus in practice",
         minutes: 2,
-        url: "https://interval.test/read/10?moment=1&chip=1-3&pos=1&via=agent",
+        url: "https://interval.test/read/10?pos=1&via=agent",
       },
       {
         title: "Terms",
         minutes: 2,
-        url: "https://interval.test/out?item=10&moment=2&chip=1-3&pos=2&via=agent&target=section",
+        url: "https://interval.test/out?item=11&pos=2&via=agent&target=article",
       },
       {
         title: "Leases",
         minutes: null,
-        url: "https://interval.test/read/10?chip=1-3&pos=3&via=agent",
+        url: "https://interval.test/read/12?pos=3&via=agent",
       },
     ],
   });
@@ -125,7 +115,7 @@ test("the task, the break's chip and 3 links into the web app; nothing else", as
   const text = JSON.stringify(body);
   for (const leak of ["Because you follow", "etcd", "Example Engineering"])
     expect(text).not.toContain(leak);
-  expect(read).toHaveBeenCalledWith("u1", "1-3", 3);
+  expect(read).toHaveBeenCalledWith("u1", 3);
   // A read leaves Profile's "Last used" to the hook.
   expect(deviceFor).toHaveBeenCalledWith(TOKEN, expect.any(Date), false);
   // Its own limit, apart from the hook's start and finish.
@@ -133,15 +123,17 @@ test("the task, the break's chip and 3 links into the web app; nothing else", as
   expect(can).toHaveBeenCalledWith("u1", "agent.hook");
 });
 
-test("running with its seconds; finished for its 10 minutes; a chip asked for", async () => {
+// ADR-0058: the CLI and the extension still send ?chip=; it is ignored, whatever it is.
+test("running with its seconds; finished for its 10 minutes; a chip sent is ignored", async () => {
   running.mockResolvedValueOnce({ startedAt: new Date(Date.now() - 90_500) });
-  const run = AgentStatus.parse(await (await call("?chip=8-15")).json());
+  const asked = await call("?chip=huge");
+  expect(asked.status).toBe(200);
+  const run = AgentStatus.parse(await asked.json());
   expect(run.task).toMatchObject({ state: "running" });
   expect(
     run.task.state === "running" && run.task.seconds,
   ).toBeGreaterThanOrEqual(90);
-  expect(run.chip).toBe("8-15");
-  expect(read).toHaveBeenCalledWith("u1", "8-15", 3);
+  expect(read).toHaveBeenCalledWith("u1", 3);
   const at = new Date("2031-01-01T12:00:00Z");
   finished.mockResolvedValueOnce({ finishedAt: at });
   expect(AgentStatus.parse(await (await call()).json()).task).toEqual({
@@ -155,7 +147,6 @@ test("no suggestions before onboarding or on a plan without the feed", async () 
   const before = AgentStatus.parse(await (await call()).json());
   expect(before).toEqual({
     task: { state: "idle" },
-    chip: "3-8",
     suggestions: [],
   });
   can.mockImplementation((_user, capability) =>
@@ -167,7 +158,7 @@ test("no suggestions before onboarding or on a plan without the feed", async () 
   can.mockImplementation(() => Promise.resolve(true));
 });
 
-test("refused: no token, an unknown one, over the limit, the plan, a bad chip", async () => {
+test("refused: no token, an unknown one, over the limit, the plan", async () => {
   expect((await call("", null)).status).toBe(401);
   expect((await call("", "Bearer nope")).status).toBe(401);
   deviceFor.mockResolvedValueOnce(null);
@@ -178,8 +169,6 @@ test("refused: no token, an unknown one, over the limit, the plan, a bad chip", 
   expect(limited.headers.get("retry-after")).toBe("60");
   can.mockResolvedValueOnce(false);
   expect((await call()).status).toBe(403);
-  expect((await call("?chip=huge")).status).toBe(400);
-  // Unauthenticated, a bad chip is still a 401: nothing is said before the token.
   expect((await call("?chip=huge", null)).status).toBe(401);
   expect(running).not.toHaveBeenCalled();
 });
@@ -188,6 +177,6 @@ test("no stored feed yet: the starter, at once, never waiting for a recompute", 
   read.mockResolvedValueOnce({ computed: false, cards: [] });
   const body = AgentStatus.parse(await (await call()).json());
   expect(body.suggestions.map((s) => s.title)).toEqual(["Starter pick"]);
-  expect(starter).toHaveBeenCalledWith("u1", "backend", "beginner", "1-3", 3);
+  expect(starter).toHaveBeenCalledWith("u1", "backend", "beginner", 3);
   expect(read).toHaveBeenCalledTimes(1);
 });

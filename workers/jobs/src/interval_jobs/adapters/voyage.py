@@ -12,7 +12,7 @@ from interval_jobs.ports import EmbeddingPurpose, Embeddings, ModelError
 
 URL = "https://api.voyageai.com/v1/embeddings"
 TIMEOUT_S = 60.0
-# The moment_embedding column's dimension (P1-W3-S04).
+# The embedding columns' dimension (P1-W3-S04).
 DIMENSIONS = 1024
 # USD per million tokens. A model missing here is refused: an unpriced call would
 # slip past the cost budgets (OPS-4).

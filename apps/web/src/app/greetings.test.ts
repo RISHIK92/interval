@@ -5,7 +5,6 @@ const base: GreetingContext = {
   hour: 9,
   weekday: 2, // Tuesday
   firstName: "Ada",
-  chip: "3-8",
   continuing: null,
 };
 
@@ -37,8 +36,9 @@ test("something left unfinished can be the line, by its title", () => {
   );
 });
 
-test("the chip and the weekday have their own lines", () => {
-  expect(linesFor({ ...base, chip: "1-3" }).join(" ")).toMatch(/speedrun/i);
+// ADR-0058: no break-length chips, so no line about the break's length.
+test("the weekday has its own lines, and no line names a break length", () => {
+  expect(linesFor(base).join(" ")).not.toMatch(/speedrun|minutes/i);
   expect(linesFor({ ...base, weekday: 5 }).join(" ")).toMatch(/friday/i);
   expect(linesFor(base).join(" ")).not.toMatch(/friday/i);
 });

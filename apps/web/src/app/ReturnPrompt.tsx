@@ -1,7 +1,6 @@
 "use client";
 
 import { type ReactNode, useEffect, useReducer } from "react";
-import type { Chip } from "../server/chips";
 import { finishAction } from "./finish/actions";
 import { askingAbout, type Opened, promptState } from "./promptState";
 import { Button } from "./ui/Button";
@@ -30,11 +29,9 @@ function takeReaderOpen(): Opened | null {
       typeof value === "object" &&
       value !== null &&
       "itemId" in value &&
-      typeof value.itemId === "string" &&
-      "momentId" in value &&
-      (value.momentId === null || typeof value.momentId === "string")
+      typeof value.itemId === "string"
     ) {
-      return { itemId: value.itemId, momentId: value.momentId };
+      return { itemId: value.itemId };
     }
     return null;
   } catch (error) {
@@ -44,16 +41,14 @@ function takeReaderOpen(): Opened | null {
 }
 
 // The return prompt (§5D, Q-P1-32): back on this tab after opening a card, ask once.
-// Card links mark themselves with data-item (and data-moment for a section).
+// Card links mark themselves with data-item (ADR-0058: always an article).
 // `children` (the Now reading panel) shows whenever the prompt doesn't. `initialAsk`:
 // the in-app reader just closed (ADR-0018), so the prompt opens at once for it.
 export function ReturnPrompt({
-  chip,
   initialAsk,
   back,
   children,
 }: {
-  chip: Chip;
   initialAsk: Opened | null;
   // Where answering leads, when not the feed (the Library, owner 2026-10-26).
   back?: string;
@@ -98,10 +93,7 @@ export function ReturnPrompt({
           : null;
       const readItem = reader?.dataset["readItem"];
       if (readItem !== undefined) {
-        rememberReaderOpen({
-          itemId: readItem,
-          momentId: reader?.dataset["readMoment"] ?? null,
-        });
+        rememberReaderOpen({ itemId: readItem });
         return;
       }
       const link =
@@ -110,10 +102,7 @@ export function ReturnPrompt({
           : null;
       const itemId = link?.dataset["item"];
       if (itemId === undefined) return;
-      dispatch({
-        type: "opened",
-        open: { itemId, momentId: link?.dataset["moment"] ?? null },
-      });
+      dispatch({ type: "opened", open: { itemId } });
     };
     const onVisibility = () => {
       dispatch({ type: document.hidden ? "hidden" : "visible" });
@@ -140,11 +129,7 @@ export function ReturnPrompt({
     >
       <input type="hidden" name="control" value="finish" />
       <input type="hidden" name="itemId" value={asked.itemId} />
-      {asked.momentId === null ? null : (
-        <input type="hidden" name="momentId" value={asked.momentId} />
-      )}
       <input type="hidden" name="method" value="return_prompt" />
-      <input type="hidden" name="chip" value={chip} />
       {back === undefined ? null : (
         <input type="hidden" name="back" value={back} />
       )}
@@ -168,11 +153,7 @@ export function ReturnPrompt({
               <path d="M5 12l5 5 9-10" />
             </svg>
           </span>
-          <p className="text-section">
-            {asked.momentId === null
-              ? "Finished this article?"
-              : "Finished this section? Continue to the next?"}
-          </p>
+          <p className="text-section">Finished this article?</p>
         </div>
         <div className="mt-4 flex gap-2">
           {/* Focus moves here so a screen reader announces the question. */}

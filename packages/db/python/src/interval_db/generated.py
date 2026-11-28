@@ -1136,8 +1136,8 @@ class PathSectionConcept(TypedDict):
 class PathSession(TypedDict):
     section_id: int
     ordinal: int
-    moment_id: int
-    content_item_id: int | None
+    moment_id: int | None
+    content_item_id: int
 
 
 class Plan(TypedDict):
@@ -1296,14 +1296,14 @@ class QuestionConcept(TypedDict):
 
 
 class QuestionDrafting(TypedDict):
-    moment_id: int
+    moment_id: int | None
     attempt: int
     retry_at: datetime
     content_item_id: int | None
 
 
 class QuestionEstimateDrafted(TypedDict):
-    moment_id: int
+    moment_id: int | None
     content_hash: str
     content_item_id: int | None
 
@@ -1568,6 +1568,7 @@ class UserArticleOpened(TypedDict):
     user_id: str
     content_item_id: int
     opened_at: datetime
+    last_opened_at: datetime
 
 
 class UserAvoidedConcept(TypedDict):
@@ -1701,8 +1702,8 @@ class UserPathSession(TypedDict):
     user_id: str
     section_id: int
     ordinal: int
-    moment_id: int
-    content_item_id: int | None
+    moment_id: int | None
+    content_item_id: int
 
 
 class UserPreferences(TypedDict):

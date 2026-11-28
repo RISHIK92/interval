@@ -55,14 +55,15 @@ test("a game starts with the app's source; a plan without it, or nothing to play
   expect((await post({ game: "estimation" })).status).toBe(404);
 });
 
-test("Test 60s on a section, or none live", async () => {
+// ADR-0058: one quiz per article; an older app's momentId is ignored.
+test("Test 60s on an article, or none live", async () => {
   current.mockResolvedValue(account);
   startTest.mockResolvedValueOnce({ attemptId: "41" });
   expect((await post({ itemId: "5", momentId: "9" })).status).toBe(201);
-  expect(startTest).toHaveBeenCalledWith(expect.anything(), "5", "9");
+  expect(startTest).toHaveBeenCalledWith(expect.anything(), "5");
   startTest.mockResolvedValueOnce(null);
   expect((await post({ itemId: "5" })).status).toBe(404);
-  expect(startTest).toHaveBeenLastCalledWith(expect.anything(), "5", null);
+  expect(startTest).toHaveBeenLastCalledWith(expect.anything(), "5");
 });
 
 test("no session, another site or a bad body: refused", async () => {

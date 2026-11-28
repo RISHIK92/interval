@@ -12,7 +12,7 @@ from uuid import uuid4
 import psycopg
 import pytest
 
-from interval_jobs.adapters.postgres import PostgresEmbeddings, PostgresStore
+from interval_jobs.adapters.postgres import PostgresStore
 
 Expanded = Callable[..., "Article"]
 MIGRATION = (
@@ -29,7 +29,7 @@ def _steps() -> tuple[str, str]:
     return up.split("-- migrate:up", 1)[1], down
 
 
-def _retrying(conn: psycopg.Connection, sql: str) -> None:
+def retrying(conn: psycopg.Connection, sql: str) -> None:
     # The DDL takes exclusive locks on tables the web suites read in the same database
     # (CI runs them together): a lock timeout under Postgres's 1 s deadlock check makes
     # this side give up first and try again, as reset_concepts does.
@@ -52,7 +52,7 @@ def _one(conn: psycopg.Connection, sql: str, params: tuple[object, ...] = ()) ->
     return row[0]
 
 
-def _id(conn: psycopg.Connection, sql: str, params: tuple[object, ...] = ()) -> int:
+def row_id(conn: psycopg.Connection, sql: str, params: tuple[object, ...] = ()) -> int:
     value = _one(conn, sql, params)
     assert isinstance(value, int)
     return value
@@ -79,7 +79,7 @@ class Article:
             "where name = %s",
             (name,),
         )
-        self.id = _id(
+        self.id = row_id(
             conn,
             "insert into content_item (source_id, guid, canonical_url, title) "
             "select id, 'g', 'https://expand.example.test/a', 't' from source "
@@ -92,7 +92,7 @@ class Article:
             "insert into app_user (id, name, email) values (%s, 'n', %s)",
             (self.user, f"{self.user}@example.test"),
         )
-        self.concept = _id(
+        self.concept = row_id(
             conn,
             "insert into concept (slug, name, topic) "
             "values (%s, 'C', 'databases') returning id",
@@ -100,7 +100,7 @@ class Article:
         )
 
     def moment(self, ordinal: int) -> int:
-        return _id(
+        return row_id(
             self.conn,
             "insert into moment (content_item_id, ordinal, title, "
             "estimated_minutes, link, link_type) values "
@@ -115,7 +115,7 @@ class Article:
             if kind == "choice"
             else "null, null, 10, 'ms'"
         )
-        return _id(
+        return row_id(
             self.conn,
             "insert into question (moment_id, ordinal, stem, citation, kind, "
             "options, correct, answer, unit, generator_model, prompt_version, "
@@ -141,10 +141,10 @@ def expanded(
 
     def run(before: Callable[[Article], None], moments: int = 2) -> Article:
         up, down = _steps()
-        _retrying(conn, down)
+        retrying(conn, down)
         article = Article(conn, moments)
         before(article)
-        _retrying(conn, up)
+        retrying(conn, up)
         return article
 
     return run
@@ -386,7 +386,7 @@ def test_explainer_citations_name_the_article_and_down_undoes_it_all(
     ).fetchall()
     assert overrides == [("s",)]
 
-    _retrying(a.conn, _steps()[1])
+    retrying(a.conn, _steps()[1])
     assert _one(a.conn, citations, (a.concept,)) == [
         {"moment_id": a.moments[0], "quote": "q"},
         {"moment_id": 0, "quote": "gone"},
@@ -425,7 +425,7 @@ def test_rows_written_by_moment_until_stage_c_get_their_article(
         (a.user, a.moments[1]),
     )
     assert (
-        _id(
+        row_id(
             conn,
             "select content_item_id from user_article_opened where user_id = %s",
             (a.user,),
@@ -433,12 +433,12 @@ def test_rows_written_by_moment_until_stage_c_get_their_article(
         == a.id
     )
     # A path swap rewrites the session's moment: its article follows.
-    path = _id(
+    path = row_id(
         conn,
         "insert into path (name, why, model, prompt_version) "
         "values ('p', 'w', 'm', 1) returning id",
     )
-    section = _id(
+    section = row_id(
         conn,
         "insert into path_section (path_id, ordinal) values (%s, 0) returning id",
         (path,),
@@ -457,7 +457,7 @@ def test_rows_written_by_moment_until_stage_c_get_their_article(
         (other.moments[0], section),
     )
     assert (
-        _id(
+        row_id(
             conn,
             "select content_item_id from path_session where section_id = %s",
             (section,),
@@ -465,7 +465,7 @@ def test_rows_written_by_moment_until_stage_c_get_their_article(
         == a.id
     )
     assert (
-        _id(
+        row_id(
             conn,
             "select content_item_id from user_path_session where section_id = %s",
             (section,),
@@ -576,23 +576,28 @@ def test_a_finish_before_the_open_moves_the_articles_first_open_back(
     assert _one(conn, first, (a.user,)) == early
 
 
-def test_the_article_vector_follows_the_workers_embedding_writes(
+def test_the_article_vector_follows_moment_embedding_writes(
     conn: psycopg.Connection,
 ) -> None:
+    # Stage A's triggers, as the moment-era worker wrote: moment vectors upserted, then
+    # the item's completion mark (ADR-0058 stage B writes the article's vector itself).
     a = Article(conn)
     first, second = a.moments
-    embeddings = PostgresEmbeddings(conn)
 
-    def vector(*head: float) -> list[float]:
-        return list(head) + [0.0] * (DIMS - len(head))
+    def embed(moment_id: int, model: str, *head: float) -> None:
+        conn.execute(
+            "insert into moment_embedding (moment_id, model, embedding) "
+            "values (%s, %s, %s::vector) on conflict (moment_id) do update "
+            "set model = excluded.model, embedding = excluded.embedding",
+            (moment_id, model, _vector(*head)),
+        )
 
-    def mean(model: str) -> list[tuple[bool]]:
-        # The article's row for the model, and whether its vector is (0.5, 0.5).
-        return conn.execute(
-            "select embedding = %s::vector from item_embedding "
-            "where content_item_id = %s and model = %s",
-            (_vector(0.5, 0.5), a.id, model),
-        ).fetchall()
+    def complete(model: str) -> None:
+        conn.execute(
+            "insert into item_embedding (content_item_id, model) values (%s, %s) "
+            "on conflict do nothing",
+            (a.id, model),
+        )
 
     def is_(model: str, *head: float) -> bool:
         return (
@@ -605,24 +610,18 @@ def test_the_article_vector_follows_the_workers_embedding_writes(
             is True
         )
 
-    embeddings.save(a.id, {first: vector(1.0, 0.0)}, "e", complete=False)
-    assert mean("e") == []  # no row until the item is embedded in full
+    rows = "select count(*) from item_embedding where content_item_id = %s"
+    embed(first, "e", 1.0, 0.0)
+    assert _one(conn, rows, (a.id,)) == 0  # no row until the item is embedded in full
     # The completion mark's insert fills the vector.
-    embeddings.save(a.id, {second: vector(0.0, 1.0)}, "e", complete=True)
-    assert mean("e") == [(True,)]
+    embed(second, "e", 0.0, 1.0)
+    complete("e")
+    assert is_("e", 0.5, 0.5)
     # An upsert of a moment under the existing row recomputes it.
-    embeddings.save(a.id, {first: vector(0.0, 1.0)}, "e", complete=True)
+    embed(first, "e", 0.0, 1.0)
     assert is_("e", 0.0, 1.0)
     # A moment re-embedded by another model leaves this model's mean.
-    embeddings.save(a.id, {first: vector(1.0, 0.0)}, "f", complete=True)
+    embed(first, "f", 1.0, 0.0)
+    complete("f")
     assert is_("e", 0.0, 1.0)
     assert is_("f", 1.0, 0.0)
-    embeddings.clear(a.id)
-    assert (
-        _one(
-            conn,
-            "select count(*) from item_embedding where content_item_id = %s",
-            (a.id,),
-        )
-        == 0
-    )

@@ -1,6 +1,6 @@
 """Precomputed feeds (CACHE-1, LOAD-5, Q-P1-17, ADR-0008, P1-W4-S04): recomputed after
 feedback, kept as they were when ranking fails, and starter feeds for new guests. One
-feed per time chip (Q-P1-16, P1-W4-S05)."""
+ranked list of articles per feed (ADR-0058)."""
 
 import json
 import random
@@ -8,7 +8,6 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from interval_db.generated import BreakLength
 from interval_jobs.adapters.memory import InMemoryStore, StoredUser
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.concepts.graph import parse_concepts
@@ -22,10 +21,8 @@ from interval_jobs.feed.precompute import (
 )
 from interval_jobs.ports import (
     Arm,
-    CandidateArticle,
     EntryFacts,
     FeedEntry,
-    MomentRow,
     RankedEntry,
     Section,
     TagResult,
@@ -54,7 +51,7 @@ class World:
             ),
         )
         self.store.ranking.preferences_by_user["u1"] = UserPreferences(
-            topics=["databases"], level="intermediate", break_length="3-8"
+            topics=["databases"], level="intermediate"
         )
         self.store.users.rows["u1"] = StoredUser("u1", is_anonymous=True)
         self.source = self.store.sources.upsert(
@@ -63,15 +60,10 @@ class World:
             rights_profile="full_text_internal",
             homepage=None,
         )
-        self.store.sources.set_moments_enabled(self.source, True)
         self.store.sources.rows[self.source].topics = ("databases",)
 
-    def item(
-        self, guid: str, day: int, minutes: int = 5, parts: list[int] | None = None
-    ) -> tuple[int, int]:
-        """A full-text article with one moment per part (default: one of `minutes`);
-        returns the item and its first moment."""
-        parts = parts or [minutes]
+    def item(self, guid: str, day: int, minutes: int = 5) -> int:
+        """A full-text article of `minutes`."""
         entry = FeedEntry(
             guid=guid,
             link=f"https://dbblog.test/{guid}",
@@ -82,20 +74,10 @@ class World:
             summary=None,
         )
         item = self.store.items.upsert_from_feed(self.source, entry, keep_excerpt=False)
-        # Sections give the whole article its length: 230 words a minute.
+        # Sections give the article its length: 230 words a minute.
         self.store.items.store_full_text(item, "text")
-        self.store.items.replace_sections(
-            item,
-            [Section(f"{guid} {i}", 2, None, n * 230) for i, n in enumerate(parts)],
-        )
-        self.store.moments.replace(
-            item,
-            [
-                MomentRow(i, f"{guid} {i}", n, f"{entry.link}#{i}", "anchor")
-                for i, n in enumerate(parts)
-            ],
-        )
-        return item, self.store.moments.for_item(item)[0].id
+        self.store.items.replace_sections(item, [Section(guid, 2, None, minutes * 230)])
+        return item
 
     def metadata_only(self, guid: str, day: int) -> int:
         """An article from a source that allows only its title and link (Q-P1-39)."""
@@ -117,25 +99,19 @@ class World:
         )
         return self.store.items.upsert_from_feed(source, entry, keep_excerpt=False)
 
-    def entries(
-        self, chip: BreakLength, user: str = "u1"
-    ) -> list[tuple[int, int | None]]:
-        """(item, moment) in rank order; no moment means the whole article."""
-        rows = self.store.feed.users.get(user, {}).get(chip, [])
-        return [(r.item_id, r.moment_id) for r in rows]
-
-    def feed(self, user: str = "u1", chip: BreakLength = "3-8") -> list[int | None]:
-        return [r.moment_id for r in self.store.feed.users.get(user, {}).get(chip, [])]
+    def feed(self, user: str = "u1") -> list[int]:
+        """The user's feed: articles in rank order."""
+        return [r.item_id for r in self.store.feed.users.get(user, [])]
 
 
 def test_a_recompute_after_feedback_reflects_it() -> None:
     w = World()
-    newer_item, newer = w.item("newer", 25)
-    _, older = w.item("older", 20)
+    newer = w.item("newer", 25)
+    older = w.item("older", 20)
     recompute_user_feed(w.store, "u1", None, NOW)
     assert w.feed()[0] == newer  # fresher ranks first
     # Less like this on the newer item: the next recompute moves it down.
-    w.store.ranking.feedback.append(("u1", newer_item, "less_like_this"))
+    w.store.ranking.feedback.append(("u1", newer, "less_like_this"))
     recompute_user_feed(w.store, "u1", None, NOW)
     assert w.feed() == [older, newer]
     assert w.store.feed.computed["u1"] == NOW
@@ -167,23 +143,23 @@ def test_a_user_without_preferences_gets_an_empty_computed_feed() -> None:
     w.store.users.rows["u2"] = StoredUser("u2", is_anonymous=True)
     w.item("any", 25)
     recompute_user_feed(w.store, "u2", None, NOW)
-    assert w.store.feed.users["u2"] == {"1-3": [], "3-8": [], "8-15": []}
+    assert w.store.feed.users["u2"] == []
     assert w.store.feed.computed["u2"] == NOW
 
 
-def test_starter_feeds_cover_every_topic_level_and_chip() -> None:
+def test_starter_feeds_cover_every_topic_and_level() -> None:
     w = World()
-    _, db_moment = w.item("db-post", 25)
+    db_item = w.item("db-post", 25)
+    long_item = w.item("db-long", 24, minutes=40)
     recompute_starters(w.store)
-    # Every topic (five since ADR-0049), three levels, three chips; topics the graph
-    # lacks come out empty.
-    assert len(w.store.feed.starters) == 45
-    assert w.store.feed.starters[("software-design", "beginner", "3-8")] == []
+    # Every topic (five since ADR-0049), three levels; topics the graph lacks come out
+    # empty. One list each, articles of any length (ADR-0058).
+    assert len(w.store.feed.starters) == 15
+    assert w.store.feed.starters[("software-design", "beginner")] == []
     for level in ("beginner", "intermediate", "advanced"):
-        starter = w.store.feed.starters[("databases", level, "3-8")]
-        assert [r.moment_id for r in starter] == [db_moment]
-        assert w.store.feed.starters[("databases", level, "1-3")] == []  # 5 min
-        assert w.store.feed.starters[("distributed-systems", level, "3-8")] == []
+        starter = w.store.feed.starters[("databases", level)]
+        assert [r.item_id for r in starter] == [db_item, long_item]
+        assert w.store.feed.starters[("distributed-systems", level)] == []
 
 
 def test_the_hourly_pass_queues_each_active_user_once_per_hour() -> None:
@@ -203,25 +179,25 @@ def test_the_hourly_pass_queues_each_active_user_once_per_hour() -> None:
     assert pending == [("recompute-u1-2026102612", {"user_id": "u1"})]
 
 
-def test_a_feed_holds_ranked_moments_in_order() -> None:
+def test_a_feed_holds_ranked_articles_in_order() -> None:
     w = World()
-    _, first = w.item("a", 25)
-    _, second = w.item("b", 24)
+    first = w.item("a", 25)
+    second = w.item("b", 24)
     recompute_user_feed(w.store, "u1", None, NOW)
-    rows = w.store.feed.users["u1"]["3-8"]
-    assert [r.moment_id for r in rows] == [first, second]
+    rows = w.store.feed.users["u1"]
+    assert [r.item_id for r in rows] == [first, second]
     assert all(isinstance(r, RankedEntry) and r.top_signal for r in rows)
 
 
 def test_starter_feeds_of_a_topic_dropped_from_the_graph_are_emptied() -> None:
     w = World()
-    db_item, db_moment = w.item("db-post", 25)
+    db_item = w.item("db-post", 25)
     w.store.feed.replace_starter(
-        "backend", "beginner", "3-8", [RankedEntry(db_item, db_moment, "q", None)]
+        "backend", "beginner", [RankedEntry(db_item, "q", None)]
     )
     recompute_starters(w.store)
     # "backend" isn't in this world's concept graph: its starter is now empty.
-    assert w.store.feed.starters[("backend", "beginner", "3-8")] == []
+    assert w.store.feed.starters[("backend", "beginner")] == []
 
 
 def test_recompute_due_queues_users_and_refreshes_starters(
@@ -250,107 +226,45 @@ def test_recompute_due_queues_users_and_refreshes_starters(
     monkeypatch.setattr(cli, "queue_for_enqueue", lambda: queue)
     cli.main(["recompute-due"])
     result = json.loads(capsys.readouterr().out.splitlines()[-1])
-    assert result == {"queued": 1, "starter_feeds": 45}
+    assert result == {"queued": 1, "starter_feeds": 15}
     assert queue.pending("recompute_feed") == 1
 
 
-def test_short_chips_hold_moments_that_fit_and_8_15_whole_articles_that_fit() -> None:
+def test_articles_of_any_length_share_one_list_ranked_alike() -> None:
     w = World()
-    two_item, two = w.item("two", 25, minutes=2)
-    five_item, five = w.item("five", 25, minutes=5)
-    twelve_item, _ = w.item("twelve", 25, minutes=12)
+    # ADR-0058: no chips and no time fit; length never moves an article.
+    short = w.item("short", 25, minutes=2)
+    long = w.item("long", 25, minutes=40)
     recompute_user_feed(w.store, "u1", None, NOW)
-    assert w.entries("1-3") == [(two_item, two)]
-    assert set(w.entries("3-8")) == {(two_item, two), (five_item, five)}
-    # Every article fits in 15 minutes: offered whole, not as its moments (owner).
-    assert set(w.entries("8-15")) == {
-        (two_item, None),
-        (five_item, None),
-        (twelve_item, None),
-    }
+    assert w.feed() == [short, long]  # equal scores: lower item id first
+    (first, second) = w.store.feed.users["u1"]
+    assert first.breakdown is not None and second.breakdown is not None
+    assert first.breakdown.values == second.breakdown.values
+    assert "time_fit" not in first.breakdown.values
 
 
-def test_each_chip_ranks_with_its_own_time_fit() -> None:
-    w = World()
-    # Only time fit counts here, so the order shows which break each chip scored for.
-    for key in list(w.store.ranking.config_rows):
-        if key.startswith("weight.") and key != "weight.time_fit":
-            w.store.ranking.config_rows[key] = 0
-    w.store.ranking.config_rows["mmr.lambda"] = 1
-    short_item, short = w.item("short", 25, minutes=2)
-    long_item, _ = w.item("long", 25, minutes=10)
-    recompute_user_feed(w.store, "u1", None, NOW)
-    # The long break wants long reads (W4-S03); a 2-minute article fits it less.
-    assert w.entries("8-15") == [(long_item, None), (short_item, None)]
-    assert w.entries("3-8") == [(short_item, short)]
-
-
-def test_a_moment_gone_before_scoring_is_logged_not_silently_dropped(
+def test_an_article_gone_before_scoring_is_logged_not_silently_dropped(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     w = World()
-    w.item("resegmented", 25)
+    w.item("deleted", 25)
 
-    # Re-segmented between the candidate read and the facts read.
+    # Deleted between the candidate read and the facts read.
     def none_found(ids: list[int]) -> dict[int, EntryFacts]:
         return {}
 
-    monkeypatch.setattr(w.store.ranking, "moment_facts", none_found)
+    monkeypatch.setattr(w.store.ranking, "article_facts", none_found)
     recompute_user_feed(w.store, "u1", None, NOW)
     lines = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     assert any(line["msg"] == "ranking: candidate gone" for line in lines)
+    assert w.feed() == []
 
 
-def test_an_article_over_15_minutes_shows_whole_and_as_its_moments() -> None:
-    w = World()
-    # Owner, 2026-10-26: too long to fit, so ranked lower, and its moments show too.
-    w.store.ranking.config_rows["cap.per_source"] = 10  # one source in this world
-    long_item, _ = w.item("long", 25, parts=[8, 7, 6, 16])
-    fits_item, _ = w.item("fits", 25, minutes=12)
-    recompute_user_feed(w.store, "u1", None, NOW)
-    *fitting, too_long = [m.id for m in w.store.moments.for_item(long_item)]
-    entries = w.entries("8-15")
-    assert (long_item, None) in entries and (fits_item, None) in entries
-    assert {(long_item, m) for m in fitting} <= set(entries)
-    assert (long_item, too_long) not in entries  # a 16-minute moment fits no chip
-    assert entries.index((fits_item, None)) < entries.index((long_item, None))
-
-
-def test_an_article_of_unknown_length_appears_only_under_8_15() -> None:
+def test_an_article_of_unknown_length_is_in_the_feed() -> None:
     w = World()
     unknown = w.metadata_only("meta-post", 25)
     recompute_user_feed(w.store, "u1", None, NOW)
-    assert (unknown, None) in w.entries("8-15")
-    for chip in ("1-3", "3-8"):
-        assert all(item != unknown for item, _ in w.entries(chip))
-    assert w.store.moments.for_item(unknown) == []
-
-
-def test_starter_feeds_hold_whole_articles_under_8_15() -> None:
-    w = World()
-    item, moment = w.item("db-post", 25)
-    recompute_starters(w.store)
-    starter = w.store.feed.starters[("databases", "beginner", "8-15")]
-    assert [(r.item_id, r.moment_id) for r in starter] == [(item, None)]
-    short = w.store.feed.starters[("databases", "beginner", "3-8")]
-    assert [(r.item_id, r.moment_id) for r in short] == [(item, moment)]
-
-
-def test_an_article_that_fits_stays_whole_when_only_its_moments_were_found(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # A moment can be found without its article: by similarity (off-topic), or past
-    # the article candidates' limit. The article is still offered whole under 8-15.
-    w = World()
-    item, moment = w.item("found-by-moment", 25, minutes=6)
-
-    def none_found(*_args: object, **_kwargs: object) -> list[CandidateArticle]:
-        return []
-
-    monkeypatch.setattr(w.store.ranking, "topic_articles", none_found)
-    recompute_user_feed(w.store, "u1", None, NOW)
-    assert w.entries("8-15") == [(item, None)]
-    assert w.entries("3-8") == [(item, moment)]
+    assert unknown in w.feed()
 
 
 # ADR-0025: starter notes are the app's own words; nothing is queued to polish them,
@@ -382,7 +296,7 @@ def test_recompute_due_queues_no_note_polish(
     monkeypatch.setenv("NOTES_MODEL", "small-notes")
     cli.main(["recompute-due"])
     out = capsys.readouterr().out
-    assert '"starter_feeds": 45' in out
+    assert '"starter_feeds": 15' in out
 
 
 # Exploration (REC-4, P1-W4-S09): a share of slots for topics the user didn't choose
@@ -405,7 +319,6 @@ def backend_world(items: int = 10) -> tuple[World, int]:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    w.store.sources.set_moments_enabled(other, True)
     w.store.sources.rows[other].topics = ("backend",)
     for n in range(items):
         entry = FeedEntry(
@@ -420,35 +333,30 @@ def backend_world(items: int = 10) -> tuple[World, int]:
         item = w.store.items.upsert_from_feed(other, entry, keep_excerpt=False)
         w.store.items.store_full_text(item, "text")
         w.store.items.replace_sections(item, [Section("h", 2, None, 5 * 230)])
-        w.store.moments.replace(item, [MomentRow(0, "h", 5, entry.link, "anchor")])
     for n in range(20):
         w.item(f"db-{n}", 25)
     return w, other
 
 
-def from_source(w: World, source: int, chip: BreakLength = "3-8") -> int:
-    return sum(
-        1 for item, _ in w.entries(chip) if w.store.items.rows[item].source_id == source
-    )
+def from_source(w: World, source: int) -> int:
+    return sum(1 for item in w.feed() if w.store.items.rows[item].source_id == source)
 
 
 def test_a_tenth_of_the_slots_explore_topics_the_user_did_not_choose() -> None:
     w, other = backend_world()
     w.store.ranking.config_rows["cap.per_source"] = 10
     recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
-    # 50 entries per chip, 0.1 of them explored: 5, here all from the backend arm.
+    # 50 entries, 0.1 of them explored: 5, here all from the backend arm.
     assert from_source(w, other) == 5
     # Spread through the feed: never at the top.
-    first_item, _ = w.entries("3-8")[0]
-    assert w.store.items.rows[first_item].source_id != other
+    assert w.store.items.rows[w.feed()[0]].source_id != other
 
 
 def test_explored_entries_keep_the_per_source_cap() -> None:
     w, other = backend_world()  # cap.per_source is 4
     recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
-    for chip in ("1-3", "3-8", "8-15"):
-        sources = [w.store.items.rows[i].source_id for i, _ in w.entries(chip)]
-        assert all(sources.count(src) <= 4 for src in set(sources))
+    sources = [w.store.items.rows[i].source_id for i in w.feed()]
+    assert all(sources.count(src) <= 4 for src in set(sources))
     assert from_source(w, other) == 4
 
 
@@ -469,9 +377,7 @@ def test_a_hidden_source_or_not_interested_item_is_never_explored() -> None:
     w.store.ranking.feedback.append(("u1", gone, "not_interested"))
     recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
     assert from_source(w, other) > 0  # still exploring, just never that item
-    assert all(
-        item != gone for chip in ("1-3", "3-8", "8-15") for item, _ in w.entries(chip)
-    )
+    assert gone not in w.feed()
 
 
 def test_a_source_the_main_picks_do_not_reach_is_explored(
@@ -488,13 +394,12 @@ def test_a_source_the_main_picks_do_not_reach_is_explored(
         rights_profile="full_text_internal",
         homepage=None,
     )
-    w.store.sources.set_moments_enabled(second, True)
     w.store.sources.rows[second].topics = ("databases",)
     w.item("main-1", 25)
     first, w.source = w.source, second
     w.item("second-1", 20)
     recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
-    sources = [w.store.items.rows[i].source_id for i, _ in w.entries("3-8")]
+    sources = [w.store.items.rows[i].source_id for i in w.feed()]
     assert sources == [first, second]
 
 
@@ -507,13 +412,13 @@ def test_an_unfilled_exploration_slot_goes_back_to_the_main_feed() -> None:
     # 25 main slots, 25 for exploration, nothing to explore (one source, reached; no
     # other topic): the empty slots go back to the main feed.
     recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
-    assert len(w.entries("3-8")) == 30
+    assert len(w.feed()) == 30
 
 
 def test_starter_feeds_do_not_explore() -> None:
     w, other = backend_world()
     recompute_starters(w.store)
-    starter = w.store.feed.starters[("databases", "beginner", "3-8")]
+    starter = w.store.feed.starters[("databases", "beginner")]
     assert all(w.store.items.rows[r.item_id].source_id != other for r in starter)
 
 
@@ -522,7 +427,7 @@ def test_explored_entries_keep_their_arm() -> None:
     w, other = backend_world()
     w.store.ranking.config_rows["cap.per_source"] = 10
     recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
-    rows = w.store.feed.users["u1"]["3-8"]
+    rows = w.store.feed.users["u1"]
     explored = [r for r in rows if w.store.items.rows[r.item_id].source_id == other]
     assert explored and all(r.arm == Arm("topic", "backend") for r in explored)
     assert all(
@@ -536,17 +441,16 @@ def test_a_goal_lifts_its_items_and_names_itself_in_the_note() -> None:
     w.store.ranking.preferences_by_user["u1"] = UserPreferences(
         topics=["databases"],
         level="intermediate",
-        break_length="3-8",
         goals=["system-design-interviews"],
     )
     # Above topic match, so the goal is the top reason.
     w.store.ranking.config_rows["weight.goal_match"] = 2.0
-    item, moment = w.item("idx", 25)
+    item = w.item("idx", 25)
     w.store.tags.save(
         item, TagResult(Tags("intermediate", frozenset({"indexes"})), {}), "m", 1
     )
     recompute_user_feed(w.store, "u1", None, NOW)
-    (entry,) = [r for r in w.store.feed.users["u1"]["3-8"] if r.moment_id == moment]
+    (entry,) = [r for r in w.store.feed.users["u1"] if r.item_id == item]
     assert entry.breakdown is not None
     assert entry.breakdown.values["goal_match"] == 1.0
     assert entry.top_signal == "goal_match"
@@ -564,18 +468,17 @@ def test_project_concepts_reach_the_feed_and_its_note() -> None:
     w.store.ranking.preferences_by_user["u1"] = UserPreferences(
         topics=["databases"],
         level="intermediate",
-        break_length="3-8",
         goals=["stack-i-use"],
     )
     w.store.ranking.config_rows["weight.project_match"] = 2.0
     w.store.ranking.projects["u1"] = {"indexes": (("postgresql", "PostgreSQL"),)}
     w.store.ranking.repositories["u1"] = {"postgresql": ("octo/velox",)}
-    item, moment = w.item("idx", 25)
+    item = w.item("idx", 25)
     w.store.tags.save(
         item, TagResult(Tags("intermediate", frozenset({"indexes"})), {}), "m", 1
     )
     recompute_user_feed(w.store, "u1", None, NOW)
-    (entry,) = [r for r in w.store.feed.users["u1"]["3-8"] if r.moment_id == moment]
+    (entry,) = [r for r in w.store.feed.users["u1"] if r.item_id == item]
     assert entry.breakdown is not None
     assert entry.breakdown.values["project_match"] == 1.0
     assert entry.breakdown.values["goal_match"] == 1.0  # the stack goal's set
@@ -592,17 +495,12 @@ def test_starter_reasons_state_nothing_personal() -> None:
     w = World()
     w.store.ranking.projects["u1"] = {"indexes": (("postgresql", "PostgreSQL"),)}
     w.store.ranking.repositories["u1"] = {"postgresql": ("octo/velox",)}
-    item, _ = w.item("idx", 3)
+    item = w.item("idx", 3)
     w.store.tags.save(
         item, TagResult(Tags("beginner", frozenset({"indexes"})), {}), "m", 1
     )
     recompute_starter(w.store, "databases", "beginner", None, NOW)
-    entries = [
-        e
-        for (topic, level, _), chip in w.store.feed.starters.items()
-        if (topic, level) == ("databases", "beginner")
-        for e in chip
-    ]
+    entries = w.store.feed.starters[("databases", "beginner")]
     assert entries
     for entry in entries:
         assert not {"project_match", "goal_match", "explore"} & set(entry.reason_kinds)

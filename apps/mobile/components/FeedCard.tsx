@@ -45,8 +45,15 @@ function openMenu(pick: (control: MenuControl) => void) {
   ]);
 }
 
+// ADR-0058: what an article opened shows, as the PWA's; an unread one shows none.
+const STATE: Record<Card["state"], string | null> = {
+  unread: null,
+  continue_reading: "Continue reading",
+  completed: "Completed",
+};
+
 // P4-W20-S01 (§5A, §3.2): what a card may show, as the PWA's: no body text. The project
-// note is the model's, so labeled (AI-3).
+// note is the model's, so labeled (AI-3). ADR-0058: every card is a whole article.
 export function FeedCard({
   card,
   href,
@@ -54,20 +61,17 @@ export function FeedCard({
   onMenu,
 }: {
   card: Card;
-  // The reader, with the card's chip and position for its open (P4-W20-S02).
+  // The reader, with the card's position for its open (P4-W20-S02).
   href: string;
   onSave: () => void;
   onMenu: (control: MenuControl) => void;
 }) {
   const c = useColors();
-  const minutes =
+  const length =
     card.estimatedMinutes === null
-      ? null
-      : `${String(card.estimatedMinutes)} min`;
-  const where =
-    card.kind === "moment"
-      ? `Section ${String(card.sectionNumber)} of ${String(card.sectionCount)} · ${minutes ?? ""}`
-      : (minutes ?? "Article");
+      ? "Length unknown"
+      : `${String(card.estimatedMinutes)} min read`;
+  const state = STATE[card.state];
   return (
     <View
       style={[
@@ -80,11 +84,11 @@ export function FeedCard({
           <Text style={[styles.title, { color: c.ink }]}>
             {card.articleTitle}
           </Text>
-          {card.kind === "moment" ? (
-            <Text style={{ color: c.ink }}>{card.sectionTitle}</Text>
-          ) : null}
-          <Text style={{ color: c["ink-muted"] }}>{where}</Text>
           <Text style={{ color: c["ink-muted"] }}>{card.sourceName}</Text>
+          <Text style={{ color: c["ink-muted"] }}>{length}</Text>
+          {state === null ? null : (
+            <Text style={[styles.strong, { color: c.ink }]}>{state}</Text>
+          )}
         </Pressable>
       </Link>
       {/* As the PWA: the project note replaces the why-this-matters line (ADR-0027). */}

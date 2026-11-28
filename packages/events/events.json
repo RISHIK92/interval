@@ -26,30 +26,18 @@
       "props": {}
     },
     "card_opened": {
-      "version": 4,
-      "description": "A card was opened (Q-P1-21 \"opened\"). v2 adds the ids, to match opens to finishes (P1-W6-S04). v3 adds where it opened: Interval's in-app reader or the browser (ADR-0018). v4 adds where the card was offered: Home's feed, or a companion surface's suggestions read with a device token (P7-W46; owner, 2026-11-27).",
+      "version": 5,
+      "description": "A card was opened (Q-P1-21 \"opened\"). v2 adds the ids, to match opens to finishes (P1-W6-S04). v3 adds where it opened: Interval's in-app reader or the browser (ADR-0018). v4 adds where the card was offered: Home's feed, or a companion surface's suggestions read with a device token (P7-W46; owner, 2026-11-27). v5 (ADR-0058): a card is always an article, so kind, chip and moment_id go.",
       "props": {
-        "kind": ["moment", "article"],
-        "chip": ["1-3", "3-8", "8-15"],
         "position": "count",
         "item_id": "id",
-        "moment_id": "id?",
         "surface": ["in_app", "browser"],
         "via": ["feed", "agent"]
       }
     },
-    "section_finished": {
-      "version": 3,
-      "description": "A moment's section was finished (Q-P1-21 \"finished\"). v2 adds the ids (P1-W6-S04). v3 adds auto: the app's reader saw the section read through (P4-W20-S03).",
-      "props": {
-        "method": ["return_prompt", "mark_done", "auto"],
-        "item_id": "id",
-        "moment_id": "id"
-      }
-    },
-    "article_finished": {
-      "version": 3,
-      "description": "A whole-article card was finished. v2 adds the item id (P1-W6-S04). v3 adds auto: its last section finished automatically in the app (P4-W20-S03).",
+    "article_completed": {
+      "version": 1,
+      "description": "An article was completed (Q-P1-21 \"finished\", ADR-0058): the reader's Done, the return prompt, or the app's reader seeing it read through (auto). Replaces section_finished and article_finished: an article is the only reading unit.",
       "props": {
         "method": ["return_prompt", "mark_done", "auto"],
         "item_id": "id"
@@ -79,23 +67,22 @@
       }
     },
     "note_saved": {
-      "version": 1,
-      "description": "A note on a section or an article was written or edited (P2-W7-S03, Q-P2-01). Never the note's text.",
-      "props": { "item_id": "id", "moment_id": "id?" }
+      "version": 2,
+      "description": "A note on an article was written or edited (P2-W7-S03, Q-P2-01). Never the note's text. Version 2 (ADR-0058): notes are per article, so moment_id goes.",
+      "props": { "item_id": "id" }
     },
     "note_deleted": {
-      "version": 1,
-      "description": "A note was deleted (P2-W7-S03).",
-      "props": { "item_id": "id", "moment_id": "id?" }
+      "version": 2,
+      "description": "A note was deleted (P2-W7-S03). Version 2 (ADR-0058): notes are per article, so moment_id goes.",
+      "props": { "item_id": "id" }
     },
     "quiz_started": {
-      "version": 2,
-      "description": "A quiz started: Test 60s on a section or a whole article (P2-W9-S01, Q-P2-14), or a review session (P2-W9-S05, Q-P2-17). Version 2 adds kind; a review has no item.",
+      "version": 3,
+      "description": "A quiz started: Test 60s on an article, its Quiz me (P2-W9-S01, Q-P2-14), or a review session (P2-W9-S05, Q-P2-17). Version 2 adds kind; a review has no item. Version 3 (ADR-0058): one quiz per article, so moment_id goes.",
       "props": {
         "attempt_id": "id",
         "kind": ["test", "review"],
-        "item_id": "id?",
-        "moment_id": "id?"
+        "item_id": "id?"
       }
     },
     "quiz_answered": {
@@ -140,11 +127,11 @@
       }
     },
     "question_flagged": {
-      "version": 1,
-      "description": "A user flagged a question they answered, once per question (P2-W9-S07, Q-2, Q-P2-18). For the under-2% metric.",
+      "version": 2,
+      "description": "A user flagged a question they answered, once per question (P2-W9-S07, Q-2, Q-P2-18). For the under-2% metric. Version 2 (ADR-0058): not_in_section becomes not_in_article.",
       "props": {
         "question_id": "id",
-        "reason": ["wrong_key", "unclear", "not_in_section", "other"]
+        "reason": ["wrong_key", "unclear", "not_in_article", "other"]
       }
     },
     "path_started": {
@@ -328,12 +315,11 @@
       "props": { "wait_ms": "count", "opponent": ["person", "ghost", "bot"] }
     },
     "concept_missed": {
-      "version": 1,
-      "description": "A game or live match sent a miss back to reading (P3-W18-S03, §6.1): one per section to read again (a hand-written page has no item, so none), when the game finished or the match's evidence was applied. For the Phase 3 missed-concepts-read metric. Ids only.",
+      "version": 2,
+      "description": "A game or live match sent a miss back to reading (P3-W18-S03, §6.1): one per article to read again (a hand-written page has no item, so none), when the game finished or the match's evidence was applied. For the Phase 3 missed-concepts-read metric. Ids only. Version 2 (ADR-0058): the article only, so moment_id goes.",
       "props": {
         "game": ["sprint", "estimation", "daily", "live"],
-        "item_id": "id",
-        "moment_id": "id"
+        "item_id": "id"
       }
     },
     "pwa_installed": {
@@ -394,7 +380,7 @@
     },
     "gap_opened": {
       "version": 1,
-      "description": "Explore's \"A gap worth closing\" was opened: its concept's shortest moment (ADR-0046).",
+      "description": "Explore's \"A gap worth closing\" was opened: its concept's shortest article (ADR-0046, ADR-0058).",
       "props": { "concept_id": "id" }
     },
     "gap_dismissed": {
@@ -435,20 +421,11 @@
       }
     },
     "ask_session_started": {
-      "version": 1,
-      "description": "\"Make it a 4-min session\" was opened from an Ask answer (ADR-0046; owner, 2026-11-26): how many cited moments it holds and their real total in minutes; never the question.",
+      "version": 2,
+      "description": "\"Make it a 4-min session\" was opened from an Ask answer (ADR-0046; owner, 2026-11-26): how many cited articles it holds and their real total in minutes; never the question. Version 2 (ADR-0058): moment_count becomes article_count.",
       "props": {
-        "moment_count": "count",
+        "article_count": "count",
         "minutes": "count"
-      }
-    },
-    "also_fits_opened": {
-      "version": 1,
-      "description": "A card in desktop Home's \"Also fits\" grid was opened (ADR-0044): the daily challenge, the review sized to the break, or an explainer. Kept apart from card_opened so the grid's use is measured on its own.",
-      "props": {
-        "kind": ["daily", "review", "explainer"],
-        "position": "count",
-        "chip": ["1-3", "3-8", "8-15"]
       }
     },
     "league_placed": {
@@ -476,12 +453,9 @@
       "props": { "tab": ["league", "friends"] }
     },
     "outbound_click": {
-      "version": 1,
-      "description": "A link to a publisher's page was followed.",
-      "props": {
-        "link_type": ["anchor", "text_fragment", "page_top", "article"],
-        "target": ["section", "original"]
-      }
+      "version": 2,
+      "description": "A link to a publisher's page was followed. Version 2 (ADR-0058): every link is the article's own page, so link_type goes, and target is the article's link or the reader's \"original\" link.",
+      "props": { "target": ["article", "original"] }
     }
   }
 }

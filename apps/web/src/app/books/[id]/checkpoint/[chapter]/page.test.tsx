@@ -13,7 +13,6 @@ vi.mock("../../../../../server/container", () => ({
         goals: [],
         topics: ["backend"],
         level: "beginner",
-        breakLength: "3-8",
         firstName: null,
       }),
   }),

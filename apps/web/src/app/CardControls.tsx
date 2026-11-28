@@ -1,4 +1,3 @@
-import type { Chip } from "../server/chips";
 import type { ReasonKind } from "../server/ports";
 import { feedbackAction } from "./feedback/actions";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
@@ -28,20 +27,14 @@ export function CardControls({
   itemId,
   title,
   saved,
-  chip,
-  originalHref,
-  test,
+  testable,
   reasons = [],
 }: {
   itemId: string;
   title: string;
   saved: boolean;
-  chip: Chip;
-  // A section's article page from the top (§5D); none for a whole-article card, whose
-  // Read article already is that page.
-  originalHref: string | null;
-  // P2-W9-S02: Test 60s on the card's section (or article), when it has questions.
-  test: { momentId: string | null } | null;
+  // P2-W9-S02, ADR-0058: Quiz me on the article, when it has questions.
+  testable: boolean;
   // ADR-0027: the reason the card's explanation states, to report it as wrong.
   reasons?: ReasonKind[];
 }) {
@@ -49,13 +42,11 @@ export function CardControls({
   // Save button is only an icon, so its label is its whole name.
   return (
     <div className="flex shrink-0 items-center gap-2">
-      {test === null ? null : (
+      {!testable ? null : (
         <StartQuiz
           itemId={itemId}
-          momentId={test.momentId}
-          chip={chip}
-          back={`/?chip=${chip}`}
-          label={`Test yourself: ${title}`}
+          back="/"
+          label={`Quiz me: ${title}`}
           className={ROUND}
         >
           <svg
@@ -77,7 +68,6 @@ export function CardControls({
         className="flex shrink-0 items-center gap-2"
       >
         <input type="hidden" name="itemId" value={itemId} />
-        <input type="hidden" name="chip" value={chip} />
         <button
           type="submit"
           name="control"
@@ -107,16 +97,6 @@ export function CardControls({
           {/* To the left of the button, rising from its foot: inside the card, where the
           sideways feed row can't clip it (ADR-0019). */}
           <div className="absolute right-full bottom-0 z-20 mr-2 flex w-52 flex-col rounded-2xl border border-hairline bg-page p-1 shadow-card">
-            {originalHref === null ? null : (
-              <a
-                href={originalHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`block ${MENU_ITEM}`}
-              >
-                Open original website
-              </a>
-            )}
             <button
               type="submit"
               name="control"

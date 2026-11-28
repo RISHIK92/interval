@@ -5,8 +5,3 @@ const SECONDS_EACH = 20;
 export function reviewMinutes(concepts: number): number {
   return Math.max(1, Math.ceil((concepts * SECONDS_EACH) / 60));
 }
-
-// ADR-0044: how many of `due` fit a break of `minutes` at the same estimate.
-export function reviewsFitting(due: number, minutes: number): number {
-  return Math.min(due, Math.floor((minutes * 60) / SECONDS_EACH));
-}

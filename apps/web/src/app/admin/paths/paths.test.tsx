@@ -62,17 +62,15 @@ const draft: ReviewPath = {
       sessions: [
         {
           ordinal: 0,
-          momentId: "900",
-          sectionTitle: "Leaders and followers",
+          itemId: "900",
           articleTitle: "Designing data systems",
           sourceName: "Pub Engineering",
-          link: "https://pub.test/a#leaders",
+          link: "https://pub.test/a",
           allowed: true,
         },
         {
           ordinal: 1,
-          momentId: "901",
-          sectionTitle: "Copies everywhere",
+          itemId: "901",
           articleTitle: "Replicas 101",
           sourceName: "Another Blog",
           link: "https://other.test/b",
@@ -120,7 +118,9 @@ test("a draft shows its sections, readings, rights and controls; the live count 
   expect(html).toContain("Replication basics");
   expect(html).toContain("Why replicas fall behind.");
   expect(html).toContain("Lag, Quorum");
-  expect(html).toContain('href="https://pub.test/a#leaders"');
+  // ADR-0058: a reading is the article, linked to its own page.
+  expect(html).toContain('href="https://pub.test/a"');
+  expect(html).toContain("Designing data systems");
   expect(html).toContain("Rights changed");
   for (const control of [
     "rename",

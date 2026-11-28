@@ -30,7 +30,7 @@ export const messageSchemas = {
   discover_source: z.strictObject({
     source_id: z.number().int().min(1),
   }),
-  // Embed the moments of one item (DB-3, AI-4, P1-W3-S04).
+  // Embed one item's allowed text as one vector (DB-3, AI-4, P1-W3-S04, ADR-0058).
   embed_item: z.strictObject({
     content_item_id: z.number().int().min(1),
   }),
@@ -38,11 +38,11 @@ export const messageSchemas = {
   fetch_item: z.strictObject({
     content_item_id: z.number().int().min(1),
   }),
-  // Draft the questions for one tagged moment with the question model (Q-1, P2-W8-S01). `attempt` counts retries, each 5 minutes later: after a rate limit or a model error without end, and after a reply that breaks a rule up to 5 times (`broken` counts those).
+  // Draft the questions for one tagged article with the question model (Q-1, P2-W8-S01, ADR-0058). `attempt` counts retries, each 5 minutes later: after a rate limit or a model error without end, and after a reply that breaks a rule up to 5 times (`broken` counts those).
   generate_questions: z.strictObject({
     attempt: z.number().int().min(0),
     broken: z.number().int().min(0),
-    moment_id: z.number().int().min(1),
+    content_item_id: z.number().int().min(1),
   }),
   // Read one connected user's repositories: metadata and dependency files, never code (§5H, ADR-0024, P2-W12-S02).
   github_sync: z.strictObject({
@@ -107,11 +107,7 @@ export const messageSchemas = {
     match_id: z.string().min(1),
     user_id: z.string().min(1),
   }),
-  // Split one stored item into moments (ING-1 segment, ING-4).
-  segment_item: z.strictObject({
-    content_item_id: z.number().int().min(1),
-  }),
-  // Tag one item and its moments with concepts and difficulty (AI-2, AI-4, P1-W3-S02).
+  // Tag one item with concepts and difficulty (AI-2, AI-4, P1-W3-S02, ADR-0058).
   tag_item: z.strictObject({
     content_item_id: z.number().int().min(1),
   }),

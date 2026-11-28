@@ -1,7 +1,9 @@
 """Concept tagging and difficulty (AI-2..AI-5, Q-P1-10, P1-W3-S02): one gateway call per
-item, answers checked against the concept list, never stored with source text."""
+article, tagged whole (ADR-0058), answers checked against the concept list, never
+stored with source text. moment_texts cuts a book chapter's sessions."""
 
 import json
+import re
 from decimal import Decimal
 
 import pytest
@@ -28,7 +30,7 @@ Writes go to the log first.
 Recovery
 Replay the log after a crash.
 """
-MOMENTS = [
+SECTIONS = [
     TagMoment(id=10, ordinal=0, heading=None),
     TagMoment(id=11, ordinal=1, heading="Why a log"),
     TagMoment(id=12, ordinal=2, heading="Recovery"),
@@ -42,17 +44,13 @@ GRAPH = parse_concepts(
 )
 
 
-def item(
-    full_text: str | None = TEXT,
-    excerpt: str | None = None,
-    moments: list[TagMoment] | None = None,
-) -> TagInput:
+def item(full_text: str | None = TEXT, excerpt: str | None = None) -> TagInput:
     return TagInput(
         title="How our WAL works",
         summary="A tour of the write-ahead log.",
         full_text=full_text,
         excerpt=excerpt,
-        moments=(MOMENTS if full_text else []) if moments is None else moments,
+        moments=[],
         tagged_version=None,
         duplicate=False,
     )
@@ -83,14 +81,8 @@ def gateway(llm: ScriptedLlm) -> AiGateway:
     return AiGateway(InMemoryAi(InMemoryStore().users), llm, NoEmbeddings())
 
 
-def answer(*ordinals: int) -> dict[str, object]:
-    return {
-        "item": {"difficulty": "intermediate", "concepts": ["write-ahead-log"]},
-        "moments": [
-            {"ordinal": o, "difficulty": "beginner", "concepts": ["transactions"]}
-            for o in ordinals
-        ],
-    }
+def answer() -> dict[str, object]:
+    return {"item": {"difficulty": "intermediate", "concepts": ["write-ahead-log"]}}
 
 
 def tagged(result: Tagged | OverBudget) -> Tagged:
@@ -98,8 +90,8 @@ def tagged(result: Tagged | OverBudget) -> Tagged:
     return result
 
 
-def test_each_moment_gets_the_text_under_its_heading() -> None:
-    texts = moment_texts(TEXT, MOMENTS)
+def test_each_section_gets_the_text_under_its_heading() -> None:
+    texts = moment_texts(TEXT, SECTIONS)
     assert texts == {
         10: "Intro paragraph about logs.",
         11: "Writes go to the log first.",
@@ -113,40 +105,39 @@ def test_headings_with_permalink_glyphs_are_found_in_real_extractor_output() -> 
 <h2 id="b">Recovery <a href="#b">\xc2\xb6</a></h2><p>Replay after a crash.</p>
 </article></body></html>"""
     sections = extract_sections(page, "utf-8", "T")
-    moments = [TagMoment(10, 0, None)] + [
+    parts = [TagMoment(10, 0, None)] + [
         TagMoment(11 + i, i + 1, s.heading) for i, s in enumerate(sections[1:])
     ]
-    texts = moment_texts(extract_text(page, "utf-8"), moments)
+    texts = moment_texts(extract_text(page, "utf-8"), parts)
     assert texts[11] == "Writes go first."
     assert texts[12] == "Replay after a crash."
 
 
-def test_a_moment_whose_heading_is_missing_is_not_sent(
+def test_a_section_whose_heading_is_missing_is_left_out(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    lost = [*MOMENTS, TagMoment(13, 3, "Not in the text")]
-    llm = ScriptedLlm(answer(0, 1, 2))
-    result = tagged(tag_item(gateway(llm), "m", item(moments=lost), GRAPH))
-    assert 13 not in result.result.moments
-    assert "ordinal=3" not in llm.prompts[0][-1]["content"]
+    lost = [*SECTIONS, TagMoment(13, 3, "Not in the text")]
+    assert 13 not in moment_texts(TEXT, lost)
     assert "tagging: moment heading not in the text" in capsys.readouterr().out
 
 
-def test_the_item_and_each_moment_get_difficulty_and_concepts() -> None:
-    llm = ScriptedLlm(answer(0, 1, 2))
+def test_the_article_is_tagged_whole_from_its_fenced_text() -> None:
+    llm = ScriptedLlm(answer())
     result = tagged(tag_item(gateway(llm), "small-model", item(), GRAPH))
     assert result.result.item == Tags("intermediate", frozenset({"write-ahead-log"}))
-    assert result.result.moments[11] == Tags("beginner", frozenset({"transactions"}))
+    assert result.result.moments == {}
     assert result.cost_usd == Decimal("0.002")
     prompt = llm.prompts[0][-1]["content"]
-    assert "write-ahead-log" in prompt and "Replay the log after a crash." in prompt
+    assert "write-ahead-log" in prompt
+    fenced = re.search(r"<(text-[0-9a-f]{8})>\n(.*)\n</\1>", prompt, re.DOTALL)
+    assert fenced is not None and fenced.group(2) == TEXT
+    assert fenced.group(1) in llm.prompts[0][0]["content"]  # named as data
 
 
 def test_concepts_outside_the_list_are_dropped(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    reply = answer(0, 1, 2)
-    reply["item"] = {"difficulty": "beginner", "concepts": ["write-ahead-log", "x"]}
+    reply = {"item": {"difficulty": "beginner", "concepts": ["write-ahead-log", "x"]}}
     result = tagged(tag_item(gateway(ScriptedLlm(reply)), "m", item(), GRAPH))
     assert result.result.item.concepts == frozenset({"write-ahead-log"})
     assert "tagging: unknown concept dropped" in capsys.readouterr().out
@@ -160,16 +151,16 @@ def test_an_item_without_body_text_is_tagged_from_title_summary_and_excerpt() ->
     assert result.result.moments == {}
     prompt = llm.prompts[0][-1]["content"]
     assert "A tour of the write-ahead log." in prompt and "Logs first." in prompt
+    assert "<text-" not in prompt
 
 
 @pytest.mark.parametrize(
     "reply",
     [
         "not json at all",
-        {"item": {"difficulty": "expert", "concepts": []}, "moments": []},
+        {"item": {"difficulty": "expert", "concepts": []}},
         {"moments": []},
-        answer(0, 1),  # skipped moment 2
-        {**answer(0, 1, 2), "moments": [{"ordinal": True, "difficulty": "beginner"}]},
+        {"item": "intermediate"},
     ],
 )
 def test_an_unusable_answer_is_an_error_so_the_stage_retries(reply: object) -> None:
@@ -177,17 +168,14 @@ def test_an_unusable_answer_is_an_error_so_the_stage_retries(reply: object) -> N
         tag_item(gateway(ScriptedLlm(reply)), "m", item(), GRAPH)
 
 
-def test_at_most_five_concepts_are_kept_per_tag() -> None:
+def test_at_most_five_concepts_are_kept() -> None:
     many = [f"c{i}" for i in range(8)]
     graph = parse_concepts(
         "version: 1\nconcepts:\n"
         + "".join(f"  - {{slug: {c}, name: {c}, topic: backend}}\n" for c in many),
         "c.yaml",
     )
-    reply: dict[str, object] = {
-        "item": {"difficulty": "beginner", "concepts": many},
-        "moments": [],
-    }
+    reply: dict[str, object] = {"item": {"difficulty": "beginner", "concepts": many}}
     result = tagged(tag_item(gateway(ScriptedLlm(reply)), "m", item(None), graph))
     assert len(result.result.item.concepts) == 5
 
@@ -201,20 +189,7 @@ def test_no_concept_graph_means_no_call() -> None:
 
 def test_a_call_sends_at_most_twelve_thousand_characters_of_text() -> None:
     # Small enough for free tiers' per-minute caps (owner, 2026-10-27).
-    long_text = "\n".join(
-        part for i in range(1, 9) for part in (f"Section {i}", "x" * 5000)
-    )
-    moments = [TagMoment(id=i, ordinal=i, heading=f"Section {i}") for i in range(1, 9)]
-    llm = ScriptedLlm(answer(*range(1, 9)))
-    tag_item(gateway(llm), "m", item(full_text=long_text, moments=moments), GRAPH)
+    llm = ScriptedLlm(answer())
+    tag_item(gateway(llm), "m", item(full_text="x" * 40_000), GRAPH)
     sent = "\n".join(m["content"] for m in llm.prompts[0])
-    assert sent.count("x") <= 12_000
-
-
-def test_the_prompt_names_every_section_the_answer_must_cover() -> None:
-    # Models skipped sections the prompt didn't name (Claude Haiku 5.5, 2026-10-27).
-    llm = ScriptedLlm(answer(0, 1, 2))
-    tag_item(gateway(llm), "m", item(), GRAPH)
-    system = llm.prompts[0][0]["content"]
-    assert "ordinals 0, 1, 2" in system
-    assert "none skipped" in system
+    assert "x" * 12_000 in sent and "x" * 12_001 not in sent

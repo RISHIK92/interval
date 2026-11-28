@@ -1,8 +1,10 @@
-"""Asking a decision model about each moment's shortlisted concepts (tagging v3,
-2026-10-27). One call per moment whose content changed since this model last saw it:
-a yes/no question per shortlisted concept, plus one difficulty question. One more call
-for the article's title and summary (its excerpt when it has no moments). The raw
-probabilities are returned for storing; `tagging_rollup` turns them into tags."""
+"""Asking a decision model about a text's shortlisted concepts (tagging v3,
+2026-10-27): a yes/no question per shortlisted concept, plus one difficulty question,
+asked again only when the text changed since this model last saw it. An article is
+asked once, about its title, summary and the text its rights allow (its full text,
+else its excerpt), cut to MOMENT_CHARS (ADR-0058). A book chapter is asked about each
+session, and once more about its title. The raw probabilities are returned for
+storing; `tagging_rollup` turns them into tags."""
 
 import hashlib
 from collections.abc import Mapping, Sequence
@@ -22,7 +24,7 @@ from interval_jobs.ports import (
 from interval_jobs.tagging import MOMENT_CHARS, TaggingError, moment_texts
 from interval_jobs.tagging_shortlist import shortlist
 
-# The candidates asked about per moment; at 15 the shortlist kept 99% of the labelled
+# The candidates asked about per text; at 15 the shortlist kept 99% of the labelled
 # concepts on the eval (2026-10-27).
 SHORTLIST = 15
 _EMBED_BATCH = 32
@@ -33,17 +35,25 @@ _RUBRIC = [
 ]
 
 
-# Bump when the questions, rubric or shortlist rules change: every moment is asked
+# Bump when the questions, rubric or shortlist rules change: every text is asked
 # again under the new wording.
 DECIDE_VERSION = 2
 
 
 def content_hash(text: str, graph_version: int, embedding_model: str, size: int) -> str:
-    """What a moment was asked about: its text, and everything that picks or words its
+    """What a text was asked about: the text, and everything that picks or words its
     questions (the decide version, the concept graph, the shortlist's model and size).
     """
     key = f"{DECIDE_VERSION}|{graph_version}|{embedding_model}|{size}\n{text}"
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+def article_text(item: TagInput) -> str:
+    """What an article is asked about whole (ADR-0058): its title, summary and the
+    text its rights allow (its full text, else its excerpt), cut to MOMENT_CHARS."""
+    body = item.full_text or item.excerpt or ""
+    parts = (item.title, item.summary or "", body)
+    return "\n".join(p for p in parts if p)[:MOMENT_CHARS]
 
 
 @dataclass(frozen=True)
@@ -55,12 +65,9 @@ class Answered:
 
 @dataclass(frozen=True)
 class DecidePass:
-    moments: dict[int, Answered]  # only the moments asked this time
-    item: Answered | None  # the title pass, when it was asked
+    moments: dict[int, Answered]  # a book chapter's sessions, by id
+    item: Answered | None  # the title (an article's whole) pass, when it was asked
     cost_usd: Decimal
-    # The item's moments with text now, asked or unchanged: answers for any other
-    # moment are stale and are left out of the roll-up.
-    current: frozenset[int] = frozenset()
     # Set when the budget or the model stopped the pass part way: what was answered
     # before is still here, to be kept (the hash skip then resumes from there).
     refused: OverBudget | None = None
@@ -104,11 +111,9 @@ def decide(
     item: TagInput,
     graph: ConceptGraph,
     vectors: Mapping[str, Sequence[float]],
-    known: Mapping[int, str],
     known_item: str | None,
     *,
     size: int = SHORTLIST,
-    embedded: Mapping[int, Sequence[float]] | None = None,
     user_id: str | None = None,  # a book's owner pays for its tagging (OPS-4)
 ) -> DecidePass:
     texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
@@ -122,36 +127,28 @@ def decide(
     for m in sent:
         text = texts[m.id][:MOMENT_CHARS]
         digest = content_hash(text, graph.version, embedding_model, size)
-        if known.get(m.id) != digest:
-            state: DecisionState = {
-                "article": item.title,
-                "section": m.heading or "Introduction",
-                "text": text,
-            }
-            todo.append((m.id, state, text, digest))
-    title = "\n".join(
-        part
-        for part in (item.title, item.summary or "", "" if sent else item.excerpt or "")
-        if part
-    )[:MOMENT_CHARS]
+        state: DecisionState = {
+            "article": item.title,
+            "section": m.heading or "Introduction",
+            "text": text,
+        }
+        todo.append((m.id, state, text, digest))
+    # Sessions are asked about one by one; an article's text goes in its one pass.
+    title = (
+        "\n".join(p for p in (item.title, item.summary or "") if p)[:MOMENT_CHARS]
+        if sent
+        else article_text(item)
+    )
     title_hash = content_hash(title, graph.version, embedding_model, size)
     if title_hash != known_item:
         todo.append((None, {"article": item.title, "text": title}, title, title_hash))
-    current = frozenset(m.id for m in sent)
     if not todo:
-        return DecidePass({}, None, Decimal(0), current)
+        return DecidePass({}, None, Decimal(0))
 
     cost = Decimal(0)
-    # A vector the embed stage stored for a moment is reused when it embedded the same
-    # text: that stage cuts at 16000 characters, this one at MOMENT_CHARS.
-    vector_of: dict[int | None, Sequence[float]] = {
-        moment_id: vector
-        for moment_id, vector in (embedded or {}).items()
-        if len(texts.get(moment_id, "")) <= MOMENT_CHARS
-    }
-    unembedded = [entry for entry in todo if entry[0] not in vector_of]
-    for start in range(0, len(unembedded), _EMBED_BATCH):
-        batch = unembedded[start : start + _EMBED_BATCH]
+    vector_of: dict[int | None, Sequence[float]] = {}
+    for start in range(0, len(todo), _EMBED_BATCH):
+        batch = todo[start : start + _EMBED_BATCH]
         result = gateway.embed(
             feature="tagging",
             user_id=user_id,
@@ -160,7 +157,7 @@ def decide(
             purpose="document",
         )
         if isinstance(result, OverBudget):
-            return DecidePass({}, None, cost, current, refused=result)
+            return DecidePass({}, None, cost, refused=result)
         cost += result.usage.cost_usd
         for (moment_id, _, _, _), vector in zip(batch, result.vectors, strict=True):
             vector_of[moment_id] = vector
@@ -181,16 +178,16 @@ def decide(
                 questions=_questions(candidates, graph),
             )
             if isinstance(decided, OverBudget):
-                return DecidePass(moments, title_answer, cost, current, refused=decided)
+                return DecidePass(moments, title_answer, cost, refused=decided)
             cost += decided.usage.cost_usd
             answered = Answered(digest, *_read(decided.answers, candidates))
         except (ModelError, TaggingError) as error:
-            return DecidePass(moments, title_answer, cost, current, stopped=str(error))
+            return DecidePass(moments, title_answer, cost, stopped=str(error))
         if moment_id is None:
             title_answer = answered
         else:
             moments[moment_id] = answered
-    return DecidePass(moments, title_answer, cost, current)
+    return DecidePass(moments, title_answer, cost)
 
 
 def _read(

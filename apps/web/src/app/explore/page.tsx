@@ -74,26 +74,24 @@ function Results({
         <ul className="flex flex-col">
           {results.map((r) => (
             <li
-              key={`${r.itemId}-${r.momentId ?? ""}`}
+              key={r.itemId}
               className="border-t border-hairline first:border-t-0"
             >
               <a
                 href={outHref({
                   itemId: r.itemId,
-                  ...(r.momentId === null ? {} : { momentId: r.momentId }),
                   from: "explore",
-                  target: "section",
+                  target: "article",
                 })}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex min-h-14 flex-col justify-center gap-0.5 py-2.5"
               >
                 <span className="text-[15px] leading-[1.3] font-semibold">
-                  {r.title}
+                  {r.articleTitle}
                 </span>
                 <span className="text-xs text-ink-muted">
                   {[
-                    r.momentId === null ? null : r.articleTitle,
                     r.author === null
                       ? r.sourceName
                       : `${r.sourceName} · ${r.author}`,
@@ -308,7 +306,7 @@ function SavedMost({
                 href={outHref({
                   itemId: item.itemId,
                   from: "explore",
-                  target: "section",
+                  target: "article",
                 })}
                 target="_blank"
                 rel="noopener noreferrer"

@@ -46,18 +46,16 @@ export function kyselyAdminPaths(db: Kysely<DB>): AdminPaths {
         .orderBy("s.path_id")
         .orderBy("s.ordinal")
         .execute();
-      // Each reading with its rights as they are now (ING-2).
+      // Each reading, an article (ADR-0058), with its rights as they are now (ING-2).
       const sessions = await db
         .selectFrom("path_session as ps")
-        .innerJoin("moment as m", "m.id", "ps.moment_id")
-        .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
+        .innerJoin("content_item as ci", "ci.id", "ps.content_item_id")
         .innerJoin("source as so", "so.id", "ci.source_id")
         .select([
           "ps.section_id",
           "ps.ordinal",
-          "ps.moment_id",
-          "m.title",
-          "m.link",
+          "ci.id as item_id",
+          "ci.canonical_url as link",
           "ci.title as article_title",
           "so.name as source_name",
           ALLOWED.as("allowed"),
@@ -75,8 +73,7 @@ export function kyselyAdminPaths(db: Kysely<DB>): AdminPaths {
       for (const r of sessions)
         bySection.get(r.section_id)?.sessions.push({
           ordinal: r.ordinal,
-          momentId: r.moment_id,
-          sectionTitle: r.title,
+          itemId: r.item_id,
           articleTitle: r.article_title,
           sourceName: r.source_name,
           link: r.link,
@@ -178,8 +175,7 @@ export function kyselyAdminPaths(db: Kysely<DB>): AdminPaths {
               select 1 from path_section s
               where s.path_id = ${pathId} and not exists (
                 select 1 from path_session ps
-                join moment m on m.id = ps.moment_id
-                join content_item ci on ci.id = m.content_item_id
+                join content_item ci on ci.id = ps.content_item_id
                 join source so on so.id = ci.source_id
                 where ps.section_id = s.id and ${ALLOWED}
               )

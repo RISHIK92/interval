@@ -23,10 +23,6 @@ def test_the_pipeline_runs_end_to_end_on_postgres(conn: psycopg.Connection) -> N
         rights_profile="full_text_internal",
         homepage=None,
     )
-    conn.execute(
-        "update source set moments_seeded = true, moments_enabled = true where id = %s",
-        (source_id,),
-    )
     queue = InMemoryQueue()
     fetcher = web()
 
@@ -45,12 +41,16 @@ def test_the_pipeline_runs_end_to_end_on_postgres(conn: psycopg.Connection) -> N
         "select count(*) from content_item where source_id = %s", (source_id,)
     ).fetchone()
     assert items == (2,)
-    moments = conn.execute(
-        "select count(*) from moment m "
-        "join content_item ci on ci.id = m.content_item_id "
+    # ADR-0058: stored whole, never split into moments.
+    stored = conn.execute(
+        "select count(*) filter (where pt.content_item_id is not null), "
+        "(select count(*) from moment m join content_item c "
+        " on c.id = m.content_item_id where c.source_id = %s) "
+        "from content_item ci "
+        "left join content_item_private_text pt on pt.content_item_id = ci.id "
         "where ci.source_id = %s",
-        (source_id,),
+        (source_id, source_id),
     ).fetchone()
-    assert moments is not None and moments[0] > 0
+    assert stored == (2, 0)
     assert [url for url, _ in fetcher.requested].count(WAL) == 1
     assert queue.failed_messages("fetch_item") == []

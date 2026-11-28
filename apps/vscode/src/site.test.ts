@@ -43,30 +43,23 @@ test("an empty setting is unset, not refused", () => {
   expect(readSite("   ").kind).toBe("unset");
 });
 
-test("the status and Home addresses keep the site's path and carry the chip", () => {
+// ADR-0058: no time chip on either.
+test("the status and Home addresses keep the site's path", () => {
   const atRoot = site("https://interval.example/");
-  expect(statusUrl(atRoot, undefined)).toBe(
-    "https://interval.example/api/agent/status",
-  );
-  expect(statusUrl(atRoot, "3-8")).toBe(
-    "https://interval.example/api/agent/status?chip=3-8",
-  );
-  expect(homeUrl(atRoot, "8-15")).toBe("https://interval.example/?chip=8-15");
-  expect(homeUrl(atRoot, undefined)).toBe("https://interval.example/");
+  expect(statusUrl(atRoot)).toBe("https://interval.example/api/agent/status");
+  expect(homeUrl(atRoot)).toBe("https://interval.example/");
   const underPath = site("https://example.org/interval/");
-  expect(statusUrl(underPath, "1-3")).toBe(
-    "https://example.org/interval/api/agent/status?chip=1-3",
+  expect(statusUrl(underPath)).toBe(
+    "https://example.org/interval/api/agent/status",
   );
-  expect(homeUrl(underPath, "1-3")).toBe(
-    "https://example.org/interval/?chip=1-3",
-  );
+  expect(homeUrl(underPath)).toBe("https://example.org/interval/");
 });
 
 test("only links on the site's own origin may open", () => {
   const configured = site("https://interval.example");
   expect(
-    onSite(configured, "https://interval.example/read/10?moment=1&via=agent"),
-  ).toBe("https://interval.example/read/10?moment=1&via=agent");
+    onSite(configured, "https://interval.example/read/10?pos=1&via=agent"),
+  ).toBe("https://interval.example/read/10?pos=1&via=agent");
   for (const raw of [
     "https://evil.example/read/10",
     "http://interval.example/read/10",

@@ -19,26 +19,27 @@ func statusServer(t *testing.T, code int, body string, seen *http.Request) *http
 	}))
 }
 
-const statusBody = `{"task":{"state":"running","startedAt":"2031-01-01T11:57:50.000Z","seconds":130},"chip":"3-8","suggestions":[{"title":"Why consensus","minutes":2,"url":"https://interval.test/read/10?moment=1&chip=3-8&pos=1&via=agent"},{"title":"Leases","minutes":null,"url":"https://interval.test/out?item=11&chip=3-8&pos=2&via=agent&target=section"}]}`
+// ADR-0058: the feed's first articles, with no time chip.
+const statusBody = `{"task":{"state":"running","startedAt":"2031-01-01T11:57:50.000Z","seconds":130},"suggestions":[{"title":"Why consensus","minutes":2,"url":"https://interval.test/read/10?pos=1&via=agent"},{"title":"Leases","minutes":null,"url":"https://interval.test/out?item=11&pos=2&via=agent&target=article"}]}`
 
 func TestStatusShowsTheTaskAndTheLinks(t *testing.T) {
 	var seen http.Request
 	srv := statusServer(t, 200, statusBody, &seen)
 	defer srv.Close()
 	h := newHarness(t, srv.URL)
-	if code := run([]string{"status", "--chip", "3-8"}, h.deps); code != 0 {
+	if code := run([]string{"status"}, h.deps); code != 0 {
 		t.Fatalf("exit %d: %s", code, h.stderr)
 	}
-	if seen.Method != http.MethodGet || seen.URL.Path != "/api/agent/status" || seen.URL.RawQuery != "chip=3-8" {
+	if seen.Method != http.MethodGet || seen.URL.Path != "/api/agent/status" || seen.URL.RawQuery != "" {
 		t.Fatalf("asked %s %s?%s", seen.Method, seen.URL.Path, seen.URL.RawQuery)
 	}
 	if seen.Header.Get("Authorization") != "Bearer "+testToken {
 		t.Fatalf("auth %q", seen.Header.Get("Authorization"))
 	}
 	want := "Agent: working for 2m 10s\n" +
-		"For a 3–8 min break:\n" +
-		"1. Why consensus · 2 min\n   https://interval.test/read/10?moment=1&chip=3-8&pos=1&via=agent\n" +
-		"2. Leases\n   https://interval.test/out?item=11&chip=3-8&pos=2&via=agent&target=section\n"
+		"Read while you wait:\n" +
+		"1. Why consensus · 2 min\n   https://interval.test/read/10?pos=1&via=agent\n" +
+		"2. Leases\n   https://interval.test/out?item=11&pos=2&via=agent&target=article\n"
 	if h.stdout.String() != want {
 		t.Fatalf("stdout:\n%s\nwant:\n%s", h.stdout, want)
 	}
@@ -46,14 +47,14 @@ func TestStatusShowsTheTaskAndTheLinks(t *testing.T) {
 
 func TestStatusFinishedIdleAndJSON(t *testing.T) {
 	var seen http.Request
-	finished := `{"task":{"state":"finished","finishedAt":"2031-01-01T11:57:00.000Z"},"chip":"1-3","suggestions":[]}`
+	finished := `{"task":{"state":"finished","finishedAt":"2031-01-01T11:57:00.000Z"},"suggestions":[]}`
 	srv := statusServer(t, 200, finished, &seen)
 	defer srv.Close()
 	h := newHarness(t, srv.URL)
 	if code := run([]string{"status"}, h.deps); code != 0 {
 		t.Fatalf("exit %d", code)
 	}
-	if h.stdout.String() != "Agent: finished 3m 0s ago\nNo suggestions right now.\n" || seen.URL.RawQuery != "" {
+	if h.stdout.String() != "Agent: finished 3m 0s ago\nNo suggestions right now.\n" {
 		t.Fatalf("stdout %q, query %q", h.stdout, seen.URL.RawQuery)
 	}
 	h = newHarness(t, srv.URL)
@@ -75,7 +76,8 @@ func TestStatusRefusalsAndUsage(t *testing.T) {
 		}
 		srv.Close()
 	}
-	for _, args := range [][]string{{"status", "--chip"}, {"status", "--chip", "9-99"}, {"status", "now"}} {
+	// ADR-0058: no time chips, so --chip is no longer a flag.
+	for _, args := range [][]string{{"status", "--chip"}, {"status", "--chip", "3-8"}, {"status", "now"}} {
 		h := newHarness(t, "https://interval.test")
 		if exit := run(args, h.deps); exit != 1 {
 			t.Fatalf("%v: exit %d", args, exit)
@@ -89,7 +91,7 @@ func TestStatusRefusalsAndUsage(t *testing.T) {
 
 func TestStatusDropsControlCharactersFromTitles(t *testing.T) {
 	var seen http.Request
-	body := `{"task":{"state":"idle"},"chip":"1-3","suggestions":[{"title":"Raft\u001b]8;;https://evil.test\u0007 here\u009b2J","minutes":1,"url":"https://interval.test/read/1?chip=1-3&pos=1&via=agent\u001b[2J"}]}`
+	body := `{"task":{"state":"idle"},"suggestions":[{"title":"Raft\u001b]8;;https://evil.test\u0007 here\u009b2J","minutes":1,"url":"https://interval.test/read/1?pos=1&via=agent\u001b[2J"}]}`
 	srv := statusServer(t, 200, body, &seen)
 	defer srv.Close()
 	h := newHarness(t, srv.URL)

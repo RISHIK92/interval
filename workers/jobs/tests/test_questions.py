@@ -8,9 +8,11 @@ import pytest
 
 from interval_jobs.ports import EstimateDraft, QuestionDraft
 from interval_jobs.questions import (
+    MAX_QUESTIONS,
     PROMPT_VERSION,
-    QUESTIONS_PER_MOMENT,
+    QUESTIONS_PER_SECTION,
     QuestionReplyError,
+    article_passage,
     content_hash,
     estimate_agrees,
     estimate_hash,
@@ -21,13 +23,15 @@ from interval_jobs.questions import (
     parse_estimate,
     parse_estimate_answer,
     parse_reply,
+    passage_chars,
+    passage_with,
     prompt,
+    question_count,
     question_refers_to_source,
     refers_to_source,
     shuffled,
     validation_prompt,
 )
-from interval_jobs.tagging import MOMENT_CHARS
 
 TEXT = (
     "Raft elects a leader per term. A candidate needs votes from a majority of the "
@@ -55,19 +59,45 @@ def question(**over: object) -> dict[str, object]:
     return {**base, **over}
 
 
-def test_the_prompt_carries_the_moments_text_and_concepts_and_asks_for_json() -> None:
+def test_the_prompt_carries_the_passage_and_concepts_and_asks_for_json() -> None:
     messages = prompt(TEXT, CONCEPTS)
     content = " ".join(m["content"] for m in messages)
     assert TEXT in content
     assert "Raft" in content and "Leader election" in content
     assert "JSON" in content
-    assert str(QUESTIONS_PER_MOMENT) in content
+    assert f"exactly {QUESTIONS_PER_SECTION} questions" in content
 
 
-def test_the_prompt_cuts_a_long_moment_as_tagging_does() -> None:
-    long = "x " * 5000
-    content = " ".join(m["content"] for m in prompt(long, CONCEPTS))
-    assert long[:MOMENT_CHARS] in content and long[: MOMENT_CHARS + 1] not in content
+def test_the_prompt_asks_for_the_articles_count() -> None:
+    content = " ".join(m["content"] for m in prompt(TEXT, CONCEPTS, 6))
+    assert "exactly 6 questions" in content
+
+
+def test_an_article_gets_2_questions_per_section_between_2_and_8() -> None:
+    # ADR-0058: Q-P2-08's 2 per moment become 2 per stored heading section.
+    assert [question_count(n) for n in (0, 1, 2, 3, 4, 9)] == [2, 2, 4, 6, 8, 8]
+    assert MAX_QUESTIONS == 8
+
+
+def test_the_passage_grows_4000_characters_per_2_questions() -> None:
+    assert [passage_chars(n) for n in (2, 4, 8)] == [4000, 8000, 16000]
+    long = "x" * 20000
+    assert len(article_passage(long, 2)) == 4000
+    assert len(article_passage(long, 8)) == 16000
+    assert article_passage("  short text  ", 8) == "short text"
+
+
+def test_a_citation_past_the_top_window_is_validated_around_it() -> None:
+    # A moment-era question may cite a part of the article past drafting's passage.
+    filler = "filler words here. " * 500
+    text = filler + "The quorum needs a strict majority of replicas. " + filler
+    cited = passage_with(text, 4000, "the Quorum needs a strict majority")
+    assert "The quorum needs a strict majority of replicas." in cited
+    assert len(cited) <= 4000
+    # In the top window: the top, as drafting read it.
+    assert passage_with(text, 4000, "filler words here") == text[:4000].strip()
+    # Not found anywhere: the top.
+    assert passage_with(text, 4000, "never said this") == text[:4000].strip()
 
 
 def test_a_good_reply_becomes_drafts() -> None:
@@ -95,7 +125,7 @@ def test_a_good_reply_becomes_drafts() -> None:
         correct=0,
         citation="A candidate needs votes from a majority of the cluster.",
     )
-    assert len(got) == QUESTIONS_PER_MOMENT
+    assert len(got) == QUESTIONS_PER_SECTION
 
 
 @pytest.mark.parametrize(
@@ -298,7 +328,7 @@ def test_shuffling_moves_the_options_and_the_key_follows_its_option() -> None:
     assert len(seen) > 1
 
 
-# P3-W13-S03b (Q-P3-05): estimation questions where the moment states the number.
+# P3-W13-S03b (Q-P3-05): estimation questions where the passage states the number.
 NUMBERS = (
     "A single Postgres box handles about 10,000 simple queries per second. "
     "A follower lags the leader by 1.5 million log entries at worst."

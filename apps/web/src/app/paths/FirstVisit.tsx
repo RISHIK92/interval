@@ -309,9 +309,11 @@ function PathPane({ path, close }: { path: PathTimeline; close: string }) {
               </p>
               <ul className="mt-2 flex flex-col gap-1 text-sm">
                 {section.readings.map((reading) => (
-                  <li key={reading.momentId} className="text-ink-muted">
-                    {reading.sectionTitle} · {reading.sourceName} ·{" "}
-                    {reading.minutes} min
+                  <li key={reading.ordinal} className="text-ink-muted">
+                    {reading.articleTitle} · {reading.sourceName}
+                    {reading.minutes === null
+                      ? ""
+                      : ` · ${String(reading.minutes)} min`}
                   </li>
                 ))}
               </ul>

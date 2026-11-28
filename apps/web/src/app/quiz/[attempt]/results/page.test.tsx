@@ -1,20 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type {
-  Actor,
-  Progress,
-  QuizAttempt,
-  Quizzes,
-} from "../../../../server/ports";
+import type { Actor, QuizAttempt, Quizzes } from "../../../../server/ports";
 
 // Test 60s results (P2-W9-S02, wireframe 14 variant test).
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const attempt = vi.fn<Quizzes["attempt"]>();
-const nextMoment = vi.fn<Progress["nextMoment"]>();
 vi.mock("../../../../server/container", () => ({
   sessionReader: () => ({ current }),
   quizzes: () => ({ attempt }),
-  progress: () => ({ nextMoment }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -33,7 +26,6 @@ const done: QuizAttempt = {
   estimation: null,
   daily: null,
   itemId: "5",
-  momentId: "9",
   title: "Raft",
   startedAt: started,
   endsAt: new Date(started.getTime() + 60_000),
@@ -61,17 +53,11 @@ async function render(got: QuizAttempt | null = done) {
   return renderToStaticMarkup(
     await ResultsPage({
       params: Promise.resolve({ attempt: "41" }),
-      searchParams: Promise.resolve({ chip: "3-8" }),
     }),
   );
 }
 
 test("the results: correct of answered, accuracy, times and each concept's state", async () => {
-  nextMoment.mockResolvedValue({
-    momentId: "10",
-    title: "Log replication",
-    frameable: true,
-  });
   const html = await render();
   expect(html).toContain("3 of 4 correct");
   expect(html).toContain("75%");
@@ -83,14 +69,15 @@ test("the results: correct of answered, accuracy, times and each concept's state
   expect(html).toContain("Unseen");
   // Each stat's term comes before its value (a valid description list).
   expect(html).toMatch(/<dt[^>]*>Accuracy<\/dt><dd[^>]*>75%<\/dd>/);
-  // Queued next: the next section, in the reader.
-  expect(html).toContain("Log replication");
-  expect(html).toContain("/read/5?moment=10&amp;chip=3-8&amp;from=continue");
-  expect(html).toContain('href="/?chip=3-8"');
+  // ADR-0058: no next section; the article's quiz is offered again.
+  expect(html).not.toContain("Queued next");
+  expect(html).toMatch(
+    /name="itemId" value="5"[^]*?name="back" value="\/quiz\/41\/results"[^]*?Quiz me again/,
+  );
+  expect(html).toContain('href="/"');
 });
 
-test("nothing answered says so; the last section has nothing queued", async () => {
-  nextMoment.mockResolvedValue(null);
+test("nothing answered says so", async () => {
   const html = await render({
     ...done,
     answered: 0,
@@ -99,32 +86,29 @@ test("nothing answered says so; the last section has nothing queued", async () =
     concepts: [],
   });
   expect(html).toContain("No answers this time");
-  expect(html).not.toContain("Queued next");
 });
 
 test("an attempt still running goes back to it; another's goes home", async () => {
   await expect(render({ ...done, finishedAt: null })).rejects.toThrow(
-    "redirect:/quiz/41?chip=3-8",
+    "redirect:/quiz/41",
   );
   await expect(render(null)).rejects.toThrow("redirect:/");
 });
 
-test("a review's results: no section to continue, time from start to finish", async () => {
+test("a review's results: no article to quiz again, time from start to finish", async () => {
   const html = await render({
     ...done,
     review: true,
     itemId: null,
-    momentId: null,
     title: "Review",
     endsAt: null,
     secondsLeft: null,
   });
-  expect(nextMoment).not.toHaveBeenCalled();
   expect(html).toContain("3 of 4 correct");
   expect(html).toContain(">Review<");
   expect(html).not.toContain("Test yourself");
   expect(html).toContain("41s");
-  expect(html).not.toContain("Queued next");
+  expect(html).not.toContain("Quiz me again");
   expect(html).toContain('href="/library"');
   expect(html).toContain("Back to Library");
 });
@@ -132,7 +116,6 @@ test("a review's results: no section to continue, time from start to finish", as
 const checkpoint = {
   ...done,
   itemId: null,
-  momentId: null,
   title: "Quorums",
   checkpoint: {
     at: { kind: "path" as const, pathId: "6", sectionId: "60" },
@@ -154,7 +137,6 @@ test("a passed checkpoint says what it unlocked and leads back to the path", asy
     checkpoint: { ...checkpoint.checkpoint, passed: true, missed: [] },
   });
   expect(html).not.toContain("review queue");
-  expect(nextMoment).not.toHaveBeenCalled();
   expect(html).toContain("Checkpoint · Quorums");
   expect(html).toContain("Passed: Leases unlocked.");
   expect(html).toContain('href="/paths/6"');
@@ -196,11 +178,10 @@ const sprintDone: QuizAttempt = {
   estimation: null,
   daily: null,
   itemId: null,
-  momentId: null,
   title: "60-second sprint",
   missed: [
-    { itemId: "5", momentId: "9", sectionTitle: "Raft", frameable: true },
-    { itemId: "6", momentId: "12", sectionTitle: "Paxos", frameable: false },
+    { itemId: "5", articleTitle: "Raft", frameable: true },
+    { itemId: "6", articleTitle: "Paxos", frameable: false },
   ],
 };
 
@@ -208,12 +189,11 @@ test("a sprint's results send its misses back to reading, and lead back to Play"
   const html = await render(sprintDone);
   expect(html).toContain("60-second sprint");
   expect(html).toContain("Read again");
-  expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Raft</);
+  expect(html).toMatch(/href="\/read\/5\?from=reader"[^>]*>Raft</);
   expect(html).toMatch(/href="\/out\?[^"]*"[^>]*target="_blank"[^>]*>Paxos</);
   expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);
   // Only the daily challenge shares (P3-W13-S06).
   expect(html).not.toContain("Share your result");
-  expect(nextMoment).not.toHaveBeenCalled();
 });
 
 test("a guest's misses open on the publisher's page: the reader is for accounts", async () => {
@@ -223,7 +203,6 @@ test("a guest's misses open on the publisher's page: the reader is for accounts"
   const html = renderToStaticMarkup(
     await ResultsPage({
       params: Promise.resolve({ attempt: "41" }),
-      searchParams: Promise.resolve({ chip: "3-8" }),
     }),
   );
   expect(html).not.toContain('href="/read/');
@@ -307,36 +286,33 @@ test("only answers under half points go back to reading, at their source", async
   expect(close).not.toContain("Read again");
 });
 
-// P3-W13-S03b: a moment's estimate goes back to its section, through the reader as a
-// sprint's miss does; one whose link broke shows its points and no link.
-const section = (momentId: string, frameable: boolean) => ({
-  kind: "section" as const,
-  itemId: "5",
-  momentId,
-  sectionTitle: `Section ${momentId}`,
+// P3-W13-S03b: an article's estimate goes back to its article (ADR-0058), through the
+// reader as a sprint's miss does; one whose link broke shows its points and no link.
+const article = (itemId: string, frameable: boolean) => ({
+  kind: "article" as const,
+  itemId,
+  articleTitle: `Article ${itemId}`,
   frameable,
 });
 
-test("a moment's missed estimates go back to their sections, once each", async () => {
+test("an article's missed estimates go back to their articles, once each", async () => {
   const html = await render({
     ...roundDone,
     estimation: {
       points: 0,
       answers: [
-        { ...answer("Lag?", 900, 0, "x"), source: section("9", true) },
-        { ...answer("Lag again?", 800, 0, "x"), source: section("9", true) },
-        { ...answer("Quorum?", 900, 0.1, "x"), source: section("12", false) },
+        { ...answer("Lag?", 900, 0, "x"), source: article("5", true) },
+        { ...answer("Lag again?", 800, 0, "x"), source: article("5", true) },
+        { ...answer("Quorum?", 900, 0.1, "x"), source: article("6", false) },
         { ...answer("Gone?", 900, 0, "x"), source: null },
       ],
     },
   });
   const again = /Read again[^]*$/.exec(html)?.[0] ?? "";
-  expect(again.match(/href="\/read\/5\?moment=9[^"]*"/g)).toHaveLength(1);
-  expect(again).toMatch(
-    /href="\/out\?[^"]*moment=12[^"]*"[^>]*target="_blank"/,
-  );
+  expect(again.match(/href="\/read\/5\?[^"]*"/g)).toHaveLength(1);
+  expect(again).toMatch(/href="\/out\?item=6[^"]*"[^>]*target="_blank"/);
   expect(html).toContain("Gone?");
-  // Never the moment's quote (Q-P2-12).
+  // Never the article's quote (Q-P2-12).
   expect(html).not.toContain("about 10 ms");
 });
 
@@ -378,7 +354,7 @@ test("the daily challenge's results: points, its estimates, the streak, Back to 
   // P3-W13-S06: the result shares as a card.
   expect(html).toContain("Share your result");
   expect(html).toContain('data-share="3f2c1a9e-5b7d-4c8e-9a1b-2d3e4f5a6b7c"');
-  expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Raft</);
+  expect(html).toMatch(/href="\/read\/5\?from=reader"[^>]*>Raft</);
   expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);
   const one = await render({
     ...dailyDone,

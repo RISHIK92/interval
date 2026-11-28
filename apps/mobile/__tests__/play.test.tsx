@@ -4,7 +4,7 @@ import { renderRouter } from "expo-router/testing-library";
 import { Share } from "react-native";
 
 // P4-W21-S01 (§6.3, Q-P2-14): Play, a game's questions checked by the server (felt as
-// well as seen), the results and the daily's share, and Test me from the reader.
+// well as seen), the results and the daily's share, and Quiz me from the reader.
 const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
 const calls = () =>
   fetchMock.mock.calls.map(([url, init]) => ({
@@ -48,7 +48,7 @@ const results = {
   correct: 3,
   points: 350,
   daily: { shareId: "abc-123", streak: { days: 4, freezes: 0 } },
-  missed: [{ itemId: "5", momentId: "9", sectionTitle: "Timeouts" }],
+  missed: [{ itemId: "5", articleTitle: "Timeouts" }],
 };
 type Routes = Record<string, () => Response>;
 const serve = (routes: Routes) => {
@@ -133,12 +133,7 @@ test("an estimate shows the answer, its points and its source", async () => {
         answer: 300,
         unit: "ms",
         score: 0.6,
-        source: {
-          kind: "section",
-          itemId: "5",
-          momentId: "9",
-          sectionTitle: "Timeouts",
-        },
+        source: { kind: "article", itemId: "5", articleTitle: "Timeouts" },
       }),
   });
   await renderRouter("./app", { initialUrl: "/quiz/41" });
@@ -148,15 +143,17 @@ test("an estimate shows the answer, its points and its source", async () => {
   );
   await fireEvent.press(screen.getByRole("button", { name: "Guess" }));
   expect(await screen.findByText("300 ms · 60 points")).toBeOnTheScreen();
-  expect(screen.getByText("From: Timeouts")).toBeOnTheScreen();
   expect(calls()).toContainEqual({
     url: "/api/quiz/41/answer",
     method: "POST",
     body: { questionId: "8", guess: 250 },
   });
+  // ADR-0058: the article to read, whole.
+  await fireEvent.press(screen.getByRole("link", { name: "From: Timeouts" }));
+  expect(screen).toHavePathname("/read/5");
 });
 
-test("over: the results, the daily's link shared, sections to read again", async () => {
+test("over: the results, the daily's link shared, articles to read again", async () => {
   const share = jest
     .spyOn(Share, "share")
     .mockResolvedValue({ action: "sharedAction", activityType: undefined });
@@ -170,13 +167,14 @@ test("over: the results, the daily's link shared, sections to read again", async
   expect(screen).toHavePathname("/quiz/42/results");
   expect(screen.getByText("350 points")).toBeOnTheScreen();
   expect(screen.getByText("Streak: 4 days")).toBeOnTheScreen();
-  expect(screen.getByText("Timeouts")).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole("button", { name: "Share" }));
   expect(share).toHaveBeenCalledWith({
     message: "http://localhost:3100/daily/abc-123",
     url: "http://localhost:3100/daily/abc-123",
   });
   share.mockRestore();
+  await fireEvent.press(screen.getByRole("link", { name: "Timeouts" }));
+  expect(screen).toHavePathname("/read/5");
 });
 
 test("time's up: the results", async () => {
@@ -197,33 +195,35 @@ test("time's up: the results", async () => {
   expect(await screen.findByText("3 of 5 right")).toBeOnTheScreen();
 });
 
-test("Test me starts Test 60s on the reader's section", async () => {
+// ADR-0058: the article's one quiz, from the reader's Quiz me.
+const article = {
+  url: "https://blog.dev/raft",
+  inApp: true,
+  title: "Raft",
+  domain: "blog.dev",
+  saved: false,
+  state: "continue_reading",
+  note: null,
+  sectionNotes: [],
+  testable: true,
+  listen: false,
+  measure: null,
+};
+
+test("Quiz me starts Test 60s on the reader's article", async () => {
   serve({
-    "GET /api/read/5?moment=9": () =>
-      Response.json({
-        url: "https://blog.dev/raft#election",
-        inApp: true,
-        title: "Raft",
-        domain: "blog.dev",
-        saved: false,
-        reached: "9",
-        nextMomentId: null,
-        note: null,
-        testable: true,
-        listen: false,
-        measure: null,
-      }),
+    "GET /api/read/5": () => Response.json(article),
     "POST /api/quiz": () => Response.json({ attemptId: "44" }, { status: 201 }),
     "GET /api/quiz/44": () =>
       Response.json({ ...choice, kind: "test", title: "Raft" }),
   });
-  await renderRouter("./app", { initialUrl: "/read/5?moment=9" });
-  await fireEvent.press(await screen.findByRole("button", { name: "Test me" }));
+  await renderRouter("./app", { initialUrl: "/read/5" });
+  await fireEvent.press(await screen.findByRole("button", { name: "Quiz me" }));
   expect(await screen.findByText("What elects a leader?")).toBeOnTheScreen();
   expect(calls()).toContainEqual({
     url: "/api/quiz",
     method: "POST",
-    body: { itemId: "5", momentId: "9" },
+    body: { itemId: "5" },
   });
 });
 
@@ -262,28 +262,15 @@ test("an answer that can't be sent says so and can be tried again", async () => 
   expect(screen.getByRole("button", { name: "TCP" })).toBeEnabled();
 });
 
-test("Test me on a section without questions says so", async () => {
+test("Quiz me on an article without questions says so", async () => {
   serve({
-    "GET /api/read/5?moment=9": () =>
-      Response.json({
-        url: "https://blog.dev/raft#election",
-        inApp: true,
-        title: "Raft",
-        domain: "blog.dev",
-        saved: false,
-        reached: "9",
-        nextMomentId: null,
-        note: null,
-        testable: true,
-        listen: false,
-        measure: null,
-      }),
+    "GET /api/read/5": () => Response.json(article),
     "POST /api/quiz": () => new Response(null, { status: 404 }),
   });
-  await renderRouter("./app", { initialUrl: "/read/5?moment=9" });
-  await fireEvent.press(await screen.findByRole("button", { name: "Test me" }));
+  await renderRouter("./app", { initialUrl: "/read/5" });
+  await fireEvent.press(await screen.findByRole("button", { name: "Quiz me" }));
   expect(
-    await screen.findByText("No questions on this section yet."),
+    await screen.findByText("No questions on this article yet."),
   ).toBeOnTheScreen();
 });
 

@@ -16,7 +16,7 @@ import {
   sessions,
   skipped,
 } from "./checkpoints";
-import { ALLOWED, momentTeaches } from "./path-rights";
+import { ALLOWED, articleTeaches } from "./path-rights";
 
 // Following topic paths (§5F, Q-P2-27, P2-W10-S03): live paths, a path's timeline with
 // what the user finished, and starting one (one active at a time).
@@ -42,20 +42,21 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
           "up.status as mine",
           sql<number>`(select count(*)::int from path_section s
             where s.path_id = p.id)`.as("sections"),
-          // Readings and minutes as a reader would get them: rights allowing.
-          sql<number>`(select count(*)::int from path_section s
+          // Readings and minutes as a reader would get them (ADR-0058: articles),
+          // each article once per section: two moments of one article became two
+          // sessions of it, which the worker dedupes; this holds if one slips by.
+          sql<number>`(select count(*)::int from (
+            select distinct s.id as section, ci.id as item from path_section s
             join path_session ps on ps.section_id = s.id
-            join moment m on m.id = ps.moment_id
-            join content_item ci on ci.id = m.content_item_id
+            join content_item ci on ci.id = ps.content_item_id
             join source so on so.id = ci.source_id
-            where s.path_id = p.id and ${ALLOWED})`.as("readings"),
-          sql<number>`(select coalesce(sum(m.estimated_minutes), 0)::int
-            from path_section s
+            where s.path_id = p.id and ${ALLOWED}) r)`.as("readings"),
+          sql<number>`(select coalesce(sum(item_minutes(r.item)), 0)::int from (
+            select distinct s.id as section, ci.id as item from path_section s
             join path_session ps on ps.section_id = s.id
-            join moment m on m.id = ps.moment_id
-            join content_item ci on ci.id = m.content_item_id
+            join content_item ci on ci.id = ps.content_item_id
             join source so on so.id = ci.source_id
-            where s.path_id = p.id and ${ALLOWED})`.as("minutes"),
+            where s.path_id = p.id and ${ALLOWED}) r)`.as("minutes"),
           // The topic most of its concepts are on: the card's tag and filter.
           sql<string | null>`(select c.topic from path_section s
             join path_section_concept sc on sc.section_id = s.id
@@ -145,32 +146,29 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
         .orderBy("place")
         .orderBy("s.ordinal")
         .execute();
-      // The user's copy (P2-W10-S05): a swapped session reads its own moment.
+      // The user's copy (P2-W10-S05): a swapped session reads its own article.
+      // ADR-0058: a reading is finished when its article is completed.
       const { rows: readings } = await sql<{
         section_id: string;
         ordinal: number;
-        moment_id: string;
         item_id: string;
-        title: string;
         article_title: string;
         source_name: string;
-        estimated_minutes: number;
+        minutes: number | null;
         frameable: boolean | null;
         link_broken_at: Date | null;
         finished: boolean;
       }>`
-        select s.id as section_id, ps.ordinal, m.id as moment_id,
-               ci.id as item_id, m.title, ci.title as article_title,
-               so.name as source_name, m.estimated_minutes, ci.frameable,
-               ci.link_broken_at,
+        select s.id as section_id, ps.ordinal, ci.id as item_id,
+               ci.title as article_title, so.name as source_name,
+               item_minutes(ci.id) as minutes, ci.frameable, ci.link_broken_at,
                exists (
-                 select 1 from user_moment_finished f
-                 where f.user_id = ${userId} and f.moment_id = m.id
+                 select 1 from user_article_finished f
+                 where f.user_id = ${userId} and f.content_item_id = ci.id
                ) as finished
         from path_section s
         cross join lateral (${sessions(userId, sql`s.id`)}) ps
-        join moment m on m.id = ps.moment_id
-        join content_item ci on ci.id = m.content_item_id
+        join content_item ci on ci.id = ps.content_item_id
         join source so on so.id = ci.source_id
         where s.path_id = ${pathId} and ${ALLOWED}
         order by ps.ordinal
@@ -181,26 +179,24 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
         section_id: string;
         concept_id: string;
         name: string;
-        moment_id: string | null;
         item_id: string | null;
         title: string | null;
         frameable: boolean | null;
       }>`
         select distinct on (pc.section_id, f.id)
-               pc.section_id, f.id as concept_id, f.name, r.moment_id, r.item_id, r.title, r.frameable
+               pc.section_id, f.id as concept_id, f.name, r.item_id, r.title, r.frameable
         from path_section s
         join path_section_concept pc on pc.section_id = s.id
         join concept c on c.id = pc.concept_id and c.retired_at is null
         join concept_edge e on e.to_id = c.id and e.type = 'prerequisite_of'
         join concept f on f.id = e.from_id and f.retired_at is null
         left join lateral (
-          select m.id as moment_id, ci.id as item_id, m.title, ci.frameable
-          from moment m
-          join content_item ci on ci.id = m.content_item_id
+          select ci.id as item_id, ci.title, ci.frameable
+          from content_item ci
           join source so on so.id = ci.source_id
           where ${ALLOWED} and ci.link_broken_at is null
-            and ${momentTeaches(sql`f.id`)}
-          order by m.id desc
+            and ${articleTeaches(sql`f.id`)}
+          order by ci.id desc
           limit 1
         ) r on true
         where s.path_id = ${pathId}
@@ -257,14 +253,11 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
                     conceptId: f.concept_id,
                     name: f.name,
                     reading:
-                      f.moment_id === null ||
-                      f.item_id === null ||
-                      f.title === null
+                      f.item_id === null || f.title === null
                         ? null
                         : {
                             itemId: f.item_id,
-                            momentId: f.moment_id,
-                            sectionTitle: f.title,
+                            articleTitle: f.title,
                             frameable: f.frameable === true,
                             linkBroken: false,
                           },
@@ -275,12 +268,10 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
       const byId = new Map(steps.map((s) => [s.sectionId, s]));
       for (const r of readings)
         byId.get(r.section_id)?.readings.push({
-          momentId: r.moment_id,
           itemId: r.item_id,
-          sectionTitle: r.title,
           articleTitle: r.article_title,
           sourceName: r.source_name,
-          minutes: r.estimated_minutes,
+          minutes: r.minutes,
           frameable: r.frameable === true,
           linkBroken: r.link_broken_at !== null,
           finished: r.finished,
@@ -457,25 +448,24 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
           alternativesOf(trx, userId, sectionId, ordinal),
         )) ?? []
       ).map((r) => ({
-        momentId: r.moment_id,
-        sectionTitle: r.title,
+        itemId: r.item_id,
         articleTitle: r.article_title,
         sourceName: r.source_name,
-        minutes: r.estimated_minutes,
+        minutes: r.minutes,
       })),
 
-    swapSession: (userId, sectionId, ordinal, momentId) =>
+    swapSession: (userId, sectionId, ordinal, itemId) =>
       editing(db, userId, sectionId, async (trx, pathId) => {
         const offered = await alternativesOf(trx, userId, sectionId, ordinal);
-        if (!offered.some((r) => r.moment_id === momentId)) return null;
+        if (!offered.some((r) => r.item_id === itemId)) return null;
         const approved = await trx
           .selectFrom("path_session")
-          .select("moment_id")
+          .select("content_item_id")
           .where("section_id", "=", sectionId)
           .where("ordinal", "=", ordinal)
           .executeTakeFirstOrThrow();
-        // Back to the approved moment: the copy no longer differs.
-        if (approved.moment_id === momentId)
+        // Back to the approved article: the copy no longer differs.
+        if (approved.content_item_id === itemId)
           await trx
             .deleteFrom("user_path_session")
             .where("user_id", "=", userId)
@@ -489,12 +479,12 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
               user_id: userId,
               section_id: sectionId,
               ordinal,
-              moment_id: momentId,
+              content_item_id: itemId,
             })
             .onConflict((oc) =>
               oc
                 .columns(["user_id", "section_id", "ordinal"])
-                .doUpdateSet({ moment_id: momentId }),
+                .doUpdateSet({ content_item_id: itemId, moment_id: null }),
             )
             .execute();
         return pathId;
@@ -553,48 +543,46 @@ async function ownOrder(
     .execute();
 }
 
-// Moments a session can be swapped to: the approved one first when swapped away, then
-// others on one of the section's live concepts (an
-// admin's correction replacing the model's tags, as kysely-progress), rights allowing
-// (ING-2), link working (ING-6), not already in the user's section; only for a
-// reading not yet finished.
+// Articles a session can be swapped to (ADR-0058): the approved one first when swapped
+// away, then others on one of the section's live concepts (an admin's correction
+// replacing the model's tags, as kysely-progress), rights allowing (ING-2), link
+// working (ING-6), not already in the user's section; only for a reading not yet
+// completed.
 async function alternativesOf(
   trx: Kysely<DB>,
   userId: string,
   sectionId: string,
   ordinal: number,
 ) {
-  const approvedAt = sql`select ps.moment_id from path_session ps
+  const approvedAt = sql`select ps.content_item_id from path_session ps
     where ps.section_id = ${sectionId} and ps.ordinal = ${ordinal}`;
   const { rows } = await sql<{
-    moment_id: string;
-    title: string;
+    item_id: string;
     article_title: string;
     source_name: string;
-    estimated_minutes: number;
+    minutes: number | null;
   }>`
-    select m.id as moment_id, m.title, ci.title as article_title,
-           so.name as source_name, m.estimated_minutes
-    from moment m
-    join content_item ci on ci.id = m.content_item_id
+    select ci.id as item_id, ci.title as article_title,
+           so.name as source_name, item_minutes(ci.id) as minutes
+    from content_item ci
     join source so on so.id = ci.source_id
     where ${ALLOWED} and ci.link_broken_at is null
       and exists (
         select 1 from (${sessions(userId, sql`${sectionId}`)}) cur
         where cur.ordinal = ${ordinal} and not exists (
-          select 1 from user_moment_finished f
-          where f.user_id = ${userId} and f.moment_id = cur.moment_id
+          select 1 from user_article_finished f
+          where f.user_id = ${userId} and f.content_item_id = cur.content_item_id
         )
       )
-      and m.id not in (
-        select moment_id from (${sessions(userId, sql`${sectionId}`)}) taken
+      and ci.id not in (
+        select content_item_id from (${sessions(userId, sql`${sectionId}`)}) taken
       )
-      -- The approved moment, while swapped away, is always offered (to swap back).
-      and (m.id = (${approvedAt}) or exists (
+      -- The approved article, while swapped away, is always offered (to swap back).
+      and (ci.id = (${approvedAt}) or exists (
         select 1 from path_section_concept pc
-        where pc.section_id = ${sectionId} and ${momentTeaches(sql`pc.concept_id`)}
+        where pc.section_id = ${sectionId} and ${articleTeaches(sql`pc.concept_id`)}
       ))
-    order by m.id = (${approvedAt}) desc, m.id desc
+    order by ci.id = (${approvedAt}) desc, ci.id desc
     limit 5
   `.execute(trx);
   return rows;

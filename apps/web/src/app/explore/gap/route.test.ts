@@ -10,7 +10,6 @@ const gap = vi.fn<Explore["gap"]>(() =>
     topic: "distributed-systems",
     known: ["Caching", "Replication"],
     itemId: "5",
-    momentId: "9",
     minutes: 6,
   }),
 );
@@ -35,11 +34,11 @@ async function open(query: string): Promise<Response> {
   return GET(new Request(`http://localhost:3100/explore/gap?${query}`));
 }
 
-test("the current gap opens its shortest moment through /out, counted", async () => {
+test("the current gap opens its shortest article through /out, counted", async () => {
   current.mockResolvedValue(ada);
   const res = await open("concept=77");
   expect(res.headers.get("location")).toBe(
-    "/out?item=5&moment=9&from=explore&target=section",
+    "/out?item=5&from=explore&target=article",
   );
   expect(emit).toHaveBeenCalledWith(
     "gap_opened",

@@ -37,37 +37,23 @@ async function inRollback(
             name: `paths-${String(n)}-${randomUUID()}`,
             feed_url: `https://paths.example.test/${randomUUID()}.xml`,
             rights_profile: "full_text_internal" as const,
-            moments_seeded: true,
-            moments_enabled: true,
           })),
         )
         .returning("id")
         .execute();
       const [one, two] = sources;
       if (!one || !two) throw new Error("seed");
+      // ADR-0058: each reading is a whole article: A1 and B1 in the first source, A2
+      // and B2 in the other.
       const items = await trx
         .insertInto("content_item")
         .values(
-          [one, two].map((s, n) => ({
-            source_id: s.id,
-            guid: randomUUID(),
-            canonical_url: `https://paths.example.test/${String(n)}`,
-            title: `Article ${String(n + 1)}`,
-          })),
-        )
-        .returning("id")
-        .execute();
-      const moments = await trx
-        .insertInto("moment")
-        .values(
-          items.flatMap((item, n) =>
-            ["A", "B"].map((title, ordinal) => ({
-              content_item_id: item.id,
-              ordinal,
+          [one, two].flatMap((s, n) =>
+            ["A", "B"].map((title) => ({
+              source_id: s.id,
+              guid: randomUUID(),
+              canonical_url: `https://paths.example.test/${String(n)}/${title}`,
               title: `${title}${String(n + 1)}`,
-              estimated_minutes: 3,
-              link: `https://paths.example.test/${String(n)}#${title}`,
-              link_type: "anchor" as const,
             })),
           ),
         )
@@ -95,10 +81,10 @@ async function inRollback(
         .returning("id")
         .executeTakeFirstOrThrow();
       const sections: string[] = [];
-      for (const [ordinal, moment] of [
-        [0, [moments[0], moments[2]]],
-        [1, [moments[1]]],
-        [2, [moments[3]]],
+      for (const [ordinal, readings] of [
+        [0, [items[0], items[2]]],
+        [1, [items[1]]],
+        [2, [items[3]]],
       ] as const) {
         const section = await trx
           .insertInto("path_section")
@@ -115,9 +101,13 @@ async function inRollback(
         await trx
           .insertInto("path_session")
           .values(
-            moment.map((m, i) => {
-              if (m === undefined) throw new Error("seed");
-              return { section_id: section.id, ordinal: i, moment_id: m.id };
+            readings.map((item, i) => {
+              if (item === undefined) throw new Error("seed");
+              return {
+                section_id: section.id,
+                ordinal: i,
+                content_item_id: item.id,
+              };
             }),
           )
           .execute();
@@ -154,13 +144,13 @@ test("a draft lists its sections and readings in order", async () => {
       ["Lag"],
       ["Quorum"],
     ]);
-    expect(path.sections[0]?.sessions.map((s) => s.sectionTitle)).toEqual([
+    expect(path.sections[0]?.sessions.map((s) => s.articleTitle)).toEqual([
       "A1",
       "A2",
     ]);
+    // ADR-0058: a reading links to the article's own page.
     expect(path.sections[0]?.sessions[0]).toMatchObject({
-      articleTitle: "Article 1",
-      link: "https://paths.example.test/0#A",
+      link: "https://paths.example.test/0/A",
       allowed: true,
     });
   });
@@ -168,8 +158,7 @@ test("a draft lists its sections and readings in order", async () => {
 
 test("a reading whose source lost its rights is flagged and blocks approval", async () => {
   await inRollback(async (trx, { pathId, otherSource, sections }) => {
-    // Moments stay when a source's rights drop (only a switch-off purges them), so
-    // a lowered rights profile is the case to flag.
+    // A source's rights can drop after approval: the case to flag.
     await sql`set local session_replication_role = replica`.execute(trx);
     await trx
       .updateTable("source")
@@ -299,11 +288,7 @@ test("a reading from a duplicate article isn't allowed", async () => {
     const path = await ours(trx, pathId);
     const reading = path.sections[2]?.sessions[0];
     if (reading === undefined) throw new Error("seed");
-    const item = await trx
-      .selectFrom("moment")
-      .select("content_item_id")
-      .where("id", "=", reading.momentId)
-      .executeTakeFirstOrThrow();
+    const item = { content_item_id: reading.itemId };
     const original = await trx
       .selectFrom("content_item")
       .select("id")

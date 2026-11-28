@@ -1,5 +1,5 @@
 """Week 1 vertical path through the real adapters (Postgres, httpx, trafilatura):
-feed -> ingest -> moments -> a user's precomputed feed -> card rows."""
+feed -> ingest -> a user's precomputed feed of articles (ADR-0058) -> card rows."""
 
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -24,19 +24,16 @@ def ingest(conn: psycopg.Connection, article: str) -> None:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    conn.execute(
-        "update source set moments_seeded = true, moments_enabled = true where id = %s",
-        (source_id,),
-    )
     with mock_web_client(article) as http:
         fetcher = PoliteFetcher(HttpxFetcher(http, public), sleep=lambda _s: None)
         ingest_one(store, fetcher, TrafilaturaExtractor(), source_id)
 
 
-def test_one_feed_becomes_moment_cards_without_source_text(
+def test_one_feed_becomes_article_cards_without_source_text(
     conn: psycopg.Connection,
 ) -> None:
     ingest(conn, "article_long.html")
+    now = datetime.now(UTC)
     # The ranking stage's output, written as the recompute stage does (P1-W4-S04).
     user_id = f"vertical-{uuid4().hex[:8]}"
     code = conn.execute(
@@ -50,42 +47,28 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "values (%s, 'n', %s, 'student', %s)",
         (user_id, f"{user_id}@example.test", code[0]),
     )
-    moments = conn.execute(
-        "select m.id, ci.id from moment m "
-        "join content_item ci on ci.id = m.content_item_id "
-        "join source s on s.id = ci.source_id where s.name = 'seg-test' "
-        "order by m.ordinal"
+    items = conn.execute(
+        "select ci.id from content_item ci "
+        "join source s on s.id = ci.source_id where s.name = 'seg-test'"
     ).fetchall()
     PostgresStore(conn).feed.replace_user(
-        user_id,
-        {"3-8": [RankedEntry(r[1], r[0], "topic_match", None) for r in moments]},
-        datetime.now(UTC),
+        user_id, [RankedEntry(r[0], "topic_match", None) for r in items], now
     )
 
     cards = conn.execute(
         """
-        select section_title, section_number, section_count, estimated_minutes, link,
-               article_title, author, source_name
+        select kind, chip::text, section_title, section_number, section_count,
+               estimated_minutes, link, article_title, author, source_name
         from user_feed_visible where user_id = %s order by rank
         """,
         (user_id,),
     ).fetchall()
 
     title = "How our write-ahead log works"
-    assert cards == [
-        (title, 1, 3, 3, ARTICLE_URL, title, "Alex Author", "seg-test"),
-        ("Alpha", 2, 3, 3, f"{ARTICLE_URL}#alpha", title, "Alex Author", "seg-test"),
-        (
-            "Beta part",
-            3,
-            3,
-            3,
-            f"{ARTICLE_URL}#:~:text=Beta%20part",
-            title,
-            "Alex Author",
-            "seg-test",
-        ),
-    ]
+    # One card for the whole article, its length from its stored sections, its link
+    # the article's own (no section deep link, ADR-0058).
+    card = ("article", "3-8", None, None, 0, 8, ARTICLE_URL, title, "Alex Author")
+    assert cards == [(*card, "seg-test")]
     # An allowlist: any new column (e.g. a summary) must be added here on purpose.
     card_columns = {
         "rank",

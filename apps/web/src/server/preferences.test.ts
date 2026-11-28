@@ -7,7 +7,8 @@ import {
   updatePreferences,
 } from "./preferences";
 
-// §5A, C-21, P1-W4-S01: one screen, three fields, and no way past it without a topic.
+// §5A, C-21, P1-W4-S01: one screen, and no way past it without a topic. ADR-0058: no
+// break length is asked.
 const GOAL = { goals: ["system-design-interviews"] };
 const LAUNCH: Topic[] = [
   "system-design",
@@ -32,7 +33,6 @@ test("choices are kept as the user's explicit preferences", async () => {
       goals: ["system-design-interviews"],
       topics: ["databases", "backend"],
       level: "intermediate",
-      breakLength: "3-8",
     },
     LAUNCH,
   );
@@ -41,44 +41,25 @@ test("choices are kept as the user's explicit preferences", async () => {
     goals: ["system-design-interviews"],
     topics: ["databases", "backend"],
     level: "intermediate",
-    breakLength: "3-8",
   });
 });
 
 test.each([
-  [
-    "no topic",
-    { ...GOAL, topics: [], level: "beginner", breakLength: "1-3" },
-    "topic",
-  ],
+  ["no topic", { ...GOAL, topics: [], level: "beginner" }, "topic"],
   [
     "an unknown topic",
-    { ...GOAL, topics: ["cooking"], level: "beginner", breakLength: "1-3" },
+    { ...GOAL, topics: ["cooking"], level: "beginner" },
     "topic",
   ],
-  [
-    "no level",
-    { ...GOAL, topics: ["backend"], level: "", breakLength: "1-3" },
-    "level",
-  ],
-  [
-    "an unknown break",
-    { ...GOAL, topics: ["backend"], level: "beginner", breakLength: "20" },
-    "break",
-  ],
+  ["no level", { ...GOAL, topics: ["backend"], level: "" }, "level"],
   // ADR-0015: at least one goal, and only the ones that work now.
-  [
-    "no goal",
-    { goals: [], topics: ["backend"], level: "beginner", breakLength: "1-3" },
-    "goal",
-  ],
+  ["no goal", { goals: [], topics: ["backend"], level: "beginner" }, "goal"],
   [
     "an unknown goal",
     {
       goals: ["world-peace"],
       topics: ["backend"],
       level: "beginner",
-      breakLength: "1-3",
     },
     "goal",
   ],
@@ -87,6 +68,24 @@ test.each([
   const result = await completeOnboarding(preferences, "u1", input, LAUNCH);
   expect(result).toEqual({ ok: false, field });
   expect(preferences.createIfAbsent).not.toHaveBeenCalled();
+});
+
+// ADR-0058: an old form's break length is not a choice any more; it is left out.
+test("a break length sent by an old form is ignored", async () => {
+  const preferences = store();
+  const old = {
+    ...GOAL,
+    topics: ["backend"],
+    level: "beginner",
+    breakLength: "20",
+  };
+  const result = await completeOnboarding(preferences, "u1", old, LAUNCH);
+  expect(result).toEqual({ ok: true, created: true });
+  expect(preferences.createIfAbsent).toHaveBeenCalledWith("u1", {
+    ...GOAL,
+    topics: ["backend"],
+    level: "beginner",
+  });
 });
 
 test("a topic picked twice is kept once", async () => {
@@ -98,7 +97,6 @@ test("a topic picked twice is kept once", async () => {
       goals: ["system-design-interviews"],
       topics: ["backend", "backend"],
       level: "advanced",
-      breakLength: "8-15",
     },
     LAUNCH,
   );
@@ -117,7 +115,6 @@ test("goals are kept once each, in the order the store reads them back", async (
       goals: ["stay-sharp", "system-design-interviews", "stay-sharp"],
       topics: ["backend"],
       level: "beginner",
-      breakLength: "1-3",
     },
     LAUNCH,
   );
@@ -143,7 +140,7 @@ test("a topic past the launch four is offered once it has reading", async () => 
 
 // ADR-0049: a topic that isn't offered can't be saved by a forged form, though a topic
 // the user already has stays theirs (PER-1).
-const CHOICES = { ...GOAL, level: "beginner", breakLength: "1-3" };
+const CHOICES = { ...GOAL, level: "beginner" };
 test("onboarding refuses a topic that isn't offered", async () => {
   const preferences = store();
   const input = { ...CHOICES, topics: ["backend", "software-design"] };
@@ -172,7 +169,6 @@ test("Profile refuses a topic that isn't offered unless the user already has it"
       goals: ["system-design-interviews"],
       topics: ["software-design"],
       level: "beginner",
-      breakLength: "1-3",
       onboardedAt: new Date(0),
       firstName: null,
     }),

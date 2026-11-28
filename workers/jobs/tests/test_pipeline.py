@@ -37,7 +37,6 @@ from interval_jobs.ports import (
     FetchError,
     FetchStatusError,
     Message,
-    MomentRow,
     ProjectNoteInput,
     RobotsDisallowed,
     TagResult,
@@ -78,7 +77,6 @@ class World:
     def __init__(
         self,
         profile: RightsProfile = "full_text_internal",
-        moments: bool = True,
         failing: str | None = None,
         blocked: str | None = None,
         extra: dict[str, Fetched] | None = None,
@@ -94,7 +92,6 @@ class World:
         self.source_id = self.store.sources.upsert(
             name="pipe", feed_url=FEED_URL, rights_profile=profile, homepage=None
         )
-        self.store.sources.set_moments_enabled(self.source_id, moments)
 
         @contextmanager
         def unit() -> Generator[StageServices]:
@@ -133,14 +130,15 @@ class World:
         return [url for url, _ in self.fetcher.requested]
 
 
-def test_a_full_text_source_flows_from_discovery_to_moments() -> None:
+def test_a_full_text_source_flows_from_discovery_to_stored_text() -> None:
     world = World()
     world.discover()
     world.run()
     items = world.store.items.rows.values()
     assert sorted(i.canonical_url for i in items) == [OLDER, WAL]
-    assert all(i.full_text for i in items)
-    assert world.store.moments.rows, "segmentation produced moments"
+    assert all(i.full_text and i.sections for i in items)
+    # ADR-0058: articles are no longer split; no stage makes moments.
+    assert "segment_item" not in STAGES
 
 
 def test_a_capped_run_takes_only_the_newest_entries_of_each_feed() -> None:
@@ -156,17 +154,15 @@ def test_redelivered_messages_create_nothing_twice() -> None:
     world = World()
     world.discover("poll-1")
     world.run()
-    moments = len(world.store.moments.rows)
     world.discover("poll-2")  # a later poll of an unchanged feed
     world.run()
     assert len(world.store.items.rows) == 2
-    assert len(world.store.moments.rows) == moments
     # Bodies already stored aren't fetched again.
     assert world.requested().count(WAL) == 1
 
 
 def test_metadata_only_sources_never_fetch_bodies() -> None:
-    world = World(profile="metadata_only", moments=False)
+    world = World(profile="metadata_only")
     world.discover()
     world.run()
     assert len(world.store.items.rows) == 2
@@ -175,7 +171,7 @@ def test_metadata_only_sources_never_fetch_bodies() -> None:
 
 
 def test_excerpt_sources_fetch_each_article_once() -> None:
-    world = World(profile="excerpt", moments=False)
+    world = World(profile="excerpt")
     world.discover("poll-1")
     world.run()
     world.discover("poll-2")
@@ -187,7 +183,7 @@ def test_excerpt_sources_fetch_each_article_once() -> None:
 
 
 def test_a_stale_fetch_does_nothing_once_the_profile_forbids_bodies() -> None:
-    world = World(profile="metadata_only", moments=False)
+    world = World(profile="metadata_only")
     world.discover()
     world.run()
     item_id = next(iter(world.store.items.rows))
@@ -197,39 +193,6 @@ def test_a_stale_fetch_does_nothing_once_the_profile_forbids_bodies() -> None:
     )
     world.run()
     assert world.requested() == [FEED_URL]
-
-
-def test_a_stale_segment_makes_no_moments_once_moments_are_off() -> None:
-    world = World()
-    world.discover()
-    world.run()
-    assert world.store.moments.rows
-    world.store.sources.set_moments_enabled(world.source_id, False)  # purges them
-    item_id = next(iter(world.store.items.rows))
-    world.queue.enqueue(
-        "segment_item", {"content_item_id": item_id}, idempotency_key="old"
-    )
-    world.run()
-    assert world.store.moments.rows == []
-
-
-def test_an_item_whose_segmenting_failed_is_segmented_on_the_next_full_poll() -> None:
-    world = World()
-    world.discover("poll-1")
-    # Fetch only: segmentation never ran (as if it had landed in the failed store).
-    handlers = world.pipeline.handlers()
-    for name in ("discover_source", "fetch_item"):
-        world.queue.consume(name, handlers[name], threading.Event())
-    world.queue.drop_pending("segment_item")
-    assert world.store.moments.rows == []
-    world.discover("poll-2")  # same day: the feed answers 304
-    world.run()
-    assert world.store.moments.rows == []
-    validators, stored = world.store.validators.rows[FEED_URL]
-    world.store.validators.rows[FEED_URL] = (validators, stored - timedelta(days=2))
-    world.discover("poll-3")  # a day on: a full fetch re-queues the segment
-    world.run()
-    assert world.store.moments.rows
 
 
 def test_a_feed_with_no_valid_entries_is_logged_not_retried(
@@ -317,7 +280,6 @@ def test_the_same_article_from_two_sources_shows_once_in_a_users_feed() -> None:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    world.store.sources.set_moments_enabled(other, True)
     for sid in (world.source_id, other):
         world.store.sources.rows[sid].topics = ("databases",)
     world.discover()
@@ -330,11 +292,11 @@ def test_the_same_article_from_two_sources_shows_once_in_a_users_feed() -> None:
     # The recompute stage (CACHE-1, P1-W4-S04) stores the user's ranked feed.
     world.store.users.rows["u1"] = StoredUser("u1", is_anonymous=True)
     world.store.ranking.preferences_by_user["u1"] = UserPreferences(
-        topics=["databases"], level="intermediate", break_length="8-15"
+        topics=["databases"], level="intermediate"
     )
     world.queue.enqueue("recompute_feed", {"user_id": "u1"}, idempotency_key="r-1")
     world.run()
-    shown = {r.item_id for r in world.store.feed.users["u1"]["8-15"]}
+    shown = {r.item_id for r in world.store.feed.users["u1"]}
     assert shown == {i.id for i in primaries}
     assert world.store.feed.computed["u1"] == world.now
 
@@ -405,11 +367,8 @@ def test_a_discover_that_fails_keeps_the_turn_poll_due_claimed() -> None:
     assert world.source_id in world.store.sources.claim_due(NOW + timedelta(hours=1))
 
 
-# P1-W3-S02: tagging joins the pipeline after segmentation (or the fetch, or discover).
-TAG_ANSWER = (
-    '{"item": {"difficulty": "intermediate", "concepts": ["write-ahead-log"]},'
-    ' "moments": [{"ordinal": 0, "difficulty": "beginner", "concepts": []}]}'
-)
+# P1-W3-S02: tagging joins the pipeline after embedding (or the fetch, or discover).
+TAG_ANSWER = '{"item": {"difficulty": "intermediate", "concepts": ["write-ahead-log"]}}'
 
 
 class TagLlm:
@@ -456,14 +415,15 @@ def tagged_world(
     return world, llm, ledger
 
 
-def test_each_item_is_tagged_once_with_its_moments() -> None:
+def test_each_item_is_tagged_once_whole_from_its_text() -> None:
     world, llm, _ = tagged_world()
     world.discover("poll-1")
     world.run()
     for item_id in world.store.items.rows:
-        tags, _ = world.store.tags.for_item(item_id)
-        assert tags is not None and tags.concepts == frozenset({"write-ahead-log"})
+        assert world.store.tags.concepts(item_id) == frozenset({"write-ahead-log"})
     assert len(llm.calls) == 2  # one per item
+    # ADR-0058: the article's stored text, fenced, not its sections.
+    assert all("<text-" in call for call in llm.calls)
     world.now = NOW + timedelta(days=2)  # a later full poll
     world.discover("poll-2")
     world.run()
@@ -483,7 +443,7 @@ def test_a_metadata_only_item_is_tagged_from_its_title_and_summary() -> None:
     world.discover()
     world.run()
     assert len(llm.calls) == 2
-    assert "<moment" not in llm.calls[0]
+    assert "<text-" not in llm.calls[0]
 
 
 def test_over_budget_tagging_degrades_and_is_retried_by_a_later_poll(
@@ -501,20 +461,6 @@ def test_over_budget_tagging_degrades_and_is_retried_by_a_later_poll(
     world.discover("poll-2")
     world.run()
     assert len(llm.calls) == 2
-
-
-def test_resegmenting_an_item_redoes_its_tags() -> None:
-    world, llm, _ = tagged_world()
-    world.discover()
-    world.run()
-    wal = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
-    assert world.store.tags.version(wal.id) is not None
-    world.queue.enqueue(
-        "segment_item", {"content_item_id": wal.id}, idempotency_key="again"
-    )
-    world.run()
-    assert world.store.tags.version(wal.id) is not None
-    assert len(llm.calls) == 3  # the re-segmented item was tagged again
 
 
 def test_a_duplicate_item_is_never_tagged() -> None:
@@ -548,7 +494,7 @@ def test_an_excerpt_item_is_tagged_after_its_fetch_from_its_excerpt() -> None:
     assert "Excerpt:" in llm.calls[0]
 
 
-# P1-W3-S04: embeddings join after segmentation, like tagging.
+# P1-W3-S04: embeddings join after the fetch, before tagging.
 class FakeVoyage:
     provider: AiProvider = "voyage"
 
@@ -582,16 +528,17 @@ def embedding_world(
     return World(profile=profile, embedding=ModelJob("voyage-3.5", gateway)), voyage
 
 
-def test_every_moment_of_a_full_text_item_is_embedded_once() -> None:
+def test_each_full_text_item_is_embedded_once_whole() -> None:
     world, voyage = embedding_world()
     world.discover("poll-1")
     world.run()
     embedded = len(voyage.texts)
-    assert embedded == len(world.store.moments.rows) > 0
-    assert all(
-        not world.store.embeddings.missing(i, "voyage-3.5")
-        for i in world.store.items.rows
-    )
+    assert embedded == 2  # ADR-0058: one vector per article
+    for item in world.store.items.rows.values():
+        assert item.full_text is not None
+        assert voyage.texts.count(item.full_text.strip()[:16000]) == 1
+        assert world.store.embeddings.vector(item.id, "voyage-3.5") is not None
+        assert not world.store.embeddings.missing(item.id, "voyage-3.5")
     world.now = NOW + timedelta(days=2)
     world.store.validators.put(FEED_URL, None)
     world.discover("poll-2")
@@ -605,39 +552,6 @@ def test_items_without_full_text_rights_get_no_vectors() -> None:
     world.run()
     assert voyage.texts == []
     assert world.queue.pending("embed_item") == 0
-
-
-def test_resegmenting_redoes_the_vectors() -> None:
-    world, voyage = embedding_world()
-    world.discover()
-    world.run()
-    wal = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
-    before = len(voyage.texts)
-    world.queue.enqueue(
-        "segment_item", {"content_item_id": wal.id}, idempotency_key="again"
-    )
-    world.run()
-    assert len(voyage.texts) > before
-    assert not world.store.embeddings.missing(wal.id, "voyage-3.5")
-
-
-def test_a_moment_with_no_text_does_not_make_every_poll_re_embed() -> None:
-    world, voyage = embedding_world()
-    world.discover("poll-1")
-    world.run()
-    wal = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
-    rows = [m.row for m in world.store.moments.for_item(wal.id)]
-    ghost = MomentRow(len(rows), "Not in the text", 1, WAL + "#ghost", "anchor")
-    world.store.moments.replace(wal.id, [*rows, ghost])
-    world.store.embeddings.clear(wal.id)  # as after a re-segmentation
-    for poll in ("poll-2", "poll-3"):
-        world.now += timedelta(days=2)
-        world.store.validators.put(FEED_URL, None)
-        world.discover(poll)
-        world.run()
-    # Re-embedded once (poll-2), not again on poll-3.
-    assert voyage.texts.count(voyage.texts[0]) <= 2
-    assert not world.store.embeddings.missing(wal.id, "voyage-3.5")
 
 
 # The notes model: project lines only (ADR-0025, P2-W12-S05).
@@ -670,7 +584,7 @@ def notes_world() -> tuple[World, NoteLlm]:
     world.store.sources.rows[world.source_id].topics = ("databases",)
     world.store.users.rows["u1"] = StoredUser("u1", is_anonymous=True)
     world.store.ranking.preferences_by_user["u1"] = UserPreferences(
-        topics=["databases"], level="intermediate", break_length="3-8"
+        topics=["databases"], level="intermediate"
     )
     world.discover()
     world.run()
@@ -687,7 +601,7 @@ def recompute(world: World, key: str) -> None:
 def test_card_reasons_never_call_the_notes_model() -> None:
     world, llm = notes_world()
     recompute(world, "r-1")
-    entries = [e for chip in world.store.feed.users["u1"].values() for e in chip]
+    entries = world.store.feed.users["u1"]
     assert entries
     assert all(e.reasons for e in entries)
     assert llm.calls == 0
@@ -762,8 +676,7 @@ def test_a_page_whose_canonical_is_plain_http_is_not_framed() -> None:
 
 
 def test_a_decision_model_tags_from_the_shortlist_once_per_prompt_version() -> None:
-    # Tagging v3 (2026-10-27): stored answers, rolled up. (Skipping unchanged moments
-    # after a re-segmentation is tested in test_tagging_decide.)
+    # Tagging v3 (2026-10-27): stored answers, rolled up; one pass per article.
     from interval_jobs.concept_vectors import text_hash
 
     from .test_tagging_decide import Decider, NearWal
@@ -793,14 +706,9 @@ def test_a_decision_model_tags_from_the_shortlist_once_per_prompt_version() -> N
     world.run()
     asked = len(decider.asked)
     assert asked > 0
-    # Embedded first, then tagged: the shortlist reuses the stored moment vectors.
-    assert voyage.texts and len(voyage.texts) == len(set(voyage.texts))
+    assert asked == 2  # ADR-0058: one decision per article, its text included
     for item_id in world.store.items.rows:
-        tags, moments = world.store.tags.for_item(item_id)
-        assert tags is not None and tags.concepts == frozenset({"write-ahead-log"})
-        assert all(
-            m.concepts == frozenset({"write-ahead-log"}) for m in moments.values()
-        )
+        assert world.store.tags.concepts(item_id) == frozenset({"write-ahead-log"})
     world.now = NOW + timedelta(days=2)
     world.discover("poll-2")
     world.run()
@@ -835,7 +743,7 @@ def test_decision_tagging_over_budget_keeps_no_tags_and_logs_it(
     world.discover("poll-1")
     world.run()
     for item_id in world.store.items.rows:
-        assert world.store.tags.for_item(item_id)[0] is None
+        assert world.store.tags.version(item_id) is None
     assert "pipeline: tagging over budget" in capsys.readouterr().out
 
 
@@ -907,7 +815,7 @@ def project_world(
     world.store.sources.rows[world.source_id].topics = ("databases",)
     world.store.users.rows["u1"] = StoredUser("u1", is_anonymous=False)
     world.store.ranking.preferences_by_user["u1"] = UserPreferences(
-        topics=["databases"], level="intermediate", break_length="3-8"
+        topics=["databases"], level="intermediate"
     )
     world.discover()
     world.run()
@@ -962,9 +870,8 @@ def test_the_cap_takes_the_highest_ranked_lines_per_recompute(
         "recompute_feed", world.pipeline.handlers()["recompute_feed"], threading.Event()
     )
     (queued,) = [m for _, m in world.queue.pending_messages("project_note")]
-    # A chip's first entry: no item ranks higher anywhere.
-    firsts = {c[0].item_id for c in world.store.feed.users["u1"].values() if c}
-    assert queued["content_item_id"] in firsts
+    # The feed's first entry: no item ranks higher.
+    assert queued["content_item_id"] == world.store.feed.users["u1"][0].item_id
 
 
 def test_with_notes_off_or_no_project_nothing_is_asked() -> None:

@@ -74,7 +74,7 @@ class DiscoverSource(_Message):
 
 
 class EmbedItem(_Message):
-    """Embed the moments of one item (DB-3, AI-4, P1-W3-S04)."""
+    """Embed one item's allowed text as one vector (DB-3, AI-4, P1-W3-S04, ADR-0058)."""
 
     content_item_id: Annotated[int, Field(ge=1)]
 
@@ -87,14 +87,14 @@ class FetchItem(_Message):
 
 
 class GenerateQuestions(_Message):
-    """Draft the questions for one tagged moment with the question model (Q-1,
-    P2-W8-S01). `attempt` counts retries, each 5 minutes later: after a rate limit
-    or a model error without end, and after a reply that breaks a rule up to 5
-    times (`broken` counts those)."""
+    """Draft the questions for one tagged article with the question model (Q-1,
+    P2-W8-S01, ADR-0058). `attempt` counts retries, each 5 minutes later: after a
+    rate limit or a model error without end, and after a reply that breaks a rule
+    up to 5 times (`broken` counts those)."""
 
     attempt: Annotated[int, Field(ge=0)]
     broken: Annotated[int, Field(ge=0)]
-    moment_id: Annotated[int, Field(ge=1)]
+    content_item_id: Annotated[int, Field(ge=1)]
 
 
 class GithubSync(_Message):
@@ -198,15 +198,8 @@ class ReviewCode(_Message):
     user_id: Annotated[str, Field(min_length=1)]
 
 
-class SegmentItem(_Message):
-    """Split one stored item into moments (ING-1 segment, ING-4)."""
-
-    content_item_id: Annotated[int, Field(ge=1)]
-
-
 class TagItem(_Message):
-    """Tag one item and its moments with concepts and difficulty (AI-2, AI-4,
-    P1-W3-S02)."""
+    """Tag one item with concepts and difficulty (AI-2, AI-4, P1-W3-S02, ADR-0058)."""
 
     content_item_id: Annotated[int, Field(ge=1)]
 
@@ -244,7 +237,6 @@ type MessageName = Literal[
     "recompute_feed",
     "remove_file",
     "review_code",
-    "segment_item",
     "tag_item",
     "validate_question",
 ]
@@ -271,7 +263,6 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "recompute_feed": RecomputeFeed,
     "remove_file": RemoveFile,
     "review_code": ReviewCode,
-    "segment_item": SegmentItem,
     "tag_item": TagItem,
     "validate_question": ValidateQuestion,
 }

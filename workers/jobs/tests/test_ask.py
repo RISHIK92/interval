@@ -34,6 +34,7 @@ from interval_jobs.ports import (
     AskTurn,
     Completion,
     Delivery,
+    FeedEntry,
     Message,
     Usage,
 )
@@ -59,9 +60,9 @@ REQUEST = AskRequest(
     technologies=[],
     thread=[],
 )
-MOMENT = AskPassage(
-    passage="m12",
-    kind="moment",
+ARTICLE = AskPassage(
+    passage="i5",
+    kind="item",
     score=0.8,
     title="DDIA: Partitioning",
     rights_profile="full_text_internal",
@@ -69,7 +70,6 @@ MOMENT = AskPassage(
     author="Kleppmann",
     concept_names=["Sharding"],
     item_id=5,
-    moment_id=12,
 )
 EXCERPT = AskPassage(
     passage="i7",
@@ -100,7 +100,7 @@ EXPLAINER = AskPassage(
     script="An original script about shards.",
     concept_id=3,
 )
-PASSAGES = [MOMENT, EXCERPT, METADATA, EXPLAINER]
+PASSAGES = [ARTICLE, EXCERPT, METADATA, EXPLAINER]
 
 
 def bodies() -> dict[str, str]:
@@ -112,15 +112,15 @@ def reply(*sentences: tuple[str, list[str]]) -> str:
 
 
 GOOD = reply(
-    ("Shard only when one node can't hold your writes.", ["m12"]),
+    ("Shard only when one node can't hold your writes.", ["i5"]),
     ("Add replicas before that.", ["i7", "c3"]),
-    ("Read these two first.", ["m12", "i7"]),
+    ("Read these two first.", ["i5", "i7"]),
 )
 
 
 def test_each_profile_shows_the_model_only_what_its_rights_allow() -> None:
-    assert passage_body(MOMENT, SECTION) == SECTION
-    assert passage_body(replace(MOMENT, rights_profile="full_text_display"), "x") == (
+    assert passage_body(ARTICLE, SECTION) == SECTION
+    assert passage_body(replace(ARTICLE, rights_profile="full_text_display"), "x") == (
         "x"
     )
     assert passage_body(EXCERPT, SECTION) == "Replicas first, then partitions."
@@ -161,15 +161,15 @@ def test_level_chip_stack_and_thread_shape_the_prompt() -> None:
 
 def test_relevant_drops_weak_and_repeated_passages() -> None:
     weak = replace(METADATA, passage="i10", score=0.2)
-    kept = relevant([EXPLAINER, MOMENT, weak, replace(MOMENT, score=0.9)])
-    assert [p.passage for p in kept] == ["m12", "c3"]
+    kept = relevant([EXPLAINER, ARTICLE, weak, replace(ARTICLE, score=0.9)])
+    assert [p.passage for p in kept] == ["i5", "c3"]
     assert kept[0].score == 0.9
 
 
 def test_a_good_answer_keeps_its_citations_in_order() -> None:
     checked = validate(GOOD, REQUEST, PASSAGES, bodies())
     assert isinstance(checked, Validated)
-    assert checked.cited == ["m12", "i7", "c3"]
+    assert checked.cited == ["i5", "i7", "c3"]
     assert checked.text.startswith("Shard only when")
     # Each sentence keeps its own citations, for the page to number its sources.
     assert re.fullmatch(r"(?:[^\[\]]+ \[[a-z]\d+(?:, [a-z]\d+)*\] ?)+", checked.text)
@@ -181,27 +181,27 @@ def test_every_rule_refuses_the_answer() -> None:
 
     assert why("not json") == "not json"
     assert why(reply(("Uncited.", []))) == "a sentence without a citation"
-    assert why(reply(("Made up.", ["m99"]))) == (
+    assert why(reply(("Made up.", ["i99"]))) == (
         "a citation outside the retrieved passages"
     )
-    assert why(reply(("One. Two more.", ["m12"]))) == (
+    assert why(reply(("One. Two more.", ["i5"]))) == (
         "more than one sentence in an entry"
     )
     long = " ".join(["word"] * (MAX_WORDS + 1)) + "."
-    assert why(reply((long, ["m12"]))) == "too long"
+    assert why(reply((long, ["i5"]))) == "too long"
     # Full-text-internal text: no run longer than the internal bar...
     internal = " ".join(SECTION.split()[: INTERNAL_VERBATIM_MAX_WORDS + 1])
-    assert why(reply((internal + ".", ["m12"]))) == "copies source text"
+    assert why(reply((internal + ".", ["i5"]))) == "copies source text"
     shorter = " ".join(SECTION.split()[:INTERNAL_VERBATIM_MAX_WORDS])
-    assert isinstance(why(reply((shorter + ".", ["m12"]))), Validated)
+    assert isinstance(why(reply((shorter + ".", ["i5"]))), Validated)
     # ...and from any other source, no run longer than 25 words.
-    displayed = [replace(MOMENT, rights_profile="full_text_display"), EXCERPT]
+    displayed = [replace(ARTICLE, rights_profile="full_text_display"), EXCERPT]
     run = " ".join(SECTION.split()[: VERBATIM_MAX_WORDS + 1])
-    copied = validate(reply((run + ".", ["m12"])), REQUEST, displayed, {"m12": SECTION})
+    copied = validate(reply((run + ".", ["i5"])), REQUEST, displayed, {"i5": SECTION})
     assert copied == "copies source text"
     allowed = " ".join(SECTION.split()[:VERBATIM_MAX_WORDS])
     assert isinstance(
-        validate(reply((allowed + ".", ["m12"])), REQUEST, displayed, {"m12": SECTION}),
+        validate(reply((allowed + ".", ["i5"])), REQUEST, displayed, {"i5": SECTION}),
         Validated,
     )
 
@@ -209,17 +209,17 @@ def test_every_rule_refuses_the_answer() -> None:
 def test_a_drill_is_three_questions_each_citing_an_article() -> None:
     drill = replace(REQUEST, chip="interview_drill")
     three = reply(
-        ("When would you shard?", ["m12"]),
+        ("When would you shard?", ["i5"]),
         ("Why replicas first?", ["i7"]),
-        ("What does rebalancing cost?", ["m12", "c3"]),
+        ("What does rebalancing cost?", ["i5", "c3"]),
     )
     assert isinstance(validate(three, drill, PASSAGES, bodies()), Validated)
-    two = reply(("When would you shard?", ["m12"]), ("Why replicas?", ["i7"]))
+    two = reply(("When would you shard?", ["i5"]), ("Why replicas?", ["i7"]))
     assert validate(two, drill, PASSAGES, bodies()) == "not three drill questions"
     only_explainer = reply(
         ("When would you shard?", ["c3"]),
         ("Why replicas first?", ["i7"]),
-        ("What does it cost?", ["m12"]),
+        ("What does it cost?", ["i5"]),
     )
     assert isinstance(validate(only_explainer, drill, PASSAGES, bodies()), str)
 
@@ -300,11 +300,11 @@ def test_an_answer_is_stored_with_its_citations_once() -> None:
     saved = store.ask.saved[QID]
     assert saved.outcome == "answered" and saved.model == "ask-model"
     assert saved.citations == [
-        {"passage": "m12", "moment_id": "12", "item_id": "5"},
+        {"passage": "i5", "item_id": "5"},
         {"passage": "i7", "item_id": "7"},
         {"passage": "c3", "concept_id": "3"},
     ]
-    assert saved.prompt_version == 1
+    assert saved.prompt_version == 2
     assert embeddings.texts == ["When should I shard?"]
     assert store.ask.searched == [("u1", "voyage-x", 8)]
     props = outcome(sink)
@@ -316,7 +316,7 @@ def test_an_answer_is_stored_with_its_citations_once() -> None:
 
 def test_nothing_relevant_calls_no_model() -> None:
     llm = Model([])
-    store, pipeline, sink, _ = world(llm, passages=[replace(MOMENT, score=0.1)])
+    store, pipeline, sink, _ = world(llm, passages=[replace(ARTICLE, score=0.1)])
     run(pipeline)
     assert store.ask.saved[QID].outcome == "nothing_found"
     assert llm.prompts == []
@@ -324,7 +324,7 @@ def test_nothing_relevant_calls_no_model() -> None:
 
 
 def test_a_broken_answer_is_never_stored() -> None:
-    store, pipeline, _, _ = world(Model([reply(("Made up.", ["m99"]))]))
+    store, pipeline, _, _ = world(Model([reply(("Made up.", ["i99"]))]))
     run(pipeline)
     saved = store.ask.saved[QID]
     assert (saved.outcome, saved.text, saved.citations) == ("unavailable", None, [])
@@ -366,3 +366,34 @@ def test_the_last_failed_try_says_unavailable() -> None:
         except RuntimeError:
             pass
     assert store.ask.saved[QID].outcome == "unavailable"
+
+
+def test_a_full_text_articles_passage_is_its_own_text_read_in_the_worker() -> None:
+    # ADR-0058: an article is one passage, its text from the top as rights allow.
+    llm = Model([reply(("Shard late.", ["i5"]))])
+    store, pipeline, _, _ = world(llm)
+    source = store.sources.upsert(
+        name="ddia",
+        feed_url="https://ddia.test/f",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    item = store.items.upsert_from_feed(
+        source,
+        FeedEntry(
+            guid="p",
+            link="https://ddia.test/p",
+            title="Partitioning",
+            author=None,
+            published_at=None,
+            updated_at=None,
+            summary=None,
+        ),
+        keep_excerpt=False,
+    )
+    store.items.store_full_text(item, "Partitions split the keys. " * 200)
+    store.ask.passages = [replace(ARTICLE, passage=f"i{item}", item_id=item)]
+    run(pipeline)
+    user = llm.prompts[0][1]["content"]
+    assert "Partitions split the keys." in user
+    assert user.count("Partitions split the keys.") < 200  # MAX_BODY_CHARS, a cost cap

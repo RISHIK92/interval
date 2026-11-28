@@ -37,7 +37,6 @@ const chosen: Preferences = {
   goals: ["stay-sharp"],
   topics: ["databases"],
   level: "beginner",
-  breakLength: "3-8",
 };
 
 beforeEach(() => {

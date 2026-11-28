@@ -1,5 +1,4 @@
-import { type AgentStatus, CHIPS } from "@interval/api-client";
-import { z } from "zod";
+import type { AgentStatus } from "@interval/api-client";
 import { env } from "../../../../env";
 import {
   agentHook,
@@ -20,7 +19,6 @@ export const dynamic = "force-dynamic";
 const SUGGESTIONS = 3;
 // A surface polls; a few times a second for a minute is a leak or a loop.
 const PER_MINUTE = 60;
-const Chip = z.enum(CHIPS).optional();
 
 export async function GET(request: Request): Promise<Response> {
   const now = new Date();
@@ -31,10 +29,7 @@ export async function GET(request: Request): Promise<Response> {
     touch: false,
   });
   if (device instanceof Response) return device;
-  const chip = Chip.safeParse(
-    new URL(request.url).searchParams.get("chip") ?? undefined,
-  );
-  if (!chip.success) return new Response(null, { status: 400 });
+  // ADR-0058: no time chips; a ?chip= the CLI or the extension still sends is ignored.
   const { userId } = device.actor;
   const [running, finished, chosen, reads] = await Promise.all([
     agentHook().running(userId, now),
@@ -55,40 +50,30 @@ export async function GET(request: Request): Promise<Response> {
       : finished !== null
         ? { state: "finished", finishedAt: finished.finishedAt.toISOString() }
         : { state: "idle" };
-  // The chip asked for, else the break length chosen at onboarding (PER-1), as
-  // /api/feed picks it; before onboarding, or on a plan without the feed, no
-  // suggestions.
-  const which = chip.data ?? chosen?.breakLength ?? "3-8";
+  // Before onboarding, or on a plan without the feed, no suggestions.
   // The stored feed as it is, else the starter (ADR-0008), read directly: a polled
   // read neither waits for a first recompute nor counts in Home's feed-latency log
   // line (OPS-2), as loadFeed would.
   let cards: FeedCard[] = [];
   if (chosen !== null && reads) {
-    const stored = await feedReader().read(userId, which, SUGGESTIONS);
+    const stored = await feedReader().read(userId, SUGGESTIONS);
     const [topic] = chosen.topics;
     cards = stored.computed
       ? stored.cards
       : topic === undefined
         ? []
-        : await feedReader().starter(
-            userId,
-            topic,
-            chosen.level,
-            which,
-            SUGGESTIONS,
-          );
+        : await feedReader().starter(userId, topic, chosen.level, SUGGESTIONS);
   }
   const site = env().BETTER_AUTH_URL;
   const body: AgentStatus = {
     task,
-    chip: which,
     suggestions: cards.slice(0, SUGGESTIONS).map((card, index) => ({
-      title: card.kind === "moment" ? card.sectionTitle : card.articleTitle,
+      title: card.articleTitle,
       minutes:
         card.estimatedMinutes === null
           ? null
           : Math.max(1, Math.round(card.estimatedMinutes)),
-      url: new URL(link(card, which, index + 1), site).toString(),
+      url: new URL(link(card, index + 1), site).toString(),
     })),
   };
   return Response.json(body, { headers: { "Cache-Control": "no-store" } });
@@ -96,23 +81,9 @@ export async function GET(request: Request): Promise<Response> {
 
 // As Home opens the card (the in-app reader when the page may be framed, ADR-0018),
 // counted as offered via the agent (owner, 2026-11-27).
-function link(
-  card: FeedCard,
-  chip: (typeof CHIPS)[number],
-  position: number,
-): string {
-  const momentId = card.kind === "moment" ? card.momentId : undefined;
-  const ids = {
-    itemId: card.itemId,
-    ...(momentId === undefined ? {} : { momentId }),
-  };
+function link(card: FeedCard, position: number): string {
+  const from = { position, via: "agent" } as const;
   return card.frameable
-    ? readHref({ ...ids, chip, from: { position, via: "agent" } })
-    : outHref({
-        ...ids,
-        target: "section",
-        chip,
-        from: { position },
-        via: "agent",
-      });
+    ? readHref({ itemId: card.itemId, from })
+    : outHref({ itemId: card.itemId, target: "article", from });
 }

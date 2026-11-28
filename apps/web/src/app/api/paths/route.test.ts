@@ -101,8 +101,6 @@ test("a path's sections: readings, checkpoint state; not theirs or unknown is 40
         readings: [
           {
             itemId: "5",
-            momentId: "9",
-            sectionTitle: "Leader election",
             articleTitle: "Raft",
             sourceName: "A blog",
             minutes: 6,
@@ -118,7 +116,8 @@ test("a path's sections: readings, checkpoint state; not theirs or unknown is 40
   const body = PathResponse.parse(await (await one()).json());
   expect(body.sections[0]).toMatchObject({
     checkpoint: "ready",
-    readings: [{ itemId: "5", momentId: "9", finished: true }],
+    // ADR-0058: a reading is the article alone.
+    readings: [{ itemId: "5", articleTitle: "Raft", finished: true }],
   });
   path.mockResolvedValueOnce(null);
   expect((await one()).status).toBe(404);

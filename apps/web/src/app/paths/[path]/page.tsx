@@ -31,13 +31,13 @@ export default async function PathPage(props: {
   if (!BIGINT_ID.test(pathId)) redirect("/paths");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  const chip = chosen.breakLength;
   const path = await paths().path(actor.userId, pathId);
   if (path === null) notFound();
   const params = await props.searchParams;
-  const ask = parseReading(
+  const asked = parseReading(
     typeof params["ask"] === "string" ? params["ask"] : undefined,
   );
+  const ask = asked === null ? null : { itemId: asked };
   // Edits are for a follower of a live path; ?swap=<section>.<ordinal> lists one
   // reading's alternatives.
   const editable = path.mine !== null && !path.retired;
@@ -107,8 +107,7 @@ export default async function PathPage(props: {
         ) : null}
         {next === undefined ? null : (
           <p className="font-semibold">
-            Next:{" "}
-            <ReadingLink reading={next} pathId={path.pathId} chip={chip} />
+            Next: <ReadingLink reading={next} pathId={path.pathId} />
           </p>
         )}
       </header>
@@ -150,7 +149,6 @@ export default async function PathPage(props: {
                           <ReadingLink
                             reading={f.reading}
                             pathId={path.pathId}
-                            chip={chip}
                           />
                         )}
                       </li>
@@ -195,22 +193,21 @@ export default async function PathPage(props: {
                 ) : null}
                 <ul className="flex flex-col gap-2">
                   {section.readings.map((r) => (
-                    <li key={r.momentId} className="flex flex-col gap-2">
+                    <li key={r.ordinal} className="flex flex-col gap-2">
                       <div className="flex items-center justify-between gap-3">
                         <span className="min-w-0">
                           {section.open ? (
-                            <ReadingLink
-                              reading={r}
-                              pathId={path.pathId}
-                              chip={chip}
-                            />
+                            <ReadingLink reading={r} pathId={path.pathId} />
                           ) : (
                             <span className="font-semibold">
-                              {r.sectionTitle}
+                              {r.articleTitle}
                             </span>
                           )}{" "}
                           <span className="text-sm text-ink-muted">
-                            · {r.articleTitle} · {r.minutes} min
+                            · {r.sourceName}
+                            {r.minutes === null
+                              ? ""
+                              : ` · ${String(r.minutes)} min`}
                           </span>
                         </span>
                         {r.finished ? (
@@ -227,12 +224,13 @@ export default async function PathPage(props: {
                             >
                               <path d="M5 12l5 5 9-10" />
                             </svg>
-                            Finished
+                            {/* ADR-0058: an article's state is Completed. */}
+                            Completed
                           </span>
                         ) : editing ? (
                           <a
                             href={`${here}?edit=1&swap=${section.sectionId}.${String(r.ordinal)}`}
-                            aria-label={`Swap ${r.sectionTitle}`}
+                            aria-label={`Swap ${r.articleTitle}`}
                             className={SECONDARY}
                           >
                             Swap
@@ -244,7 +242,7 @@ export default async function PathPage(props: {
                         <SwapList
                           sectionId={section.sectionId}
                           ordinal={r.ordinal}
-                          title={r.sectionTitle}
+                          title={r.articleTitle}
                           options={swapping.options}
                         />
                       ) : null}
@@ -285,7 +283,6 @@ export default async function PathPage(props: {
                       name="sectionId"
                       value={section.sectionId}
                     />
-                    <input type="hidden" name="chip" value={chip} />
                     <input
                       type="hidden"
                       name="back"
@@ -308,7 +305,7 @@ export default async function PathPage(props: {
           );
         })}
       </ol>
-      <ReturnPrompt chip={chip} initialAsk={ask} back={`/paths/${path.pathId}`}>
+      <ReturnPrompt initialAsk={ask} back={`/paths/${path.pathId}`}>
         {null}
       </ReturnPrompt>
     </main>
@@ -407,24 +404,22 @@ function SwapList(props: {
       aria-label={`Swap ${props.title} for`}
     >
       {props.options.map((o) => (
-        <li
-          key={o.momentId}
-          className="flex items-center justify-between gap-3"
-        >
+        <li key={o.itemId} className="flex items-center justify-between gap-3">
           <span className="min-w-0 text-sm">
-            <span className="font-semibold">{o.sectionTitle}</span>{" "}
+            <span className="font-semibold">{o.articleTitle}</span>{" "}
             <span className="text-ink-muted">
-              · {o.articleTitle} · {o.sourceName} · {o.minutes} min
+              · {o.sourceName}
+              {o.minutes === null ? "" : ` · ${String(o.minutes)} min`}
             </span>
           </span>
           <form action={editPathAction}>
             <input type="hidden" name="edit" value="swap" />
             <input type="hidden" name="sectionId" value={props.sectionId} />
             <input type="hidden" name="ordinal" value={props.ordinal} />
-            <input type="hidden" name="momentId" value={o.momentId} />
+            <input type="hidden" name="itemId" value={o.itemId} />
             <button
               type="submit"
-              aria-label={`Use this: ${o.sectionTitle}`}
+              aria-label={`Use this: ${o.articleTitle}`}
               className={SECONDARY}
             >
               Use this

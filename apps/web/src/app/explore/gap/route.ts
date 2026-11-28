@@ -13,8 +13,8 @@ function explorePage(): Response {
   return new Response(null, { status: 302, headers: { location: "/explore" } });
 }
 
-// ADR-0046: "Close the gap" counts its open, then goes to the gap's shortest moment
-// through /out, as every reading link does. The gap is worked out again here, so a
+// ADR-0046: "Close the gap" counts its open, then goes to the gap's shortest article
+// (ADR-0058) through /out, as every reading link does. The gap is worked out again here, so a
 // link can only ever open the user's own current gap.
 export async function GET(request: Request): Promise<Response> {
   const parsed = Gap.safeParse(
@@ -35,9 +35,8 @@ export async function GET(request: Request): Promise<Response> {
     headers: {
       location: outHref({
         itemId: gap.itemId,
-        momentId: gap.momentId,
         from: "explore",
-        target: "section",
+        target: "article",
       }),
     },
   });

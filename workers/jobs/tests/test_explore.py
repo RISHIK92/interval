@@ -33,7 +33,6 @@ def entry(
     item = n if item is None else item
     source = n if source is None else source
     facts = EntryFacts(
-        n,
         item,
         source,
         5,
@@ -45,7 +44,6 @@ def entry(
         "S",
     )
     return Scored(
-        n,
         item,
         source,
         score,
@@ -85,9 +83,9 @@ def test_an_entry_already_in_the_feed_is_not_explored_again() -> None:
     assert feed == main
 
 
-def test_an_article_already_in_the_feed_is_not_added_again_as_another_moment() -> None:
+def test_an_article_already_in_the_feed_or_explored_is_not_added_again() -> None:
     main = [entry(1, item=50)]
-    pool = {DB: [entry(2, item=50), entry(3, item=60), entry(4, item=60)]}
+    pool = {DB: [entry(2, item=50), entry(3, item=60)], BACKEND: [entry(4, item=60)]}
     feed = explore(main, pool, 3, {}, random.Random(1), CAP)
     assert [s.item_id for s in feed].count(50) == 1
     assert [s.item_id for s in feed].count(60) == 1

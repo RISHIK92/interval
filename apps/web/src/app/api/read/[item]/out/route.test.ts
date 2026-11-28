@@ -1,13 +1,13 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, ReaderPage } from "../../../../../server/ports";
+import type { Actor, OutboundLink } from "../../../../../server/ports";
 
 // P4-W20-S02 (§8): the app reader's Open in browser records the click, as /out does.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
-const reader = vi.fn<() => Promise<ReaderPage | null>>();
+const resolve = vi.fn<() => Promise<OutboundLink | null>>();
 const emit = vi.fn();
 vi.mock("../../../../../server/container", () => ({
   sessionReader: () => ({ current }),
-  outboundLinks: () => ({ reader }),
+  outboundLinks: () => ({ resolve }),
   events: () => ({ emit }),
 }));
 vi.mock("../../../../../env", () => ({
@@ -19,17 +19,9 @@ vi.mock("../../../../../env", () => ({
 
 const account: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const APP = { "expo-origin": "interval://", "interval-platform": "android" };
-const page: ReaderPage = {
-  link: { url: "https://blog.dev/raft#election", linkType: "anchor" },
-  frameable: true,
-  articleTitle: "Raft",
-  sectionTitle: "Leader election",
-  sourceName: "A blog",
-  reasons: null,
-  saved: false,
-  nextMomentId: null,
-  estimatedMinutes: null,
-  nextLink: null,
+const link: OutboundLink = {
+  url: "https://blog.dev/raft",
+  linkType: "article",
 };
 
 afterEach(() => {
@@ -48,14 +40,15 @@ const post = async (body: unknown, headers: Record<string, string> = APP) => {
   );
 };
 
-test("the click is recorded with the link's kind, from android", async () => {
+// ADR-0058: always the article's page; a section an older app sends is ignored.
+test("the click is recorded as the article's, from android", async () => {
   current.mockResolvedValue(account);
-  reader.mockResolvedValue(page);
+  resolve.mockResolvedValue(link);
   expect((await post({ moment: "9" })).status).toBe(204);
-  expect(reader).toHaveBeenCalledWith("u1", "5", "9");
+  expect(resolve).toHaveBeenCalledWith("5");
   expect(emit).toHaveBeenCalledWith(
     "outbound_click",
-    { link_type: "anchor", target: "section" },
+    { target: "article" },
     expect.objectContaining({ source: "android", sessionId: null }),
   );
 });
@@ -65,8 +58,8 @@ test("a guest, another site, a bad body or an unknown item: nothing recorded", a
   expect((await post({})).status).toBe(401);
   current.mockResolvedValue(account);
   expect((await post({}, {})).status).toBe(403);
-  expect((await post({ moment: "x" })).status).toBe(400);
-  reader.mockResolvedValue(null);
+  expect((await post("nope")).status).toBe(400);
+  resolve.mockResolvedValue(null);
   expect((await post({})).status).toBe(404);
   expect(emit).not.toHaveBeenCalled();
 });

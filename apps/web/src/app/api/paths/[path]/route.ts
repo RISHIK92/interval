@@ -38,8 +38,6 @@ export async function GET(
       passMark: s.passMark,
       readings: s.readings.map((r) => ({
         itemId: r.itemId,
-        momentId: r.momentId,
-        sectionTitle: r.sectionTitle,
         articleTitle: r.articleTitle,
         sourceName: r.sourceName,
         minutes: r.minutes,

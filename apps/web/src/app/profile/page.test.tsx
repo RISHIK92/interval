@@ -101,7 +101,6 @@ const preferences = {
   goals: ["stay-sharp" as const],
   topics: ["databases" as const],
   level: "beginner" as const,
-  breakLength: "3-8" as const,
   firstName: null,
 };
 
@@ -131,7 +130,6 @@ test("the choices form is filled in with the user's choices", async () => {
     goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
-    breakLength: "8-15",
   });
   const html = await page();
   const checked = (value: string) =>
@@ -143,7 +141,8 @@ test("the choices form is filled in with the user's choices", async () => {
   expect(checked("databases")).toBe(true);
   expect(checked("backend")).toBe(false);
   expect(checked("advanced")).toBe(true);
-  expect(checked("8-15")).toBe(true);
+  // ADR-0058: no break length to choose.
+  expect(html).not.toContain('name="breakLength"');
 });
 
 test("hidden sources and inferred interests are listed with their actions", async () => {
@@ -152,7 +151,6 @@ test("hidden sources and inferred interests are listed with their actions", asyn
     goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
-    breakLength: "8-15",
   });
   const html = await page({ saved: "reset" });
   expect(html).toContain("Example Engineering");
@@ -171,7 +169,6 @@ test("the user's goals are listed by their labels, with a way back to the feed",
     goals: ["system-design-interviews", "stay-sharp"],
     topics: ["databases"],
     level: "advanced",
-    breakLength: "8-15",
   });
   const html = await page();
   const goals = /<section aria-label="Your goals">(.*?)<\/section>/.exec(
@@ -203,7 +200,6 @@ test("notices come from fixed text, never from the query string", async () => {
     goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
-    breakLength: "8-15",
   });
   const odd = await page({ saved: "<b>x</b>", missing: "constructor" });
   expect(odd).not.toContain('role="status"');
@@ -221,7 +217,6 @@ test("appearance offers light, dark and the device's own, this device's marked",
     goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
-    breakLength: "8-15",
   });
   themeCookie.mockReturnValue({ value: "dark" });
   const html = await page();
@@ -271,11 +266,10 @@ test("Profile lists the user's concepts by topic with their states, or says how 
     goals: [],
     topics: ["databases"],
     level: "beginner",
-    breakLength: "3-8",
   });
   const empty = await page();
   expect(empty).toContain("Your concepts");
-  expect(empty).toContain("Finish a section or an article, or take Test 60s");
+  expect(empty).toContain("Complete an article, or take Test 60s");
   explored.mockResolvedValueOnce([
     {
       topic: "distributed-systems",

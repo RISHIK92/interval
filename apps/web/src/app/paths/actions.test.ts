@@ -132,7 +132,7 @@ test("pause is recorded once; edits go back to Edit mode", async () => {
   swapSession.mockResolvedValue("6");
   await expect(
     editPathAction(
-      form({ edit: "swap", sectionId: "60", ordinal: "1", momentId: "905" }),
+      form({ edit: "swap", sectionId: "60", ordinal: "1", itemId: "905" }),
     ),
   ).rejects.toThrow("redirect:/paths/6?edit=1");
   expect(swapSession).toHaveBeenCalledWith("u1", "60", 1, "905");
@@ -180,10 +180,10 @@ test("a suggested skip is recorded as mastered and returns where it was offered"
         edit: "skip",
         sectionId: "60",
         reason: "mastered",
-        back: "/?chip=3-8",
+        back: "/",
       }),
     ),
-  ).rejects.toThrow(/^redirect:\/\?chip=3-8$/);
+  ).rejects.toThrow(/^redirect:\/$/);
   expect(emit).toHaveBeenCalledWith(
     "path_section_skipped",
     { path_id: "6", section_id: "60", reason: "mastered" },

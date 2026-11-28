@@ -9,7 +9,8 @@ import { appPlatform, fromSiteOrApp } from "../../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
 
-const Body = z.object({ moment: z.string().regex(BIGINT_ID).optional() });
+// ADR-0058: the article's page; a section an older app sends is ignored.
+const Body = z.object({});
 
 // P4-W20-S02 (§8, DB-5): the app reader's Open in browser, recorded as the web's
 // /out?from=reader records it: the open is already counted, so only the click. The app
@@ -26,16 +27,12 @@ export async function POST(
   const body = Body.safeParse(await request.json().catch(() => null));
   if (!BIGINT_ID.test(item) || !body.success)
     return new Response(null, { status: 400 });
-  const page = await outboundLinks().reader(
-    actor.userId,
-    item,
-    body.data.moment ?? null,
-  );
-  if (page === null) return new Response(null, { status: 404 });
+  if ((await outboundLinks().resolve(item)) === null)
+    return new Response(null, { status: 404 });
   const source = appPlatform(request);
   events().emit(
     "outbound_click",
-    { link_type: page.link.linkType, target: "section" },
+    { target: "article" },
     { ...actor, sessionId: null, ...(source === undefined ? {} : { source }) },
   );
   return new Response(null, { status: 204 });

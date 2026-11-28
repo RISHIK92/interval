@@ -2,14 +2,16 @@ import { randomUUID } from "node:crypto";
 import type { DB } from "@interval/db";
 import { sql, type Transaction } from "kysely";
 import { afterAll, expect, test } from "vitest";
-import { type QuizQuestion, quizKey } from "../ports";
+import type { QuizQuestion } from "../ports";
 import { createDb } from "./kysely";
 import { kyselyAdminQuestions } from "./kysely-admin-questions";
 import { kyselyQuizzes } from "./kysely-quizzes";
 import { seedLiveQuestions } from "./live-bank.fixture";
 
-// Test 60s (Q-P2-14, P2-W9-S01): the server serves a sprint over a moment's or an
-// article's concepts, checks each answer once, and holds the clock.
+// Test 60s (Q-P2-14, P2-W9-S01): the server serves a sprint over an article's
+// questions (ADR-0058: one quiz per article, "Quiz me"), checks each answer once, and
+// holds the clock. Most questions here are seeded on a moment, as the moment-era bank
+// is: stage A gave each its article, which is how they are read now.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) {
   throw new Error("DATABASE_URL is not set; copy .env.example to .env");
@@ -28,7 +30,7 @@ type Seeded = {
   itemId: string;
   intro: string;
   raft: string;
-  // An article whose source has moments switched off, its questions kept (ING-2).
+  // An article whose source's rights were lowered, its questions kept (ING-2).
   hidden: { itemId: string; momentId: string };
   // stems → question id
   q: Record<string, string>;
@@ -177,13 +179,13 @@ async function inRollback(
       q["hidden"] = await question(trx, hiddenMoment, 0, "hidden", [
         raftConcept.id,
       ]);
-      // Switched off after seeding (moments can't be added once off), its purge
-      // trigger held back for this transaction so the moments stay: the quiz's own
-      // rights filter must keep "hidden" out (ING-2), not the purge.
+      // Lowered after seeding, its purge trigger held back for this transaction so
+      // the questions stay: the quiz's own rights filter must keep "hidden" out
+      // (ING-2), not the purge.
       await sql`set local session_replication_role = replica`.execute(trx);
       await trx
         .updateTable("source")
-        .set({ moments_switched_off: true, moments_enabled: false })
+        .set({ rights_profile: "metadata_only" })
         .where("id", "=", off.id)
         .execute();
       await sql`set local session_replication_role = origin`.execute(trx);
@@ -224,6 +226,16 @@ async function inRollback(
   ).rejects.toBeInstanceOf(Rollback);
 }
 
+// The article's quiz without its intro's question: raft-0, raft-1, then "elsewhere",
+// the moment-era raft section's sprint these tests were written for (ADR-0058).
+async function raftOnly(trx: Transaction<DB>, q: Record<string, string>) {
+  await trx
+    .updateTable("question")
+    .set({ status: "retired" })
+    .where("id", "=", q["intro-0"] ?? "")
+    .execute();
+}
+
 function served(
   got: QuizQuestion | "over" | null,
 ): Extract<QuizQuestion, { kind: "choice" }> {
@@ -232,10 +244,10 @@ function served(
   return got;
 }
 
-test("a moment's sprint serves its own questions, then the same concepts, never twice", async () => {
-  await inRollback(async (trx, { userId, itemId, raft, q }) => {
+test("an article's quiz serves its own questions, then the same concepts, never twice", async () => {
+  await inRollback(async (trx, { userId, itemId, q }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     expect(started.endsAt.getTime()).toBeGreaterThan(Date.now() + 55_000);
     const stems: string[] = [];
@@ -261,10 +273,12 @@ test("a moment's sprint serves its own questions, then the same concepts, never 
       stems.push(one.stem);
       await quizzes.answer(userId, started.attemptId, one.questionId, 1);
     }
-    // Its own first, in order; then live questions on its concepts; never pending,
-    // rejected, a retired concept's, or one its source no longer allows (ING-2).
-    expect(stems).toEqual(["raft-0", "raft-1", "elsewhere"]);
-    // The switched-off source's question still exists; only the filter kept it out.
+    // ADR-0058: every one of its sections' questions first, sampled at random; then
+    // live questions on its concepts; never pending, rejected, a retired concept's,
+    // or one its source no longer allows (ING-2).
+    expect(stems.slice(0, 3).sort()).toEqual(["intro-0", "raft-0", "raft-1"]);
+    expect(stems.slice(3)).toEqual(["elsewhere"]);
+    // The lowered source's question still exists; only the filter kept it out.
     const hidden = await trx
       .selectFrom("question")
       .select("status")
@@ -274,10 +288,13 @@ test("a moment's sprint serves its own questions, then the same concepts, never 
   });
 });
 
-test("an article's sprint covers all its moments' questions", async () => {
-  await inRollback(async (trx, { userId, itemId }) => {
+// ADR-0058 (its open question's default): a quiz samples at most 5 questions.
+test("an article's quiz asks at most 5, sampled from all its questions", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    for (let i = 3; i < 10; i++)
+      await question(trx, raft, i, `raft-${String(i)}`, []);
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, null);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const stems: string[] = [];
     for (;;) {
@@ -291,26 +308,62 @@ test("an article's sprint covers all its moments' questions", async () => {
         0,
       );
     }
-    expect(stems.slice(0, 3)).toEqual(["intro-0", "raft-0", "raft-1"]);
-    expect(stems).toContain("elsewhere");
-    expect(stems).toHaveLength(4);
+    expect(stems).toHaveLength(5);
+    expect(new Set(stems).size).toBe(5);
+    expect(stems.every((s) => s.startsWith("raft-") || s === "intro-0")).toBe(
+      true,
+    );
+  });
+});
+
+// ADR-0058: the worker now drafts questions on the article itself, with no moment.
+test("an article's own questions, written with no moment, are quizzed and offered", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const on = await source(trx);
+    const item = await trx
+      .insertInto("content_item")
+      .values({
+        source_id: on.id,
+        guid: randomUUID(),
+        canonical_url: `https://quiz.example.test/${randomUUID()}`,
+        title: "Whole",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("question")
+      .values({
+        content_item_id: item.id,
+        article_ordinal: 0,
+        ordinal: 0,
+        stem: "whole-0",
+        options: ["right", "w1", "w2", "w3"],
+        correct: 0,
+        citation: "a b c",
+        status: "live",
+        generator_model: "m",
+        prompt_version: 1,
+        content_hash: "h",
+      })
+      .execute();
+    const quizzes = kyselyQuizzes(trx);
+    expect(await quizzes.offered([item.id])).toEqual(new Set([item.id]));
+    const started = await quizzes.start(userId, item.id);
+    if (started === null) throw new Error("no quiz");
+    expect(served(await quizzes.next(userId, started.attemptId)).stem).toBe(
+      "whole-0",
+    );
   });
 });
 
 test("no quiz without a live question its source allows", async () => {
-  await inRollback(async (trx, { userId, itemId, intro, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    await trx
-      .updateTable("question")
-      .set({ status: "retired" })
-      .where("moment_id", "=", intro)
-      .execute();
-    expect(await quizzes.start(userId, itemId, intro)).toBeNull();
-    // A moment that isn't the article's.
-    expect(await quizzes.start(userId, "999999999999", raft)).toBeNull();
+    expect(await quizzes.start(userId, "999999999999")).toBeNull();
+    await sql`set local session_replication_role = replica`.execute(trx);
     await trx
       .updateTable("source")
-      .set({ moments_switched_off: true, moments_enabled: false })
+      .set({ rights_profile: "metadata_only" })
       .where(
         "id",
         "=",
@@ -320,19 +373,31 @@ test("no quiz without a live question its source allows", async () => {
           .where("id", "=", itemId),
       )
       .execute();
-    expect(await quizzes.start(userId, itemId, raft)).toBeNull();
+    await sql`set local session_replication_role = origin`.execute(trx);
+    expect(await quizzes.start(userId, itemId)).toBeNull();
   });
 });
 
-test("a sprint whose source is switched off mid-way serves and takes nothing more", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+test("an article with only retired questions has no quiz", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    await trx
+      .updateTable("question")
+      .set({ status: "retired" })
+      .where("content_item_id", "=", itemId)
+      .execute();
+    expect(await kyselyQuizzes(trx).start(userId, itemId)).toBeNull();
+  });
+});
+
+test("a quiz whose source is lowered mid-way serves and takes nothing more", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     await trx
       .updateTable("source")
-      .set({ moments_switched_off: true, moments_enabled: false })
+      .set({ rights_profile: "metadata_only" })
       .where(
         "id",
         "=",
@@ -342,8 +407,9 @@ test("a sprint whose source is switched off mid-way serves and takes nothing mor
           .where("id", "=", itemId),
       )
       .execute();
-    // The purge takes its moments, questions and the attempt with them (ING-2).
-    expect(await quizzes.next(userId, started.attemptId)).toBeNull();
+    // The purge takes its questions with it (ING-2): nothing is left to serve, and
+    // the open one can't be answered.
+    expect(await quizzes.next(userId, started.attemptId)).toBe("over");
     expect(
       await quizzes.answer(userId, started.attemptId, open.questionId, 0),
     ).toBeNull();
@@ -351,9 +417,9 @@ test("a sprint whose source is switched off mid-way serves and takes nothing mor
 });
 
 test("an answer is checked and counted once; a resubmit gets the stored result", async () => {
-  await inRollback(async (trx, { userId, itemId, raft, q }) => {
+  await inRollback(async (trx, { userId, itemId, q }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const first = served(await quizzes.next(userId, started.attemptId));
     const wrong = await quizzes.answer(
@@ -416,29 +482,37 @@ test("an answer is checked and counted once; a resubmit gets the stored result",
   });
 });
 
-test("a start while the sprint runs returns it; a finished one starts afresh", async () => {
+test("a start while the quiz runs returns it; a finished one starts afresh", async () => {
   await inRollback(async (trx, { userId, itemId, raft }) => {
     const quizzes = kyselyQuizzes(trx);
-    const first = await quizzes.start(userId, itemId, raft);
-    const again = await quizzes.start(userId, itemId, raft);
+    // A moment-era sprint on one section is not the article's quiz (ADR-0058).
+    await trx
+      .insertInto("quiz_attempt")
+      .values({
+        user_id: userId,
+        content_item_id: itemId,
+        moment_id: raft,
+        ends_at: sql<Date>`now() + interval '1 minute'`,
+      })
+      .execute();
+    const first = await quizzes.start(userId, itemId);
+    const again = await quizzes.start(userId, itemId);
     expect(first?.firstTime).toBe(true);
     expect(again).toMatchObject({
       attemptId: first?.attemptId,
       firstTime: false,
     });
-    // Another target is another sprint.
-    expect((await quizzes.start(userId, itemId, null))?.firstTime).toBe(true);
     await quizzes.finish(userId, first?.attemptId ?? "0");
-    const fresh = await quizzes.start(userId, itemId, raft);
+    const fresh = await quizzes.start(userId, itemId);
     expect(fresh?.firstTime).toBe(true);
     expect(fresh?.attemptId).not.toBe(first?.attemptId);
   });
 });
 
 test("the clock: no answer or question after it ends and its grace", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     await trx
@@ -463,9 +537,9 @@ test("the clock: no answer or question after it ends and its grace", async () =>
 });
 
 test("the grace: a last answer just after the clock counts, nothing new is served", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     await trx
@@ -484,9 +558,9 @@ test("the grace: a last answer just after the clock counts, nothing new is serve
 });
 
 test("an attempt is its user's alone", async () => {
-  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+  await inRollback(async (trx, { userId, otherUser, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     expect(await quizzes.next(otherUser, started.attemptId)).toBeNull();
@@ -497,43 +571,32 @@ test("an attempt is its user's alone", async () => {
   });
 });
 
-// P2-W9-S02: what the cards, the reader and the results page ask.
-test("offered keys only targets with a live question their source allows", async () => {
-  await inRollback(async (trx, { itemId, intro, raft, hidden }) => {
+// P2-W9-S02: what the cards, the reader and the results page ask, by article.
+test("offered names only articles with a live question their source allows", async () => {
+  await inRollback(async (trx, { itemId, hidden }) => {
     const quizzes = kyselyQuizzes(trx);
-    await trx
-      .updateTable("question")
-      .set({ status: "retired" })
-      .where("moment_id", "=", intro)
-      .execute();
     const got = await quizzes.offered([
-      { itemId, momentId: raft },
-      { itemId, momentId: intro },
-      { itemId, momentId: null },
-      // A moment of another article: not this one's.
-      { itemId: "999999999999", momentId: raft },
-      // Live questions, but its source no longer allows moments (ING-2).
-      hidden,
-      { itemId: hidden.itemId, momentId: null },
+      itemId,
+      "999999999999",
+      // Live questions, but its source's rights no longer allow them (ING-2).
+      hidden.itemId,
     ]);
-    expect([...got].sort()).toEqual(
-      [quizKey(itemId, raft), quizKey(itemId, null)].sort(),
-    );
+    expect([...got]).toEqual([itemId]);
     expect(await quizzes.offered([])).toEqual(new Set());
   });
 });
 
 test("an attempt's summary: counts, time, and its concepts with the user's state", async () => {
-  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+  await inRollback(async (trx, { userId, otherUser, itemId, q }) => {
+    await raftOnly(trx, q);
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const empty = await quizzes.attempt(userId, started.attemptId);
     expect(empty?.secondsLeft).toBeGreaterThan(55);
     expect(empty).toMatchObject({
       itemId,
-      momentId: raft,
-      title: "Raft",
+      title: "Consensus",
       answered: 0,
       correct: 0,
       avgMs: null,
@@ -559,7 +622,7 @@ test("an attempt's summary: counts, time, and its concepts with the user's state
 test("an article attempt is titled by the article", async () => {
   await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, null);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     expect((await quizzes.attempt(userId, started.attemptId))?.title).toBe(
       "Consensus",
@@ -568,9 +631,9 @@ test("an article attempt is titled by the article", async () => {
 });
 
 test("feedback gives the key only once the question is answered", async () => {
-  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+  await inRollback(async (trx, { userId, otherUser, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     expect(
@@ -625,9 +688,10 @@ async function answerStem(
 }
 
 test("right answers raise a concept to practiced; a wrong one brings it back", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId, q }) => {
+    await raftOnly(trx, q);
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, started.attemptId, true);
     // From nothing: 0.3. raft-0 also tests a retired concept: never credited.
@@ -646,7 +710,8 @@ test("right answers raise a concept to practiced; a wrong one brings it back", a
 });
 
 test("mastered takes p ≥ 0.85 and right answers on two days", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId, q }) => {
+    await raftOnly(trx, q);
     const quizzes = kyselyQuizzes(trx);
     const raftConcept = await trx
       .selectFrom("concept")
@@ -665,7 +730,7 @@ test("mastered takes p ≥ 0.85 and right answers on two days", async () => {
         evidence_count: 4,
       })
       .execute();
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const first = await answerStem(quizzes, userId, started.attemptId, true);
     // 0.86, but every right answer so far is from today.
@@ -694,9 +759,9 @@ test("mastered takes p ≥ 0.85 and right answers on two days", async () => {
 });
 
 test("a resubmitted or late answer credits nothing", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const first = await answerStem(quizzes, userId, started.attemptId, true);
     await quizzes.answer(userId, started.attemptId, first, 0);
@@ -722,7 +787,7 @@ test("a resubmitted or late answer credits nothing", async () => {
 });
 
 test("two right answers on the same day are one day, not mastery", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
     const raftConcept = await trx
       .selectFrom("concept")
@@ -741,7 +806,7 @@ test("two right answers on the same day are one day, not mastery", async () => {
         evidence_count: 4,
       })
       .execute();
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, started.attemptId, true);
     await answerStem(quizzes, userId, started.attemptId, true);
@@ -752,9 +817,9 @@ test("two right answers on the same day are one day, not mastery", async () => {
 });
 
 test("a wrong first answer is evidence: explored at p = 0 (owner, 2026-10-28)", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, started.attemptId, false);
     expect(await mastery(trx, userId)).toEqual([
@@ -781,9 +846,9 @@ async function cards(trx: Transaction<DB>, userId: string) {
 }
 
 test("a finished quiz rates each concept once: any wrong answer is Again", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const right = await quizzes.start(userId, itemId, raft);
+    const right = await quizzes.start(userId, itemId);
     if (right === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, right.attemptId, true);
     await answerStem(quizzes, userId, right.attemptId, true);
@@ -803,13 +868,13 @@ test("a finished quiz rates each concept once: any wrong answer is Again", async
 });
 
 test("a quiz with a wrong answer schedules the concept sooner", async () => {
-  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+  await inRollback(async (trx, { userId, otherUser, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
     for (const [user, wrong] of [
       [userId, false],
       [otherUser, true],
     ] as const) {
-      const started = await quizzes.start(user, itemId, raft);
+      const started = await quizzes.start(user, itemId);
       if (started === null) throw new Error("no quiz");
       await answerStem(quizzes, user, started.attemptId, true);
       await answerStem(quizzes, user, started.attemptId, !wrong);
@@ -822,9 +887,9 @@ test("a quiz with a wrong answer schedules the concept sooner", async () => {
 });
 
 test("an attempt never finished rates nothing", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, started.attemptId, true);
     expect(await cards(trx, userId)).toEqual([]);
@@ -832,9 +897,9 @@ test("an attempt never finished rates nothing", async () => {
 });
 
 test("a second quiz re-rates the same card: reps 2, and a wrong answer is a lapse", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const first = await quizzes.start(userId, itemId, raft);
+    const first = await quizzes.start(userId, itemId);
     if (first === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, first.attemptId, true);
     await quizzes.finish(userId, first.attemptId);
@@ -852,7 +917,7 @@ test("a second quiz re-rates the same card: reps 2, and a wrong answer is a laps
       })
       .where("user_id", "=", userId)
       .execute();
-    const second = await quizzes.start(userId, itemId, raft);
+    const second = await quizzes.start(userId, itemId);
     if (second === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, second.attemptId, false);
     await quizzes.finish(userId, second.attemptId);
@@ -872,9 +937,9 @@ test("a second quiz re-rates the same card: reps 2, and a wrong answer is a laps
 
 // The start actions close what's left open first (P2-W10-S06), as these do.
 test("a quiz left running past its clock is rated when the user next starts one", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const left = await quizzes.start(userId, itemId, raft);
+    const left = await quizzes.start(userId, itemId);
     if (left === null) throw new Error("no quiz");
     await answerStem(quizzes, userId, left.attemptId, true);
     await trx
@@ -887,7 +952,7 @@ test("a quiz left running past its clock is rated when the user next starts one"
       .execute();
     expect(await cards(trx, userId)).toEqual([]);
     await quizzes.closeStale(userId);
-    await quizzes.start(userId, itemId, null);
+    await quizzes.start(userId, itemId);
     expect((await cards(trx, userId)).map((c) => c.reps)).toEqual([1]);
     const closed = await trx
       .selectFrom("quiz_attempt")
@@ -1192,9 +1257,9 @@ test("a review takes at most 10 concepts", async () => {
 
 // P2-W9-S07 (Q-2, Q-P2-18): flagging an answered question.
 test("a flag takes the question out of quizzes and into review, once per user", async () => {
-  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+  await inRollback(async (trx, { userId, otherUser, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     // Not answered yet: nothing to flag.
@@ -1238,7 +1303,7 @@ test("a flag takes the question out of quizzes and into review, once per user", 
       await quizzes.answered(userId, started.attemptId, open.questionId),
     ).toMatchObject({ flagged: true });
     // Out of quizzes: another user's sprint never serves it.
-    const theirs = await quizzes.start(otherUser, itemId, raft);
+    const theirs = await quizzes.start(otherUser, itemId);
     if (theirs === null) throw new Error("no quiz");
     const ids: string[] = [];
     for (;;) {
@@ -1257,10 +1322,10 @@ test("a flag takes the question out of quizzes and into review, once per user", 
 });
 
 test("an admin's Keep returns a flagged question; another user can flag it again", async () => {
-  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+  await inRollback(async (trx, { userId, otherUser, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
     const flagOnce = async (user: string) => {
-      const started = await quizzes.start(user, itemId, raft);
+      const started = await quizzes.start(user, itemId);
       if (started === null) throw new Error("no quiz");
       const open = served(await quizzes.next(user, started.attemptId));
       await quizzes.answer(user, started.attemptId, open.questionId, 0);
@@ -1292,9 +1357,9 @@ test("an admin's Keep returns a flagged question; another user can flag it again
 });
 
 test("a flag on a question in the sample turns its review into a flagged one", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     await quizzes.answer(userId, started.attemptId, open.questionId, 0);
@@ -1313,9 +1378,9 @@ test("a flag on a question in the sample turns its review into a flagged one", a
 });
 
 test("a flag on a question retired meanwhile is kept but queues nothing", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     await quizzes.answer(userId, started.attemptId, open.questionId, 0);
@@ -1556,8 +1621,8 @@ test("a sprint's answers are mastery evidence and its finish rates the concepts"
   });
 });
 
-test("a finished sprint lists the sections of its wrong answers, to read again", async () => {
-  await inRollback(async (trx, { userId, q, raft, intro }) => {
+test("a finished sprint lists the articles of its wrong answers, to read again", async () => {
+  await inRollback(async (trx, { userId, itemId, q }) => {
     const wal = await conceptOf(trx, q["intro-0"] ?? "");
     const raftConcept = await conceptOf(trx, q["raft-1"] ?? "");
     await explored(trx, userId, wal.id);
@@ -1586,14 +1651,14 @@ test("a finished sprint lists the sections of its wrong answers, to read again",
     await quizzes.answer(userId, attemptId, wrong.questionId, 1);
     await answerStem(quizzes, userId, attemptId, true);
     // P3-W18-S03: the finish carries the same, for the concept_missed metric.
+    // ADR-0058: by article, once, though one of its questions was right.
     expect((await quizzes.finish(userId, attemptId))?.missed).toEqual([
-      { itemId: expect.any(String) as string, momentId: intro },
+      { itemId },
     ]);
     const attempt = await quizzes.attempt(userId, attemptId);
     expect(attempt?.missed).toEqual([
-      expect.objectContaining({ momentId: intro, sectionTitle: "Intro" }),
+      { itemId, articleTitle: "Consensus", frameable: false },
     ]);
-    expect(attempt?.missed.map((m) => m.momentId)).not.toContain(raft);
   });
 });
 
@@ -1613,12 +1678,12 @@ test("a sprint has no target: the shape refuses one with an item", async () => {
   });
 });
 
-test("Read again leaves out sections whose source no longer allows them, or whose link broke", async () => {
-  await inRollback(async (trx, { userId, q, intro, hidden }) => {
+test("Read again leaves out articles whose source no longer allows them, or whose link broke", async () => {
+  await inRollback(async (trx, { userId, itemId, q }) => {
     const quizzes = kyselyQuizzes(trx);
     const attemptId = await sprint(quizzes, userId);
     // Three wrong answers, as if served earlier: one readable, one on a source
-    // switched off (ING-2), one on an article whose link has broken.
+    // lowered (ING-2), one on an article whose link has broken.
     for (const stem of ["intro-0", "hidden", "elsewhere"])
       await trx
         .insertInto("quiz_answer")
@@ -1638,15 +1703,13 @@ test("Read again leaves out sections whose source no longer allows them, or whos
         "=",
         trx
           .selectFrom("question as qq")
-          .innerJoin("moment as m", "m.id", "qq.moment_id")
-          .select("m.content_item_id")
+          .select("qq.content_item_id")
           .where("qq.id", "=", q["elsewhere"] ?? ""),
       )
       .execute();
     await quizzes.finish(userId, attemptId);
     const missed = (await quizzes.attempt(userId, attemptId))?.missed ?? [];
-    expect(missed.map((m) => m.momentId)).toEqual([intro]);
-    expect(missed.map((m) => m.momentId)).not.toContain(hidden.momentId);
+    expect(missed.map((m) => m.itemId)).toEqual([itemId]);
   });
 });
 
@@ -1721,8 +1784,14 @@ test("no multiple-choice quiz serves an estimation question", async () => {
       }
       return seen;
     };
-    // Test 60s on the moment: its one multiple-choice question, then over.
-    const test60 = await quizzes.start(userId, itemId, intro);
+    // Test 60s on the article, left with its intro's question: that one
+    // multiple-choice question, then over.
+    await trx
+      .updateTable("question")
+      .set({ status: "retired" })
+      .where("id", "in", [q["raft-0"] ?? "", q["raft-1"] ?? ""])
+      .execute();
+    const test60 = await quizzes.start(userId, itemId);
     if (test60 === null) throw new Error("no quiz");
     expect(await stems(test60.attemptId, 5)).toEqual(["intro-0"]);
     await quizzes.finish(userId, test60.attemptId);
@@ -1920,8 +1989,8 @@ test("an estimate is scored by C-27 once; a resubmission gets the stored result"
   });
 });
 
-// P3-W13-S03b (Q-P2-12, ING-2): a moment's estimate reveals its section, never the
-// quote, and only while its source allows moments and its link works.
+// P3-W13-S03b (Q-P2-12, ING-2): an estimate reveals its article (ADR-0058), never the
+// quote, and only while its source's rights allow it and its link works.
 async function drafted(
   trx: Transaction<DB>,
   momentId: string,
@@ -1952,24 +2021,18 @@ async function drafted(
   return row.id;
 }
 
-test("a moment's estimate reveals its section without the quote, while its rights allow", async () => {
+test("an estimate reveals its article without the quote, while its rights allow", async () => {
   await inRollback(async (trx, { userId, q, itemId, intro }) => {
     const wal = await conceptOf(trx, q["intro-0"] ?? "");
     const id = await drafted(trx, intro, wal.id);
-    const moment = await trx
-      .selectFrom("moment")
-      .select("title")
-      .where("id", "=", intro)
-      .executeTakeFirstOrThrow();
     const quizzes = kyselyQuizzes(trx);
     const attemptId = await round(quizzes, userId);
     expect(estimate(await quizzes.next(userId, attemptId)).questionId).toBe(id);
     await quizzes.answerEstimate(userId, attemptId, id, 400);
     const section = {
-      kind: "section",
+      kind: "article",
       itemId,
-      momentId: intro,
-      sectionTitle: moment.title,
+      articleTitle: "Consensus",
       frameable: false,
     };
     const answered = await quizzes.answered(userId, attemptId, id);
@@ -1979,9 +2042,9 @@ test("a moment's estimate reveals its section without the quote, while its right
       source: section,
     });
     expect(JSON.stringify(answered)).not.toContain("a lag of 40 ms");
-    // P3-W18-S03: an estimate under half points sends its section back to reading.
+    // P3-W18-S03: an estimate under half points sends its article back to reading.
     expect((await quizzes.finish(userId, attemptId))?.missed).toEqual([
-      { itemId, momentId: intro },
+      { itemId },
     ]);
     // Its link breaks: the answer and its points stay, the link goes (ING-6).
     const itemRow = await trx
@@ -2013,11 +2076,11 @@ test("a moment's estimate reveals its section without the quote, while its right
       .set({ link_broken_at: null })
       .where("id", "=", itemId)
       .execute();
-    // Its source switches moments off (ING-2): its moments are purged, and the
-    // question and its answer with them, so nothing of it is shown.
+    // Its source's rights are lowered (ING-2): the question is purged, and its
+    // answer with it, so nothing of it is shown.
     await trx
       .updateTable("source")
-      .set({ moments_switched_off: true, moments_enabled: false })
+      .set({ rights_profile: "metadata_only" })
       .where("id", "=", itemRow.source_id)
       .execute();
     expect(await quizzes.answered(userId, attemptId, id)).toBeNull();
@@ -2081,9 +2144,9 @@ test("an estimate's verdict needs its validator's number", async () => {
 });
 
 test("an estimate answer to a multiple-choice question does nothing", async () => {
-  await inRollback(async (trx, { userId, itemId, raft }) => {
+  await inRollback(async (trx, { userId, itemId }) => {
     const quizzes = kyselyQuizzes(trx);
-    const started = await quizzes.start(userId, itemId, raft);
+    const started = await quizzes.start(userId, itemId);
     if (started === null) throw new Error("no quiz");
     const open = served(await quizzes.next(userId, started.attemptId));
     expect(
@@ -2277,7 +2340,7 @@ test("no daily challenge without a set today a round may serve", async () => {
 });
 
 test("the daily challenge serves today's set in order, both kinds, on a 2-minute clock", async () => {
-  await inRollback(async (trx, { userId, q, intro }) => {
+  await inRollback(async (trx, { userId, q }) => {
     const wal = await conceptOf(trx, q["intro-0"] ?? "");
     const seek = await handWritten(trx, wal.id, "disk seek", 10);
     // A question that left the bank since the pick is passed over.
@@ -2337,10 +2400,10 @@ test("the daily challenge serves today's set in order, both kinds, on a 2-minute
       daily: { points, streak: { days: 1, freezes: 0 } },
     });
     expect(attempt?.daily?.answers.map((a) => a.questionId)).toEqual([seek]);
+    // raft-1's article (ADR-0058), where intro-0 was right too.
     expect(attempt?.missed).toEqual([
-      expect.objectContaining({ sectionTitle: "Raft" }),
+      expect.objectContaining({ articleTitle: "Consensus" }),
     ]);
-    expect(attempt?.missed.map((m) => m.momentId)).not.toContain(intro);
     // Multiple choice is mastery evidence, as in a sprint (PER-2).
     expect((await mastery(trx, userId)).map((m) => m.name)).toContain("wal");
   });
@@ -2538,7 +2601,7 @@ test("only a daily attempt shares, once finished or past its clock and grace", a
 // P3-W15-S05 (PER-2, ARCH-2): a live match's answers, recorded by the worker, become
 // mastery evidence and review ratings here, once, with the sprint's own rules.
 test("a live match's evidence is applied once: mastery moves, a missed concept is due", async () => {
-  await inRollback(async (trx, { userId, otherUser, q, intro }) => {
+  await inRollback(async (trx, { userId, otherUser, itemId, q }) => {
     const quizzes = kyselyQuizzes(trx);
     const right = q["raft-1"] ?? "";
     const wrong = q["intro-0"] ?? "";
@@ -2597,12 +2660,12 @@ test("a live match's evidence is applied once: mastery moves, a missed concept i
     const before = await counts(right);
 
     expect(await quizzes.applyMatchEvidence(userId)).toEqual([
-      // P3-W18-S03: the wrong answer's section, back to reading.
+      // P3-W18-S03: the wrong answer's article, back to reading (ADR-0058).
       {
         outcome: "finished",
         won: true,
         abandoned: false,
-        missed: [{ itemId: expect.any(String) as string, momentId: intro }],
+        missed: [{ itemId }],
       },
     ]);
     const mastery = await trx
@@ -2777,27 +2840,4 @@ test("two visits at once apply a match once", async () => {
       await db.deleteFrom("game_match").where("id", "=", matchId).execute();
     await db.deleteFrom("invite_code").where("id", "=", code.id).execute();
   }
-});
-
-// ADR-0044: "Also fits" starts a review of only what fits the break, most overdue
-// first; the rest stay due for the next one.
-test("a review with a limit asks only that many, most overdue first", async () => {
-  await inRollback(async (trx, { userId }) => {
-    const quizzes = kyselyQuizzes(trx);
-    await cardFor(trx, userId, "wal", "-1 hour");
-    await cardFor(trx, userId, "raft", "-2 days");
-    const started = await quizzes.startReview(userId, 1);
-    expect(started).toMatchObject({ concepts: 1, firstTime: true });
-    if (started === null) throw new Error("no review");
-    const asked = await trx
-      .selectFrom("quiz_attempt_concept as ac")
-      .innerJoin("concept as c", "c.id", "ac.concept_id")
-      .select("c.name")
-      .where("ac.attempt_id", "=", started.attemptId)
-      .execute();
-    expect(asked.map((a) => a.name)).toEqual(["raft"]);
-    expect((await quizzes.dueReviews(userId)).map((d) => d.name)).toContain(
-      "wal",
-    );
-  });
 });

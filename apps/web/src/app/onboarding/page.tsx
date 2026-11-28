@@ -3,12 +3,7 @@ import { redirect } from "next/navigation";
 import type { Topic } from "@interval/db";
 import { feedReader, preferences, sessionReader } from "../../server/container";
 import { offeredTopics } from "../../server/preferences";
-import {
-  BreakChoices,
-  GoalChoices,
-  LevelChoices,
-  TopicChoices,
-} from "../ChoicesFields";
+import { GoalChoices, LevelChoices, TopicChoices } from "../ChoicesFields";
 import { onboardingAction } from "./actions";
 import { OnboardingSteps } from "./OnboardingSteps";
 
@@ -19,7 +14,6 @@ const MISSING: Record<string, string> = {
   goal: "Pick at least one goal.",
   topic: "Pick at least one topic.",
   level: "Pick a level.",
-  break: "Pick a break length.",
   // ADR-0049: a topic that isn't offered, from a stale or forged form.
   "topic-unavailable": "That topic isn't available yet.",
 };
@@ -29,7 +23,6 @@ const STEP_OF: Record<string, number> = {
   topic: 1,
   "topic-unavailable": 1,
   level: 2,
-  break: 3,
 };
 
 const steps = (topics: readonly Topic[]) => [
@@ -45,14 +38,10 @@ const steps = (topics: readonly Topic[]) => [
     fields: <TopicChoices offered={topics} />,
   },
   { title: "Where are you now?", plan: "Level", fields: <LevelChoices /> },
-  {
-    title: "How long is a typical break?",
-    plan: "Break length",
-    fields: <BreakChoices />,
-  },
 ];
 
-// §5A, C-21, P1-W4-S01, ADR-0015: four steps of one form, then the feed.
+// §5A, C-21, P1-W4-S01, ADR-0015: three steps of one form, then the feed. ADR-0058: no
+// break length is asked.
 export default async function OnboardingPage(props: {
   searchParams: Promise<{ missing?: string }>;
 }) {

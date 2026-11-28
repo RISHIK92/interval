@@ -293,18 +293,16 @@ export default function QuizScreen() {
                 {`${String(result.answer)} ${result.unit} · ${String(points(result.score))} points`}
               </Text>
               {result.source === null ? null : result.source.kind ===
-                "section" ? (
+                "article" ? (
                 <Pressable
                   accessibilityRole="link"
                   onPress={() => {
-                    if (result.source?.kind === "section")
-                      router.push(
-                        `/read/${result.source.itemId}?moment=${result.source.momentId}`,
-                      );
+                    if (result.source?.kind === "article")
+                      router.push(`/read/${result.source.itemId}`);
                   }}
                 >
                   <Text style={{ color: c.ink }}>
-                    {`From: ${result.source.sectionTitle}`}
+                    {`From: ${result.source.articleTitle}`}
                   </Text>
                 </Pressable>
               ) : (

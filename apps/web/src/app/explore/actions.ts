@@ -51,7 +51,6 @@ export async function followSpaceAction(form: FormData): Promise<void> {
       goals: chosen.goals,
       topics,
       level: chosen.level,
-      breakLength: chosen.breakLength,
     });
     await queueRecompute(
       jobQueue(),

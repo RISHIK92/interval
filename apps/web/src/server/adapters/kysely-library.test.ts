@@ -18,7 +18,7 @@ afterAll(async () => {
 
 class Rollback extends Error {}
 
-type Seeded = { userId: string; items: string[]; moments: string[][] };
+type Seeded = { userId: string; items: string[] };
 
 async function inRollback(
   body: (trx: Transaction<DB>, seeded: Seeded) => Promise<void>,
@@ -37,7 +37,6 @@ async function inRollback(
         .returning("id")
         .executeTakeFirstOrThrow();
       const items: string[] = [];
-      const moments: string[][] = [];
       for (const n of [1, 2]) {
         const item = await trx
           .insertInto("content_item")
@@ -50,22 +49,7 @@ async function inRollback(
           })
           .returning("id")
           .executeTakeFirstOrThrow();
-        const rows = await trx
-          .insertInto("moment")
-          .values(
-            [0, 1, 2, 3].map((ordinal) => ({
-              content_item_id: item.id,
-              ordinal,
-              title: `s${String(ordinal)}`,
-              estimated_minutes: 3,
-              link: `https://lib.example.test/${String(n)}#s${String(ordinal)}`,
-              link_type: "anchor" as const,
-            })),
-          )
-          .returning("id")
-          .execute();
         items.push(item.id);
-        moments.push(rows.map((r) => r.id));
       }
       const code = await trx
         .insertInto("invite_code")
@@ -88,7 +72,7 @@ async function inRollback(
           invite_code_id: code.id,
         })
         .execute();
-      await body(trx, { userId, items, moments });
+      await body(trx, { userId, items });
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);
@@ -113,49 +97,33 @@ test("saves list newest first, with title and source only", async () => {
     expect(saves.map((s) => s.itemId)).toEqual([second, first]);
     expect(Object.keys(saves[0] ?? {}).sort()).toEqual([
       "articleTitle",
-      "finished",
-      "finishedSections",
       "frameable",
       "itemId",
       "linkBroken",
-      "nextMomentId",
       "savedAt",
       "sourceName",
-      "totalSections",
+      "state",
     ]);
     expect(JSON.stringify(saves)).not.toContain("SUMMARY TEXT");
   });
 });
 
-// The Library's link follows the reader (owner, 2026-10-26): continue at the first
-// unfinished section, open a fresh one, read a finished one again; in-app if framable.
-test("saves and history say how far, which section is next, and if it can be framed", async () => {
-  await inRollback(async (trx, { userId, items, moments }) => {
+// ADR-0058: an article's state is all the Library says of how far: unread, Continue
+// reading (opened), or Completed; in-app when framable (ADR-0018).
+test("saves say each article's state, and if it can be framed", async () => {
+  await inRollback(async (trx, { userId, items }) => {
     const [first, second] = items;
-    const [firstMoments, secondMoments] = moments;
-    if (!first || !second || !firstMoments || !secondMoments)
-      throw new Error("seed");
+    if (first === undefined || second === undefined) throw new Error("seed");
     await trx
       .insertInto("user_save")
       .values([
+        { user_id: userId, content_item_id: first },
         {
           user_id: userId,
-          content_item_id: first,
+          content_item_id: second,
           saved_at: sql<Date>`now() - interval '1 day'`,
         },
-        { user_id: userId, content_item_id: second },
       ])
-      .execute();
-    // Article 1: sections 0 and 2 finished, so 1 is next. Article 2: untouched.
-    await trx
-      .insertInto("user_moment_finished")
-      .values(
-        [firstMoments[0], firstMoments[2]].map((moment_id) => ({
-          user_id: userId,
-          moment_id: moment_id ?? "",
-          method: "mark_done" as const,
-        })),
-      )
       .execute();
     await trx
       .updateTable("content_item")
@@ -163,217 +131,117 @@ test("saves and history say how far, which section is next, and if it can be fra
       .where("id", "=", first)
       .execute();
     const library = kyselyLibrary(trx);
-    const progress = (rows: Awaited<ReturnType<typeof library.saves>>) =>
-      rows.map((r) => ({
-        itemId: r.itemId,
-        finishedSections: r.finishedSections,
-        totalSections: r.totalSections,
-        finished: r.finished,
-        nextMomentId: r.nextMomentId,
-        frameable: r.frameable,
-      }));
-    expect(progress(await library.saves(userId, 10))).toEqual([
-      {
-        itemId: second,
-        finishedSections: 0,
-        totalSections: 4,
-        finished: false,
-        nextMomentId: secondMoments[0],
-        frameable: false,
-      },
-      {
-        itemId: first,
-        finishedSections: 2,
-        totalSections: 4,
-        finished: false,
-        nextMomentId: firstMoments[1],
-        frameable: true,
-      },
+    const states = async () =>
+      (await library.saves(userId, 10)).map((r) => [r.itemId, r.state]);
+    expect(await states()).toEqual([
+      [first, "unread"],
+      [second, "unread"],
     ]);
-    const [row] = await library.history(userId, 10);
-    expect(row?.nextMomentId).toBe(firstMoments[1]);
-    expect(row?.frameable).toBe(true);
-    // Every section done: nothing is next.
+    expect((await library.saves(userId, 10)).map((r) => r.frameable)).toEqual([
+      true,
+      false,
+    ]);
     await trx
-      .insertInto("user_moment_finished")
-      .values(
-        [firstMoments[1], firstMoments[3]].map((moment_id) => ({
-          user_id: userId,
-          moment_id: moment_id ?? "",
-          method: "mark_done" as const,
-        })),
-      )
+      .insertInto("user_article_opened")
+      .values([
+        { user_id: userId, content_item_id: first },
+        { user_id: userId, content_item_id: second },
+      ])
       .execute();
-    const done = (await library.saves(userId, 10)).find(
-      (r) => r.itemId === first,
-    );
-    expect(done?.finished).toBe(true);
-    expect(done?.nextMomentId).toBeNull();
+    await trx
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: second, method: "mark_done" })
+      .execute();
+    expect(await states()).toEqual([
+      [first, "continue_reading"],
+      [second, "completed"],
+    ]);
   });
 });
 
-// A whole-article finish with no sections done is finished; an item with no sections
-// (metadata only) is never "next" anywhere.
-test("a whole finish reads again; an item without sections has nothing next", async () => {
+test("history lists opened and completed articles, newest read first", async () => {
   await inRollback(async (trx, { userId, items }) => {
     const [first, second] = items;
     if (first === undefined || second === undefined) throw new Error("seed");
-    await trx
-      .insertInto("user_article_finished")
-      .values({ user_id: userId, content_item_id: first, method: "mark_done" })
-      .execute();
-    await trx
-      .deleteFrom("moment")
-      .where("content_item_id", "=", second)
-      .execute();
-    await trx
-      .insertInto("user_save")
-      .values({ user_id: userId, content_item_id: second })
-      .execute();
     const library = kyselyLibrary(trx);
-    const [whole] = await library.history(userId, 10);
-    expect(whole).toMatchObject({
-      itemId: first,
-      finished: true,
-      finishedSections: 0,
-      nextMomentId: null,
-    });
-    const [bare] = await library.saves(userId, 10);
-    expect(bare).toMatchObject({
-      itemId: second,
-      finished: false,
-      finishedSections: 0,
-      totalSections: 0,
-      nextMomentId: null,
-    });
-  });
-});
-
-test("history lists articles with a finished section, newest first, and how far", async () => {
-  await inRollback(async (trx, { userId, items, moments }) => {
-    const [first, second] = items;
-    const [firstMoments, secondMoments] = moments;
-    if (!first || !second || !firstMoments || !secondMoments)
-      throw new Error("seed");
-    // Article 1: two of four sections, a day ago. Article 2: all four, just now.
+    expect(await library.history(userId, 10)).toEqual([]);
     await trx
-      .insertInto("user_moment_finished")
+      .insertInto("user_article_opened")
       .values([
-        ...firstMoments.slice(0, 2).map((moment_id) => ({
+        {
           user_id: userId,
-          moment_id,
-          method: "mark_done" as const,
-          finished_at: sql<Date>`now() - interval '1 day'`,
-        })),
-        ...secondMoments.map((moment_id) => ({
-          user_id: userId,
-          moment_id,
-          method: "return_prompt" as const,
-        })),
-      ])
-      .execute();
-    const history = await kyselyLibrary(trx).history(userId, 10);
-    expect(
-      history.map(({ itemId, finishedSections, totalSections, finished }) => ({
-        itemId,
-        finishedSections,
-        totalSections,
-        finished,
-      })),
-    ).toEqual([
-      { itemId: second, finishedSections: 4, totalSections: 4, finished: true },
-      { itemId: first, finishedSections: 2, totalSections: 4, finished: false },
-    ]);
-    expect(history[0]?.articleTitle).toBe("Article 2");
-    expect(JSON.stringify(history)).not.toContain("SUMMARY TEXT");
-    expect(await kyselyLibrary(trx).history(userId, 1)).toHaveLength(1);
-  });
-});
-
-test("a whole article finished is in history as finished", async () => {
-  await inRollback(async (trx, { userId, items }) => {
-    const [first] = items;
-    if (first === undefined) throw new Error("seed");
-    await trx
-      .insertInto("user_article_finished")
-      .values({ user_id: userId, content_item_id: first, method: "mark_done" })
-      .execute();
-    const [entry] = await kyselyLibrary(trx).history(userId, 10);
-    expect(entry).toMatchObject({ itemId: first, finished: true });
-  });
-});
-
-test("sections and the whole article finished: one row, finished, at the later time", async () => {
-  await inRollback(async (trx, { userId, items, moments }) => {
-    const [first, second] = items;
-    const [firstMoments] = moments;
-    if (!first || !second || !firstMoments) throw new Error("seed");
-    await trx
-      .insertInto("user_moment_finished")
-      .values(
-        firstMoments.slice(0, 2).map((moment_id) => ({
-          user_id: userId,
-          moment_id,
-          method: "mark_done" as const,
-          finished_at: sql<Date>`now() - interval '1 day'`,
-        })),
-      )
-      .execute();
-    await trx
-      .insertInto("user_article_finished")
-      .values([
-        { user_id: userId, content_item_id: first, method: "mark_done" },
+          content_item_id: first,
+          opened_at: sql<Date>`now() - interval '1 hour'`,
+        },
         {
           user_id: userId,
           content_item_id: second,
-          method: "mark_done",
-          finished_at: sql<Date>`now() - interval '1 hour'`,
+          opened_at: sql<Date>`now() - interval '3 days'`,
         },
       ])
       .execute();
-    const history = await kyselyLibrary(trx).history(userId, 10);
-    expect(history.map((h) => h.itemId)).toEqual([first, second]);
-    expect(history[0]).toMatchObject({
-      finishedSections: 2,
-      totalSections: 4,
-      finished: true,
-    });
-  });
-});
-
-test("an article with no sections, finished whole, is finished", async () => {
-  await inRollback(async (trx, { userId, items }) => {
-    const [first] = items;
-    if (first === undefined) throw new Error("seed");
-    const item = await trx
-      .selectFrom("content_item")
-      .select("source_id")
-      .where("id", "=", first)
-      .executeTakeFirstOrThrow();
-    const bare = await trx
-      .insertInto("content_item")
-      .values({
-        source_id: item.source_id,
-        guid: "lib-bare",
-        canonical_url: "https://lib.example.test/bare",
-        title: "Bare",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    // Completed after it was opened: its completion is when it was last read.
     await trx
       .insertInto("user_article_finished")
       .values({
         user_id: userId,
-        content_item_id: bare.id,
+        content_item_id: second,
         method: "mark_done",
+        finished_at: sql<Date>`now() - interval '1 minute'`,
       })
+      .execute();
+    const history = await library.history(userId, 10);
+    expect(history.map(({ itemId, state }) => ({ itemId, state }))).toEqual([
+      { itemId: second, state: "completed" },
+      { itemId: first, state: "continue_reading" },
+    ]);
+    expect(JSON.stringify(history)).not.toContain("SUMMARY TEXT");
+    expect(await library.history(userId, 1)).toHaveLength(1);
+  });
+});
+
+// ADR-0058: an article opened again was read then, so it moves up in history, though
+// its first open stays as it was.
+test("a reopened article moves up in history", async () => {
+  await inRollback(async (trx, { userId, items }) => {
+    const [first, second] = items;
+    if (first === undefined || second === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_article_opened")
+      .values([
+        {
+          user_id: userId,
+          content_item_id: first,
+          opened_at: sql<Date>`now() - interval '1 hour'`,
+          last_opened_at: sql<Date>`now() - interval '1 hour'`,
+        },
+        {
+          user_id: userId,
+          content_item_id: second,
+          opened_at: sql<Date>`now() - interval '3 days'`,
+          last_opened_at: sql<Date>`now() - interval '1 minute'`,
+        },
+      ])
+      .execute();
+    const history = await kyselyLibrary(trx).history(userId, 10);
+    expect(history.map((h) => h.itemId)).toEqual([second, first]);
+  });
+});
+
+// A completion with no open row (completed before opens were kept) is still history.
+test("a completed article without an open is in history as completed", async () => {
+  await inRollback(async (trx, { userId, items }) => {
+    const [first] = items;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: first, method: "mark_done" })
       .execute();
     const [entry] = await kyselyLibrary(trx).history(userId, 10);
     expect(entry).toMatchObject({
-      itemId: bare.id,
-      finishedSections: 0,
-      totalSections: 0,
-      finished: true,
+      itemId: first,
+      articleTitle: "Article 1",
+      state: "completed",
     });
   });
 });

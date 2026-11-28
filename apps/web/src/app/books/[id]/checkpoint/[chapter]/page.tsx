@@ -55,7 +55,7 @@ export default async function ChapterEndPage(props: {
       </header>
       <Card className="flex flex-col gap-3 p-5">
         <h2 className="text-title">Chapter checkpoint</h2>
-        <Checkpoint end={end} chip={chosen.breakLength} here={here} />
+        <Checkpoint end={end} here={here} />
       </Card>
       <footer className="flex flex-col gap-2 border-t border-hairline pt-6">
         {end.next === null ? (
@@ -78,15 +78,7 @@ export default async function ChapterEndPage(props: {
   );
 }
 
-function Checkpoint({
-  end,
-  chip,
-  here,
-}: {
-  end: ChapterEnd;
-  chip: string;
-  here: string;
-}) {
+function Checkpoint({ end, here }: { end: ChapterEnd; here: string }) {
   const ask = (label: string) => (
     <form action={requestCheckpointAction}>
       <input type="hidden" name="bookId" value={end.bookId} />
@@ -150,7 +142,6 @@ function Checkpoint({
       )}
       <form action={startBookCheckpointAction}>
         <input type="hidden" name="chapterId" value={end.chapterId} />
-        <input type="hidden" name="chip" value={chip} />
         <input type="hidden" name="back" value={here} />
         <button
           type="submit"

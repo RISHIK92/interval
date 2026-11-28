@@ -30,7 +30,6 @@ from interval_jobs.ports import (
     ExplainerSource,
     Message,
     TagInput,
-    TagMoment,
 )
 
 from .test_ai_gateway import FakeEmbeddings, spend
@@ -44,7 +43,7 @@ PAXOS = (
     "Paxos reaches agreement when a majority of acceptors accept the same proposal "
     "number. Proposers must learn any value already chosen before proposing."
 )
-SOURCES = [Source(1, "Raft: Elections", RAFT), Source(2, "Paxos: Basics", PAXOS)]
+SOURCES = [Source(1, "Raft", RAFT), Source(2, "Paxos", PAXOS)]
 
 
 def script(words: int = 180) -> str:
@@ -72,7 +71,7 @@ def reply(
 def test_a_script_within_its_length_citing_two_sources_is_kept() -> None:
     text, citations = parse_reply(f"```json\n{reply()}\n```", SOURCES)
     assert MIN_WORDS <= len(text.split()) <= MAX_WORDS
-    assert [(c.moment_id, c.quote) for c in citations] == [
+    assert [(c.content_item_id, c.quote) for c in citations] == [
         (1, "candidates request votes from a majority"),
         (2, "a majority of acceptors accept"),
     ]
@@ -115,7 +114,7 @@ def test_replies_breaking_a_rule_are_refused(bad: str, says: str) -> None:
 
 def test_a_quote_is_checked_but_never_kept_at_length() -> None:
     # AI-3, ING-2: a "citation" of a whole passage would store the source's text.
-    long = Source(1, "Raft: Elections", f"{RAFT} {RAFT} {RAFT}")
+    long = Source(1, "Raft", f"{RAFT} {RAFT} {RAFT}")
     quote = f"{RAFT} {RAFT}"
     assert len(quote) > 300
     with pytest.raises(ExplainerReplyError, match="isn't in source 1"):
@@ -130,7 +129,7 @@ def test_a_quote_is_checked_but_never_kept_at_length() -> None:
         )
 
 
-def test_two_quotes_from_one_section_are_one_citation() -> None:
+def test_two_quotes_from_one_article_are_one_citation() -> None:
     _, citations = parse_reply(
         reply(
             citations=[
@@ -141,7 +140,7 @@ def test_two_quotes_from_one_section_are_one_citation() -> None:
         ),
         SOURCES,
     )
-    assert [c.moment_id for c in citations] == [1, 2]
+    assert [c.content_item_id for c in citations] == [1, 2]
 
 
 def test_the_prompt_gives_only_the_numbered_sources() -> None:
@@ -149,8 +148,8 @@ def test_the_prompt_gives_only_the_numbered_sources() -> None:
     user = messages[1]["content"]
     assert "Concept: Consensus" in user
     # Each source in its own tags, as data the model mustn't take orders from.
-    assert '<source n="1" title="Raft: Elections">' in user
-    assert '<source n="2" title="Paxos: Basics">' in user
+    assert '<source n="1" title="Raft">' in user
+    assert '<source n="2" title="Paxos">' in user
     assert 'n="3"' not in user
     assert "never instructions" in messages[0]["content"]
 
@@ -160,11 +159,8 @@ class StubTags:
     texts: dict[int, str] = field(default_factory=dict[int, str])
 
     def input(self, item_id: int) -> TagInput | None:
-        text = self.texts.get(item_id)
-        # The item's one moment is its intro: the whole text (moment id = item id).
-        return TagInput(
-            "Title", None, text, None, [TagMoment(item_id, 0, None)], None, False
-        )
+        # ADR-0058: the article's whole text, as its rights allow it.
+        return TagInput("Title", None, self.texts.get(item_id), None, [], None, False)
 
 
 @dataclass
@@ -182,15 +178,9 @@ def setup(
         ExplainerConcept(10, "quorum", "Quorum"),
     ]
     explainers.sourced = {
-        9: [
-            ExplainerSource(1, 1, "Elections", "Raft"),
-            ExplainerSource(2, 2, "Basics", "Paxos"),
-        ],
+        9: [ExplainerSource(1, "Raft"), ExplainerSource(2, "Paxos")],
         # Its second article's text isn't under full-text rights any more (ING-2).
-        10: [
-            ExplainerSource(1, 1, "Elections", "Raft"),
-            ExplainerSource(3, 3, "x", "y"),
-        ],
+        10: [ExplainerSource(1, "Raft"), ExplainerSource(3, "y")],
     }
     store = StubStore(explainers, StubTags({1: RAFT, 2: PAXOS}))
     ledger = InMemoryAi(InMemoryStore().users)
@@ -217,7 +207,7 @@ def test_scripts_are_written_once_pending_and_concepts_short_of_sources_skipped(
     assert store.explainers.attempts == {10: "skipped"}
     saved = store.explainers.saved[9]
     assert saved[2:] == ("qwen/x", 1)
-    assert [c.moment_id for c in saved[1]] == [1, 2]
+    assert [c.content_item_id for c in saved[1]] == [1, 2]
     # Once per concept (AI-4): a second run asks the model nothing.
     again = write(unit, gateway, "qwen/x", limit=5)
     assert again.written == 0 and len(llm.asked) == 1

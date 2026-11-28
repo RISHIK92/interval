@@ -3,11 +3,10 @@
 import { type ReactNode, useState } from "react";
 import { player } from "./player";
 
-// P4-W23-S01 (owner, 2026-11-10): the reader's Listen queues the AI explainers of what
-// it shows and plays the first; only rendered when one is voiced.
+// P4-W23-S01 (owner, 2026-11-10): the reader's Listen queues the AI explainers of the
+// article (ADR-0058) and plays the first; only rendered when one is voiced.
 export function ListenButton(props: {
   itemId: string;
-  momentId: string | null;
   className: string;
   children: ReactNode;
 }) {
@@ -24,7 +23,7 @@ export function ListenButton(props: {
         onClick={() => {
           setBusy(true);
           void player()
-            .enqueue(props.itemId, props.momentId)
+            .enqueue(props.itemId)
             .then((queued) => {
               setFailed(!queued);
               setBusy(false);

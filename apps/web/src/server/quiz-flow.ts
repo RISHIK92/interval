@@ -81,7 +81,7 @@ function recordFinish(
     for (const m of done.missed)
       events().emit(
         "concept_missed",
-        { game: score.game, item_id: m.itemId, moment_id: m.momentId },
+        { game: score.game, item_id: m.itemId },
         context,
       );
   } else if (checkpoint === null)
@@ -127,14 +127,14 @@ export async function closeLeftOpen(
   }
 }
 
-// Test 60s on a section or an article (P2-W9-S01); null with no live question.
+// Test 60s on an article, its "Quiz me" (P2-W9-S01, ADR-0058); null with no live
+// question.
 export async function startTest(
   context: EventContext,
   itemId: string,
-  momentId: string | null,
 ): Promise<{ attemptId: string } | null> {
   await closeLeftOpen(context.userId, context);
-  const started = await quizzes().start(context.userId, itemId, momentId);
+  const started = await quizzes().start(context.userId, itemId);
   if (started === null) return null;
   if (started.firstTime)
     events().emit(
@@ -143,7 +143,6 @@ export async function startTest(
         attempt_id: started.attemptId,
         kind: "test",
         item_id: itemId,
-        moment_id: momentId,
       },
       context,
     );
@@ -288,8 +287,7 @@ export function quizResults(attempt: QuizAttempt): QuizResults {
         : { shareId: attempt.daily.shareId, streak: attempt.daily.streak },
     missed: attempt.missed.map((m) => ({
       itemId: m.itemId,
-      momentId: m.momentId,
-      sectionTitle: m.sectionTitle,
+      articleTitle: m.articleTitle,
     })),
   };
 }

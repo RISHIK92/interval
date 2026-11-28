@@ -1,11 +1,10 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { CHIPS } from "../../server/chips";
 import { events, outboundLinks, sessionReader } from "../../server/container";
 import { log } from "../../server/log";
 import { attributed, countOpen } from "../../server/opens";
 import { BIGINT_ID } from "../../server/ports";
-import { formatReading, READING_COOKIE } from "../../server/reading";
+import { READING_COOKIE } from "../../server/reading";
 import { visitCookieOptions, visitId } from "../../server/visits";
 import { env } from "../../env";
 
@@ -13,21 +12,22 @@ export const dynamic = "force-dynamic";
 
 const Open = z.object({
   item: z.string().regex(BIGINT_ID),
-  moment: z.string().regex(BIGINT_ID).optional(),
-  // A feed card has a chip and position. A Continue link (continue_clicked) and a
-  // Library link (an outbound click only, the whole article) need neither; a chip
-  // sent with them is ignored (owner, 2026-10-26).
-  chip: z.enum(CHIPS).optional(),
+  // A feed card has a position. A Continue link (continue_clicked) and a Library link
+  // (an outbound click only) don't (owner, 2026-10-26). ADR-0058: a section or chip an
+  // older page or app sends is ignored (zod drops unknown keys).
   pos: z.coerce.number().int().min(1).max(200).optional(),
-  // "reader": Open in browser from inside the in-app reader, after a move there
-  // (ADR-0018); it records the section and the outbound click only.
+  // "reader": Open in browser from inside the in-app reader (ADR-0018); it records the
+  // open and the outbound click only.
   // "path": a path's reading (P2-W10-S03), counted as a Library open is.
   // "explore": a search result, gap or cited source on Explore (ADR-0046), counted as a
   // Library open is.
   from: z.enum(["continue", "library", "reader", "path", "explore"]).optional(),
-  // P7-W46: a feed card a companion surface suggested (its chip and position too).
+  // P7-W46: a feed card a companion surface suggested (its position too).
   via: z.literal("agent").optional(),
-  target: z.enum(["section", "original"]),
+  // ADR-0058: "section", from links made before it, now lands on the article.
+  target: z
+    .enum(["article", "original", "section"])
+    .transform((t) => (t === "section" ? "article" : t)),
 });
 
 // Relative: behind CloudFront and the ALB the app sees http, so an absolute URL built
@@ -44,23 +44,17 @@ export async function GET(request: Request): Promise<Response> {
   const query = new URL(request.url).searchParams;
   const parsed = Open.safeParse(Object.fromEntries(query));
   if (!parsed.success) return home();
-  const { item, moment, chip, pos, from, via, target } = parsed.data;
+  const { item, pos, from, via, target } = parsed.data;
   const card =
-    from === undefined && pos !== undefined && chip !== undefined
-      ? { chip, pos, via: via ?? ("feed" as const) }
+    from === undefined && pos !== undefined
+      ? { pos, via: via ?? ("feed" as const) }
       : null;
   if (card === null && (from === undefined || pos !== undefined)) return home();
-  const link = await outboundLinks().resolve(
-    item,
-    target === "section" ? (moment ?? null) : null,
-  );
+  const link = await outboundLinks().resolve(item);
   if (link === null) return home();
   const publisher = attributed(link.url);
   if (publisher === null) {
-    log.warn("out: stored link is not http(s)", {
-      item,
-      linkType: link.linkType,
-    });
+    log.warn("out: stored link is not http(s)", { item });
     return home();
   }
   const actor = await sessionReader().current(request.headers);
@@ -80,29 +74,15 @@ export async function GET(request: Request): Promise<Response> {
       from !== "explore" &&
       !actor.isGuest
     )
-      jar.set(
-        READING_COOKIE,
-        formatReading({
-          itemId: item,
-          // The moment only when the reader really reached it, not a fallback.
-          momentId: link.linkType === "article" ? null : (moment ?? null),
-        }),
-        session,
-      );
+      jar.set(READING_COOKIE, item, session);
     if (!actor.isGuest)
       await countOpen(context, {
         itemId: item,
-        momentId: moment,
-        link,
         card,
         from,
         surface: "browser",
       });
-    events().emit(
-      "outbound_click",
-      { link_type: link.linkType, target },
-      context,
-    );
+    events().emit("outbound_click", { target }, context);
   }
   return new Response(null, { status: 302, headers: { location: publisher } });
 }

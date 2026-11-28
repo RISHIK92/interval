@@ -1,22 +1,13 @@
-"""Split one stored full-text item into moments at its headings (ING-4, §3.2).
+"""Heading sections grouped into 2 to 8 minute units (ING-4 rules, Q-P1-06), for book
+sessions (P2-W11-S02). Articles are no longer split (ADR-0058).
 
-A moment is a deep link into the publisher's page, never a copy: the heading's anchor,
-else a text fragment, else the top of the page. Works through ports (ADR-0012); the
-caller owns the unit of work.
-
-The 2-8 minute rules (Q-P1-06, P1-W3-S03):
-- a section is its heading plus the subsections under it;
+The rules:
+- a unit is a heading plus the subsections under it;
 - one over 8 minutes splits at its next lower heading level; with none it stays one
-  moment, flagged oversized (never split mid-paragraph, so never inside a code block);
+  unit (never split mid-paragraph, so never inside a code block);
 - a part under 2 minutes merges into its next sibling, or its previous one when it is
-  last, until it reaches 2 minutes, but never past 8; the merged moment links to its
-  first heading;
-- the intro (text before the first heading) is always its own moment, linked to the top
-  of the page, however short (owner, 2026-10-25; the tension with the 2-minute rule is
-  in docs/conflicts.md).
-An admin's boundaries (ING-6, P1-W3-S05) replace the merge and split rules for that
-item: a moment starts at the first heading and at each heading the admin named, and
-runs to the next one. The intro stays its own moment; over 8 minutes is still flagged.
+  last, until it reaches 2 minutes, but never past 8;
+- the intro (text before the first heading) is always its own unit, however short.
 
 "Under 2 minutes" is under 460 words: a 231-459 word part shows as 2 minutes (minutes
 round up) yet still merges.
@@ -24,37 +15,14 @@ round up) yet still merges.
 
 import math
 from dataclasses import dataclass, field
-from urllib.parse import quote
 
-from interval_db.generated import MomentLinkType
-from interval_jobs import log
-from interval_jobs.headings import heading_key
-from interval_jobs.ports import MomentRow, SectionRow, Store
-from interval_jobs.rights import allowed
+from interval_jobs.ports import SectionRow
 
 WORDS_PER_MINUTE = 230  # Q-P1-06; code counts at the same rate
-TITLE_MAX_CHARS = 300  # moment.title check constraint
 
 
 def minutes(words: int) -> int:
     return max(1, math.ceil(words / WORDS_PER_MINUTE))
-
-
-def text_fragment(heading: str) -> str:
-    # URL Fragment Text Directives: '-', '&' and ',' are syntax and must be encoded.
-    return "#:~:text=" + quote(heading, safe="").replace("-", "%2D")
-
-
-# Two headings with the same text and no id get the same text fragment, which resolves
-# to the first occurrence. Disambiguating needs prefix/suffix context from the body
-# text, which a moment must not store (§3.2), so the duplicate link is accepted.
-def _link(url: str, section: SectionRow) -> tuple[str, MomentLinkType]:
-    base = url.split("#", 1)[0]
-    if section.anchor_id:
-        return f"{base}#{quote(section.anchor_id, safe='-._~')}", "anchor"
-    if section.heading:
-        return base + text_fragment(section.heading), "text_fragment"
-    return base, "page_top"
 
 
 MIN_WORDS = 2 * WORDS_PER_MINUTE
@@ -123,97 +91,11 @@ def _merge_short(units: list[list[SectionRow]]) -> list[list[SectionRow]]:
             return merged  # nothing short can merge without passing 8 minutes
 
 
-def _by_boundaries(
-    sections: list[SectionRow], boundaries: list[str]
-) -> list[list[SectionRow]] | None:
-    """Groups starting at the admin's headings; None when none of them is here.
-
-    Headings are matched by text, so when an item has two sections with the same
-    heading, naming it starts a moment at both (a known limit, docs/progress.md).
-    """
-    wanted = {heading_key(b) for b in boundaries}
-    present = {heading_key(s.heading) for s in sections if s.heading}
-    stale = sorted(wanted - present)
-    if stale:
-        # The publisher renamed or removed a section since the admin chose it.
-        log.warn("segment: admin boundaries not in the item", headings=stale)
-    if not wanted & present:
-        return None
-    intro = [[s] for s in sections if s.heading is None]
-    groups: list[list[SectionRow]] = []
-    for section in sections:
-        if section.heading is None:
-            continue
-        if not groups or heading_key(section.heading) in wanted:
-            groups.append([section])
-        else:
-            groups[-1].append(section)
-    return intro + groups
-
-
 def plan_units(sections: list[SectionRow]) -> list[list[SectionRow]]:
     """Sections grouped into 2 to 8 minute units (ING-4): the intro alone, then each
     heading with what's under it, split at its subheadings when too long and merged
-    with a neighbour when too short. Shared by moments and book sessions (P2-W11-S02).
-    """
+    with a neighbour when too short (book sessions, P2-W11-S02)."""
     roots = _tree(sections)
     intro = [[r.section] for r in roots if r.section.heading is None]
     headed = [u for r in roots if r.section.heading is not None for u in _units(r)]
     return intro + _merge_short(headed)
-
-
-def plan_moments(
-    title: str,
-    url: str,
-    sections: list[SectionRow],
-    boundaries: list[str] | None = None,
-) -> list[MomentRow]:
-    if not any(s.heading and s.word_count for s in sections):
-        return []  # no headings with content: whole article only (Q-P1-06)
-    units = _by_boundaries(sections, boundaries) if boundaries else None
-    if units is None:
-        units = plan_units(sections)
-    rows: list[MomentRow] = []
-    for unit in units:
-        words = _words(unit)
-        if words == 0:
-            continue  # e.g. the page title heading with nothing under it
-        first = unit[0]
-        if first.heading is None:
-            link, link_type = url.split("#", 1)[0], "page_top"
-            name = title[:TITLE_MAX_CHARS]
-        else:
-            link, link_type = _link(url, first)
-            name = first.heading
-        rows.append(
-            MomentRow(
-                ordinal=len(rows),
-                title=name,
-                estimated_minutes=minutes(words),
-                link=link,
-                link_type=link_type,
-                oversized=words > MAX_WORDS,
-            )
-        )
-    return rows
-
-
-def segment_item(store: Store, content_item_id: int) -> list[MomentRow]:
-    item = store.items.for_segmentation(content_item_id)
-    if item is None:
-        raise LookupError(f"no content item with id {content_item_id}")
-
-    rows: list[MomentRow] = []
-    if item.moments_enabled and allowed(item.rights_profile, "make_moments"):
-        sections = store.items.sections(content_item_id)
-        boundaries = store.items.boundary_override(content_item_id)
-        rows = plan_moments(item.title, item.canonical_url, sections, boundaries)
-
-    # Upserted by ordinal so a moment keeps its id across runs (saves, history and
-    # events will reference it); ordinals no longer produced are removed.
-    store.moments.replace(content_item_id, rows)
-    # Moment ids are kept by ordinal, but their text may have changed: tags and
-    # vectors made for the old moments would mislead, so they are redone.
-    store.tags.clear(content_item_id)
-    store.embeddings.clear(content_item_id)
-    return rows

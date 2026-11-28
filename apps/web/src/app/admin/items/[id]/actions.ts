@@ -1,12 +1,8 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
-import {
-  type SaveResult,
-  saveBoundaries,
-  saveTags,
-} from "../../../../server/admin-review";
-import { adminReview, jobQueue } from "../../../../server/container";
+import { type SaveResult, saveTags } from "../../../../server/admin-review";
+import { adminReview } from "../../../../server/container";
 import { textField } from "../../../form";
 import { requireAdmin } from "../../guard";
 
@@ -26,27 +22,11 @@ function back(itemId: string, result: SaveResult): never {
   redirect(`/admin/items/${itemId}?${query.toString()}`);
 }
 
-// Server actions are reachable without the page, so each one checks access again.
-export async function saveBoundariesAction(form: FormData): Promise<void> {
-  const actor = await requireAdmin();
-  const itemId = itemIdOf(form);
-  const headings = form.getAll("boundary").filter((v) => typeof v === "string");
-  back(
-    itemId,
-    await saveBoundaries(
-      adminReview(),
-      jobQueue(),
-      actor.userId,
-      itemId,
-      headings,
-    ),
-  );
-}
-
+// Server actions are reachable without the page, so this checks access again.
+// ADR-0058: the whole article's tags only; boundary overrides went with moments.
 export async function saveTagsAction(form: FormData): Promise<void> {
   const actor = await requireAdmin();
   const itemId = itemIdOf(form);
-  const heading = textField(form, "heading");
   const input =
     textField(form, "intent") === "clear"
       ? null
@@ -57,8 +37,5 @@ export async function saveTagsAction(form: FormData): Promise<void> {
             .map((c) => c.trim())
             .filter((c) => c !== ""),
         };
-  back(
-    itemId,
-    await saveTags(adminReview(), actor.userId, itemId, heading, input),
-  );
+  back(itemId, await saveTags(adminReview(), actor.userId, itemId, input));
 }

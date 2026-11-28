@@ -116,33 +116,14 @@ test("a failed session lookup is logged and never breaks the page", async () => 
   expect(emit).not.toHaveBeenCalled();
 });
 
-// Q-P1-16: the chosen time chip lasts for the browser session (owner, 2026-10-26).
-async function chipAfter(path: string) {
+// ADR-0058: no time chips, so a stray ?chip= (an old link) sets no cookie.
+test("a chip link no longer remembers a chip", async () => {
   const { proxy } = await import("./proxy");
-  const request = new NextRequest(`http://localhost:3100${path}`, {
-    // A live visit, so only the chip can set a cookie.
+  const request = new NextRequest("http://localhost:3100/?chip=1-3", {
     headers: { cookie: `iv_visit=visit-1.${seconds(NOW - 30_000)}` },
   });
   const event = { waitUntil: () => undefined } as unknown as NextFetchEvent;
-  return (await proxy(request, event)).cookies.get("iv_chip");
-}
-
-test("a chip link remembers the chip in a session cookie", async () => {
-  const cookie = await chipAfter("/?chip=1-3");
-  expect(cookie).toMatchObject({
-    value: "1-3",
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-  });
-  // A session cookie: no expiry, so it ends when the browser does.
-  expect(cookie?.maxAge).toBeUndefined();
-  expect(cookie?.expires).toBeUndefined();
-});
-
-test("an unknown chip or no chip leaves the cookie alone", async () => {
-  expect(await chipAfter("/?chip=99")).toBeUndefined();
-  expect(await chipAfter("/")).toBeUndefined();
+  expect((await proxy(request, event)).cookies.get("iv_chip")).toBeUndefined();
 });
 
 // ADR-0018: a reader open feeds Now reading like a browser open (owner, 2026-10-26).
@@ -155,28 +136,25 @@ async function readingAfter(path: string) {
   return (await proxy(request, event)).cookies.get("iv_reading");
 }
 
-test("opening the in-app reader remembers what it shows for Now reading", async () => {
-  const cookie = await readingAfter("/read/5?moment=9&chip=3-8&pos=4");
-  expect(cookie).toMatchObject({ value: "5.9", httpOnly: true, path: "/" });
+// ADR-0058: the article only; no chip in the reader's address any more.
+test("opening the in-app reader remembers the article for Now reading", async () => {
+  const cookie = await readingAfter("/read/5?pos=4");
+  expect(cookie).toMatchObject({ value: "5", httpOnly: true, path: "/" });
   expect(cookie?.maxAge).toBeUndefined();
-  expect((await readingAfter("/read/5?chip=3-8&from=continue"))?.value).toBe(
-    "5.",
+  expect((await readingAfter("/read/5?from=continue"))?.value).toBe("5");
+  // An old link's chip and moment are ignored.
+  expect((await readingAfter("/read/5?moment=9&chip=3-8&pos=4"))?.value).toBe(
+    "5",
   );
 });
 
 test("anything else, or a reader URL with bad ids, leaves Now reading alone", async () => {
-  expect(await readingAfter("/?chip=3-8")).toBeUndefined();
-  expect(await readingAfter("/read/x?moment=9&chip=3-8")).toBeUndefined();
-  expect(await readingAfter("/read/5?moment=9x&chip=3-8")).toBeUndefined();
+  expect(await readingAfter("/?pos=1")).toBeUndefined();
+  expect(await readingAfter("/read/x?pos=1")).toBeUndefined();
   expect(await readingAfter("/read/5/more")).toBeUndefined();
-  // Shapes the reader turns away: no chip, or neither or both of pos and from.
-  expect(await readingAfter("/read/5?moment=9")).toBeUndefined();
-  expect(await readingAfter("/read/5?moment=9&chip=3-8")).toBeUndefined();
-  expect(
-    await readingAfter("/read/5?moment=9&chip=3-8&pos=1&from=continue"),
-  ).toBeUndefined();
+  // Shapes the reader turns away: neither or both of pos and from.
+  expect(await readingAfter("/read/5")).toBeUndefined();
+  expect(await readingAfter("/read/5?pos=1&from=continue")).toBeUndefined();
   // A Library open doesn't feed Now reading (owner, 2026-10-26).
-  expect(
-    await readingAfter("/read/5?moment=9&chip=3-8&from=library"),
-  ).toBeUndefined();
+  expect(await readingAfter("/read/5?from=library")).toBeUndefined();
 });

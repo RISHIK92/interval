@@ -1,13 +1,14 @@
 """The embeddings eval (ADR-0007, Q-P1-27: the Week 3 eval picks the Voyage model).
 
-The owner writes queries and names the moments that answer each one, by canonical URL
-and heading (null for the intro), plus distractor items: articles none of the queries
-is about. `eval-embeddings` embeds every moment of the labelled and distractor items as
-the candidate pool, embeds the queries, ranks the pool by cosine, and reports recall@5,
-mean reciprocal rank and cost. It stores nothing.
+The owner writes queries and names the articles that answer each one, by canonical URL,
+plus distractor items: articles none of the queries is about. `eval-embeddings` embeds
+every labelled and distractor article as the candidate pool (one vector each, as the
+pipeline embeds them, ADR-0058), embeds the queries, ranks the pool by cosine, and
+reports recall@5, mean reciprocal rank and cost. It stores nothing. A moment-era file's
+`relevant` entries name sections by `moment` heading too; only their URL counts now.
 
-A pool of a handful of sibling sections can't tell models apart, so the eval refuses
-one under MIN_POOL moments (the slice asks for about 50). The pass mark (recall@5 of
+A pool of a handful of articles can't tell models apart, so the eval refuses one under
+MIN_POOL articles (the slice asks for about 50). The pass mark (recall@5 of
 0.6) and MIN_POOL are overnight picks for the owner to set (2026-10-26).
 """
 
@@ -20,14 +21,11 @@ import yaml
 
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.embedding import embed_item
-from interval_jobs.headings import heading_key
 from interval_jobs.ports import Store
 
 MIN_RECALL = 0.6
 MIN_POOL = 50
 K = 5
-
-type MomentKey = tuple[str, str | None]  # (canonical URL, heading key or None)
 
 
 class EvalError(ValueError):
@@ -37,7 +35,7 @@ class EvalError(ValueError):
 @dataclass(frozen=True)
 class Query:
     query: str
-    relevant: frozenset[MomentKey]
+    relevant: frozenset[str]  # canonical URLs
 
 
 @dataclass(frozen=True)
@@ -54,14 +52,6 @@ class Report:
     mrr: float
     cost_usd: Decimal
     passed: bool
-
-
-def _key(url: str, heading: str | None) -> MomentKey:
-    return url, None if heading is None else heading_key(heading)
-
-
-def _pool_key(key: MomentKey) -> str:
-    return f"{key[0]}|{key[1]}"
 
 
 def parse_queries(text: str, path: str) -> QuerySet:
@@ -82,16 +72,14 @@ def parse_queries(text: str, path: str) -> QuerySet:
         if not isinstance(query, str) or not query.strip():
             raise EvalError(f"{where}: query is required")
         if not isinstance(relevant, list) or not relevant:
-            raise EvalError(f"{where}: relevant must name at least one moment")
-        keys: set[MomentKey] = set()
-        for moment in cast(list[object], relevant):
-            m = cast(dict[str, object], moment) if isinstance(moment, dict) else {}
-            url, heading = m.get("url"), m.get("moment")
-            if not isinstance(url, str) or not (
-                heading is None or isinstance(heading, str)
-            ):
-                raise EvalError(f"{where}: each relevant moment needs url and moment")
-            keys.add(_key(url, heading))
+            raise EvalError(f"{where}: relevant must name at least one article")
+        keys: set[str] = set()
+        for article in cast(list[object], relevant):
+            a = cast(dict[str, object], article) if isinstance(article, dict) else {}
+            url = a.get("url")
+            if not isinstance(url, str) or not url:
+                raise EvalError(f"{where}: each relevant article needs its url")
+            keys.add(url)
         queries.append(Query(query.strip(), frozenset(keys)))
     return QuerySet(queries, [str(u) for u in cast(list[object], distractors)])
 
@@ -99,8 +87,8 @@ def parse_queries(text: str, path: str) -> QuerySet:
 def rank_score(
     ranked: list[list[str]], relevant: list[set[str]], k: int = K
 ) -> tuple[float, float]:
-    """Recall@k (share of relevant moments in the top k, averaged over queries) and
-    mean reciprocal rank of the first relevant moment."""
+    """Recall@k (share of relevant articles in the top k, averaged over queries) and
+    mean reciprocal rank of the first relevant article."""
     recalls: list[float] = []
     reciprocal: list[float] = []
     for order, wanted in zip(ranked, relevant, strict=True):
@@ -127,30 +115,25 @@ def run_eval(
     queries = labelled.queries
     pool: dict[str, list[float]] = {}
     cost = Decimal(0)
-    urls = {key[0] for q in queries for key in q.relevant} | set(labelled.distractors)
+    urls = {url for q in queries for url in q.relevant} | set(labelled.distractors)
     for url in sorted(urls):
         item_id = store.tags.find(url)
         item = store.tags.input(item_id) if item_id is not None else None
         if item is None:
             raise EvalError(f"item {url} is not in this database")
-        embedded = embed_item(gateway, model, item, skip=set())
+        embedded = embed_item(gateway, model, item)
         cost += embedded.cost_usd
         if embedded.refused is not None:
             raise EvalError(f"the {embedded.refused.scope} AI budget is spent today")
-        for moment in item.moments:
-            if moment.id not in embedded.vectors:
-                continue
-            key = _pool_key(_key(url, moment.heading))
-            if key in pool:
-                raise EvalError(f"two moments of {url} share a heading: {key}")
-            pool[key] = embedded.vectors[moment.id]
-    relevant = [{_pool_key(key) for key in q.relevant} for q in queries]
-    unknown = sorted({key for keys in relevant for key in keys} - set(pool))
+        if embedded.vector is not None:
+            pool[url] = embedded.vector
+    relevant = [set(q.relevant) for q in queries]
+    unknown = sorted({url for urls in relevant for url in urls} - set(pool))
     if unknown:
-        raise EvalError(f"labelled moments not in the stored text: {unknown}")
+        raise EvalError(f"labelled articles with no stored text: {unknown}")
     if len(pool) < min_pool:
         raise EvalError(
-            f"the pool has {len(pool)} moments; add distractors to reach {min_pool}"
+            f"the pool has {len(pool)} articles; add distractors to reach {min_pool}"
         )
     asked = gateway.embed(
         feature="embeddings",

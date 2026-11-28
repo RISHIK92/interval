@@ -80,22 +80,24 @@ function steps(html: string): { shown: boolean; html: string }[] {
   );
 }
 
-test("a new account gets four steps of one form, every field posted together", async () => {
+// ADR-0058: no break-length step; three steps.
+test("a new account gets three steps of one form, every field posted together", async () => {
   current.mockResolvedValue(user);
   get.mockResolvedValue(null);
   const html = await page();
-  // One form holds every step, so the four answers post at once.
+  // One form holds every step, so the three answers post at once.
   expect(html.match(/<form/g)).toHaveLength(1);
   const form = html.slice(html.indexOf("<form"), html.indexOf("</form>"));
   expect(form.match(/name="goal"/g)).toHaveLength(4);
   expect(form.match(/name="topic"/g)).toHaveLength(4);
   expect(form.match(/name="level"/g)).toHaveLength(3);
-  expect(form.match(/name="breakLength"/g)).toHaveLength(3);
+  expect(form).not.toContain('name="breakLength"');
+  expect(form).not.toMatch(/typical break/i);
   const all = steps(html);
-  expect(all).toHaveLength(4);
-  expect(all.map((step) => step.shown)).toEqual([true, false, false, false]);
+  expect(all).toHaveLength(3);
+  expect(all.map((step) => step.shown)).toEqual([true, false, false]);
   expect(all[0]?.html).toContain('name="goal"');
-  expect(all[3]?.html).toContain('name="breakLength"');
+  expect(all[2]?.html).toContain('name="level"');
 });
 
 // ADR-0049 (option 2): software design is a topic, offered once it has reading.
@@ -136,7 +138,6 @@ test("a returning user skips onboarding", async () => {
     goals: ["system-design-interviews"],
     topics: ["backend"],
     level: "beginner",
-    breakLength: "1-3",
   });
   await expect(page()).rejects.toThrow(/^redirect:\/$/);
 });
@@ -152,9 +153,7 @@ test("a guest is sent to sign up, from the page and the action", async () => {
   await expect(page()).rejects.toThrow("redirect:/sign-up");
   const { onboardingAction } = await import("./actions");
   await expect(
-    onboardingAction(
-      form({ topic: "backend", level: "beginner", breakLength: "3-8" }),
-    ),
+    onboardingAction(form({ topic: "backend", level: "beginner" })),
   ).rejects.toThrow("redirect:/sign-up");
   expect(createIfAbsent).not.toHaveBeenCalled();
 });
@@ -171,11 +170,11 @@ test("choices are saved, onboarding_completed is emitted, and the feed follows",
       }),
     ),
   ).rejects.toThrow(/^redirect:\/$/);
+  // ADR-0058: a break length an old form still posts is not kept.
   expect(createIfAbsent).toHaveBeenCalledWith("g1", {
     goals: ["system-design-interviews"],
     topics: ["databases", "backend"],
     level: "intermediate",
-    breakLength: "3-8",
   });
   expect(emit).toHaveBeenCalledWith(
     "onboarding_completed",
@@ -195,9 +194,7 @@ test("a resubmit after onboarding changes and counts nothing", async () => {
   createIfAbsent.mockResolvedValueOnce(false);
   const { onboardingAction } = await import("./actions");
   await expect(
-    onboardingAction(
-      form({ topic: "backend", level: "advanced", breakLength: "8-15" }),
-    ),
+    onboardingAction(form({ topic: "backend", level: "advanced" })),
   ).rejects.toThrow(/^redirect:\/$/);
   expect(emit).not.toHaveBeenCalled();
 });
@@ -205,9 +202,9 @@ test("a resubmit after onboarding changes and counts nothing", async () => {
 test("there is no way past it without a topic", async () => {
   current.mockResolvedValue(user);
   const { onboardingAction } = await import("./actions");
-  await expect(
-    onboardingAction(form({ level: "beginner", breakLength: "1-3" })),
-  ).rejects.toThrow("redirect:/onboarding?missing=topic");
+  await expect(onboardingAction(form({ level: "beginner" }))).rejects.toThrow(
+    "redirect:/onboarding?missing=topic",
+  );
   expect(createIfAbsent).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
   get.mockResolvedValue(null);
@@ -221,9 +218,7 @@ test("a topic that isn't offered is refused", async () => {
   current.mockResolvedValue(user);
   const { onboardingAction } = await import("./actions");
   await expect(
-    onboardingAction(
-      form({ topic: "software-design", level: "beginner", breakLength: "1-3" }),
-    ),
+    onboardingAction(form({ topic: "software-design", level: "beginner" })),
   ).rejects.toThrow("redirect:/onboarding?missing=topic-unavailable");
   expect(createIfAbsent).not.toHaveBeenCalled();
   // The topic step opens, saying why.
@@ -247,9 +242,7 @@ test("a failed recompute enqueue is logged, and onboarding still completes", asy
   });
   const { onboardingAction } = await import("./actions");
   await expect(
-    onboardingAction(
-      form({ topic: "databases", level: "beginner", breakLength: "1-3" }),
-    ),
+    onboardingAction(form({ topic: "databases", level: "beginner" })),
   ).rejects.toThrow(/^redirect:\/$/);
   expect(emit).toHaveBeenCalledWith(
     "onboarding_completed",
@@ -283,7 +276,6 @@ test("choosing the book goal goes on to Add a book, unless there is one already"
     goal: ["finish-that-book", "stay-sharp"],
     topic: "backend",
     level: "beginner",
-    breakLength: "3-8",
   });
   await expect(onboardingAction(answers)).rejects.toThrow(
     /^redirect:\/books\/new$/,
@@ -316,7 +308,6 @@ test("choosing the stack goal without GitHub goes to connect it; connected, to t
     goal: "stack-i-use",
     topic: "backend",
     level: "beginner",
-    breakLength: "3-8",
   });
   await expect(onboardingAction(answers)).rejects.toThrow(
     /^redirect:\/profile#github$/,
@@ -335,7 +326,6 @@ test("choosing the stack goal without GitHub goes to connect it; connected, to t
     goal: ["finish-that-book", "stack-i-use"],
     topic: "backend",
     level: "beginner",
-    breakLength: "3-8",
   });
   await expect(onboardingAction(both)).rejects.toThrow(
     /^redirect:\/books\/new$/,

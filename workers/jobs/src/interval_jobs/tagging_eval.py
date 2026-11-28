@@ -1,12 +1,14 @@
 """The tagging eval (AI-5; ADR-0010: it picks the tagging model on accuracy and cost).
-The owner labels about 30 moments with their concepts and difficulty; `eval-tagging`
-tags those items with a candidate model and prompt, scores the moments, totals the
-cost, and fails below the thresholds. It never stores tags.
+The owner labels articles with their concepts and difficulty; `eval-tagging` tags
+those items with a candidate model and prompt, scores the articles, totals the cost,
+and fails below the thresholds. It never stores tags.
 
-Labels name a moment by its item's canonical URL and its heading (null for the intro),
-so a label file works against any database the items were ingested into.
+Labels name an article by its canonical URL, so a label file works against any
+database the items were ingested into. Articles are tagged whole (ADR-0058): the
+labels a file gives one article (moment-era files label its sections, by `moment`
+heading) are read as one: the union of their concepts, at their median level.
 
-Concept scores are micro-averaged over every labelled moment; difficulty is plain
+Concept scores are micro-averaged over every labelled article; difficulty is plain
 accuracy. The default thresholds (F1 0.7, difficulty 0.6) are overnight picks for the
 owner to set (2026-10-26).
 """
@@ -14,6 +16,7 @@ owner to set (2026-10-26).
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from decimal import Decimal
+from statistics import median_low
 from typing import cast
 
 import yaml
@@ -21,21 +24,16 @@ import yaml
 from interval_db.generated import Difficulty
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.concept_vectors import concept_text, text_hash
-from interval_jobs.headings import heading_key
 from interval_jobs.ports import Store, TagInput, Tags
-from interval_jobs.tagging import (
-    DECISIONS_PREFIX,
-    DIFFICULTIES,
-    MOMENT_CHARS,
-    moment_texts,
-    tag_item,
-)
-from interval_jobs.tagging_decide import decide
+from interval_jobs.tagging import DECISIONS_PREFIX, DIFFICULTIES, tag_item
+from interval_jobs.tagging_decide import article_text, decide
 from interval_jobs.tagging_rollup import DEFAULT_CUTOFFS, Cutoffs, rollup
 from interval_jobs.tagging_shortlist import alias_hits, recall, shortlist
 
 MIN_F1 = 0.7
 MIN_DIFFICULTY = 0.6
+# Easiest first: an article's merged labels take their median (the lower of two).
+DIFFICULTIES_BY_RANK: tuple[Difficulty, ...] = ("beginner", "intermediate", "advanced")
 
 
 class EvalError(ValueError):
@@ -45,21 +43,20 @@ class EvalError(ValueError):
 @dataclass(frozen=True)
 class Label:
     url: str
-    moment: str | None  # the moment's heading; None for the intro
     difficulty: Difficulty
     concepts: frozenset[str]
 
 
 @dataclass(frozen=True)
 class Report:
-    moments: int
+    articles: int
     precision: float
     recall: float
     f1: float
     difficulty_accuracy: float
     cost_usd: Decimal
     passed: bool
-    # Decision models only: (moment cut-off, precision, recall, f1) over stored answers.
+    # Decision models only: (cut-off, precision, recall, f1) over stored answers.
     sweep: tuple[tuple[float, float, float, float], ...] = ()
     # Decision models only: why asking stopped part way (budget, model error). The
     # answers before it are kept, and a re-run resumes from them.
@@ -70,52 +67,54 @@ def parse_labels(text: str, path: str) -> list[Label]:
     loaded: object = yaml.safe_load(text)
     if not isinstance(loaded, dict):
         raise EvalError(f"{path}: expected `version` and `moments`")
+    # `moments`: the list's name from when labels named sections (ADR-0058).
     raw = cast(dict[object, object], loaded).get("moments")
     if not isinstance(raw, list) or not raw:
         raise EvalError(f"{path}: moments must be a non-empty list")
-    labels: list[Label] = []
+    by_url: dict[str, list[tuple[Difficulty, frozenset[str]]]] = {}
     for index, entry in enumerate(cast(list[object], raw)):
-        where = f"{path}: moment {index + 1}"
+        where = f"{path}: label {index + 1}"
         if not isinstance(entry, dict):
             raise EvalError(f"{where}: expected a mapping")
         fields = cast(dict[str, object], entry)
-        url, moment = fields.get("url"), fields.get("moment")
+        url = fields.get("url")
         difficulty, concepts = fields.get("difficulty"), fields.get("concepts")
         if not isinstance(url, str) or not url:
             raise EvalError(f"{where}: url is required")
-        if moment is not None and not isinstance(moment, str):
-            raise EvalError(f"{where}: moment must be a heading, or null for the intro")
         if difficulty not in DIFFICULTIES:
             raise EvalError(f"{where}: difficulty must be one of {DIFFICULTIES}")
         if not isinstance(concepts, list) or not all(
             isinstance(c, str) for c in cast(list[object], concepts)
         ):
             raise EvalError(f"{where}: concepts must be a list of slugs")
-        labels.append(
-            Label(
-                url,
-                moment,
+        by_url.setdefault(url, []).append(
+            (
                 cast(Difficulty, difficulty),
                 frozenset(str(c) for c in cast(list[object], concepts)),
             )
         )
-    return labels
-
-
-def _key(url: str, heading: str | None) -> tuple[str, str | None]:
-    return url, None if heading is None else heading_key(heading)
+    return [
+        Label(
+            url,
+            DIFFICULTIES_BY_RANK[
+                median_low(DIFFICULTIES_BY_RANK.index(d) for d, _ in parts)
+            ],
+            frozenset[str]().union(*(c for _, c in parts)),
+        )
+        for url, parts in by_url.items()
+    ]
 
 
 def score(
     labels: list[Label],
-    predicted: dict[tuple[str, str | None], Tags],
+    predicted: dict[str, Tags],
     cost_usd: Decimal = Decimal(0),
     min_f1: float = MIN_F1,
     min_difficulty: float = MIN_DIFFICULTY,
 ) -> Report:
     hits = guessed = expected = right_level = 0
     for label in labels:
-        tags = predicted.get(_key(label.url, label.moment))
+        tags = predicted.get(label.url)
         expected += len(label.concepts)
         if tags is None:
             continue
@@ -127,7 +126,7 @@ def score(
     f1 = 2 * precision * recall / (precision + recall) if hits else 0.0
     accuracy = right_level / len(labels)
     return Report(
-        moments=len(labels),
+        articles=len(labels),
         precision=precision,
         recall=recall,
         f1=f1,
@@ -168,8 +167,8 @@ def _decisions_eval(
     min_f1: float,
     min_difficulty: float,
 ) -> Report:
-    """Asks the decision model about every labelled item's changed moments, keeps the
-    raw answers (an unchanged moment costs nothing next time), then scores the roll-up
+    """Asks the decision model about every labelled article that changed, keeps the
+    raw answers (an unchanged one costs nothing next time), then scores the roll-up
     at the default cut-offs and over a sweep."""
     graph = store.concepts.state()
     if graph is None:
@@ -184,7 +183,7 @@ def _decisions_eval(
         if item is None or item_id is None:
             raise EvalError(f"labelled item {url} is not in this database")
         found[url] = (item_id, item)
-    items: dict[str, tuple[int, dict[int, str | None], frozenset[int]]] = {}
+    items: dict[str, int] = {}
     # shortcut: the run is one unit of work, so its answer rows stay locked until it
     # ends and a pipeline tag of the same item waits (a deadlock aborts one side); give
     # each item its own unit if evals grow or run beside a busy pipeline.
@@ -198,17 +197,8 @@ def _decisions_eval(
             item,
             graph,
             vectors,
-            store.decisions.moment_hashes(item_id, model),
             store.decisions.item_hash(item_id, model),
         )
-        for moment_id, answer in asked.moments.items():
-            store.decisions.save_moment(
-                moment_id,
-                model,
-                answer.content_hash,
-                answer.difficulty,
-                answer.probabilities,
-            )
         if asked.item is not None:
             store.decisions.save_item(
                 item_id,
@@ -218,7 +208,7 @@ def _decisions_eval(
                 asked.item.probabilities,
             )
         cost += asked.cost_usd
-        items[url] = (item_id, {m.id: m.heading for m in item.moments}, asked.current)
+        items[url] = item_id
         if asked.refused is not None:
             stopped = f"the {asked.refused.scope} AI budget is spent for today"
         elif asked.stopped is not None:
@@ -226,15 +216,11 @@ def _decisions_eval(
         if stopped is not None:
             break  # what was answered is kept; scores below cover what exists
 
-    def predicted(cutoffs: Cutoffs) -> dict[tuple[str, str | None], Tags]:
-        found: dict[tuple[str, str | None], Tags] = {}
-        for url, (item_id, headings, current) in items.items():
-            tagged = rollup(
-                store.decisions.read(item_id, model), known, cutoffs, current
-            )
-            for moment_id, tags in tagged.moments.items():
-                found[_key(url, headings[moment_id])] = tags
-        return found
+    def predicted(cutoffs: Cutoffs) -> dict[str, Tags]:
+        return {
+            url: rollup(store.decisions.read(item_id, model), known, cutoffs).item
+            for url, item_id in items.items()
+        }
 
     sweep = tuple(
         (cut, r.precision, r.recall, r.f1)
@@ -259,7 +245,7 @@ def run_eval(
     embedding_model: str | None = None,
 ) -> Report:
     """Tags every labelled item with `model` (costed through the gateway), stores no
-    tags, and scores the labelled moments. A decision model ("decisions:<id>") also
+    tags, and scores the labelled articles. A decision model ("decisions:<id>") also
     needs the concepts' `embedding_model` for its shortlist, and keeps its raw
     answers."""
     if model.startswith(DECISIONS_PREFIX):
@@ -275,7 +261,7 @@ def run_eval(
             min_difficulty,
         )
     graph = store.concepts.state()
-    predicted: dict[tuple[str, str | None], Tags] = {}
+    predicted: dict[str, Tags] = {}
     cost = Decimal(0)
     for url in sorted({label.url for label in labels}):
         item_id = store.tags.find(url)
@@ -286,18 +272,16 @@ def run_eval(
         if isinstance(tagged, OverBudget):
             raise EvalError(f"the {tagged.scope} AI budget is spent for today")
         cost += tagged.cost_usd
-        headings = {m.id: m.heading for m in item.moments}
-        for moment_id, tags in tagged.result.moments.items():
-            predicted[_key(url, headings[moment_id])] = tags
+        predicted[url] = tagged.result.item
     return score(labels, predicted, cost, min_f1, min_difficulty)
 
 
 @dataclass(frozen=True)
 class ShortlistReport:
-    moments: int
+    articles: int
     # variant -> shortlist size -> share of labelled concepts kept
     recall: dict[str, dict[int, float]]
-    mean_text_hits: float  # concepts per moment found by name or alias
+    mean_text_hits: float  # concepts per article found by name or alias
     cost_usd: Decimal
 
 
@@ -313,10 +297,11 @@ def run_shortlist_eval(
     sizes: tuple[int, ...] = SHORTLIST_SIZES,
 ) -> ShortlistReport:
     """How many labelled concepts each variant of the shortlist keeps (2026-10-27):
-    embeddings alone, plus name and alias hits, plus the article prior. Moments and
-    titles are embedded through the gateway (`model`, the concepts' model); nothing is
-    stored. Missing or stale concept vectors, and labels naming no active concept, are
-    refused: both would only lower recall without saying why."""
+    embeddings alone, plus name and alias hits, plus the article prior. Articles (as
+    the decision model is asked about them) and titles are embedded through the
+    gateway (`model`, the concepts' model); nothing is stored. Missing or stale
+    concept vectors, and labels naming no active concept, are refused: both would
+    only lower recall without saying why."""
     graph = store.concepts.state()
     vectors = _current_vectors(store, model)
     if graph is None:
@@ -325,25 +310,14 @@ def run_shortlist_eval(
     unknown = sorted({s for label in labels for s in label.concepts} - active)
     if unknown:
         raise EvalError(f"labels name unknown concepts: {', '.join(unknown[:10])}")
-    cases: list[tuple[set[str], str, int]] = []  # labelled, section text, item
+    cases: list[tuple[set[str], str, int]] = []  # labelled, article text, item
     priors: dict[int, str] = {}
     for label in labels:
         item_id = store.tags.find(label.url)
         item = store.tags.input(item_id) if item_id is not None else None
         if item is None or item_id is None:
             raise EvalError(f"labelled item {label.url} is not in this database")
-        texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
-        moment = next(
-            (
-                m
-                for m in item.moments
-                if _key(label.url, m.heading) == _key(label.url, label.moment)
-            ),
-            None,
-        )
-        if moment is None or moment.id not in texts:
-            raise EvalError(f"{label.url}: no text for moment {label.moment!r}")
-        cases.append((set(label.concepts), texts[moment.id][:MOMENT_CHARS], item_id))
+        cases.append((set(label.concepts), article_text(item), item_id))
         priors[item_id] = f"{item.title}\n{item.summary or ''}".strip()
 
     cost = Decimal(0)
@@ -365,20 +339,20 @@ def run_shortlist_eval(
             out.extend(result.vectors)
         return out
 
-    moments = embedded([text for _, text, _ in cases])
+    texts = embedded([text for _, text, _ in cases])
     prior_ids = sorted(priors)
     prior_vectors = dict(
         zip(prior_ids, embedded([priors[i] for i in prior_ids]), strict=True)
     )
     variants: dict[str, Callable[[int, int], list[str]]] = {
         "embeddings": lambda i, size: shortlist(
-            moments[i], None, "", vectors, graph, size=size, prior_size=0
+            texts[i], None, "", vectors, graph, size=size, prior_size=0
         ),
         "embeddings+aliases": lambda i, size: shortlist(
-            moments[i], None, cases[i][1], vectors, graph, size=size, prior_size=0
+            texts[i], None, cases[i][1], vectors, graph, size=size, prior_size=0
         ),
         "embeddings+aliases+prior": lambda i, size: shortlist(
-            moments[i],
+            texts[i],
             prior_vectors[cases[i][2]],
             cases[i][1],
             vectors,

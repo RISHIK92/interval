@@ -22,7 +22,6 @@ type Seeded = {
   sourceId: string;
   itemId: string;
   otherItemId: string;
-  momentId: string;
 };
 
 async function inRollback(
@@ -60,60 +59,32 @@ async function inRollback(
         .returning("id")
         .execute();
       if (item === undefined || other === undefined) throw new Error("seed");
-      const moment = await trx
-        .insertInto("moment")
-        .values({
-          content_item_id: item.id,
-          ordinal: 0,
-          title: "Raft",
-          estimated_minutes: 3,
-          link: "https://out.example.test/post#raft",
-          link_type: "anchor",
-        })
-        .returning("id")
-        .executeTakeFirstOrThrow();
       await body(trx, {
         sourceId: source.id,
         itemId: item.id,
         otherItemId: other.id,
-        momentId: moment.id,
       });
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-test("a moment goes to its section; the article to its page", async () => {
-  await inRollback(async (trx, { itemId, momentId }) => {
+// ADR-0058: every link is the article's own page, under any rights profile (a link is
+// never a copy, §3.2).
+test("an article goes to its page, whatever its source's rights", async () => {
+  await inRollback(async (trx, { sourceId, itemId, otherItemId }) => {
     const links = kyselyOutboundLinks(trx);
-    expect(await links.resolve(itemId, momentId)).toEqual({
-      url: "https://out.example.test/post#raft",
-      linkType: "anchor",
-    });
-    expect(await links.resolve(itemId, null)).toEqual({
+    expect(await links.resolve(itemId)).toEqual({
       url: "https://out.example.test/post",
-      linkType: "article",
-    });
-  });
-});
-
-test("a moment of another article, or one whose source no longer allows moments, goes to the page", async () => {
-  await inRollback(async (trx, { sourceId, itemId, otherItemId, momentId }) => {
-    const links = kyselyOutboundLinks(trx);
-    expect(await links.resolve(otherItemId, momentId)).toEqual({
-      url: "https://out.example.test/other",
       linkType: "article",
     });
     await trx
       .updateTable("source")
-      .set({ moments_enabled: false, moments_switched_off: true })
+      .set({ rights_profile: "metadata_only" })
       .where("id", "=", sourceId)
       .execute();
-    const moment = await links.resolve(itemId, momentId);
-    // The purge trigger deletes the moments when moments go off, so this checks the
-    // fallback; the adapter's own rights check matches user_feed_visible's.
-    expect(moment).toEqual({
-      url: "https://out.example.test/post",
+    expect(await links.resolve(otherItemId)).toEqual({
+      url: "https://out.example.test/other",
       linkType: "article",
     });
   });
@@ -121,9 +92,7 @@ test("a moment of another article, or one whose source no longer allows moments,
 
 test("an item that doesn't exist resolves to nothing", async () => {
   await inRollback(async (trx) => {
-    expect(
-      await kyselyOutboundLinks(trx).resolve("999999999999", null),
-    ).toBeNull();
+    expect(await kyselyOutboundLinks(trx).resolve("999999999999")).toBeNull();
   });
 });
 
@@ -153,37 +122,44 @@ async function readerUser(trx: Transaction<DB>): Promise<string> {
   return id;
 }
 
-test("the reader gets the link, titles, the user's note and save, and the next section", async () => {
-  await inRollback(async (trx, { itemId, momentId }) => {
+test("the reader gets the link, titles, reasons, save, minutes and the article's state", async () => {
+  await inRollback(async (trx, { itemId }) => {
     const userId = await readerUser(trx);
     await trx
       .updateTable("content_item")
       .set({ frameable: true })
       .where("id", "=", itemId)
       .execute();
-    const next = await trx
-      .insertInto("moment")
-      .values({
-        content_item_id: itemId,
-        ordinal: 1,
-        title: "Paxos",
-        estimated_minutes: 4,
-        link: "https://out.example.test/post#paxos",
-        link_type: "anchor",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("content_item_section")
+      .values([
+        { content_item_id: itemId, ordinal: 0, word_count: 500 },
+        { content_item_id: itemId, ordinal: 1, word_count: 400 },
+      ])
+      .execute();
+    // ADR-0058: the feed's one list of articles; an older chip's row is not read.
     await trx
       .insertInto("user_feed_entry")
-      .values({
-        user_id: userId,
-        chip: "3-8",
-        content_item_id: itemId,
-        moment_id: momentId,
-        rank: 1,
-        top_signal: "topic_match",
-        reasons: "Good prep for system design interviews: Caching.",
-      })
+      .values([
+        {
+          user_id: userId,
+          chip: "3-8",
+          content_item_id: itemId,
+          moment_id: null,
+          rank: 1,
+          top_signal: "topic_match",
+          reasons: "Good prep for system design interviews: Caching.",
+        },
+        {
+          user_id: userId,
+          chip: "8-15",
+          content_item_id: itemId,
+          moment_id: null,
+          rank: 1,
+          top_signal: "topic_match",
+          reasons: "An older list's reason.",
+        },
+      ])
       .execute();
     await trx
       .insertInto("user_save")
@@ -196,35 +172,29 @@ test("the reader gets the link, titles, the user's note and save, and the next s
       .select("s.name")
       .where("c.id", "=", itemId)
       .executeTakeFirstOrThrow();
-    expect(await links.reader(userId, itemId, momentId)).toEqual({
-      link: { url: "https://out.example.test/post#raft", linkType: "anchor" },
+    expect(await links.reader(userId, itemId)).toEqual({
+      link: { url: "https://out.example.test/post", linkType: "article" },
       frameable: true,
       articleTitle: "Post",
-      sectionTitle: "Raft",
       sourceName: source.name,
       reasons: "Good prep for system design interviews: Caching.",
       saved: true,
-      nextMomentId: next.id,
-      // P4-W20-S03: what the app's reader measures, to the next section's start.
-      estimatedMinutes: 3,
-      nextLink: "https://out.example.test/post#paxos",
-    });
-    // The last section has no next; it has no feed entry, so no reasons.
-    expect(await links.reader(userId, itemId, next.id)).toMatchObject({
-      sectionTitle: "Paxos",
-      reasons: null,
-      nextMomentId: null,
+      state: "unread",
+      // 900 words at 230 a minute (Q-P1-39).
       estimatedMinutes: 4,
-      nextLink: null,
     });
-    // The whole article: no section, so no next either.
-    expect(await links.reader(userId, itemId, null)).toMatchObject({
-      link: { url: "https://out.example.test/post", linkType: "article" },
-      sectionTitle: null,
-      nextMomentId: null,
-      estimatedMinutes: null,
-      nextLink: null,
-    });
+    await trx
+      .insertInto("user_article_opened")
+      .values({ user_id: userId, content_item_id: itemId })
+      .execute();
+    expect((await links.reader(userId, itemId))?.state).toBe(
+      "continue_reading",
+    );
+    await trx
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: itemId, method: "mark_done" })
+      .execute();
+    expect((await links.reader(userId, itemId))?.state).toBe("completed");
   });
 });
 
@@ -232,11 +202,12 @@ test("the reader says unknown frameability is not frameable, and nothing for no 
   await inRollback(async (trx, { itemId }) => {
     const userId = await readerUser(trx);
     const links = kyselyOutboundLinks(trx);
-    expect(await links.reader(userId, itemId, null)).toMatchObject({
+    expect(await links.reader(userId, itemId)).toMatchObject({
       frameable: false,
       reasons: null,
       saved: false,
+      estimatedMinutes: null,
     });
-    expect(await links.reader(userId, "999999999999", null)).toBeNull();
+    expect(await links.reader(userId, "999999999999")).toBeNull();
   });
 });

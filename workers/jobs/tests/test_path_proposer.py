@@ -128,7 +128,7 @@ def test_candidates_are_ordered_and_saved_as_drafts() -> None:
     got = propose(unit, gateway, "deepseek/x", count=10)
     assert [d.name for d in store.paths.saved] == ["The web stack", "Names and routes"]
     web = store.paths.saved[0]
-    assert [(s.concepts, s.moment_ids) for s in web.sections] == [
+    assert [(s.concepts, s.item_ids) for s in web.sections] == [
         (("tcp",), (2, 1)),
         (("http", "tls"), (14, 13, 4, 3)),
         (("cdn",), (15, 5)),

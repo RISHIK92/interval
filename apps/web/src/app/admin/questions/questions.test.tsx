@@ -47,8 +47,7 @@ const question: ReviewQuestion = {
   validatorAnswer: 1,
   citation: "A candidate needs votes from a majority.",
   articleTitle: "Consensus in practice",
-  sectionTitle: "Raft",
-  link: "https://pub.test/post#raft",
+  link: "https://pub.test/post",
 };
 
 async function page(query: Record<string, string> = {}): Promise<string> {
@@ -86,7 +85,9 @@ test("the queue shows each question with its key, the validator's answer, its qu
   expect(html).toContain("key");
   expect(html).toContain("validator");
   expect(html).toContain("A candidate needs votes from a majority.");
-  expect(html).toContain('href="https://pub.test/post#raft"');
+  expect(html).toMatch(
+    /href="https:\/\/pub.test\/post"[^>]*>Consensus in practice</,
+  );
   expect(html).toMatch(/<button[^>]*value="keep"/);
   expect(html).toMatch(/<button[^>]*value="retire"/);
   // Each reason says why it's here (Q-3, P2-W9-S08: answers looked unusual).
@@ -151,7 +152,6 @@ test("the page has the estimate form; an estimate in the queue shows its answer 
       unit: "writes per second",
       citation: "About ten thousand writes per second.",
       articleTitle: "Postgres limits",
-      sectionTitle: null,
       link: "https://docs.example.test/limits",
       validatorAnswer: null,
     },
@@ -164,8 +164,7 @@ test("the page has the estimate form; an estimate in the queue shows its answer 
       unit: "ms",
       citation: "a lag of 40 ms",
       articleTitle: "Replication",
-      sectionTitle: "Lag",
-      link: "https://blog.example.test/replication#lag",
+      link: "https://blog.example.test/replication",
       validatorAnswer: 45,
     },
   ]);

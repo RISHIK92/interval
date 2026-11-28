@@ -1,4 +1,3 @@
-import type { Chip } from "../server/chips";
 import { type PathNext, QUIZ_SECONDS } from "../server/ports";
 import { ReadingLink } from "./paths/ReadingLink";
 import { SkipSection } from "./paths/SkipSection";
@@ -10,7 +9,7 @@ const BUTTON =
 
 // P2-W10-S06 (REC-1, Q-P2-27): the active path's next step, the feed's first card.
 // Like every card, it says why it's here (§5B).
-export function PathCard({ next, chip }: { next: PathNext; chip: Chip }) {
+export function PathCard({ next }: { next: PathNext }) {
   return (
     <article className="h-full">
       <Card className="flex h-full flex-col gap-3 p-5">
@@ -22,17 +21,19 @@ export function PathCard({ next, chip }: { next: PathNext; chip: Chip }) {
         </p>
         {next.kind === "reading" ? (
           <>
-            <h2 className="text-title">{next.reading.sectionTitle}</h2>
+            <h2 className="text-title">{next.reading.articleTitle}</h2>
             <p className="text-ink-muted">
-              {next.concepts.join(", ")} · reading {next.n} of {next.of} ·{" "}
-              {next.reading.minutes} min · {next.reading.articleTitle}
+              {next.concepts.join(", ")} · reading {next.n} of {next.of}
+              {next.reading.minutes === null
+                ? ""
+                : ` · ${String(next.reading.minutes)} min`}{" "}
+              · {next.reading.sourceName}
             </p>
             <div className="mt-auto flex flex-wrap items-center gap-3">
               <ReadingLink
                 reading={next.reading}
-                label={`Read ${next.reading.sectionTitle}`}
+                label={`Read ${next.reading.articleTitle}`}
                 pathId={next.pathId}
-                chip={chip}
                 className={BUTTON}
               />
               {/* Q-P2-29: mastered already; nothing is skipped without a tap. */}
@@ -49,7 +50,7 @@ export function PathCard({ next, chip }: { next: PathNext; chip: Chip }) {
                     sectionId={next.sectionId}
                     name={next.concepts.join(", ")}
                     reason="mastered"
-                    back={`/?chip=${chip}`}
+                    back="/"
                   />
                 </>
               ) : null}
@@ -68,8 +69,7 @@ export function PathCard({ next, chip }: { next: PathNext; chip: Chip }) {
             </p>
             <form action={startCheckpointAction} className="mt-auto">
               <input type="hidden" name="sectionId" value={next.sectionId} />
-              <input type="hidden" name="chip" value={chip} />
-              <input type="hidden" name="back" value={`/?chip=${chip}`} />
+              <input type="hidden" name="back" value="/" />
               <button type="submit" className={BUTTON}>
                 Take the checkpoint
               </button>

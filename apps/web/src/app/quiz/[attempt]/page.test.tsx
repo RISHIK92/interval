@@ -28,7 +28,6 @@ const running: QuizAttempt = {
   estimation: null,
   daily: null,
   itemId: "5",
-  momentId: "9",
   title: "Raft",
   startedAt: new Date(Date.now() - 20_000),
   endsAt: new Date(Date.now() + 40_000),
@@ -70,14 +69,15 @@ test("a question is four answer buttons and never its key", async () => {
     servedAt: new Date(),
     aiDrafted: false,
   });
-  const html = await render({ chip: "3-8" });
+  const html = await render({});
   expect(next).toHaveBeenCalledWith("u1", "41");
   expect(html).toContain("Test yourself · 60s");
   expect(html).toContain("What does a candidate need?");
   expect(html.match(/name="chosen"/g)).toHaveLength(4);
   for (const i of [0, 1, 2, 3]) expect(html).toContain(`value="${String(i)}"`);
   expect(html).toContain('name="questionId" value="7"');
-  expect(html).toContain('name="chip" value="3-8"');
+  // ADR-0058: no chip rides along any more.
+  expect(html).not.toContain('name="chip"');
   // 2 answered so far; the countdown and Close are there.
   expect(html).toContain("2 answered");
   expect(html).toContain("Close");
@@ -96,7 +96,7 @@ test("a model-drafted question is labeled AI-drafted", async () => {
     servedAt: new Date(),
     aiDrafted: true,
   });
-  expect(await render({ chip: "3-8" })).toContain("AI-drafted");
+  expect(await render({})).toContain("AI-drafted");
 });
 
 test("feedback marks the choice and the right option in words", async () => {
@@ -110,13 +110,13 @@ test("feedback marks the choice and the right option in words", async () => {
     flagged: false,
     aiDrafted: false,
   });
-  const html = await render({ chip: "3-8", answered: "7" });
+  const html = await render({ answered: "7" });
   expect(answered).toHaveBeenCalledWith("u1", "41", "7");
   expect(next).not.toHaveBeenCalled();
   expect(html).toContain("Not quite.");
   expect(html).toContain("Your answer");
   expect(html).toContain("Right answer");
-  expect(html).toContain('href="/quiz/41?chip=3-8"');
+  expect(html).toContain('href="/quiz/41"');
   // Owner, 2026-10-28: no Finish; the sprint runs to its end or is exited.
   expect(html).not.toContain(">Finish<");
 });
@@ -130,7 +130,7 @@ test("Close warns before exiting; exiting ends the test and leaves", async () =>
     servedAt: new Date(),
     aiDrafted: false,
   });
-  const html = await render({ chip: "3-8" });
+  const html = await render({});
   // Owner, 2026-10-28: warn that exiting affects the score.
   expect(html).toMatch(/<button[^>]*popovertarget="quiz-exit"[^>]*>/i);
   expect(html).toContain(
@@ -153,7 +153,7 @@ test("a right answer says so", async () => {
     flagged: false,
     aiDrafted: false,
   });
-  const html = await render({ chip: "3-8", answered: "7" });
+  const html = await render({ answered: "7" });
   expect(html).toContain("Correct.");
   expect(html).not.toContain("Your answer");
 });
@@ -161,46 +161,39 @@ test("a right answer says so", async () => {
 test("when time is up or the questions run out, it offers Finish", async () => {
   next.mockResolvedValue("over");
   const html = await render(
-    { chip: "3-8" },
+    {},
     { ...running, endsAt: new Date(Date.now() - 1_000), secondsLeft: 0 },
   );
   expect(html).toContain("Time&#x27;s up");
   expect(html).toContain("See results");
   // Out of questions with time left: it ends early, and says so (Q-P2-14).
-  const early = await render({ chip: "3-8" });
+  const early = await render({});
   expect(early).toContain("That&#x27;s every question for now.");
   expect(early).not.toContain("Time&#x27;s up");
 });
 
 test("the footer names where the questions come from", async () => {
   next.mockResolvedValue("over");
+  // ADR-0058: an article's quiz, whatever chip an old link still carries.
   expect(await render({ chip: "3-8" })).toContain(
-    "Questions from this section",
+    "Questions from this article",
   );
-  expect(
-    await render({ chip: "3-8" }, { ...running, momentId: null }),
-  ).toContain("Questions from this article");
 });
 
 test("a finished attempt goes to its results", async () => {
   await expect(
-    render({ chip: "1-3" }, { ...running, finishedAt: new Date() }),
-  ).rejects.toThrow("redirect:/quiz/41/results?chip=1-3");
+    render({}, { ...running, finishedAt: new Date() }),
+  ).rejects.toThrow("redirect:/quiz/41/results");
 });
 
 test("someone else's attempt, or bad input, goes home", async () => {
-  await expect(render({ chip: "3-8" }, null)).rejects.toThrow("redirect:/");
-  await expect(render({ chip: "huge" })).rejects.toThrow("redirect:/");
-  await expect(render({ chip: "3-8", answered: "x" })).rejects.toThrow(
-    "redirect:/",
-  );
+  await expect(render({}, null)).rejects.toThrow("redirect:/");
+  await expect(render({ answered: "x" })).rejects.toThrow("redirect:/");
 });
 
 test("feedback for a question not answered goes back to the quiz", async () => {
   answered.mockResolvedValue(null);
-  await expect(render({ chip: "3-8", answered: "7" })).rejects.toThrow(
-    "redirect:/quiz/41?chip=3-8",
-  );
+  await expect(render({ answered: "7" })).rejects.toThrow("redirect:/quiz/41");
 });
 
 // P2-W9-S05: a review is untimed, one question per concept due.
@@ -209,7 +202,6 @@ test("a review has no clock and says when every due concept is done", async () =
     ...running,
     review: true,
     itemId: null,
-    momentId: null,
     title: "Review",
     endsAt: null,
     secondsLeft: null,
@@ -222,7 +214,7 @@ test("a review has no clock and says when every due concept is done", async () =
     servedAt: new Date(),
     aiDrafted: false,
   });
-  const html = await render({ chip: "3-8" }, review);
+  const html = await render({}, review);
   expect(html).toContain("Review");
   expect(html).not.toContain('role="progressbar"');
   expect(html).toContain("One question per concept due for review");
@@ -233,7 +225,7 @@ test("a review has no clock and says when every due concept is done", async () =
   expect(html).toContain('name="leave" value="library"');
   expect(html).not.toContain("will affect your score");
   next.mockResolvedValue("over");
-  const done = await render({ chip: "3-8" }, review);
+  const done = await render({}, review);
   expect(done).toContain("That&#x27;s every concept due.");
   expect(done).toContain("See results");
 });
@@ -250,7 +242,7 @@ test("an answered question can be flagged with a reason, then says it was", asyn
     flagged: false,
     aiDrafted: false,
   });
-  const html = await render({ chip: "3-8", answered: "7" });
+  const html = await render({ answered: "7" });
   expect(html).toContain("Report a problem with this question");
   for (const value of ["wrong_key", "unclear", "not_in_section", "other"])
     expect(html).toContain(`value="${value}"`);
@@ -272,7 +264,7 @@ test("an answered question can be flagged with a reason, then says it was", asyn
     flagged: true,
     aiDrafted: false,
   });
-  const done = await render({ chip: "3-8", answered: "7" });
+  const done = await render({ answered: "7" });
   expect(done).not.toContain("Send report");
   expect(done).toContain("Thanks. This question is out of quizzes until it");
 });
@@ -287,11 +279,10 @@ test("a checkpoint says what passing unlocks, and Close goes back to the path", 
     aiDrafted: false,
   });
   const html = await render(
-    { chip: "3-8" },
+    {},
     {
       ...running,
       itemId: null,
-      momentId: null,
       title: "Quorums",
       checkpoint: {
         at: { kind: "path", pathId: "6", sectionId: "60" },
@@ -323,14 +314,13 @@ test("a sprint is named as one, and Close goes back to Play", async () => {
     aiDrafted: false,
   });
   const html = await render(
-    { chip: "3-8" },
+    {},
     {
       ...running,
       sprint: true,
       estimation: null,
       daily: null,
       itemId: null,
-      momentId: null,
       title: "60-second sprint",
     },
   );
@@ -359,13 +349,12 @@ test("a guest gets no report form: a flag isn't theirs to make (ADR-0029)", asyn
     estimation: null,
     daily: null,
     itemId: null,
-    momentId: null,
   });
   const { default: QuizPage } = await import("./page");
   const html = renderToStaticMarkup(
     await QuizPage({
       params: Promise.resolve({ attempt: "41" }),
-      searchParams: Promise.resolve({ chip: "3-8", answered: "7" }),
+      searchParams: Promise.resolve({ answered: "7" }),
     }),
   );
   expect(html).toContain("Next question");
@@ -379,7 +368,6 @@ const round: QuizAttempt = {
   sprint: true,
   estimation: { points: 0, answers: [] },
   itemId: null,
-  momentId: null,
   title: "Estimation",
 };
 
@@ -392,7 +380,7 @@ test("an estimate asks for a positive number in its unit, named as an estimation
     servedAt: new Date(),
     aiDrafted: false,
   });
-  const html = await render({ chip: "3-8" }, round);
+  const html = await render({}, round);
   expect(html).toContain("How long is a disk seek?");
   const input = /<input[^>]*name="guess"[^>]*>/.exec(html)?.[0] ?? "";
   for (const attribute of [
@@ -431,7 +419,7 @@ const reveal = {
 
 test("the reveal shows the guess, the answer, the points and the cited source", async () => {
   answered.mockResolvedValue(reveal);
-  const html = await render({ chip: "3-8", answered: "7" }, round);
+  const html = await render({ answered: "7" }, round);
   const text = html.replace(/<[^>]+>/g, "|");
   expect(text).toContain("Your guess");
   expect(text).toMatch(/30\|?\s*ms/);
@@ -447,37 +435,32 @@ test("the reveal shows the guess, the answer, the points and the cited source", 
   expect(html).toContain("Report a problem");
 });
 
-// P3-W13-S03b (Q-P2-12): a moment's estimate links its section, never quotes it.
-test("a moment's estimate reveals its section through the reader, without a quote", async () => {
+// P3-W13-S03b (Q-P2-12): an article's estimate links its article, never quotes it.
+test("an article's estimate reveals its article through the reader, without a quote", async () => {
   answered.mockResolvedValue({
     ...reveal,
     source: {
-      kind: "section",
+      kind: "article",
       itemId: "5",
-      momentId: "9",
-      sectionTitle: "Replication",
+      articleTitle: "Replication",
       frameable: true,
     },
   });
-  const html = await render({ chip: "3-8", answered: "7" }, round);
-  expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Replication</);
+  const html = await render({ answered: "7" }, round);
+  expect(html).toMatch(/href="\/read\/5\?from=reader"[^>]*>Replication</);
   expect(html).not.toContain("&ldquo;");
   expect(html).not.toContain("\u201c");
   answered.mockResolvedValue({ ...reveal, source: null });
-  const gone = await render({ chip: "3-8", answered: "7" }, round);
+  const gone = await render({ answered: "7" }, round);
   expect(gone).toContain("47 points");
   expect(gone).not.toContain("<blockquote");
 });
 
 test("the reveal names full points and close guesses", async () => {
   answered.mockResolvedValue({ ...reveal, guess: 11, score: 1 });
-  expect(await render({ chip: "3-8", answered: "7" }, round)).toContain(
-    "Full points",
-  );
+  expect(await render({ answered: "7" }, round)).toContain("Full points");
   answered.mockResolvedValue({ ...reveal, guess: 25, score: 0.56 });
-  expect(await render({ chip: "3-8", answered: "7" }, round)).toContain(
-    "Close",
-  );
+  expect(await render({ answered: "7" }, round)).toContain("Close");
 });
 
 test("the daily challenge is named as one, says it's one attempt, and Close goes back to Play", async () => {
@@ -490,7 +473,7 @@ test("the daily challenge is named as one, says it's one attempt, and Close goes
     aiDrafted: false,
   });
   const html = await render(
-    { chip: "3-8" },
+    {},
     {
       ...running,
       daily: {
@@ -500,7 +483,6 @@ test("the daily challenge is named as one, says it's one attempt, and Close goes
         shareId: "3f2c1a9e-5b7d-4c8e-9a1b-2d3e4f5a6b7c",
       },
       itemId: null,
-      momentId: null,
       title: "Daily challenge",
     },
   );

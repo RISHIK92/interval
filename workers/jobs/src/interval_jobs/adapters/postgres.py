@@ -20,7 +20,6 @@ from psycopg.types.json import Jsonb
 from interval_db.generated import (
     AiProvider,
     BetaGroup,
-    BreakLength,
     Capability,
     Difficulty,
     LeagueTier,
@@ -36,6 +35,7 @@ from interval_jobs.irt import Answer
 from interval_jobs.match_results import MatchResult, flagged
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
+    FEED_CHIP,
     PROJECT_NOTE_PROMPT_VERSION,
     VALIDATORS_MAX_AGE,
     Arm,
@@ -52,7 +52,6 @@ from interval_jobs.ports import (
     BookPageText,
     BookQuestion,
     CandidateArticle,
-    CandidateMoment,
     Caption,
     ChapterForCheckpoint,
     CheckpointFacts,
@@ -72,7 +71,6 @@ from interval_jobs.ports import (
     ExplainerToVoice,
     FeedEntry,
     FetchInput,
-    Finished,
     GitHubSyncInput,
     GrantResult,
     HldFacts,
@@ -92,8 +90,6 @@ from interval_jobs.ports import (
     LeagueWeekRow,
     MatchFacts,
     MatchSeat,
-    MomentLink,
-    MomentRow,
     NativeTarget,
     NoteBatchEntry,
     PathDraft,
@@ -118,18 +114,14 @@ from interval_jobs.ports import (
     RevokeResult,
     RightsViolation,
     Section,
-    SectionRow,
-    SegmentationInput,
     SessionCandidate,
-    SimilarMoment,
+    SimilarArticle,
     SourceRecord,
     SourceSettings,
     StemCandidate,
     SyncResult,
     TagInput,
-    TagMoment,
     TagResult,
-    Tags,
     TechnologiesSynced,
     TechnologySuggestion,
     Unclaimed,
@@ -184,7 +176,7 @@ class PostgresSources:
     def get(self, source_id: int) -> SourceRecord | None:
         with self._conn.cursor(row_factory=class_row(SourceRecord)) as cur:
             return cur.execute(
-                "select id, feed_url, rights_profile, active, moments_enabled, "
+                "select id, feed_url, rights_profile, active, "
                 "make_interval(secs => poll_interval_seconds) as poll_interval, "
                 "polled_at "
                 "from source where id = %s",
@@ -266,23 +258,20 @@ class PostgresSources:
             values = _settings_values(seed)
             if row is None:
                 self._conn.execute(
-                    f"insert into source (name, {_SETTINGS_WRITE}, moments_enabled) "
-                    "values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (seed.name, *values, seed.moments_enabled),
+                    f"insert into source (name, {_SETTINGS_WRITE}) "
+                    "values (%s, %s, %s, %s, %s, %s, %s)",
+                    (seed.name, *values),
                 )
                 added += 1
                 continue
-            current = (row[1], *row[2:8], list(row[8]))
-            if row[9] and current == (seed.name, *values):
+            current = (row[1], *row[2:7], list(row[7]))
+            if row[8] and current == (seed.name, *values):
                 unchanged += 1
                 continue
-            # One update, so the purge triggers see profile and switch together. An
-            # admin's moments switch (P1-W3-S06) outlives the reload.
             self._conn.execute(
-                f"update source set (name, {_SETTINGS_WRITE}, active, "
-                "moments_enabled) = (%s, %s, %s, %s, %s, %s, %s, %s, true, "
-                "%s and not moments_switched_off) where id = %s",
-                (seed.name, *values, seed.moments_enabled, row[0]),
+                f"update source set (name, {_SETTINGS_WRITE}, active) = "
+                "(%s, %s, %s, %s, %s, %s, %s, true) where id = %s",
+                (seed.name, *values, row[0]),
             )
             updated += 1
         deactivated = self._conn.execute(
@@ -292,12 +281,8 @@ class PostgresSources:
         return SyncResult(added, updated, unchanged, deactivated)
 
 
-# The seed file's own settings; moments_enabled itself is moments_seeded unless an
-# admin switched moments off (P1-W3-S06).
-_SETTINGS_WRITE = (
-    "feed_url, rights_profile, homepage, moments_seeded, paywalled, "
-    "quality_score, topics"
-)
+# The seed file's own settings (ADR-0058: the moments columns are no longer written).
+_SETTINGS_WRITE = "feed_url, rights_profile, homepage, paywalled, quality_score, topics"
 # The same columns read back for comparison: the enum as text.
 _SETTINGS_READ = _SETTINGS_WRITE.replace("rights_profile", "rights_profile::text")
 
@@ -307,7 +292,6 @@ def _settings_values(seed: SourceSettings) -> tuple[object, ...]:
         seed.feed_url,
         seed.rights_profile,
         seed.homepage,
-        seed.moments_enabled,
         seed.paywalled,
         seed.quality_score,
         list(seed.topics),
@@ -471,6 +455,16 @@ class PostgresItems:
             )
 
     def store_full_text(self, item_id: int, text: str) -> None:
+        # The article's vector was made from the text it replaces: embedded again.
+        self._conn.execute(
+            """
+            delete from item_embedding where content_item_id = %(item)s and exists (
+              select 1 from content_item_private_text
+              where content_item_id = %(item)s and text <> %(text)s
+            )
+            """,
+            {"item": item_id, "text": text},
+        )
         with _rights_guard(self._conn):
             self._conn.execute(
                 """
@@ -505,34 +499,6 @@ class PostgresItems:
                     ],
                 )
 
-    def for_segmentation(self, item_id: int) -> SegmentationInput | None:
-        with self._conn.cursor(row_factory=class_row(SegmentationInput)) as cur:
-            # Row lock: concurrent runs on one item take turns instead of colliding.
-            return cur.execute(
-                """
-                select ci.title, ci.canonical_url, s.rights_profile, s.moments_enabled
-                from content_item ci join source s on s.id = ci.source_id
-                where ci.id = %s
-                for update of ci
-                """,
-                (item_id,),
-            ).fetchone()
-
-    def sections(self, item_id: int) -> list[SectionRow]:
-        with self._conn.cursor(row_factory=class_row(SectionRow)) as cur:
-            return cur.execute(
-                "select heading, anchor_id, word_count, level "
-                "from content_item_section where content_item_id = %s order by ordinal",
-                (item_id,),
-            ).fetchall()
-
-    def boundary_override(self, item_id: int) -> list[str] | None:
-        row = self._conn.execute(
-            "select headings from moment_boundary_override where content_item_id = %s",
-            (item_id,),
-        ).fetchone()
-        return None if row is None else [str(h) for h in row[0]]
-
     def for_fetch(self, item_id: int) -> FetchInput | None:
         with self._conn.cursor(row_factory=class_row(FetchInput)) as cur:
             return cur.execute(
@@ -557,77 +523,13 @@ class PostgresItems:
         return row is not None
 
 
-class PostgresMoments:
-    def __init__(self, conn: psycopg.Connection) -> None:
-        self._conn = conn
-
-    def exist(self, item_id: int) -> bool:
-        row = self._conn.execute(
-            "select 1 from moment where content_item_id = %s limit 1", (item_id,)
-        ).fetchone()
-        return row is not None
-
-    def links(self, source_id: int | None) -> list[MomentLink]:
-        with self._conn.cursor(row_factory=class_row(MomentLink)) as cur:
-            return cur.execute(
-                """
-                select m.id as moment_id, ci.id as item_id, s.id as source_id,
-                       s.name as source_name, m.title, m.link, m.link_type
-                from moment m
-                join content_item ci on ci.id = m.content_item_id
-                join source s on s.id = ci.source_id
-                where s.moments_enabled
-                  and (%(source)s::bigint is null or s.id = %(source)s)
-                order by s.id, ci.id, m.ordinal
-                """,
-                {"source": source_id},
-            ).fetchall()
-
-    def replace(self, item_id: int, rows: list[MomentRow]) -> None:
-        with _rights_guard(self._conn):
-            with self._conn.cursor() as cur:
-                cur.executemany(
-                    """
-                    insert into moment
-                      (content_item_id, ordinal, title, estimated_minutes,
-                       link, link_type, oversized)
-                    values (%s, %s, %s, %s, %s, %s, %s)
-                    on conflict (content_item_id, ordinal) do update
-                      set title = excluded.title,
-                          estimated_minutes = excluded.estimated_minutes,
-                          link = excluded.link,
-                          link_type = excluded.link_type,
-                          oversized = excluded.oversized
-                    """,
-                    [
-                        (
-                            item_id,
-                            r.ordinal,
-                            r.title,
-                            r.estimated_minutes,
-                            r.link,
-                            r.link_type,
-                            r.oversized,
-                        )
-                        for r in rows
-                    ],
-                )
-            self._conn.execute(
-                "delete from moment where content_item_id = %s and ordinal >= %s",
-                (item_id, len(rows)),
-            )
-
-
-# The ranked entries as rows, numbered in order; an entry whose item or moment is gone
-# is skipped.
+# The ranked entries as rows, numbered in order; an entry whose item is gone is skipped.
 _RANKED_ROWS = """
-from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::text[], %s::text[],
+from unnest(%s::bigint[], %s::text[], %s::text[], %s::text[],
             %s::text[], %s::jsonb[], %s::text[], %s::difficulty[]) with ordinality
-  as r(item_id, moment_id, top_signal, reasons, explore_kind, explore_arm,
+  as r(item_id, top_signal, reasons, explore_kind, explore_arm,
        score_parts, reason_kinds, difficulty, rank)
 where exists (select 1 from content_item ci where ci.id = r.item_id)
-  and (r.moment_id is null
-       or exists (select 1 from moment m where m.id = r.moment_id))
 """
 
 
@@ -635,7 +537,6 @@ def _ranked_arrays(
     ranked: list[RankedEntry],
 ) -> tuple[
     list[int],
-    list[int | None],
     list[str],
     list[str | None],
     list[str | None],
@@ -646,7 +547,6 @@ def _ranked_arrays(
 ]:
     return (
         [r.item_id for r in ranked],
-        [r.moment_id for r in ranked],
         [r.top_signal for r in ranked],
         [r.reasons for r in ranked],
         [r.arm.kind if r.arm else None for r in ranked],
@@ -671,10 +571,7 @@ class PostgresFeed:
         )
 
     def replace_user(
-        self,
-        user_id: str,
-        by_chip: Mapping[BreakLength, list[RankedEntry]],
-        computed_at: datetime,
+        self, user_id: str, ranked: list[RankedEntry], computed_at: datetime
     ) -> None:
         # One savepoint: the old feed stays whole unless the new one lands (LOAD-5).
         with self._conn.transaction():
@@ -687,22 +584,19 @@ class PostgresFeed:
             self._conn.execute(
                 "delete from user_feed_entry where user_id = %s", (user_id,)
             )
-            # Items or moments deleted since ranking are skipped; the rank keeps the
-            # order.
-            for chip, ranked in by_chip.items():
-                self._conn.execute(
-                    f"""
-                    insert into user_feed_entry
-                      (user_id, chip, content_item_id, moment_id, rank, top_signal,
-                       reasons, explore_kind, explore_arm, score_parts,
-                       reason_kinds, difficulty)
-                    select %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                           r.top_signal, r.reasons, r.explore_kind, r.explore_arm,
-                           r.score_parts, r.reason_kinds::text[], r.difficulty
-                    {_RANKED_ROWS}
-                    """,
-                    (user_id, chip, *_ranked_arrays(ranked)),
-                )
+            # Items deleted since ranking are skipped; the rank keeps the order.
+            self._conn.execute(
+                f"""
+                insert into user_feed_entry
+                  (user_id, chip, content_item_id, rank, top_signal, reasons,
+                   explore_kind, explore_arm, score_parts, reason_kinds, difficulty)
+                select %s, %s::break_length, r.item_id, r.rank, r.top_signal,
+                       r.reasons, r.explore_kind, r.explore_arm, r.score_parts,
+                       r.reason_kinds::text[], r.difficulty
+                {_RANKED_ROWS}
+                """,
+                (user_id, FEED_CHIP, *_ranked_arrays(ranked)),
+            )
             self._conn.execute(
                 "insert into user_feed_state (user_id, computed_at) values (%s, %s) "
                 "on conflict (user_id) "
@@ -711,33 +605,29 @@ class PostgresFeed:
             )
 
     def replace_starter(
-        self,
-        topic: str,
-        level: Difficulty,
-        chip: BreakLength,
-        ranked: list[RankedEntry],
+        self, topic: str, level: Difficulty, ranked: list[RankedEntry]
     ) -> None:
         with self._conn.transaction():
             # Overlapping hourly runs (a slow one and the next) may rewrite it at once.
             self._conn.execute(
                 "select pg_advisory_xact_lock(%s, hashtext(%s))",
-                (FEED_LOCK_KEY, f"starter:{topic}:{level}:{chip}"),
+                (FEED_LOCK_KEY, f"starter:{topic}:{level}"),
             )
+            # Every chip's rows: the other chips' lists of before ADR-0058 go too.
             self._conn.execute(
-                "delete from starter_feed_entry "
-                "where topic = %s and level = %s and chip = %s",
-                (topic, level, chip),
+                "delete from starter_feed_entry where topic = %s and level = %s",
+                (topic, level),
             )
             self._conn.execute(
                 f"""
                 insert into starter_feed_entry
-                  (topic, level, chip, content_item_id, moment_id, rank, reasons,
-                   reason_kinds, difficulty)
-                select %s, %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                       r.reasons, r.reason_kinds::text[], r.difficulty
+                  (topic, level, chip, content_item_id, rank, reasons, reason_kinds,
+                   difficulty)
+                select %s, %s, %s::break_length, r.item_id, r.rank, r.reasons,
+                       r.reason_kinds::text[], r.difficulty
                 {_RANKED_ROWS}
                 """,
-                (topic, level, chip, *_ranked_arrays(ranked)),
+                (topic, level, FEED_CHIP, *_ranked_arrays(ranked)),
             )
 
     def active_users(self, since: datetime) -> list[str]:
@@ -1129,17 +1019,7 @@ class PostgresItemTags:
         if row is None:
             return None
         title, summary, text, excerpt, version, duplicate = row
-        moments = [
-            TagMoment(int(m_id), int(ordinal), None if kind == "page_top" else title_)
-            for m_id, ordinal, title_, kind in self._conn.execute(
-                "select id, ordinal, title, link_type from moment "
-                "where content_item_id = %s order by ordinal",
-                (item_id,),
-            ).fetchall()
-        ]
-        return TagInput(
-            title, summary, text, excerpt, moments, version, bool(duplicate)
-        )
+        return TagInput(title, summary, text, excerpt, [], version, bool(duplicate))
 
     def version(self, item_id: int) -> int | None:
         row = self._conn.execute(
@@ -1161,16 +1041,6 @@ class PostgresItemTags:
         ).fetchone()
         return bool(row and row[0])
 
-    def clear(self, item_id: int) -> None:
-        self._conn.execute(
-            "delete from moment_tagging where moment_id in "
-            "(select id from moment where content_item_id = %s)",
-            (item_id,),
-        )
-        self._conn.execute(
-            "delete from item_tagging where content_item_id = %s", (item_id,)
-        )
-
     def find(self, canonical_url: str) -> int | None:
         row = self._conn.execute(
             "select id from content_item where canonical_url = %s "
@@ -1183,21 +1053,9 @@ class PostgresItemTags:
         self, item_id: int, result: TagResult, model: str, prompt_version: int
     ) -> None:
         conn = self._conn
-        owned = {
-            int(r[0])
-            for r in conn.execute(
-                "select id from moment where content_item_id = %s", (item_id,)
-            ).fetchall()
-        }
-        foreign = sorted(set(result.moments) - owned)
-        if foreign:
-            raise ValueError(f"moments {foreign} are not item {item_id}'s")
+        if result.moments:
+            raise ValueError("an article is tagged whole (ADR-0058)")
         conn.execute("delete from item_tagging where content_item_id = %s", (item_id,))
-        conn.execute(
-            "delete from moment_tagging where moment_id in "
-            "(select id from moment where content_item_id = %s)",
-            (item_id,),
-        )
         conn.execute(
             "insert into item_tagging "
             "(content_item_id, difficulty, model, prompt_version) "
@@ -1209,50 +1067,6 @@ class PostgresItemTags:
             "select %s, id from concept where slug = any(%s)",
             (item_id, sorted(result.item.concepts)),
         )
-        for moment_id, tags in result.moments.items():
-            conn.execute(
-                "insert into moment_tagging (moment_id, difficulty) values (%s, %s)",
-                (moment_id, tags.difficulty),
-            )
-            conn.execute(
-                "insert into moment_concept (moment_id, concept_id) "
-                "select %s, id from concept where slug = any(%s)",
-                (moment_id, sorted(tags.concepts)),
-            )
-
-    def for_item(self, item_id: int) -> tuple[Tags | None, dict[int, Tags]]:
-        row = self._conn.execute(
-            """
-            select it.difficulty,
-                   coalesce(array_agg(c.slug) filter (where c.slug is not null), '{}')
-            from item_tagging it
-            left join item_concept ic on ic.content_item_id = it.content_item_id
-            left join concept c on c.id = ic.concept_id
-            where it.content_item_id = %s
-            group by it.difficulty
-            """,
-            (item_id,),
-        ).fetchone()
-        item = None if row is None else Tags(row[0], frozenset(row[1]))
-        moments = {
-            int(ordinal): Tags(difficulty, frozenset(slugs))
-            for ordinal, difficulty, slugs in self._conn.execute(
-                """
-                select m.ordinal, mt.difficulty,
-                       coalesce(
-                         array_agg(c.slug) filter (where c.slug is not null), '{}'
-                       )
-                from moment m
-                join moment_tagging mt on mt.moment_id = m.id
-                left join moment_concept mc on mc.moment_id = m.id
-                left join concept c on c.id = mc.concept_id
-                where m.content_item_id = %s
-                group by m.ordinal, mt.difficulty
-                """,
-                (item_id,),
-            ).fetchall()
-        }
-        return item, moments
 
 
 def _vector(values: list[float]) -> str:
@@ -1269,10 +1083,14 @@ class PostgresEmbeddings:
         row = self._conn.execute(
             """
             select ci.duplicate_of is null
-               and exists (select 1 from moment m where m.content_item_id = ci.id)
+               and exists (
+                 select 1 from content_item_private_text pt
+                 where pt.content_item_id = ci.id
+               )
                and not exists (
                  select 1 from item_embedding ie
                  where ie.content_item_id = ci.id and ie.model = %s
+                   and ie.embedding is not null
                )
             from content_item ci where ci.id = %s
             """,
@@ -1280,60 +1098,24 @@ class PostgresEmbeddings:
         ).fetchone()
         return bool(row and row[0])
 
-    def done(self, item_id: int, model: str) -> set[int]:
-        rows = self._conn.execute(
-            "select e.moment_id from moment_embedding e "
-            "join moment m on m.id = e.moment_id "
-            "where m.content_item_id = %s and e.model = %s",
+    def save(self, item_id: int, vector: list[float], model: str) -> None:
+        self._conn.execute(
+            """
+            insert into item_embedding (content_item_id, model, embedding)
+            values (%s, %s, %s::vector)
+            on conflict (content_item_id, model) do update
+              set embedding = excluded.embedding, embedded_at = now()
+            """,
+            (item_id, model, _vector(vector)),
+        )
+
+    def vector(self, item_id: int, model: str) -> list[float] | None:
+        row = self._conn.execute(
+            "select embedding::text from item_embedding "
+            "where content_item_id = %s and model = %s and embedding is not null",
             (item_id, model),
-        ).fetchall()
-        return {int(r[0]) for r in rows}
-
-    def save(
-        self,
-        item_id: int,
-        vectors: dict[int, list[float]],
-        model: str,
-        *,
-        complete: bool,
-    ) -> None:
-        owned = {
-            int(r[0])
-            for r in self._conn.execute(
-                "select id from moment where content_item_id = %s", (item_id,)
-            ).fetchall()
-        }
-        foreign = sorted(set(vectors) - owned)
-        if foreign:
-            raise ValueError(f"moments {foreign} are not item {item_id}'s")
-        with self._conn.cursor() as cur:
-            cur.executemany(
-                """
-                insert into moment_embedding (moment_id, model, embedding)
-                values (%s, %s, %s::vector)
-                on conflict (moment_id) do update
-                  set model = excluded.model,
-                      embedding = excluded.embedding,
-                      embedded_at = now()
-                """,
-                [(m, model, _vector(v)) for m, v in sorted(vectors.items())],
-            )
-        if complete:
-            self._conn.execute(
-                "insert into item_embedding (content_item_id, model) values (%s, %s) "
-                "on conflict do nothing",
-                (item_id, model),
-            )
-
-    def clear(self, item_id: int) -> None:
-        self._conn.execute(
-            "delete from moment_embedding where moment_id in "
-            "(select id from moment where content_item_id = %s)",
-            (item_id,),
-        )
-        self._conn.execute(
-            "delete from item_embedding where content_item_id = %s", (item_id,)
-        )
+        ).fetchone()
+        return None if row is None else _floats(str(row[0]))
 
     def similar(
         self,
@@ -1345,39 +1127,27 @@ class PostgresEmbeddings:
         model: str | None = None,
         exclude_sources: set[int] | None = None,
         exclude_items: set[int] | None = None,
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[SimilarMoment]:
+    ) -> list[SimilarArticle]:
         # With filters, a plain HNSW scan returns at most ef_search candidates and
         # filters them afterwards; the iterative scan keeps going until `limit` match.
         self._conn.execute("set local hnsw.iterative_scan = strict_order")
         rows = self._conn.execute(
-            """
-            with shown_item as (
-              -- Per duplicate group, the earliest copy that has moments: the one the
-              -- feed shows (owner review, 2026-10-26).
-              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
-              from content_item c
-              where exists (select 1 from moment x where x.content_item_id = c.id)
-                and c.link_broken_at is null  -- P1-W6-S03
-              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
-            )
-            select e.moment_id, m.content_item_id, ci.source_id,
+            f"""
+            with shown_item as ({_SHOWN_ITEMS})
+            select e.content_item_id, ci.source_id,
                    1 - (e.embedding <=> %(v)s::vector) as score
-            from moment_embedding e
-            join moment m on m.id = e.moment_id
-            join content_item ci on ci.id = m.content_item_id
+            from item_embedding e
+            join content_item ci on ci.id = e.content_item_id
             join source s on s.id = ci.source_id
-            left join moment_tagging t on t.moment_id = m.id
+            left join item_tagging t on t.content_item_id = ci.id
             -- An admin's correction wins over the model's level (P1-W3-S05).
-            left join tag_override o
-              on o.content_item_id = m.content_item_id
-             and o.heading = m.title and m.link_type <> 'page_top'
-            where s.rights_profile in ('full_text_internal', 'full_text_display')
+            left join tag_override o on o.content_item_id = ci.id and o.heading = ''
+            where e.embedding is not null
+              and s.rights_profile in ('full_text_internal', 'full_text_display')
               and (%(sources)s::bigint[] is null or s.id = any(%(sources)s))
               and (%(model)s::text is null or e.model = %(model)s)
               and s.active and ci.id in (select id from shown_item)
               and s.id <> all(%(no_sources)s) and ci.id <> all(%(no_items)s)
-              and m.id <> all(%(no_moments)s)
               and (
                 %(levels)s::difficulty[] is null
                 or coalesce(o.difficulty, t.difficulty) = any(%(levels)s)
@@ -1393,24 +1163,24 @@ class PostgresEmbeddings:
                 "model": model,
                 "no_sources": sorted(exclude_sources or set()),
                 "no_items": sorted(exclude_items or set()),
-                "no_moments": sorted(exclude_moments),
             },
         ).fetchall()
-        return [
-            SimilarMoment(int(r[0]), int(r[1]), int(r[2]), float(r[3])) for r in rows
-        ]
+        return [SimilarArticle(int(r[0]), int(r[1]), float(r[2])) for r in rows]
 
-    def vectors_of_item(self, item_id: int, model: str) -> dict[int, list[float]]:
-        rows = self._conn.execute(
-            "select m.id, e.embedding::text from moment_embedding e "
-            "join moment m on m.id = e.moment_id "
-            "where m.content_item_id = %s and e.model = %s order by m.ordinal",
-            (item_id, model),
-        ).fetchall()
-        return {
-            int(r[0]): [float(x) for x in str(r[1]).strip("[]").split(",")]
-            for r in rows
-        }
+
+def _floats(text: str) -> list[float]:
+    return [float(x) for x in text.strip("[]").split(",")]
+
+
+# Per duplicate group, the copy the feed shows: the earliest whose link works
+# (P1-W6-S03). The earliest is the group's primary (Q-P1-08), the one tagged,
+# embedded and drafted for.
+_SHOWN_ITEMS = """
+    select distinct on (coalesce(c.duplicate_of, c.id)) c.id
+    from content_item c
+    where c.link_broken_at is null
+    order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
+"""
 
 
 # An item's concepts: the admin's correction replaces the model's tags (P1-W3-S05).
@@ -1452,7 +1222,7 @@ class PostgresRankingInputs:
     def preferences(self, user_id: str) -> UserPreferences | None:
         # psycopg doesn't parse arrays of an unregistered enum type: read as text[].
         row = self._conn.execute(
-            "select topics::text[], level, break_length::text, "
+            "select topics::text[], level, "
             # The enum's own order, which LEARNING_GOALS mirrors.
             "array(select u.goal::text from unnest(goals) as u(goal) order by u.goal) "
             "from user_preferences where user_id = %s",
@@ -1469,8 +1239,7 @@ class PostgresRankingInputs:
         return UserPreferences(
             topics=[cast(Topic, t) for t in row[0]],
             level=row[1],
-            break_length=cast(BreakLength, row[2]),
-            goals=[cast(LearningGoal, g) for g in row[3]],
+            goals=[cast(LearningGoal, g) for g in row[2]],
         )
 
     def goal_concepts(
@@ -1540,68 +1309,18 @@ class PostgresRankingInputs:
         rows = self._conn.execute("select key, value from ranking_config").fetchall()
         return {str(r[0]): float(r[1]) for r in rows}
 
-    def finished(self, user_id: str) -> Finished:
-        moments = self._conn.execute(
-            "select moment_id from user_moment_finished where user_id = %s",
-            (user_id,),
-        ).fetchall()
+    def finished(self, user_id: str) -> frozenset[int]:
         items = self._conn.execute(
             "select content_item_id from user_article_finished where user_id = %s",
             (user_id,),
         ).fetchall()
-        return Finished(
-            frozenset(int(r[0]) for r in moments), frozenset(int(r[0]) for r in items)
-        )
+        return frozenset(int(r[0]) for r in items)
 
     def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
         rows = self._conn.execute(
             "select kind, arm, shown, finished from explore_arm_outcome"
         ).fetchall()
         return {Arm(r[0], r[1]): ArmOutcome(int(r[2]), int(r[3])) for r in rows}
-
-    def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
-        rows = self._conn.execute(
-            f"""
-            select m.id, ci.id, s.id, m.estimated_minutes,
-                   -- Human before model (owner, 2026-10-26): the admin's moment level,
-                   -- the admin's item level, the model's moment tag, its item tag.
-                   coalesce(mo.difficulty, io.difficulty, mt.difficulty, it.difficulty),
-                   ci.published_at, s.quality_score,
-                   array(select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c),
-                   s.topics || array(
-                     select k.topic from concept k
-                     where k.slug in (
-                       select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c2
-                     )
-                   ),
-                   s.name
-            from moment m
-            join content_item ci on ci.id = m.content_item_id
-            join source s on s.id = ci.source_id
-            left join moment_tagging mt on mt.moment_id = m.id
-            left join tag_override mo on mo.content_item_id = ci.id
-              and mo.heading = m.title and m.link_type <> 'page_top'
-            left join tag_override io on io.content_item_id = ci.id and io.heading = ''
-            left join item_tagging it on it.content_item_id = ci.id
-            where m.id = any(%s)
-            """,
-            (moment_ids,),
-        ).fetchall()
-        return {
-            int(r[0]): EntryFacts(
-                int(r[0]),
-                int(r[1]),
-                int(r[2]),
-                int(r[3]),
-                r[4],
-                r[5],
-                r[6],
-                frozenset(str(c) for c in r[7]),
-                frozenset(str(t) for t in r[8]),
-                str(r[9]),
-            )
-            for r in rows
-        }
 
     def project_concepts(self, user_id: str) -> ProjectConcepts:
         rows = self._conn.execute(
@@ -1632,100 +1351,45 @@ class PostgresRankingInputs:
         ).fetchall()
         return {str(slug): tuple(str(r) for r in repos) for slug, repos in rows}
 
-    def concept_moments(
+    def concept_articles(
         self,
         concepts: frozenset[str],
         limit: int,
         *,
         exclude_sources: set[int],
         exclude_items: set[int],
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[CandidateMoment]:
+    ) -> list[CandidateArticle]:
         if not concepts:
             return []
         rows = self._conn.execute(
             f"""
-            with shown_item as (
-              -- As topic_moments: per duplicate group, the copy the feed shows.
-              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
-              from content_item c
-              where exists (select 1 from moment x where x.content_item_id = c.id)
-                and c.link_broken_at is null
-              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
-            )
-            select m.id, ci.id, s.id
-            from moment m
-            join content_item ci on ci.id = m.content_item_id
+            with shown_item as ({_SHOWN_ITEMS})
+            select ci.id, s.id
+            from content_item ci
             join source s on s.id = ci.source_id
             where ci.id in (select id from shown_item) and s.active
               and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
-              and m.id <> all(%(moments)s)
               and exists (
                 select 1 from ({_ITEM_CONCEPTS.format(item="ci.id")}) tagged
                 where tagged.slug = any(%(concepts)s)
               )
-            order by ci.published_at desc nulls last, ci.id desc, m.ordinal
+            order by ci.published_at desc nulls last, ci.id desc
             limit %(limit)s
             """,
             {
                 "concepts": sorted(concepts),
                 "sources": sorted(exclude_sources),
                 "items": sorted(exclude_items),
-                "moments": sorted(exclude_moments),
                 "limit": limit,
             },
         ).fetchall()
-        return [CandidateMoment(int(r[0]), int(r[1]), int(r[2])) for r in rows]
-
-    def topic_moments(
-        self,
-        topics: list[Topic],
-        limit: int,
-        *,
-        exclude_sources: set[int],
-        exclude_items: set[int],
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[CandidateMoment]:
-        rows = self._conn.execute(
-            f"""
-            with shown_item as (
-              -- Per duplicate group, the earliest copy that has moments: the one the
-              -- feed shows (owner review, 2026-10-26).
-              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
-              from content_item c
-              where exists (select 1 from moment x where x.content_item_id = c.id)
-                and c.link_broken_at is null  -- P1-W6-S03
-              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
-            )
-            select m.id, ci.id, s.id
-            from moment m
-            join content_item ci on ci.id = m.content_item_id
-            join source s on s.id = ci.source_id
-            left join tag_override o
-              on o.content_item_id = ci.id and o.heading = ''
-            where ci.id in (select id from shown_item) and s.active
-              and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
-              and m.id <> all(%(moments)s)
-              and {_ON_TOPICS}
-            order by ci.published_at desc nulls last, ci.id desc, m.ordinal
-            limit %(limit)s
-            """,
-            {
-                "topics": list(topics),
-                "sources": sorted(exclude_sources),
-                "items": sorted(exclude_items),
-                "moments": sorted(exclude_moments),
-                "limit": limit,
-            },
-        ).fetchall()
-        return [CandidateMoment(int(r[0]), int(r[1]), int(r[2])) for r in rows]
+        return [CandidateArticle(int(r[0]), int(r[1])) for r in rows]
 
     def article_facts(self, item_ids: list[int]) -> dict[int, EntryFacts]:
         rows = self._conn.execute(
             f"""
             select ci.id, s.id, item_minutes(ci.id),
-                   -- Human before model, as moment_facts: the admin's item level, else
-                   -- the model's item tag.
+                   -- Human before model: the admin's level, else the model's tag.
                    coalesce(io.difficulty, it.difficulty),
                    ci.published_at, s.quality_score,
                    array(select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c),
@@ -1746,7 +1410,6 @@ class PostgresRankingInputs:
         ).fetchall()
         return {
             int(r[0]): EntryFacts(
-                None,
                 int(r[0]),
                 int(r[1]),
                 r[2],
@@ -1770,16 +1433,7 @@ class PostgresRankingInputs:
     ) -> list[CandidateArticle]:
         rows = self._conn.execute(
             f"""
-            with shown_item as (
-              -- Per duplicate group, the copy whose moments the feed shows, else the
-              -- earliest: one story is one card.
-              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
-              from content_item c
-              where c.link_broken_at is null  -- P1-W6-S03
-              order by coalesce(c.duplicate_of, c.id),
-                not exists (select 1 from moment x where x.content_item_id = c.id),
-                c.published_at nulls last, c.id
-            )
+            with shown_item as ({_SHOWN_ITEMS})
             select ci.id, s.id
             from content_item ci
             join source s on s.id = ci.source_id
@@ -1816,52 +1470,6 @@ class PostgresDecisions:
         if unknown:
             raise ValueError(f"no concept {unknown[0]}")
 
-    def moment_hashes(self, item_id: int, model: str) -> dict[int, str]:
-        rows = self._conn.execute(
-            "select d.moment_id, d.content_hash from moment_decision d "
-            "join moment m on m.id = d.moment_id "
-            "where m.content_item_id = %s and d.model = %s",
-            (item_id, model),
-        ).fetchall()
-        return {int(r[0]): str(r[1]) for r in rows}
-
-    def save_moment(
-        self,
-        moment_id: int,
-        model: str,
-        content_hash: str,
-        difficulty: float,
-        probabilities: dict[str, float],
-    ) -> None:
-        self._known(probabilities)
-        # An upsert, so a second writer (the pipeline and an eval run) waits on the
-        # row's lock and then replaces the answers instead of failing on the key.
-        self._conn.execute(
-            """
-            insert into moment_decision (moment_id, model, content_hash, difficulty)
-            values (%s, %s, %s, %s)
-            on conflict (moment_id, model) do update
-              set content_hash = excluded.content_hash,
-                  difficulty = excluded.difficulty,
-                  decided_at = now()
-            """,
-            (moment_id, model, content_hash, difficulty),
-        )
-        self._conn.execute(
-            "delete from moment_concept_probability "
-            "where moment_id = %s and model = %s",
-            (moment_id, model),
-        )
-        with self._conn.cursor() as cur:
-            cur.executemany(
-                """
-                insert into moment_concept_probability
-                  (moment_id, model, concept_id, probability)
-                select %s, %s, id, %s from concept where slug = %s
-                """,
-                [(moment_id, model, p, slug) for slug, p in probabilities.items()],
-            )
-
     def item_hash(self, item_id: int, model: str) -> str | None:
         row = self._conn.execute(
             "select content_hash from item_decision "
@@ -1879,7 +1487,8 @@ class PostgresDecisions:
         probabilities: dict[str, float],
     ) -> None:
         self._known(probabilities)
-        # An upsert for the same reason as save_moment.
+        # An upsert, so a second writer (the pipeline and an eval run) waits on the
+        # row's lock and then replaces the answers instead of failing on the key.
         self._conn.execute(
             """
             insert into item_decision (content_item_id, model, content_hash, difficulty)
@@ -1907,26 +1516,6 @@ class PostgresDecisions:
             )
 
     def read(self, item_id: int, model: str) -> ItemDecisions:
-        moments: dict[int, tuple[float, dict[str, float]]] = {
-            int(r[0]): (float(r[1]), {})
-            for r in self._conn.execute(
-                "select d.moment_id, d.difficulty from moment_decision d "
-                "join moment m on m.id = d.moment_id "
-                "where m.content_item_id = %s and d.model = %s",
-                (item_id, model),
-            ).fetchall()
-        }
-        for moment_id, slug, probability in self._conn.execute(
-            """
-            select p.moment_id, c.slug, p.probability
-            from moment_concept_probability p
-            join concept c on c.id = p.concept_id
-            join moment m on m.id = p.moment_id
-            where m.content_item_id = %s and p.model = %s
-            """,
-            (item_id, model),
-        ).fetchall():
-            moments[int(moment_id)][1][str(slug)] = float(probability)
         found = self._conn.execute(
             "select difficulty from item_decision "
             "where content_item_id = %s and model = %s",
@@ -1943,92 +1532,132 @@ class PostgresDecisions:
                 (item_id, model),
             ).fetchall()
         }
-        return ItemDecisions(moments, item, None if found is None else float(found[0]))
+        return ItemDecisions({}, item, None if found is None else float(found[0]))
 
 
-# A moment's live concepts, as crediting mastery reads them: an admin's correction
-# replaces the model's tags (P1-W3-S05), by heading and never for the intro; retired
-# concepts don't count. `m` is the moment.
-_MOMENT_LIVE_CONCEPTS = """
-    select c.slug, c.name from concept c
+# An article's live concepts: an admin's correction replaces the model's tags
+# (P1-W3-S05); retired concepts don't count. `ci` is the article.
+_ARTICLE_LIVE_CONCEPTS = """
+    select c.id, c.slug, c.name from concept c
     where c.retired_at is null and c.slug = any(coalesce(
       (select o.concepts from tag_override o
-       where o.content_item_id = m.content_item_id
-         and o.heading = m.title and m.link_type <> 'page_top'),
-      array(select c2.slug from moment_concept mc
-            join concept c2 on c2.id = mc.concept_id where mc.moment_id = m.id)
+       where o.content_item_id = ci.id and o.heading = ''),
+      array(select c2.slug from item_concept ic
+            join concept c2 on c2.id = ic.concept_id where ic.content_item_id = ci.id)
     ))
 """
 
-# Moments questions may be drafted for (Q-P2-09): not a duplicate's, full-text rights
-# with moments on (ING-2), and some live concept.
-_QUESTION_TARGETS = f"""
-    select m.id, m.content_item_id,
-           coalesce(lo.difficulty, t.difficulty) as difficulty
-    from moment m
-    join content_item ci on ci.id = m.content_item_id
-    join source s on s.id = ci.source_id
-    left join moment_tagging t on t.moment_id = m.id
-    -- An admin's correction wins over the model's level (P1-W3-S05).
-    left join tag_override lo
-      on lo.content_item_id = m.content_item_id
-     and lo.heading = m.title and m.link_type <> 'page_top'
-    where ci.duplicate_of is null and s.moments_enabled
-      and s.rights_profile in ('full_text_internal', 'full_text_display')
-      and exists ({_MOMENT_LIVE_CONCEPTS})
+# Full text the article's source allows now (ING-2), on an article that isn't a
+# duplicate (AI-4: the primary is worked on once). `ci` is the article, `s` its source.
+_ALLOWED_ARTICLE = """
+    ci.duplicate_of is null
+    and s.rights_profile in ('full_text_internal', 'full_text_display')
 """
+
+# Articles questions may be drafted for (Q-P2-09, ADR-0058): allowed, with stored
+# text and some live concept.
+_QUESTION_TARGETS = f"""
+    select ci.id,
+           coalesce(lo.difficulty, t.difficulty) as difficulty,
+           (select count(*) from content_item_section cs
+            where cs.content_item_id = ci.id) as sections
+    from content_item ci
+    join source s on s.id = ci.source_id
+    left join item_tagging t on t.content_item_id = ci.id
+    -- An admin's correction wins over the model's level (P1-W3-S05).
+    left join tag_override lo on lo.content_item_id = ci.id and lo.heading = ''
+    where {_ALLOWED_ARTICLE}
+      and exists (
+        select 1 from content_item_private_text pt where pt.content_item_id = ci.id
+      )
+      and exists ({_ARTICLE_LIVE_CONCEPTS})
+"""
+
+# ADR-0058: an article whose moments had questions or an estimate drafted keeps those
+# as its own (stage A moved them to it): drafting per article would retire them.
+_CARRIED_OVER = """(
+    exists (select 1 from question q
+            where q.content_item_id = ci.id and q.moment_id is not null
+              and q.status <> 'retired')
+    or exists (select 1 from question_estimate_drafted d
+               where d.content_item_id = ci.id and d.moment_id is not null)
+)"""
 
 
 class PostgresQuestions:
-    """The question bank (Q-1, P2-W8-S01)."""
+    """The question bank (Q-1, P2-W8-S01), per article (ADR-0058)."""
 
     def __init__(self, conn: psycopg.Connection) -> None:
         self._conn = conn
 
-    def target(self, moment_id: int) -> QuestionTarget | None:
+    def target(self, item_id: int) -> QuestionTarget | None:
         found = self._conn.execute(
-            f"{_QUESTION_TARGETS} and m.id = %s", (moment_id,)
+            f"{_QUESTION_TARGETS} and ci.id = %s", (item_id,)
         ).fetchone()
         if found is None:
             return None
         concepts = self._conn.execute(
-            f"select slug, name from moment m, lateral ({_MOMENT_LIVE_CONCEPTS}) c "
-            "where m.id = %s order by slug",
-            (moment_id,),
+            f"select slug, name from content_item ci, "
+            f"lateral ({_ARTICLE_LIVE_CONCEPTS}) c where ci.id = %s order by slug",
+            (item_id,),
         ).fetchall()
         return QuestionTarget(
-            moment_id,
-            int(found[1]),
+            item_id,
             tuple((str(slug), str(name)) for slug, name in concepts),
-            None if found[2] is None else cast(Difficulty, found[2]),
+            None if found[1] is None else cast(Difficulty, found[1]),
+            int(found[2]),
         )
 
     def targets(self, item_id: int | None) -> list[int]:
         rows = self._conn.execute(
-            f"{_QUESTION_TARGETS} and (%(item)s::bigint is null "
-            "or m.content_item_id = %(item)s) order by m.content_item_id, m.ordinal",
+            f"{_QUESTION_TARGETS} and (%(item)s::bigint is null or ci.id = %(item)s) "
+            f"and not ({_CARRIED_OVER}) order by ci.id",
             {"item": item_id},
         ).fetchall()
         return [int(r[0]) for r in rows]
 
-    def drafted_hash(self, moment_id: int) -> str | None:
+    def drafted_hash(self, item_id: int) -> str | None:
         row = self._conn.execute(
             "select content_hash from question "
-            "where moment_id = %s and kind = 'choice' and status <> 'retired' limit 1",
-            (moment_id,),
+            "where content_item_id = %s and moment_id is null and kind = 'choice' "
+            "and status <> 'retired' limit 1",
+            (item_id,),
         ).fetchone()
         return None if row is None else str(row[0])
 
-    def estimate_drafted_hash(self, moment_id: int) -> str | None:
+    def estimate_drafted_hash(self, item_id: int) -> str | None:
         row = self._conn.execute(
-            "select content_hash from question_estimate_drafted where moment_id = %s",
-            (moment_id,),
+            "select content_hash from question_estimate_drafted "
+            "where content_item_id = %s and moment_id is null",
+            (item_id,),
         ).fetchone()
         return None if row is None else str(row[0])
+
+    def _next_slot(self, item_id: int, kind: QuestionKind) -> int:
+        # stage A's lock and rule: writers of one article take turns for its slots,
+        # retired questions keeping theirs (question_one_per_article_slot).
+        self._conn.execute(
+            "select pg_advisory_xact_lock(hashtext(%s))",
+            (f"question-article-slot:{item_id}",),
+        )
+        row = self._conn.execute(
+            "select coalesce(max(article_ordinal) + 1, 0) from question "
+            "where content_item_id = %s and kind = %s",
+            (item_id, kind),
+        ).fetchone()
+        assert row is not None  # an aggregate always returns a row
+        return int(row[0])
+
+    def _refuse_carried_over(self, item_id: int) -> None:
+        row = self._conn.execute(
+            f"select {_CARRIED_OVER} from content_item ci where ci.id = %s", (item_id,)
+        ).fetchone()
+        if row is not None and row[0]:
+            raise ValueError(f"article {item_id} keeps its moments' questions")
 
     def save(
         self,
-        moment_id: int,
+        item_id: int,
         drafts: Sequence[QuestionDraft],
         concepts: Sequence[str],
         model: str,
@@ -2036,24 +1665,28 @@ class PostgresQuestions:
         content_hash: str,
         difficulty: Difficulty | None,
     ) -> list[int]:
+        self._refuse_carried_over(item_id)
         self._conn.execute(
             "update question set status = 'retired' "
-            "where moment_id = %s and kind = 'choice' and status <> 'retired'",
-            (moment_id,),
+            "where content_item_id = %s and kind = 'choice' and status <> 'retired'",
+            (item_id,),
         )
-        self.clear_retry(moment_id)
+        self.clear_retry(item_id)
+        slot = self._next_slot(item_id, "choice")
         ids: list[int] = []
-        for ordinal, draft in enumerate(drafts):
+        for offset, draft in enumerate(drafts):
             row = self._conn.execute(
                 """
-                insert into question (moment_id, ordinal, stem, options, correct,
-                  citation, generator_model, prompt_version, content_hash, difficulty)
-                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                insert into question (content_item_id, article_ordinal, ordinal, stem,
+                  options, correct, citation, generator_model, prompt_version,
+                  content_hash, difficulty)
+                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 returning id
                 """,
                 (
-                    moment_id,
-                    ordinal,
+                    item_id,
+                    slot + offset,
+                    slot + offset,
                     draft.stem,
                     list(draft.options),
                     draft.correct,
@@ -2077,37 +1710,43 @@ class PostgresQuestions:
 
     def save_estimate(
         self,
-        moment_id: int,
+        item_id: int,
         draft: EstimateDraft | None,
         concepts: Sequence[str],
         model: str,
         content_hash: str,
         difficulty: Difficulty | None,
     ) -> int | None:
+        self._refuse_carried_over(item_id)
         self._conn.execute(
             "update question set status = 'retired' "
-            "where moment_id = %s and kind = 'estimate' and status <> 'retired'",
-            (moment_id,),
+            "where content_item_id = %s and kind = 'estimate' and status <> 'retired'",
+            (item_id,),
         )
         self._conn.execute(
             """
-            insert into question_estimate_drafted (moment_id, content_hash)
+            insert into question_estimate_drafted (content_item_id, content_hash)
             values (%s, %s)
-            on conflict (moment_id) do update set content_hash = excluded.content_hash
+            on conflict (content_item_id) where moment_id is null
+              do update set content_hash = excluded.content_hash
             """,
-            (moment_id, content_hash),
+            (item_id, content_hash),
         )
         if draft is None:
             return None
+        slot = self._next_slot(item_id, "estimate")
         row = self._conn.execute(
             """
-            insert into question (kind, moment_id, ordinal, stem, answer, unit,
-              citation, generator_model, prompt_version, content_hash, difficulty)
-            values ('estimate', %s, 0, %s, %s, %s, %s, %s, %s, %s, %s)
+            insert into question (kind, content_item_id, article_ordinal, ordinal,
+              stem, answer, unit, citation, generator_model, prompt_version,
+              content_hash, difficulty)
+            values ('estimate', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             returning id
             """,
             (
-                moment_id,
+                item_id,
+                slot,
+                slot,
                 draft.stem,
                 draft.answer,
                 draft.unit,
@@ -2128,61 +1767,65 @@ class PostgresQuestions:
         )
         return int(row[0])
 
-    def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
+    def retry_state(self, item_id: int) -> tuple[int, datetime] | None:
         row = self._conn.execute(
-            "select attempt, retry_at from question_drafting where moment_id = %s",
-            (moment_id,),
+            "select attempt, retry_at from question_drafting "
+            "where content_item_id = %s and moment_id is null",
+            (item_id,),
         ).fetchone()
         return None if row is None else (int(row[0]), row[1])
 
-    def record_retry(self, moment_id: int, attempt: int, retry_at: datetime) -> None:
+    def record_retry(self, item_id: int, attempt: int, retry_at: datetime) -> None:
         self._conn.execute(
             """
-            insert into question_drafting (moment_id, attempt, retry_at)
+            insert into question_drafting (content_item_id, attempt, retry_at)
             values (%s, %s, %s)
-            on conflict (moment_id) do update
+            on conflict (content_item_id) where moment_id is null do update
               set attempt = excluded.attempt, retry_at = excluded.retry_at
             """,
-            (moment_id, attempt, retry_at),
+            (item_id, attempt, retry_at),
         )
 
-    def clear_retry(self, moment_id: int) -> None:
+    def clear_retry(self, item_id: int) -> None:
         self._conn.execute(
-            "delete from question_drafting where moment_id = %s", (moment_id,)
+            "delete from question_drafting "
+            "where content_item_id = %s and moment_id is null",
+            (item_id,),
         )
 
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
         row = self._conn.execute(
-            "select moment_id, stem, options, correct, citation from question "
-            "where id = %s and status = 'pending' and kind = 'choice'",
+            "select content_item_id, stem, options, correct, citation from question "
+            "where id = %s and status = 'pending' and kind = 'choice' "
+            "and content_item_id is not null",
             (question_id,),
         ).fetchone()
         if row is None:
             return None
-        moment_id, stem, options, correct, citation = row
-        return int(moment_id), QuestionDraft(
+        item_id, stem, options, correct, citation = row
+        return int(item_id), QuestionDraft(
             str(stem), tuple(str(o) for o in options), int(correct), str(citation)
         )
 
     def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
         row = self._conn.execute(
-            "select moment_id, stem, answer, unit, citation from question "
+            "select content_item_id, stem, answer, unit, citation from question "
             "where id = %s and status = 'pending' and kind = 'estimate' "
-            "and moment_id is not null",
+            "and content_item_id is not null",
             (question_id,),
         ).fetchone()
         if row is None:
             return None
-        moment_id, stem, answer, unit, citation = row
-        return int(moment_id), EstimateDraft(
+        item_id, stem, answer, unit, citation = row
+        return int(item_id), EstimateDraft(
             str(stem), float(answer), str(unit), str(citation)
         )
 
-    def pending_ids(self, moment_id: int) -> list[int]:
+    def pending_ids(self, item_id: int) -> list[int]:
         rows = self._conn.execute(
-            "select id from question where moment_id = %s and status = 'pending' "
-            "and kind = 'choice' order by ordinal",
-            (moment_id,),
+            "select id from question where content_item_id = %s "
+            "and status = 'pending' and kind = 'choice' order by article_ordinal",
+            (item_id,),
         ).fetchall()
         return [int(r[0]) for r in rows]
 
@@ -2204,15 +1847,15 @@ class PostgresQuestions:
 
     def stem_candidates(self) -> list[StemCandidate]:
         rows = self._conn.execute(
-            "select id, kind, moment_id, stem, options, correct, answer, unit, "
+            "select id, kind, content_item_id, stem, options, correct, answer, unit, "
             "citation, stem_rewrite_tried_at from question "
-            "where status = 'live' and moment_id is not null order by id"
+            "where status = 'live' and content_item_id is not null order by id"
         ).fetchall()
         found: list[StemCandidate] = []
         for (
             qid,
             kind,
-            moment_id,
+            item_id,
             stem,
             options,
             correct,
@@ -2228,7 +1871,7 @@ class PostgresQuestions:
                     str(stem), tuple(str(o) for o in options), int(correct), str(cite)
                 )
             )
-            found.append(StemCandidate(int(qid), int(moment_id), draft, tried))
+            found.append(StemCandidate(int(qid), int(item_id), draft, tried))
         return found
 
     def mark_stem_tried(self, question_id: int) -> None:
@@ -2472,14 +2115,15 @@ class PostgresQuestions:
             cur.executemany(
                 """
                 insert into question_batch_item
-                  (batch_id, custom_id, moment_id, question_id, content_hash, kind)
+                  (batch_id, custom_id, content_item_id, question_id, content_hash,
+                   kind)
                 values (%s, %s, %s, %s, %s, %s)
                 """,
                 [
                     (
                         batch_id,
                         e.custom_id,
-                        e.moment_id,
+                        e.item_id,
                         e.question_id,
                         e.content_hash,
                         e.kind,
@@ -2498,7 +2142,9 @@ class PostgresQuestions:
     def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]:
         rows = self._conn.execute(
             """
-            select custom_id, moment_id, question_id, content_hash, kind
+            select custom_id,
+                   case when question_id is null then content_item_id end,
+                   question_id, content_hash, kind
             from question_batch_item where batch_id = %s order by custom_id
             """,
             (batch_id,),
@@ -2517,7 +2163,9 @@ class PostgresQuestions:
     def in_open_batches(self) -> tuple[set[tuple[int, QuestionKind]], set[int]]:
         rows = self._conn.execute(
             """
-            select i.moment_id, i.question_id, i.kind from question_batch_item i
+            select case when i.question_id is null then i.content_item_id end,
+                   i.question_id, i.kind
+            from question_batch_item i
             join question_batch b on b.id = i.batch_id where b.closed_at is null
             """
         ).fetchall()
@@ -2588,9 +2236,10 @@ class PostgresQuestions:
 
     def broken_counts(self) -> tuple[dict[tuple[int, str], int], dict[int, int]]:
         rows = self._conn.execute(
-            "select moment_id, content_hash, question_id, count(*) "
+            "select case when question_id is null then content_item_id end, "
+            "content_hash, question_id, count(*) "
             "from question_batch_item where result = 'broken' "
-            "group by moment_id, content_hash, question_id"
+            "group by 1, content_hash, question_id"
         ).fetchall()
         return (
             {
@@ -2634,17 +2283,15 @@ class PostgresQuestions:
         )
 
 
-# Allowed moments (as question targets: ING-2, not a duplicate's) with their live
-# concepts (an admin's tag correction winning), one row per moment and concept.
-_PATH_MOMENTS = f"""
-    select m.id as moment_id, ci.source_id, coalesce(ci.frameable, false) as frameable,
+# Allowed articles (as question targets: ING-2, not a duplicate) with their live
+# concepts (an admin's tag correction winning), one row per article and concept.
+_PATH_ARTICLES = f"""
+    select ci.id as item_id, ci.source_id, coalesce(ci.frameable, false) as frameable,
            c.slug
-    from moment m
-    join content_item ci on ci.id = m.content_item_id
+    from content_item ci
     join source s on s.id = ci.source_id
-    cross join lateral ({_MOMENT_LIVE_CONCEPTS}) c
-    where ci.duplicate_of is null and s.moments_enabled
-      and s.rights_profile in ('full_text_internal', 'full_text_display')
+    cross join lateral ({_ARTICLE_LIVE_CONCEPTS}) c
+    where {_ALLOWED_ARTICLE}
 """
 
 
@@ -2657,9 +2304,9 @@ class PostgresPaths:
     def coverage(self) -> list[ConceptCoverage]:
         rows = self._conn.execute(
             f"""
-            with allowed as ({_PATH_MOMENTS})
+            with allowed as ({_PATH_ARTICLES})
             select c.slug, c.name, c.topic,
-                   count(distinct a.moment_id), count(distinct a.source_id)
+                   count(distinct a.item_id), count(distinct a.source_id)
             from concept c
             left join allowed a on a.slug = c.slug
             where c.retired_at is null
@@ -2686,30 +2333,30 @@ class PostgresPaths:
     def session_candidates(self, slugs: Collection[str]) -> list[SessionCandidate]:
         rows = self._conn.execute(
             f"""
-            with allowed as ({_PATH_MOMENTS})
-            select a.moment_id, a.source_id, a.frameable, array_agg(a.slug),
+            with allowed as ({_PATH_ARTICLES})
+            select a.item_id, a.source_id, a.frameable, array_agg(a.slug),
                    -- a checkpoint asks multiple choice only (P3-W13-S03b)
                    exists (select 1 from question q
-                           where q.moment_id = a.moment_id and q.status = 'live'
+                           where q.content_item_id = a.item_id and q.status = 'live'
                              and q.kind = 'choice')
             from allowed a
-            where a.moment_id in (
-              select moment_id from allowed where slug = any(%s)
+            where a.item_id in (
+              select item_id from allowed where slug = any(%s)
             )
-            group by a.moment_id, a.source_id, a.frameable
-            order by a.moment_id
+            group by a.item_id, a.source_id, a.frameable
+            order by a.item_id
             """,
             (list(slugs),),
         ).fetchall()
         return [
             SessionCandidate(
-                int(moment),
+                int(item),
                 frozenset(str(s) for s in concepts),
                 int(source),
                 bool(frameable),
                 bool(live),
             )
-            for moment, source, frameable, concepts, live in rows
+            for item, source, frameable, concepts, live in rows
         ]
 
     def save_draft(self, draft: PathDraft, model: str, prompt_version: int) -> int:
@@ -2738,9 +2385,9 @@ class PostgresPaths:
                 raise ValueError(f"unknown concepts in {section.concepts}")
             with self._conn.cursor() as cur:
                 cur.executemany(
-                    "insert into path_session (section_id, ordinal, moment_id) "
+                    "insert into path_session (section_id, ordinal, content_item_id) "
                     "values (%s, %s, %s)",
-                    [(section_id, i, m) for i, m in enumerate(section.moment_ids)],
+                    [(section_id, i, item) for i, item in enumerate(section.item_ids)],
                 )
         return path_id
 
@@ -4789,26 +4436,26 @@ class PostgresReminders:
         if path is None:
             return None
         path_id, name, resumed = int(path[0]), str(path[1]), path[2]
-        # The path's readings in the user's order (a section they moved), their sessions
-        # (user_path_sessions: a swap only while its rights allow it, ARCH-2), a skipped
-        # section left out; with whether each is finished and when, whether its rights
-        # allow it now (ING-2, path-rights.ts's ALLOWED) and whether its link works.
-        # Every finish counts as activity; only the next reading must be allowed.
+        # The path's readings in the user's order (a section they moved), their
+        # articles (user_path_articles: a swap only while its rights allow it,
+        # ARCH-2), a skipped section left out; with whether each is finished and when,
+        # whether its rights allow it now (ING-2, path-rights.ts's ALLOWED) and
+        # whether its link works. Every finish counts as activity; only the next
+        # reading must be allowed.
         readings = self._conn.execute(
             """
-            select m.title, f.finished_at,
-              so.moments_enabled
-                and so.rights_profile in ('full_text_internal', 'full_text_display')
+            select ci.title, f.finished_at,
+              so.rights_profile in ('full_text_internal', 'full_text_display')
                 and ci.duplicate_of is null
                 and ci.link_broken_at is null as offered
             from path_section s
             left join user_path_section ups on ups.user_id = %s
               and ups.section_id = s.id
-            cross join lateral user_path_sessions(%s, s.id) ps
-            join moment m on m.id = ps.moment_id
-            join content_item ci on ci.id = m.content_item_id
+            cross join lateral user_path_articles(%s, s.id) ps
+            join content_item ci on ci.id = ps.content_item_id
             join source so on so.id = ci.source_id
-            left join user_moment_finished f on f.user_id = %s and f.moment_id = m.id
+            left join user_article_finished f on f.user_id = %s
+              and f.content_item_id = ci.id
             where s.path_id = %s
               and not (ups.skipped_at is not null and ups.unskipped_at is null)
             order by coalesce(ups.ordinal, s.ordinal), ps.ordinal
@@ -4829,29 +4476,25 @@ class PostgresReminders:
         return PushNotice("path_reminder", f"Next on {name}", left, f"/paths/{path_id}")
 
     def digest(self, user_id: str) -> PushNotice | None:
-        # user_feed_visible, as Home reads it: an entry whose link broke (ING-6) or
-        # whose source no longer allows sections (ING-2) is never named.
+        # user_feed_visible, as Home reads it: an entry whose link broke (ING-6) is
+        # never named; an article opened or finished isn't new.
         row = self._conn.execute(
             """
-            select v.article_title, v.section_title, count(*) over ()
+            select v.article_title, count(*) over ()
             from user_feed_visible v
-            join user_preferences pref on pref.user_id = v.user_id
-            where v.user_id = %s and v.chip = pref.break_length
-              and not exists (select 1 from user_moment_opened o
-                where o.user_id = v.user_id and o.moment_id = v.moment_id)
-              and not exists (select 1 from user_moment_finished f
-                where f.user_id = v.user_id and f.moment_id = v.moment_id)
+            where v.user_id = %s and v.chip = %s
+              and not exists (select 1 from user_article_opened o
+                where o.user_id = v.user_id and o.content_item_id = v.content_item_id)
               and not exists (select 1 from user_article_finished a
                 where a.user_id = v.user_id and a.content_item_id = v.content_item_id)
             order by v.rank
             limit 1
             """,
-            (user_id,),
+            (user_id, FEED_CHIP),
         ).fetchone()
         if row is None:
             return None
-        article, section, count = str(row[0]), row[1], int(row[2])
-        top = article if section is None or section == article else str(section)
+        top, count = str(row[0]), int(row[1])
         body = f"New: {top}" if count == 1 else f"{count} new: {top}"
         return PushNotice("digest", "Your break is ready", body, "/")
 
@@ -4981,22 +4624,18 @@ class PostgresDeviceTokens:
         self._conn.execute("delete from device_push_token where token = %s", (token,))
 
 
-_MOMENT_LIVE_CONCEPT_IDS = _MOMENT_LIVE_CONCEPTS.replace(
-    "select c.slug, c.name", "select c.id", 1
-)
-assert _MOMENT_LIVE_CONCEPT_IDS != _MOMENT_LIVE_CONCEPTS, "live concepts query changed"
-
-# Explainers (§5G, P4-W22-S01): each full-text moment (as questions are drafted from:
-# no duplicate, moments on, full-text rights, ING-2) with each of its live concepts.
-_EXPLAINER_MOMENTS = f"""
-    select m.id as moment_id, m.content_item_id, m.ordinal, m.title,
-           ci.title as article_title, lc.id as concept_id
-    from moment m
-    join content_item ci on ci.id = m.content_item_id
+# Explainers (§5G, P4-W22-S01): each full-text article with its text stored (as
+# questions are drafted from: no duplicate, full-text rights, ING-2) with each of its
+# live concepts.
+_EXPLAINER_ARTICLES = f"""
+    select ci.id as content_item_id, ci.title as article_title, lc.id as concept_id
+    from content_item ci
     join source s on s.id = ci.source_id
-    cross join lateral ({_MOMENT_LIVE_CONCEPT_IDS}) lc
-    where ci.duplicate_of is null and s.moments_enabled
-      and s.rights_profile in ('full_text_internal', 'full_text_display')
+    cross join lateral ({_ARTICLE_LIVE_CONCEPTS}) lc
+    where {_ALLOWED_ARTICLE}
+      and exists (
+        select 1 from content_item_private_text pt where pt.content_item_id = ci.id
+      )
       -- ING-6: a page that's gone is no source to cite.
       and ci.link_broken_at is null
 """
@@ -5015,7 +4654,7 @@ class PostgresExplainers:
             f"""
             select c.id, c.slug, c.name
             from concept c
-            join ({_EXPLAINER_MOMENTS}) em on em.concept_id = c.id
+            join ({_EXPLAINER_ARTICLES}) em on em.concept_id = c.id
             where c.retired_at is null
               and not exists (
                 select 1 from concept_explainer x where x.concept_id = c.id)
@@ -5035,24 +4674,18 @@ class PostgresExplainers:
         ]
 
     def sources(self, concept_id: int, count: int) -> list[ExplainerSource]:
-        # One section per article (its first on the concept), from the newest articles.
+        # The newest articles on the concept.
         rows = self._conn.execute(
             f"""
-            select moment_id, content_item_id, title, article_title from (
-              select distinct on (em.content_item_id) em.*
-              from ({_EXPLAINER_MOMENTS}) em
-              where em.concept_id = %s
-              order by em.content_item_id, em.ordinal
-            ) firsts
-            order by content_item_id desc
+            select em.content_item_id, em.article_title
+            from ({_EXPLAINER_ARTICLES}) em
+            where em.concept_id = %s
+            order by em.content_item_id desc
             limit %s
             """,
             (concept_id, count),
         ).fetchall()
-        return [
-            ExplainerSource(int(m), int(i), str(title or article), str(article))
-            for m, i, title, article in rows
-        ]
+        return [ExplainerSource(int(i), str(article)) for i, article in rows]
 
     def save(
         self,
@@ -5074,7 +4707,10 @@ class PostgresExplainers:
                 concept_id,
                 script,
                 Jsonb(
-                    [{"moment_id": c.moment_id, "quote": c.quote} for c in citations]
+                    [
+                        {"content_item_id": c.content_item_id, "quote": c.quote}
+                        for c in citations
+                    ]
                 ),
                 model,
                 prompt_version,
@@ -5415,16 +5051,15 @@ class PostgresAsk:
         passages: list[AskPassage] = []
         for r in self._conn.execute(
             """
-            select m.id, ci.id, m.title, ci.title, s.name, ci.author,
+            select ci.id, ci.title, s.name, ci.author,
                    s.rights_profile, 1 - (e.embedding <=> %(v)s::vector),
-                   array(select c.name from moment_concept mc
-                         join concept c on c.id = mc.concept_id
-                         where mc.moment_id = m.id order by c.name)
-            from moment_embedding e
-            join moment m on m.id = e.moment_id
-            join content_item ci on ci.id = m.content_item_id
+                   array(select c.name from item_concept ic
+                         join concept c on c.id = ic.concept_id
+                         where ic.content_item_id = ci.id order by c.name)
+            from item_embedding e
+            join content_item ci on ci.id = e.content_item_id
             join source s on s.id = ci.source_id
-            where e.model = %(model)s and s.moments_enabled
+            where e.model = %(model)s and e.embedding is not null
               and s.rights_profile in ('full_text_internal', 'full_text_display')
               -- Shown: no broken link, no duplicate, no source switched off
               -- or hidden by the user.
@@ -5436,19 +5071,17 @@ class PostgresAsk:
             """,
             {"v": v, "model": model, "user": user_id, "limit": limit},
         ).fetchall():
-            section, article = str(r[2]), str(r[3])
             passages.append(
                 AskPassage(
-                    passage=f"m{r[0]}",
-                    kind="moment",
-                    score=float(r[7]),
-                    title=article if section == article else f"{article}: {section}",
-                    rights_profile=cast(RightsProfile, r[6]),
-                    source_name=str(r[4]),
-                    author=r[5],
-                    concept_names=[str(n) for n in r[8]],
-                    item_id=int(r[1]),
-                    moment_id=int(r[0]),
+                    passage=f"i{r[0]}",
+                    kind="item",
+                    score=float(r[5]),
+                    title=str(r[1]),
+                    rights_profile=cast(RightsProfile, r[4]),
+                    source_name=str(r[2]),
+                    author=r[3],
+                    concept_names=[str(n) for n in r[6]],
+                    item_id=int(r[0]),
                 )
             )
         concepts = self._conn.execute(
@@ -5477,7 +5110,7 @@ class PostgresAsk:
                         concept_id=int(concept_id),
                     )
                 )
-            # Sources without full text have no moments or vectors: they're found
+            # Sources without full text have no vectors: they're found
             # through the concepts they're tagged with, by their metadata (ING-2).
             for r in self._conn.execute(
                 """
@@ -5694,7 +5327,6 @@ class PostgresStore:
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)
-        self.moments = PostgresMoments(conn)
         self.feed = PostgresFeed(conn)
         self.invites = PostgresInvites(conn)
         self.users = PostgresUsers(conn)

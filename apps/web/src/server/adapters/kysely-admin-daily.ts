@@ -33,8 +33,7 @@ export function kyselyAdminDaily(db: Kysely<DB>): AdminDaily {
                  where qc.question_id = q.id order by c.name) as concepts
         from daily_challenge_question d
         join question q on q.id = d.question_id
-        left join moment m on m.id = q.moment_id
-        left join content_item ci on ci.id = m.content_item_id
+        left join content_item ci on ci.id = q.content_item_id
         where d.day in (${TODAY}, ${TODAY} + 1)
         order by d.position
       `.execute(db);

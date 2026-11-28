@@ -50,26 +50,18 @@ def test_the_article_takes_concepts_in_two_moments_or_strong_or_from_its_title()
     assert got.item.difficulty == "intermediate"  # the median of 0.6, 1.4, 2.0 is 1.4
 
 
-def test_an_article_without_moments_is_tagged_from_its_title_pass() -> None:
+def test_an_article_is_tagged_from_its_own_pass() -> None:
     got = rollup(ItemDecisions({}, {"caching": 0.8, "wal": 0.2}, 2.0), KNOWN, CUT)
     assert got.moments == {}
     assert got.item.concepts == frozenset({"caching"})
     assert got.item.difficulty == "advanced"
 
 
-def test_strong_means_strong_in_a_moment_and_stale_moments_are_left_out() -> None:
+def test_strong_means_strong_in_a_session_not_the_title_pass() -> None:
     decisions = ItemDecisions(
-        {1: (1.0, {"wal": 0.55, "raft": 0.92}), 9: (1.0, {"paxos": 0.99})},
-        {"wal": 0.95},
-        1.0,
+        {1: (1.0, {"wal": 0.55, "raft": 0.92})}, {"wal": 0.95}, 1.0
     )
-    got = rollup(
-        decisions,
-        KNOWN,
-        Cutoffs(moment=0.5, strong=0.9, title=0.99),
-        current=frozenset({1}),
-    )
-    # raft: strong in a moment. wal: 0.95 only in the title pass (under its cut), so
-    # not "strong". paxos: only on moment 9, no longer current.
-    assert set(got.moments) == {1}
+    got = rollup(decisions, KNOWN, Cutoffs(moment=0.5, strong=0.9, title=0.99))
+    # raft: strong in a session. wal: 0.95 only in the title pass (under its cut), so
+    # not "strong".
     assert got.item.concepts == frozenset({"raft"})

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Tag one item and its moments with concepts and difficulty (AI-2, AI-4, P1-W3-S02).",
+  "description": "Tag one item with concepts and difficulty (AI-2, AI-4, P1-W3-S02, ADR-0058).",
   "type": "object",
   "additionalProperties": false,
   "required": ["content_item_id"],

@@ -876,7 +876,7 @@ function DailyRailCard({ status }: { status: DailyStatus }) {
           <p>
             Today: {today.points} points ·{" "}
             <a
-              href={`/quiz/${today.attemptId}/results?chip=3-8`}
+              href={`/quiz/${today.attemptId}/results`}
               className="font-semibold text-ink underline underline-offset-2"
             >
               See your results

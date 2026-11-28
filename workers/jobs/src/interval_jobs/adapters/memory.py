@@ -2,8 +2,8 @@
 
 The store contract tests run the same cases against these and the Postgres adapter, so
 logic tested here behaves the same against the database. That includes the database's
-ING-2 triggers: forbidden writes raise RightsViolation, and lowering a profile or
-switching moments off purges what the source no longer allows.
+ING-2 triggers: forbidden writes raise RightsViolation, and lowering a profile purges
+what the source no longer allows.
 """
 
 import math
@@ -19,7 +19,6 @@ from zoneinfo import ZoneInfo
 from interval_db.generated import (
     AiProvider,
     BetaGroup,
-    BreakLength,
     Capability,
     Difficulty,
     LeagueTier,
@@ -48,7 +47,6 @@ from interval_jobs.ports import (
     BookPageText,
     BookQuestion,
     CandidateArticle,
-    CandidateMoment,
     Caption,
     ChapterForCheckpoint,
     CheckpointFacts,
@@ -69,7 +67,6 @@ from interval_jobs.ports import (
     FetchError,
     FetchInput,
     FetchKind,
-    Finished,
     GitHubSyncInput,
     GrantResult,
     HldFacts,
@@ -87,8 +84,6 @@ from interval_jobs.ports import (
     LeagueUser,
     LeagueWeekRow,
     MatchFacts,
-    MomentLink,
-    MomentRow,
     NativeTarget,
     NoteBatchEntry,
     PathDraft,
@@ -113,16 +108,13 @@ from interval_jobs.ports import (
     RevokeResult,
     RightsViolation,
     Section,
-    SectionRow,
-    SegmentationInput,
     SessionCandidate,
-    SimilarMoment,
+    SimilarArticle,
     SourceRecord,
     SourceSettings,
     StemCandidate,
     SyncResult,
     TagInput,
-    TagMoment,
     TagResult,
     Tags,
     TechnologiesSynced,
@@ -152,13 +144,10 @@ class _Source:
     feed_url: str
     rights_profile: RightsProfile
     homepage: str | None
-    moments_enabled: bool = False
     paywalled: bool = False
     quality_score: int | None = None
     topics: tuple[str, ...] = ()
     active: bool = True
-    moments_seeded: bool = False
-    moments_switched_off: bool = False  # an admin's switch (P1-W3-S06)
     poll_interval: timedelta = START_INTERVAL
     # Due at once (Postgres: now() at insert; tests claim at or after it).
     next_poll_at: datetime = datetime(1970, 1, 1, tzinfo=UTC)
@@ -228,13 +217,6 @@ def _duplicates(a: StoredItem, b: StoredItem, both_full_text: bool) -> bool:
     return _same_metadata(a, b)
 
 
-@dataclass
-class StoredMoment:
-    id: int
-    item_id: int
-    row: MomentRow
-
-
 def _settings_of(row: _Source) -> SourceSettings | None:
     if not row.active:
         return None  # an inactive row always changes: it comes back on
@@ -243,7 +225,6 @@ def _settings_of(row: _Source) -> SourceSettings | None:
         homepage=row.homepage,
         feed_url=row.feed_url,
         rights_profile=row.rights_profile,
-        moments_enabled=row.moments_seeded,
         paywalled=row.paywalled,
         quality_score=row.quality_score,
         topics=row.topics,
@@ -264,7 +245,6 @@ class InMemorySources:
             s.feed_url,
             s.rights_profile,
             s.active,
-            s.moments_enabled,
             s.poll_interval,
             s.polled_at,
         )
@@ -341,8 +321,6 @@ class InMemorySources:
             row.feed_url = seed.feed_url
             row.rights_profile = seed.rights_profile
             row.homepage = seed.homepage
-            row.moments_seeded = seed.moments_enabled
-            row.moments_enabled = seed.moments_enabled and not row.moments_switched_off
             row.paywalled = seed.paywalled
             row.quality_score = seed.quality_score
             row.topics = seed.topics
@@ -356,44 +334,30 @@ class InMemorySources:
                 deactivated += 1
         return SyncResult(added, updated, unchanged, deactivated)
 
-    def switch_moments_off(self, source_id: int, off: bool) -> None:
-        """What the web admin page does (P1-W3-S06); not part of the worker's port."""
-        source = self.rows[source_id]
-        source.moments_switched_off = off
-        source.moments_enabled = source.moments_seeded and not off
-        self._purge(source)
-
-    def set_moments_enabled(self, source_id: int, enabled: bool) -> None:
-        # As the seed file would (the switch rule holds: P1-W3-S06).
-        self.rows[source_id].moments_seeded = enabled
-        self.rows[source_id].moments_enabled = enabled and not (
-            self.rows[source_id].moments_switched_off
-        )
-        self._purge(self.rows[source_id])
-
     def _purge(self, source: _Source) -> None:
         # Mirrors the purge_text_beyond_profile trigger.
         if self.store is None:
             return
-        items = [i for i in self.store.items.rows.values() if i.source_id == source.id]
-        for item in items:
+        rows = self.store.items.rows
+        items = {i.id for i in rows.values() if i.source_id == source.id}
+        for item_id in items:
+            item = self.store.items.rows[item_id]
             if source.rights_profile not in _FULL_TEXT:
                 item.full_text, item.sections, item.simhash = None, [], None
             if source.rights_profile != "excerpt":
                 item.excerpt = None
-        if not source.moments_enabled or source.rights_profile not in _FULL_TEXT:
-            ids = {i.id for i in items}
-            self.store.moments.rows = [
-                m for m in self.store.moments.rows if m.item_id not in ids
-            ]
-            self.store.feed.drop_missing()
+        if source.rights_profile not in _FULL_TEXT:
+            # Derived from the full text (ING-2): the article's vector and questions.
+            self.store.embeddings.drop(items)
+            self.store.questions.drop(items)
 
 
 class InMemoryItems:
     def __init__(self, sources: InMemorySources) -> None:
         self._sources = sources
         self.rows: dict[int, StoredItem] = {}
-        self.boundary_overrides: dict[int, list[str]] = {}  # written by the web app
+        # The store points this at the embeddings.
+        self.on_text_changed: Callable[[int], None] = lambda _item: None
 
     def ids(self) -> list[int]:
         return sorted(self.rows)
@@ -485,7 +449,11 @@ class InMemoryItems:
 
     def store_full_text(self, item_id: int, text: str) -> None:
         self._require_full_text(item_id)
-        self.rows[item_id].full_text = text
+        item = self.rows[item_id]
+        if item.full_text is not None and item.full_text != text:
+            # Mirrors Postgres: the vector of the old text goes, to be embedded again.
+            self.on_text_changed(item_id)
+        item.full_text = text
 
     def _require_full_text(self, item_id: int) -> None:
         profile = self._profile(item_id)
@@ -498,27 +466,6 @@ class InMemoryItems:
     def replace_sections(self, item_id: int, sections: list[Section]) -> None:
         self._require_full_text(item_id)
         self.rows[item_id].sections = list(sections)
-
-    def for_segmentation(self, item_id: int) -> SegmentationInput | None:
-        item = self.rows.get(item_id)
-        if item is None:
-            return None
-        source = self._sources.rows[item.source_id]
-        return SegmentationInput(
-            item.title,
-            item.canonical_url,
-            source.rights_profile,
-            source.moments_enabled,
-        )
-
-    def sections(self, item_id: int) -> list[SectionRow]:
-        return [
-            SectionRow(s.heading, s.anchor_id, s.word_count, s.level)
-            for s in self.rows[item_id].sections
-        ]
-
-    def boundary_override(self, item_id: int) -> list[str] | None:
-        return self.boundary_overrides.get(item_id)
 
     def for_fetch(self, item_id: int) -> FetchInput | None:
         item = self.rows.get(item_id)
@@ -534,108 +481,36 @@ class InMemoryItems:
         )
 
 
-class InMemoryMoments:
-    def exist(self, item_id: int) -> bool:
-        return any(m.item_id == item_id for m in self.rows)
-
-    def __init__(self, items: InMemoryItems, sources: InMemorySources) -> None:
-        self._items = items
-        self._sources = sources
-        self.rows: list[StoredMoment] = []
-        self._next_id = 1
-        # The store points this at the feed: deleted moments cascade, as in Postgres.
-        self.on_delete: Callable[[], None] = lambda: None
-
-    def links(self, source_id: int | None) -> list[MomentLink]:
-        found: list[tuple[tuple[int, int, int], MomentLink]] = []
-        for m in self.rows:
-            item = self._items.rows[m.item_id]
-            source = self._sources.rows[item.source_id]
-            if source.moments_enabled and source_id in (None, item.source_id):
-                found.append(
-                    (
-                        (item.source_id, m.item_id, m.row.ordinal),
-                        MomentLink(
-                            m.id,
-                            m.item_id,
-                            item.source_id,
-                            source.name,
-                            m.row.title,
-                            m.row.link,
-                            m.row.link_type,
-                        ),
-                    )
-                )
-        return [link for _, link in sorted(found, key=lambda pair: pair[0])]
-
-    def replace(self, item_id: int, rows: list[MomentRow]) -> None:
-        source = self._sources.rows[self._items.rows[item_id].source_id]
-        if rows and (
-            not source.moments_enabled or source.rights_profile not in _FULL_TEXT
-        ):
-            raise RightsViolation(
-                f"source (profile {source.rights_profile}, moments_enabled "
-                f"{source.moments_enabled}) does not allow moments"
-            )
-        existing = {m.row.ordinal: m for m in self.rows if m.item_id == item_id}
-        kept: list[StoredMoment] = [m for m in self.rows if m.item_id != item_id]
-        for row in rows:
-            current = existing.get(row.ordinal)
-            if current is None:
-                kept.append(StoredMoment(self._next_id, item_id, row))
-                self._next_id += 1
-            else:
-                kept.append(replace(current, row=row))
-        self.rows = kept
-        self.on_delete()
-
-    def for_item(self, item_id: int) -> list[StoredMoment]:
-        return sorted(
-            (m for m in self.rows if m.item_id == item_id), key=lambda m: m.row.ordinal
-        )
-
-
 class InMemoryFeed:
-    def __init__(self, users: "InMemoryUsers", moments: InMemoryMoments) -> None:
+    def __init__(self, users: "InMemoryUsers", items: InMemoryItems) -> None:
         self._users = users
-        self._moments = moments
-        self.users: dict[str, dict[BreakLength, list[RankedEntry]]] = {}
+        self._items = items
+        self.users: dict[str, list[RankedEntry]] = {}
         self.computed: dict[str, datetime] = {}
-        self.starters: dict[tuple[str, Difficulty, BreakLength], list[RankedEntry]] = {}
+        self.starters: dict[tuple[str, Difficulty], list[RankedEntry]] = {}
 
     def hold_user(self, user_id: str) -> None:
         pass  # one thread at a time in the fake
 
     def replace_user(
-        self,
-        user_id: str,
-        by_chip: Mapping[BreakLength, list[RankedEntry]],
-        computed_at: datetime,
+        self, user_id: str, ranked: list[RankedEntry], computed_at: datetime
     ) -> None:
-        for ranked in by_chip.values():
-            entries = [(r.item_id, r.moment_id) for r in ranked]
-            if len(set(entries)) != len(entries):
-                raise ValueError("an entry twice in one feed (a unique index refuses)")
+        items = [r.item_id for r in ranked]
+        if len(set(items)) != len(items):
+            raise ValueError("an entry twice in one feed (a unique index refuses)")
         if user_id not in self._users.rows:
             return
-        self.users[user_id] = {
-            chip: self._live(ranked) for chip, ranked in by_chip.items()
-        }
+        self.users[user_id] = self._live(ranked)
         self.computed[user_id] = computed_at
 
     def _live(self, ranked: list[RankedEntry]) -> list[RankedEntry]:
-        # Items are never deleted here, so only moments can have gone.
-        moments = {m.id for m in self._moments.rows}
-        return [r for r in ranked if r.moment_id is None or r.moment_id in moments]
+        # An item deleted since ranking is skipped, as the Postgres write skips it.
+        return [r for r in ranked if r.item_id in self._items.rows]
 
     def replace_starter(
-        self,
-        topic: str,
-        level: Difficulty,
-        chip: BreakLength,
-        ranked: list[RankedEntry],
+        self, topic: str, level: Difficulty, ranked: list[RankedEntry]
     ) -> None:
-        self.starters[(topic, level, chip)] = self._live(ranked)
+        self.starters[(topic, level)] = self._live(ranked)
 
     def active_users(self, since: datetime) -> list[str]:
         return sorted(
@@ -645,14 +520,6 @@ class InMemoryFeed:
             and u.session_seen is not None
             and u.session_seen >= since
         )
-
-    def drop_missing(self) -> None:
-        # Mirrors the on-delete cascade from moment to every feed table.
-        for chips in self.users.values():
-            for chip, rows in chips.items():
-                chips[chip] = self._live(rows)
-        for key, rows in self.starters.items():
-            self.starters[key] = self._live(rows)
 
 
 @dataclass
@@ -855,11 +722,8 @@ class InMemoryConcepts:
 
 
 class InMemoryDecisions:
-    def __init__(self, moments: "InMemoryMoments", concepts: InMemoryConcepts) -> None:
-        self._moments = moments
+    def __init__(self, concepts: InMemoryConcepts) -> None:
         self._concepts = concepts
-        # (moment id, model) -> (hash, difficulty, probabilities)
-        self._moment: dict[tuple[int, str], tuple[str, float, dict[str, float]]] = {}
         self._item: dict[tuple[int, str], tuple[str, float, dict[str, float]]] = {}
 
     def _known(self, probabilities: dict[str, float]) -> None:
@@ -868,30 +732,6 @@ class InMemoryDecisions:
         unknown = sorted(set(probabilities) - slugs)
         if unknown:
             raise ValueError(f"no concept {unknown[0]}")
-
-    def _ids(self, item_id: int) -> set[int]:
-        return {m.id for m in self._moments.for_item(item_id)}
-
-    def moment_hashes(self, item_id: int, model: str) -> dict[int, str]:
-        ids = self._ids(item_id)
-        return {
-            m: v[0] for (m, mm), v in self._moment.items() if mm == model and m in ids
-        }
-
-    def save_moment(
-        self,
-        moment_id: int,
-        model: str,
-        content_hash: str,
-        difficulty: float,
-        probabilities: dict[str, float],
-    ) -> None:
-        self._known(probabilities)
-        self._moment[(moment_id, model)] = (
-            content_hash,
-            difficulty,
-            dict(probabilities),
-        )
 
     def item_hash(self, item_id: int, model: str) -> str | None:
         found = self._item.get((item_id, model))
@@ -909,75 +749,59 @@ class InMemoryDecisions:
         self._item[(item_id, model)] = (content_hash, difficulty, dict(probabilities))
 
     def read(self, item_id: int, model: str) -> ItemDecisions:
-        ids = self._ids(item_id)
-        moments = {
-            m: (v[1], dict(v[2]))
-            for (m, mm), v in self._moment.items()
-            if mm == model and m in ids
-        }
         found = self._item.get((item_id, model))
         if found is None:
-            return ItemDecisions(moments, {})
-        return ItemDecisions(moments, dict(found[2]), found[1])
+            return ItemDecisions({}, {})
+        return ItemDecisions({}, dict(found[2]), found[1])
 
 
 class InMemoryItemTags:
-    def __init__(self, items: InMemoryItems, moments: InMemoryMoments) -> None:
+    def __init__(self, items: InMemoryItems) -> None:
         self._items = items
-        self._moments = moments
-        # item id -> (item tags, moment tags by moment id, model, prompt version)
-        self.rows: dict[int, tuple[Tags, dict[int, Tags], str, int]] = {}
-        # The web admin page writes these: (item id, moment heading) -> level, and an
-        # item's corrected concepts
-        self.overrides: dict[tuple[int, str], Difficulty] = {}
+        # item id -> (tags, model, prompt version)
+        self.rows: dict[int, tuple[Tags, str, int]] = {}
+        # The web admin page writes these: an item's corrected level and concepts
+        self.overrides: dict[int, Difficulty] = {}
         self.item_concept_overrides: dict[int, frozenset[str]] = {}
-        # (item id, moment heading) -> an admin's corrected concepts for that moment
-        self.moment_concept_overrides: dict[tuple[int, str], frozenset[str]] = {}
 
     def input(self, item_id: int) -> TagInput | None:
         item = self._items.rows.get(item_id)
         if item is None:
             return None
-        moments = [
-            TagMoment(
-                m.id,
-                m.row.ordinal,
-                None if m.row.link_type == "page_top" else m.row.title,
-            )
-            for m in self._moments.for_item(item_id)
-        ]
         profile = self._items.profile(item_id)
         return TagInput(
             item.title,
             item.feed_summary,
             item.full_text if profile in _FULL_TEXT else None,
             item.excerpt if profile == "excerpt" else None,
-            moments,
+            [],
             self.version(item_id),
             item.duplicate_of is not None,
         )
 
     def version(self, item_id: int) -> int | None:
         row = self.rows.get(item_id)
-        return None if row is None else row[3]
+        return None if row is None else row[2]
 
-    def moment_difficulty(self, item_id: int, moment_id: int) -> Difficulty | None:
+    def difficulty(self, item_id: int) -> Difficulty | None:
         # An admin's correction wins over the model's level (P1-W3-S05).
-        moment = next(m for m in self._moments.for_item(item_id) if m.id == moment_id)
-        if moment.row.link_type != "page_top":
-            corrected = self.overrides.get((item_id, moment.row.title))
-            if corrected is not None:
-                return corrected
+        corrected = self.overrides.get(item_id)
+        if corrected is not None:
+            return corrected
         row = self.rows.get(item_id)
-        tags = row[1].get(moment_id) if row else None
-        return tags.difficulty if tags else None
+        return row[0].difficulty if row else None
+
+    def concepts(self, item_id: int) -> frozenset[str]:
+        # An admin's correction replaces the model's tags (P1-W3-S05).
+        corrected = self.item_concept_overrides.get(item_id)
+        if corrected is not None:
+            return corrected
+        row = self.rows.get(item_id)
+        return row[0].concepts if row else frozenset()
 
     def needs_tagging(self, item_id: int, prompt_version: int) -> bool:
         item = self._items.rows[item_id]
         return item.duplicate_of is None and self.version(item_id) != prompt_version
-
-    def clear(self, item_id: int) -> None:
-        self.rows.pop(item_id, None)
 
     def find(self, canonical_url: str) -> int | None:
         matches = sorted(
@@ -990,79 +814,39 @@ class InMemoryItemTags:
     def save(
         self, item_id: int, result: TagResult, model: str, prompt_version: int
     ) -> None:
-        live = {m.id for m in self._moments.for_item(item_id)}
-        foreign = sorted(set(result.moments) - live)
-        if foreign:
-            raise ValueError(f"moments {foreign} are not item {item_id}'s")
-        self.rows[item_id] = (result.item, dict(result.moments), model, prompt_version)
-
-    def for_item(self, item_id: int) -> tuple[Tags | None, dict[int, Tags]]:
-        row = self.rows.get(item_id)
-        if row is None:
-            return None, {}
-        ordinals = {m.id: m.row.ordinal for m in self._moments.for_item(item_id)}
-        return row[0], {ordinals[k]: v for k, v in row[1].items() if k in ordinals}
+        if result.moments:
+            raise ValueError("an article is tagged whole (ADR-0058)")
+        self.rows[item_id] = (result.item, model, prompt_version)
 
 
 class InMemoryEmbeddings:
     def __init__(
-        self,
-        items: InMemoryItems,
-        sources: InMemorySources,
-        moments: InMemoryMoments,
-        tags: InMemoryItemTags,
+        self, items: InMemoryItems, sources: InMemorySources, tags: InMemoryItemTags
     ) -> None:
         self._items = items
         self._sources = sources
-        self._moments = moments
         self._tags = tags
-        self.rows: dict[int, tuple[str, list[float]]] = {}  # moment id -> model, vector
-        self.complete: set[tuple[int, str]] = set()  # (item id, model)
+        # (item id, model) -> vector; None once a rights purge cleared it
+        self.rows: dict[tuple[int, str], list[float] | None] = {}
         self.store: InMemoryStore | None = None  # set by InMemoryStore
 
     def missing(self, item_id: int, model: str) -> bool:
+        item = self._items.rows[item_id]
         return (
-            self._items.rows[item_id].duplicate_of is None
-            and bool(self._moments.for_item(item_id))
-            and (item_id, model) not in self.complete
+            item.duplicate_of is None
+            and item.full_text is not None
+            and self.rows.get((item_id, model)) is None
         )
 
-    def done(self, item_id: int, model: str) -> set[int]:
-        return {
-            m.id
-            for m in self._moments.for_item(item_id)
-            if self.rows.get(m.id, ("", []))[0] == model
-        }
+    def save(self, item_id: int, vector: list[float], model: str) -> None:
+        self.rows[(item_id, model)] = list(vector)
 
-    def save(
-        self,
-        item_id: int,
-        vectors: dict[int, list[float]],
-        model: str,
-        *,
-        complete: bool,
-    ) -> None:
-        owned = {m.id for m in self._moments.for_item(item_id)}
-        foreign = sorted(set(vectors) - owned)
-        if foreign:
-            raise ValueError(f"moments {foreign} are not item {item_id}'s")
-        for moment_id, vector in vectors.items():
-            self.rows[moment_id] = (model, vector)
-        if complete:
-            self.complete.add((item_id, model))
+    def vector(self, item_id: int, model: str) -> list[float] | None:
+        return self.rows.get((item_id, model))
 
-    def vectors_of_item(self, item_id: int, model: str) -> dict[int, list[float]]:
-        return {
-            m.id: vector
-            for m in self._moments.for_item(item_id)
-            for their_model, vector in [self.rows.get(m.id, ("", []))]
-            if their_model == model
-        }
-
-    def clear(self, item_id: int) -> None:
-        for m in self._moments.for_item(item_id):
-            self.rows.pop(m.id, None)
-        self.complete = {(i, m) for i, m in self.complete if i != item_id}
+    def drop(self, item_ids: set[int]) -> None:
+        # Mirrors the purge trigger and a changed text: the rows go.
+        self.rows = {k: v for k, v in self.rows.items() if k[0] not in item_ids}
 
     def similar(
         self,
@@ -1074,17 +858,12 @@ class InMemoryEmbeddings:
         model: str | None = None,
         exclude_sources: set[int] | None = None,
         exclude_items: set[int] | None = None,
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[SimilarMoment]:
-        # Mirrors PostgresEmbeddings.similar; vectors of purged moments are gone.
-        live = {m.id: m.item_id for m in self._moments.rows}
+    ) -> list[SimilarArticle]:
+        # Mirrors PostgresEmbeddings.similar.
         shown = shown_items(self.store) if self.store is not None else None
-        hits: list[SimilarMoment] = []
-        for moment_id, (their_model, other) in self.rows.items():
-            item_id = live.get(moment_id)
-            if item_id is None or (model is not None and their_model != model):
-                continue
-            if moment_id in exclude_moments:
+        hits: list[SimilarArticle] = []
+        for (item_id, their_model), other in self.rows.items():
+            if other is None or (model is not None and their_model != model):
                 continue
             source = self._sources.rows[self._items.rows[item_id].source_id]
             if source.rights_profile not in _FULL_TEXT or not source.active:
@@ -1097,11 +876,12 @@ class InMemoryEmbeddings:
                 continue
             if source_ids is not None and source.id not in source_ids:
                 continue
-            level = self._tags.moment_difficulty(item_id, moment_id)
-            if difficulties is not None and level not in difficulties:
+            if (
+                difficulties is not None
+                and self._tags.difficulty(item_id) not in difficulties
+            ):
                 continue
-            score = _cosine(vector, other)
-            hits.append(SimilarMoment(moment_id, item_id, source.id, score))
+            hits.append(SimilarArticle(item_id, source.id, _cosine(vector, other)))
         hits.sort(key=lambda h: -h.score)
         return hits[:limit]
 
@@ -1163,36 +943,15 @@ RANKING_DEFAULTS: dict[str, float] = {
 
 
 def shown_items(store: "InMemoryStore") -> set[int]:
-    """Per duplicate group, the earliest copy that has moments: what the feed shows
-    (owner review, 2026-10-26), and so what ranking may offer. Mirrors the SQL."""
-    with_moments = {m.item_id for m in store.moments.rows}
-    best: dict[int, StoredItem] = {}
-    for item_id in with_moments:
-        item = store.items.rows[item_id]
-        if item.link_broken_at is not None:
-            continue  # a broken link is never offered (P1-W6-S03)
-        group = item.duplicate_of or item.id
-        current = best.get(group)
-        if current is None or _earlier(item, current):
-            best[group] = item
-    return {item.id for item in best.values()}
-
-
-def shown_articles(store: "InMemoryStore") -> set[int]:
-    """Per duplicate group, the copy the feed shows as a whole article: the one whose
-    moments it shows, else the earliest copy. Mirrors the SQL."""
-    with_moments = {m.item_id for m in store.moments.rows}
-
-    def order(item: StoredItem) -> tuple[bool, tuple[bool, float, int]]:
-        return (item.id not in with_moments, _publication_order(item))
-
+    """Per duplicate group, the copy the feed shows: the earliest whose link works
+    (P1-W6-S03), and so what ranking may offer. Mirrors the SQL."""
     best: dict[int, StoredItem] = {}
     for item in store.items.rows.values():
         if item.link_broken_at is not None:
-            continue  # a broken link is never offered (P1-W6-S03)
+            continue
         group = item.duplicate_of or item.id
         current = best.get(group)
-        if current is None or order(item) < order(current):
+        if current is None or _earlier(item, current):
             best[group] = item
     return {item.id for item in best.values()}
 
@@ -1215,8 +974,7 @@ class InMemoryRankingInputs:
         # A reset of inferred interests (P1-W4-S08): how much of `feedback` came before.
         self.resets: dict[str, int] = {}
         self.outcomes: dict[Arm, ArmOutcome] = {}
-        # (user, moment) and (user, item): the web app writes them in production.
-        self.finished_moments: set[tuple[str, int]] = set()
+        # (user, item): the web app writes them in production.
         self.finished_items: set[tuple[str, int]] = set()
         # The ranking_config migration's seed values (P1-W4-S03)
         self.config_rows: dict[str, float] = dict(RANKING_DEFAULTS)
@@ -1271,58 +1029,8 @@ class InMemoryRankingInputs:
     def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
         return dict(self.outcomes)
 
-    def finished(self, user_id: str) -> Finished:
-        return Finished(
-            frozenset(m for u, m in self.finished_moments if u == user_id),
-            frozenset(i for u, i in self.finished_items if u == user_id),
-        )
-
-    def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
-        # Mirrors PostgresRankingInputs.moment_facts.
-        store = self._store
-        wanted = set(moment_ids)
-        facts: dict[int, EntryFacts] = {}
-        graph = store.concepts.state()
-        topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
-        for moment in store.moments.rows:
-            if moment.id not in wanted:
-                continue
-            item = store.items.rows[moment.item_id]
-            source = store.sources.rows[item.source_id]
-            # The raw row: for_item keys moment tags by ordinal, this by moment id.
-            tagged = store.tags.rows.get(item.id)
-            item_tags = tagged[0] if tagged else None
-            moment_tags = tagged[1] if tagged else {}
-            heading_fix = (
-                store.tags.overrides.get((item.id, moment.row.title))
-                if moment.row.link_type != "page_top"
-                else None
-            )
-            model_moment = moment_tags.get(moment.id)
-            # Human before model (owner, 2026-10-26), as PostgresRankingInputs reads.
-            difficulty = (
-                heading_fix
-                or store.tags.overrides.get((item.id, ""))
-                or (model_moment.difficulty if model_moment else None)
-                or (item_tags.difficulty if item_tags else None)
-            )
-            concepts = self._item_concepts(item.id)
-            topics = set(source.topics) | {
-                topic_of[c] for c in concepts if c in topic_of
-            }
-            facts[moment.id] = EntryFacts(
-                moment.id,
-                item.id,
-                source.id,
-                moment.row.estimated_minutes,
-                difficulty,
-                item.published_at,
-                source.quality_score,
-                concepts,
-                frozenset(topics),
-                source.name,
-            )
-        return facts
+    def finished(self, user_id: str) -> frozenset[int]:
+        return frozenset(i for u, i in self.finished_items if u == user_id)
 
     def article_facts(self, item_ids: list[int]) -> dict[int, EntryFacts]:
         # Mirrors PostgresRankingInputs.article_facts.
@@ -1335,21 +1043,16 @@ class InMemoryRankingInputs:
             if item is None:
                 continue
             source = store.sources.rows[item.source_id]
-            tagged = store.tags.rows.get(item.id)
-            difficulty = store.tags.overrides.get((item.id, "")) or (
-                tagged[0].difficulty if tagged and tagged[0] else None
-            )
             words = sum(section.word_count for section in item.sections)
             concepts = self._item_concepts(item.id)
             topics = set(source.topics) | {
                 topic_of[c] for c in concepts if c in topic_of
             }
             facts[item.id] = EntryFacts(
-                None,
                 item.id,
                 source.id,
                 minutes(words) if item.sections else None,
-                difficulty,
+                store.tags.difficulty(item.id),
                 item.published_at,
                 source.quality_score,
                 concepts,
@@ -1371,7 +1074,7 @@ class InMemoryRankingInputs:
         graph = store.concepts.state()
         topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
         wanted = set(topics)
-        shown = shown_articles(store)
+        shown = shown_items(store)
         found: list[tuple[bool, float, int, CandidateArticle]] = []
         for item in store.items.rows.values():
             source = store.sources.rows[item.source_id]
@@ -1389,11 +1092,7 @@ class InMemoryRankingInputs:
         return [f[3] for f in sorted(found, key=lambda f: f[:3])][:limit]
 
     def _item_concepts(self, item_id: int) -> frozenset[str]:
-        corrected = self._store.tags.item_concept_overrides.get(item_id)
-        if corrected is not None:
-            return corrected
-        tags, _ = self._store.tags.for_item(item_id)
-        return tags.concepts if tags else frozenset()
+        return self._store.tags.concepts(item_id)
 
     def project_concepts(self, user_id: str) -> ProjectConcepts:
         return dict(self.projects.get(user_id, {}))
@@ -1401,77 +1100,37 @@ class InMemoryRankingInputs:
     def project_repositories(self, user_id: str) -> dict[str, tuple[str, ...]]:
         return dict(self.repositories.get(user_id, {}))
 
-    def concept_moments(
+    def concept_articles(
         self,
         concepts: frozenset[str],
         limit: int,
         *,
         exclude_sources: set[int],
         exclude_items: set[int],
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[CandidateMoment]:
-        # Mirrors PostgresRankingInputs.concept_moments.
+    ) -> list[CandidateArticle]:
+        # Mirrors PostgresRankingInputs.concept_articles.
         store = self._store
         shown = shown_items(store)
-        found: list[tuple[bool, float, int, int, CandidateMoment]] = []
-        for moment in store.moments.rows:
-            item = store.items.rows[moment.item_id]
+        found: list[tuple[bool, float, int, CandidateArticle]] = []
+        for item in store.items.rows.values():
             source = store.sources.rows[item.source_id]
             if item.id not in shown or not source.active:
                 continue
             if source.id in exclude_sources or item.id in exclude_items:
                 continue
-            if moment.id in exclude_moments or not concepts & self._item_concepts(
-                item.id
-            ):
+            if not concepts & self._item_concepts(item.id):
                 continue
             published = item.published_at.timestamp() if item.published_at else 0.0
-            row = CandidateMoment(moment.id, item.id, source.id)
-            undated = item.published_at is None
-            found.append((undated, -published, -item.id, moment.row.ordinal, row))
-        return [f[4] for f in sorted(found, key=lambda f: f[:4])][:limit]
-
-    def topic_moments(
-        self,
-        topics: list[Topic],
-        limit: int,
-        *,
-        exclude_sources: set[int],
-        exclude_items: set[int],
-        exclude_moments: frozenset[int] = frozenset(),
-    ) -> list[CandidateMoment]:
-        # Mirrors PostgresRankingInputs.topic_moments.
-        store = self._store
-        graph = store.concepts.state()
-        topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
-        wanted = set(topics)
-        shown = shown_items(store)
-        found: list[tuple[bool, float, int, int, CandidateMoment]] = []
-        for moment in store.moments.rows:
-            item = store.items.rows[moment.item_id]
-            source = store.sources.rows[item.source_id]
-            if item.id not in shown or not source.active:
-                continue
-            if source.id in exclude_sources or item.id in exclude_items:
-                continue
-            if moment.id in exclude_moments:
-                continue
-            concepts = self._item_concepts(item.id)
-            by_concept = any(topic_of.get(c) in wanted for c in concepts)
-            if not (wanted & set(source.topics) or by_concept):
-                continue
-            published = item.published_at.timestamp() if item.published_at else 0.0
-            row = CandidateMoment(moment.id, item.id, source.id)
-            undated = item.published_at is None
-            found.append((undated, -published, -item.id, moment.row.ordinal, row))
-        return [f[4] for f in sorted(found, key=lambda f: f[:4])][:limit]
+            row = CandidateArticle(item.id, source.id)
+            found.append((item.published_at is None, -published, -item.id, row))
+        return [f[3] for f in sorted(found, key=lambda f: f[:3])][:limit]
 
 
 @dataclass
 class StoredQuestion:
     id: int
-    moment_id: int
-    ordinal: int
+    item_id: int
+    ordinal: int  # its slot in the article, per kind (article_ordinal)
     draft: QuestionDraft | EstimateDraft
     concepts: tuple[str, ...]
     model: str
@@ -1485,6 +1144,8 @@ class StoredQuestion:
     calibrated_at: datetime | None = None
     validator_estimate: float | None = None
     stem_tried_at: datetime | None = None
+    # ADR-0058 stage A: a question drafted for one of the article's moments.
+    moment_id: int | None = None
 
     @property
     def kind(self) -> QuestionKind:
@@ -1498,19 +1159,19 @@ class InMemoryQuestions:
         self,
         items: InMemoryItems,
         sources: InMemorySources,
-        moments: InMemoryMoments,
         tags: InMemoryItemTags,
         concepts: InMemoryConcepts,
     ) -> None:
         self._items = items
         self._sources = sources
-        self._moments = moments
         self._tags = tags
         self._concepts = concepts
         self.rows: list[StoredQuestion] = []
         self._next_id = 1
         self.retries: dict[int, tuple[int, datetime]] = {}
-        self.estimates_drafted: dict[int, str] = {}  # moment -> hash (P3-W13-S03b)
+        self.estimates_drafted: dict[int, str] = {}  # article -> hash (P3-W13-S03b)
+        # ADR-0058 stage A: articles one of whose moments had its estimate drafted.
+        self.moment_estimates_drafted: set[int] = set()
         # Q-2 reviews, oldest first: (question id, reason, decided)
         self.reviews: list[tuple[int, str, bool]] = []
         # Quiz answers (not reviews), which the web app writes (P2-W9-S01);
@@ -1523,71 +1184,74 @@ class InMemoryQuestions:
         self.batch_items: dict[str, list[tuple[QuestionBatchEntry, str | None]]] = {}
         self.note_items: dict[str, list[tuple[NoteBatchEntry, str | None]]] = {}
 
-    def target(self, moment_id: int) -> QuestionTarget | None:
-        moment = next((m for m in self._moments.rows if m.id == moment_id), None)
-        if moment is None:
-            return None
-        item = self._items.rows[moment.item_id]
+    def allowed(self, item_id: int) -> bool:
+        """Not a duplicate, and its source allows full text now (ING-2)."""
+        item = self._items.rows[item_id]
         source = self._sources.rows[item.source_id]
-        if (
-            item.duplicate_of is not None
-            or not source.moments_enabled
-            or source.rights_profile not in _FULL_TEXT
-        ):
-            return None
-        corrected = (
-            None
-            if moment.row.link_type == "page_top"
-            else self._tags.moment_concept_overrides.get(
-                (moment.item_id, moment.row.title)
-            )
-        )
-        row = self._tags.rows.get(moment.item_id)
-        tagged = row[1].get(moment_id) if row else None
-        slugs = (
-            corrected
-            if corrected is not None
-            else (tagged.concepts if tagged else frozenset[str]())
-        )
-        live = [
+        return item.duplicate_of is None and source.rights_profile in _FULL_TEXT
+
+    def live_concepts(self, item_id: int) -> list[tuple[str, str]]:
+        return [
             (seed.slug, seed.name)
-            for slug in sorted(slugs)
+            for slug in sorted(self._tags.concepts(item_id))
             if (seed := self._concepts.get(slug)) is not None and not seed.retired
         ]
+
+    def target(self, item_id: int) -> QuestionTarget | None:
+        item = self._items.rows.get(item_id)
+        if item is None or not self.allowed(item_id) or item.full_text is None:
+            return None
+        live = self.live_concepts(item_id)
         if not live:
             return None
         return QuestionTarget(
-            moment_id,
-            moment.item_id,
-            tuple(live),
-            self._tags.moment_difficulty(moment.item_id, moment_id),
+            item_id, tuple(live), self._tags.difficulty(item_id), len(item.sections)
+        )
+
+    def _carried_over(self, item_id: int) -> bool:
+        return item_id in self.moment_estimates_drafted or any(
+            q.item_id == item_id and q.moment_id is not None and q.status != "retired"
+            for q in self.rows
         )
 
     def targets(self, item_id: int | None) -> list[int]:
-        moments = sorted(
-            (m for m in self._moments.rows if item_id in (None, m.item_id)),
-            key=lambda m: (m.item_id, m.row.ordinal),
-        )
-        return [m.id for m in moments if self.target(m.id) is not None]
+        return [
+            i
+            for i in sorted(self._items.rows)
+            if item_id in (None, i)
+            and self.target(i) is not None
+            and not self._carried_over(i)
+        ]
 
-    def drafted_hash(self, moment_id: int) -> str | None:
+    def drafted_hash(self, item_id: int) -> str | None:
         return next(
             (
                 q.content_hash
                 for q in self.rows
-                if q.moment_id == moment_id
+                if q.item_id == item_id
+                and q.moment_id is None
                 and q.status != "retired"
                 and q.kind == "choice"
             ),
             None,
         )
 
-    def estimate_drafted_hash(self, moment_id: int) -> str | None:
-        return self.estimates_drafted.get(moment_id)
+    def estimate_drafted_hash(self, item_id: int) -> str | None:
+        return self.estimates_drafted.get(item_id)
+
+    def _next_slot(self, item_id: int, kind: QuestionKind) -> int:
+        taken = [
+            q.ordinal for q in self.rows if q.item_id == item_id and q.kind == kind
+        ]
+        return max(taken, default=-1) + 1
+
+    def _refuse_carried_over(self, item_id: int) -> None:
+        if self._carried_over(item_id):
+            raise ValueError(f"article {item_id} keeps its moments' questions")
 
     def save(
         self,
-        moment_id: int,
+        item_id: int,
         drafts: Sequence[QuestionDraft],
         concepts: Sequence[str],
         model: str,
@@ -1595,17 +1259,19 @@ class InMemoryQuestions:
         content_hash: str,
         difficulty: Difficulty | None,
     ) -> list[int]:
+        self._refuse_carried_over(item_id)
         for q in self.rows:
-            if q.moment_id == moment_id and q.kind == "choice":
+            if q.item_id == item_id and q.kind == "choice":
                 q.status = "retired"
-        self.clear_retry(moment_id)
+        self.clear_retry(item_id)
+        slot = self._next_slot(item_id, "choice")
         ids: list[int] = []
-        for ordinal, draft in enumerate(drafts):
+        for offset, draft in enumerate(drafts):
             self.rows.append(
                 StoredQuestion(
                     self._next_id,
-                    moment_id,
-                    ordinal,
+                    item_id,
+                    slot + offset,
                     draft,
                     tuple(c for c in concepts if self._concepts.get(c) is not None),
                     model,
@@ -1620,24 +1286,25 @@ class InMemoryQuestions:
 
     def save_estimate(
         self,
-        moment_id: int,
+        item_id: int,
         draft: EstimateDraft | None,
         concepts: Sequence[str],
         model: str,
         content_hash: str,
         difficulty: Difficulty | None,
     ) -> int | None:
+        self._refuse_carried_over(item_id)
         for q in self.rows:
-            if q.moment_id == moment_id and q.kind == "estimate":
+            if q.item_id == item_id and q.kind == "estimate":
                 q.status = "retired"
-        self.estimates_drafted[moment_id] = content_hash
+        self.estimates_drafted[item_id] = content_hash
         if draft is None:
             return None
         self.rows.append(
             StoredQuestion(
                 self._next_id,
-                moment_id,
-                0,
+                item_id,
+                self._next_slot(item_id, "estimate"),
                 draft,
                 tuple(c for c in concepts if self._concepts.get(c) is not None),
                 model,
@@ -1649,26 +1316,26 @@ class InMemoryQuestions:
         self._next_id += 1
         return self._next_id - 1
 
-    def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
-        return self.retries.get(moment_id)
+    def retry_state(self, item_id: int) -> tuple[int, datetime] | None:
+        return self.retries.get(item_id)
 
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
         q = next((q for q in self.rows if q.id == question_id), None)
         if q is None or q.status != "pending" or not isinstance(q.draft, QuestionDraft):
             return None
-        return q.moment_id, q.draft
+        return q.item_id, q.draft
 
     def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
         q = next((q for q in self.rows if q.id == question_id), None)
         if q is None or q.status != "pending" or not isinstance(q.draft, EstimateDraft):
             return None
-        return q.moment_id, q.draft
+        return q.item_id, q.draft
 
-    def pending_ids(self, moment_id: int) -> list[int]:
+    def pending_ids(self, item_id: int) -> list[int]:
         return [
             q.id
             for q in sorted(self.rows, key=lambda q: q.ordinal)
-            if q.moment_id == moment_id and q.status == "pending" and q.kind == "choice"
+            if q.item_id == item_id and q.status == "pending" and q.kind == "choice"
         ]
 
     def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
@@ -1682,7 +1349,7 @@ class InMemoryQuestions:
 
     def stem_candidates(self) -> list[StemCandidate]:
         return [
-            StemCandidate(q.id, q.moment_id, q.draft, q.stem_tried_at)
+            StemCandidate(q.id, q.item_id, q.draft, q.stem_tried_at)
             for q in sorted(self.rows, key=lambda q: q.id)
             if q.status == "live"
         ]
@@ -1856,7 +1523,7 @@ class InMemoryQuestions:
             for e, _ in self.batch_items[b]
         ]
         return (
-            {(e.moment_id, e.kind) for e in entries if e.moment_id is not None},
+            {(e.item_id, e.kind) for e in entries if e.item_id is not None},
             {e.question_id for e in entries if e.question_id is not None},
         )
 
@@ -1883,18 +1550,18 @@ class InMemoryQuestions:
         ]
 
     def broken_counts(self) -> tuple[dict[tuple[int, str], int], dict[int, int]]:
-        moments: dict[tuple[int, str], int] = {}
+        articles: dict[tuple[int, str], int] = {}
         questions: dict[int, int] = {}
         for items in self.batch_items.values():
             for e, result in items:
                 if result != "broken":
                     continue
-                if e.moment_id is not None and e.content_hash is not None:
-                    key = (e.moment_id, e.content_hash)
-                    moments[key] = moments.get(key, 0) + 1
+                if e.item_id is not None and e.content_hash is not None:
+                    key = (e.item_id, e.content_hash)
+                    articles[key] = articles.get(key, 0) + 1
                 if e.question_id is not None:
                     questions[e.question_id] = questions.get(e.question_id, 0) + 1
-        return moments, questions
+        return articles, questions
 
     def summary(self, sample: int) -> QuestionSummary:
         counts: dict[str, int] = {}
@@ -1912,20 +1579,20 @@ class InMemoryQuestions:
             counts, random.sample(validated, min(sample, len(validated)))
         )
 
-    def record_retry(self, moment_id: int, attempt: int, retry_at: datetime) -> None:
-        self.retries[moment_id] = (attempt, retry_at)
+    def record_retry(self, item_id: int, attempt: int, retry_at: datetime) -> None:
+        self.retries[item_id] = (attempt, retry_at)
 
-    def clear_retry(self, moment_id: int) -> None:
-        self.retries.pop(moment_id, None)
+    def clear_retry(self, item_id: int) -> None:
+        self.retries.pop(item_id, None)
 
-    def drop_missing(self) -> None:
-        # Questions and retry state cascade with their moment, as in Postgres.
-        live = {m.id for m in self._moments.rows}
-        self.rows = [q for q in self.rows if q.moment_id in live]
-        self.retries = {m: r for m, r in self.retries.items() if m in live}
-        self.estimates_drafted = {
-            m: h for m, h in self.estimates_drafted.items() if m in live
-        }
+    def drop(self, item_ids: set[int]) -> None:
+        # Mirrors the purge trigger: the articles' questions and drafting state go (a
+        # moment-era one's with its moment).
+        self.rows = [q for q in self.rows if q.item_id not in item_ids]
+        for item_id in item_ids:
+            self.retries.pop(item_id, None)
+            self.estimates_drafted.pop(item_id, None)
+        self.moment_estimates_drafted -= item_ids
         kept = {q.id for q in self.rows}
         self.reviews = [r for r in self.reviews if r[0] in kept]
 
@@ -1939,8 +1606,9 @@ class SavedPath:
 
 
 class InMemoryPaths:
-    """Path proposals (P2-W10-S01), as PostgresPaths: allowed moments and their live
-    concepts are the question targets' (ING-2, an admin's tag correction winning)."""
+    """Path proposals (P2-W10-S01), as PostgresPaths: allowed articles and their live
+    concepts are as the question targets read them (ING-2, an admin's tag correction
+    winning)."""
 
     def __init__(
         self,
@@ -1954,14 +1622,12 @@ class InMemoryPaths:
         self.rows: dict[int, SavedPath] = {}
 
     def _allowed(self) -> list[tuple[int, int, frozenset[str], bool]]:
-        """(moment, source, live concept slugs, frameable) per allowed moment."""
+        """(article, source, live concept slugs, frameable) per allowed article."""
         found: list[tuple[int, int, frozenset[str], bool]] = []
-        for moment_id in self._questions.targets(None):
-            target = self._questions.target(moment_id)
-            assert target is not None  # targets() lists only these
-            item = self._items.rows[target.item_id]
-            slugs = frozenset(s for s, _ in target.concepts)
-            found.append((moment_id, item.source_id, slugs, item.frameable is True))
+        for item_id, item in sorted(self._items.rows.items()):
+            slugs = frozenset(s for s, _ in self._questions.live_concepts(item_id))
+            if self._questions.allowed(item_id) and slugs:
+                found.append((item_id, item.source_id, slugs, item.frameable is True))
         return found
 
     def coverage(self) -> list[ConceptCoverage]:
@@ -1996,13 +1662,13 @@ class InMemoryPaths:
         wanted = set(slugs)
         # A checkpoint asks multiple choice only (P3-W13-S03b).
         live = {
-            q.moment_id
+            q.item_id
             for q in self._questions.rows
             if q.status == "live" and q.kind == "choice"
         }
         return [
-            SessionCandidate(moment_id, concepts, source, frameable, moment_id in live)
-            for moment_id, source, concepts, frameable in self._allowed()
+            SessionCandidate(item_id, concepts, source, frameable, item_id in live)
+            for item_id, source, concepts, frameable in self._allowed()
             if concepts & wanted
         ]
 
@@ -2106,25 +1772,22 @@ class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
         self.items = InMemoryItems(self.sources)
-        self.moments = InMemoryMoments(self.items, self.sources)
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
-        self.feed = InMemoryFeed(self.users, self.moments)
+        self.feed = InMemoryFeed(self.users, self.items)
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()
-        self.tags = InMemoryItemTags(self.items, self.moments)
-        self.embeddings = InMemoryEmbeddings(
-            self.items, self.sources, self.moments, self.tags
-        )
+        self.tags = InMemoryItemTags(self.items)
+        self.embeddings = InMemoryEmbeddings(self.items, self.sources, self.tags)
         self.embeddings.store = self
         self.ranking = InMemoryRankingInputs(self)
-        self.decisions = InMemoryDecisions(self.moments, self.concepts)
+        self.decisions = InMemoryDecisions(self.concepts)
         self.explainers = InMemoryExplainers()
         self.pronunciations = InMemoryPronunciations()
         self.tts_samples = InMemoryTtsSamples()
         self.questions = InMemoryQuestions(
-            self.items, self.sources, self.moments, self.tags, self.concepts
+            self.items, self.sources, self.tags, self.concepts
         )
         self.paths = InMemoryPaths(self.questions, self.items, self.concepts)
         self.books = InMemoryBooks()
@@ -2145,14 +1808,13 @@ class InMemoryStore:
         self.hld_matches = InMemoryHldMatches()
         self.scenes = InMemoryScenes()
         self.daily = InMemoryDailyChallenges()
-        drop_feed = self.feed.drop_missing
-
-        def drop_missing() -> None:
-            drop_feed()
-            self.questions.drop_missing()
-
-        self.moments.on_delete = drop_missing
         self.sources.store = self
+        embeddings = self.embeddings
+
+        def text_changed(item_id: int) -> None:
+            embeddings.drop({item_id})
+
+        self.items.on_text_changed = text_changed
 
 
 class FakeFetcher:

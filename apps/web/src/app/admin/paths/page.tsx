@@ -169,11 +169,9 @@ function PathCard({ path }: { path: ReviewPath }) {
                       rel="noopener noreferrer"
                       className="underline"
                     >
-                      {s.sectionTitle}
+                      {s.articleTitle}
                     </a>{" "}
-                    <span className="text-ink-muted">
-                      · {s.articleTitle} · {s.sourceName}
-                    </span>
+                    <span className="text-ink-muted">· {s.sourceName}</span>
                     {s.allowed ? null : (
                       <span className="ml-2 font-semibold text-wrong">
                         Rights changed
@@ -196,7 +194,7 @@ function PathCard({ path }: { path: ReviewPath }) {
                       <button
                         type="submit"
                         className={SECONDARY}
-                        aria-label={`Remove reading ${s.sectionTitle}`}
+                        aria-label={`Remove reading ${s.articleTitle}`}
                       >
                         Remove
                       </button>

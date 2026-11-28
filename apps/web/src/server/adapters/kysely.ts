@@ -3,6 +3,7 @@ import { Kysely, PostgresDialect, sql, type Selectable } from "kysely";
 import pg from "pg";
 import { log } from "../log";
 import {
+  FEED_CHIP,
   isReasonKind,
   isTopic,
   type DatabasePing,
@@ -44,14 +45,9 @@ export function kyselyPing(db: Kysely<DB>): DatabasePing {
 // View columns are nullable in the generated types; a null here means a broken view, so
 // the row is dropped and only its id and the missing column names are logged.
 // The card columns, as both feed views name them (no summary or text, §3.2, ING-2).
+// ADR-0058: an article's; the views' moment columns are no longer read.
 const CARD_COLUMNS = [
-  "rank",
-  "kind",
   "content_item_id",
-  "moment_id",
-  "section_title",
-  "section_number",
-  "section_count",
   "estimated_minutes",
   "article_title",
   "author",
@@ -74,6 +70,7 @@ type CardRow = Pick<
     >
   > & {
     saved: boolean;
+    opened: boolean;
   };
 
 // Whether the user saved the card's article (P1-W5-S04), in the same query.
@@ -84,41 +81,33 @@ function savedBy(userId: string, itemColumn: string) {
   )`.as("saved");
 }
 
-// Columns any row may leave null: no known author, no reason that counted.
-const NULLABLE_ON_EVERY_ROW = [
+// ADR-0058: an article the user opened is Continue reading (completed ones have left
+// the feed, notFinishedBy below), in the same query.
+function openedBy(userId: string, itemColumn: string) {
+  return sql<boolean>`exists (
+    select 1 from user_article_opened uo
+    where uo.user_id = ${userId} and uo.content_item_id = ${sql.ref(itemColumn)}
+  )`.as("opened");
+}
+
+// Columns any row may leave null: no known author, no reason that counted, and no
+// length without body text to count (Q-P1-39).
+const NULLABLE = new Set([
   "author",
   "reasons",
   "source_topic",
   "difficulty",
-];
-// Columns an article row also leaves null: it has no moment, and maybe no length.
-const ARTICLE_NULLS = new Set([
-  ...NULLABLE_ON_EVERY_ROW,
-  "moment_id",
-  "section_title",
-  "section_number",
-  "section_count",
   "estimated_minutes",
 ]);
 
 export function toCard(row: CardRow): FeedCard | null {
-  const {
-    kind,
-    content_item_id,
-    moment_id,
-    section_title,
-    section_number,
-    section_count,
-    estimated_minutes,
-    article_title,
-    source_name,
-  } = row;
+  const { content_item_id, article_title, source_name } = row;
   if (
     content_item_id !== null &&
     article_title !== null &&
     source_name !== null
   ) {
-    const base = {
+    return {
       itemId: content_item_id,
       articleTitle: article_title,
       author: row.author,
@@ -141,36 +130,14 @@ export function toCard(row: CardRow): FeedCard | null {
       frameable: row.frameable === true,
       topic: row.source_topic,
       difficulty: row.difficulty,
+      estimatedMinutes: row.estimated_minutes,
+      state: row.opened ? "continue_reading" : "unread",
     };
-    if (kind === "article") {
-      return { kind, ...base, estimatedMinutes: estimated_minutes };
-    }
-    if (
-      kind === "moment" &&
-      moment_id !== null &&
-      section_title !== null &&
-      section_number !== null &&
-      section_count !== null &&
-      estimated_minutes !== null
-    ) {
-      return {
-        kind,
-        ...base,
-        momentId: moment_id,
-        sectionTitle: section_title,
-        sectionNumber: section_number,
-        sectionCount: section_count,
-        estimatedMinutes: estimated_minutes,
-      };
-    }
   }
-  const allowedNull =
-    kind === "article" ? ARTICLE_NULLS : new Set(NULLABLE_ON_EVERY_ROW);
   const missing = Object.entries(row)
-    .filter(([column, value]) => value === null && !allowedNull.has(column))
+    .filter(([column, value]) => value === null && !NULLABLE.has(column))
     .map(([column]) => column);
   log.error("feed: dropped a feed row with missing fields", {
-    momentId: moment_id,
     itemId: content_item_id,
     missing,
   });
@@ -193,41 +160,34 @@ function keptFor(userId: string, itemColumn: string) {
     )`;
 }
 
-// What the user finished leaves the feed at once (P1-W5-S03 excludes it at ranking;
-// a stored feed lasts until the next recompute): a finished section, and every card of
-// a finished article.
-function notFinishedBy(
-  userId: string,
-  momentColumn: string,
-  itemColumn: string,
-) {
-  const moment = sql.ref(momentColumn);
-  const item = sql.ref(itemColumn);
+// A completed article leaves the feed at once (P1-W5-S03 excludes it at ranking; a
+// stored feed lasts until the next recompute).
+function notFinishedBy(userId: string, itemColumn: string) {
   return sql<boolean>`not exists (
-      select 1 from user_moment_finished f
-      where f.user_id = ${userId} and f.moment_id = ${moment}
-    ) and not exists (
       select 1 from user_article_finished a
-      where a.user_id = ${userId} and a.content_item_id = ${item}
+      where a.user_id = ${userId} and a.content_item_id = ${sql.ref(itemColumn)}
     )`;
 }
 
 export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
   return {
-    read: async (userId, chip, limit) => {
-      // The state row says "computed"; the left join brings the chip's cards, if any.
+    read: async (userId, limit) => {
+      // The state row says "computed"; the left join brings the cards, if any. ADR-0058:
+      // one list until stage C drops the chip column, and only its article entries.
       const rows = await db
         .selectFrom("user_feed_state as s")
         .leftJoin("user_feed_visible as v", (join) =>
           join
             .onRef("v.user_id", "=", "s.user_id")
-            .on("v.chip", "=", chip)
+            .on("v.chip", "=", FEED_CHIP)
+            .on("v.moment_id", "is", null)
             .on(keptFor(userId, "v.content_item_id"))
-            .on(notFinishedBy(userId, "v.moment_id", "v.content_item_id")),
+            .on(notFinishedBy(userId, "v.content_item_id")),
         )
         .select(CARD_COLUMNS.map((column) => `v.${column}` as const))
         .select(["v.project_note_text", "v.project_note_repositories"])
         .select(savedBy(userId, "v.content_item_id"))
+        .select(openedBy(userId, "v.content_item_id"))
         .where("s.user_id", "=", userId)
         // Owner, 2026-10-29 (Q-P2-43 update): a card with the user's own project line
         // comes first, then the ranking's order.
@@ -236,29 +196,26 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .limit(limit)
         .execute();
       if (rows.length === 0) return { computed: false, cards: [] };
-      // A computed feed with no entries in this chip comes back as one empty row.
+      // A computed feed with no entries comes back as one empty row.
       const cards = rows
         .filter((row) => row.content_item_id !== null)
         .map(toCard)
         .filter((card) => card !== null);
       return { computed: true, cards };
     },
-    starter: async (userId, topic, level, chip, limit) => {
+    starter: async (userId, topic, level, limit) => {
       const rows = await db
         .selectFrom("starter_feed_visible")
         .select(CARD_COLUMNS)
         .select(savedBy(userId, "starter_feed_visible.content_item_id"))
+        .select(openedBy(userId, "starter_feed_visible.content_item_id"))
         .where(keptFor(userId, "starter_feed_visible.content_item_id"))
-        .where(
-          notFinishedBy(
-            userId,
-            "starter_feed_visible.moment_id",
-            "starter_feed_visible.content_item_id",
-          ),
-        )
+        .where(notFinishedBy(userId, "starter_feed_visible.content_item_id"))
         .where("topic", "=", topic)
         .where("level", "=", level)
-        .where("chip", "=", chip)
+        // ADR-0058: one list until stage C drops the chip column.
+        .where("chip", "=", FEED_CHIP)
+        .where("moment_id", "is", null)
         .orderBy("rank")
         .limit(limit)
         .execute();
@@ -271,8 +228,10 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .innerJoin("source as s", "s.id", "ci.source_id")
         // ADR-0049: the source itself is tagged with the topic, and its rights let it
         // be read (ING-2); a concept tag on another topic's source doesn't count.
+        // ADR-0058: the moments switch no longer gates it; only the rights do.
         .where(sql<boolean>`v.topic = any(s.topics)`)
-        .where("s.moments_enabled", "=", true)
+        .where("v.chip", "=", FEED_CHIP)
+        .where("v.moment_id", "is", null)
         .where("s.rights_profile", "in", [
           "full_text_internal",
           "full_text_display",

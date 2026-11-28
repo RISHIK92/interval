@@ -48,10 +48,10 @@ def _edges_text(edges: Iterable[tuple[str, str]], within: Collection[str]) -> st
 def candidates_prompt(
     coverage: list[ConceptCoverage], edges: set[tuple[str, str]], count: int
 ) -> list[Message]:
-    covered = [c for c in coverage if c.moments > 0]
+    covered = [c for c in coverage if c.articles > 0]
     slugs = {c.slug for c in covered}
     concepts = "\n".join(
-        f"- {c.slug} ({c.name}, {c.topic}): {c.moments} readings from "
+        f"- {c.slug} ({c.name}, {c.topic}): {c.articles} readings from "
         f"{c.sources} sources"
         for c in sorted(covered, key=lambda c: (c.topic, c.slug))
     )
@@ -105,7 +105,7 @@ def parse_candidates(
         parsed = _Candidates.model_validate(json.loads(_json(reply)))
     except (json.JSONDecodeError, ValidationError) as error:
         raise PathReplyError(f"not the JSON asked for: {error}") from error
-    readable = {c.slug for c in coverage if c.moments > 0}
+    readable = {c.slug for c in coverage if c.articles > 0}
     known = {c.slug for c in coverage}
     kept: list[PathCandidate] = []
     refused: list[tuple[str, str]] = []
@@ -194,11 +194,11 @@ def parse_order(
 def _rank(c: SessionCandidate) -> tuple[bool, bool, int]:
     # Live questions first (the checkpoint asks them), then frameable (it opens in the
     # reader), then the newest.
-    return (not c.live_questions, not c.frameable, -c.moment_id)
+    return (not c.live_questions, not c.frameable, -c.item_id)
 
 
 def pick_sessions(concepts: tuple[str, ...], pool: list[SessionCandidate]) -> list[int]:
-    """Up to MAX_SESSIONS moments on these concepts: one per source first, best
+    """Up to MAX_SESSIONS articles on these concepts: one per source first, best
     first; a source repeats only when there aren't enough others."""
     on = sorted((c for c in pool if c.concepts & set(concepts)), key=_rank)
     first: list[SessionCandidate] = []
@@ -207,7 +207,7 @@ def pick_sessions(concepts: tuple[str, ...], pool: list[SessionCandidate]) -> li
     for c in on:
         (rest if c.source_id in seen else first).append(c)
         seen.add(c.source_id)
-    return [c.moment_id for c in (first + rest)[:MAX_SESSIONS]]
+    return [c.item_id for c in (first + rest)[:MAX_SESSIONS]]
 
 
 def draft_path(
@@ -218,9 +218,9 @@ def draft_path(
     """The draft, its sections under MIN_SESSIONS readings dropped; None under
     MIN_SECTIONS sections."""
     kept = tuple(
-        DraftSection(section, tuple(moments))
+        DraftSection(section, tuple(items))
         for section in sections
-        if len(moments := pick_sessions(section, pool)) >= MIN_SESSIONS
+        if len(items := pick_sessions(section, pool)) >= MIN_SESSIONS
     )
     if len(kept) < MIN_SECTIONS:
         return None

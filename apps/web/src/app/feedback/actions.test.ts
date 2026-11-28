@@ -60,19 +60,20 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-async function press(control: string, itemId = "42", chip = "3-8") {
+// ADR-0058: the card's form carries no chip any more.
+async function press(control: string, itemId = "42") {
   const { feedbackAction } = await import("./actions");
   current.mockResolvedValue(user);
-  return feedbackAction(form({ control, itemId, chip }));
+  return feedbackAction(form({ control, itemId }));
 }
 
 describe("each control", () => {
   test.each([
-    ["more_like_this", "/?chip=3-8"],
-    ["less_like_this", "/?chip=3-8"],
-    ["not_interested", "/?chip=3-8&undo=42"],
+    ["more_like_this", "/"],
+    ["less_like_this", "/"],
+    ["not_interested", "/?undo=42"],
   ] as const)("%s records feedback and goes to %s", async (kind, target) => {
-    await expect(press(kind)).rejects.toThrow(`redirect:${target}`);
+    await expect(press(kind)).rejects.toThrow(new Error(`redirect:${target}`));
     expect(port.give).toHaveBeenCalledExactlyOnceWith("g1", "42", kind);
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "feedback_given",
@@ -82,22 +83,20 @@ describe("each control", () => {
   });
 
   test("hide source hides the item's source", async () => {
-    await expect(press("hide_source")).rejects.toThrow("redirect:/?chip=3-8");
+    await expect(press("hide_source")).rejects.toThrow(new Error("redirect:/"));
     expect(port.hideSource).toHaveBeenCalledExactlyOnceWith("g1", "42");
     expect(emit).toHaveBeenCalledExactlyOnceWith("source_hidden", {}, context);
   });
 
   test("save stores the item", async () => {
-    await expect(press("save", "42", "8-15")).rejects.toThrow(
-      "redirect:/?chip=8-15",
-    );
+    await expect(press("save", "42")).rejects.toThrow(new Error("redirect:/"));
     expect(port.save).toHaveBeenCalledExactlyOnceWith("g1", "42");
     expect(emit).toHaveBeenCalledExactlyOnceWith("item_saved", {}, context);
   });
 
   test("undo removes only the not-interested record", async () => {
     await expect(press("undo_not_interested")).rejects.toThrow(
-      "redirect:/?chip=3-8",
+      new Error("redirect:/"),
     );
     expect(port.undoNotInterested).toHaveBeenCalledExactlyOnceWith("g1", "42");
     expect(port.give).not.toHaveBeenCalled();
@@ -132,7 +131,9 @@ describe("each control", () => {
 
 test("a repeat changes nothing: no event, no recompute", async () => {
   port.give.mockResolvedValueOnce(false);
-  await expect(press("more_like_this")).rejects.toThrow("redirect:/?chip=3-8");
+  await expect(press("more_like_this")).rejects.toThrow(
+    new Error("redirect:/"),
+  );
   expect(emit).not.toHaveBeenCalled();
   expect(enqueue).not.toHaveBeenCalled();
 });
@@ -145,7 +146,7 @@ test("a queue failure is logged and the feedback still counts (LOAD-5)", async (
   });
   enqueue.mockRejectedValueOnce(new Error("valkey down"));
   await expect(press("not_interested")).rejects.toThrow(
-    "redirect:/?chip=3-8&undo=42",
+    new Error("redirect:/?undo=42"),
   );
   expect(port.give).toHaveBeenCalledOnce();
   expect(emit).toHaveBeenCalledExactlyOnceWith(
@@ -157,8 +158,8 @@ test("a queue failure is logged and the feedback still counts (LOAD-5)", async (
 });
 
 test.each([
-  ["an unknown control", { control: "delete_all", itemId: "42", chip: "3-8" }],
-  ["a bad item id", { control: "save", itemId: "42; drop", chip: "3-8" }],
+  ["an unknown control", { control: "delete_all", itemId: "42" }],
+  ["a bad item id", { control: "save", itemId: "42; drop" }],
 ])("%s is refused without a write", async (_name, fields) => {
   const { feedbackAction } = await import("./actions");
   current.mockResolvedValue(user);
@@ -172,13 +173,13 @@ test("without a session the visitor is sent to /join", async () => {
   const { feedbackAction } = await import("./actions");
   current.mockResolvedValue(null);
   await expect(
-    feedbackAction(form({ control: "save", itemId: "42", chip: "3-8" })),
+    feedbackAction(form({ control: "save", itemId: "42" })),
   ).rejects.toThrow("redirect:/join");
   expect(port.save).not.toHaveBeenCalled();
 });
 
 test("Saved ✓ unsaves, queues a recompute and counts no event", async () => {
-  await expect(press("unsave")).rejects.toThrow("redirect:/?chip=3-8");
+  await expect(press("unsave")).rejects.toThrow(new Error("redirect:/"));
   expect(port.unsave).toHaveBeenCalledExactlyOnceWith("g1", "42");
   expect(enqueue).toHaveBeenCalledOnce();
   expect(emit).not.toHaveBeenCalled();
@@ -186,7 +187,7 @@ test("Saved ✓ unsaves, queues a recompute and counts no event", async () => {
 
 test("an unsave that changes nothing queues nothing", async () => {
   port.unsave.mockResolvedValueOnce(false);
-  await expect(press("unsave")).rejects.toThrow("redirect:/?chip=3-8");
+  await expect(press("unsave")).rejects.toThrow(new Error("redirect:/"));
   expect(enqueue).not.toHaveBeenCalled();
 });
 
@@ -194,9 +195,9 @@ test("an unsave that changes nothing queues nothing", async () => {
 test("back is honoured when it is a path on this site", async () => {
   const { feedbackAction } = await import("./actions");
   current.mockResolvedValue(user);
-  const back = "/read/42?moment=9&chip=3-8&from=reader";
+  const back = "/read/42?from=reader";
   await expect(
-    feedbackAction(form({ control: "save", itemId: "42", chip: "3-8", back })),
+    feedbackAction(form({ control: "save", itemId: "42", back })),
   ).rejects.toThrow(`redirect:${back}`);
   expect(port.save).toHaveBeenCalledExactlyOnceWith("g1", "42");
 });
@@ -207,16 +208,16 @@ test.each(["https://evil.test/read/42", "//evil.test", "/\\evil.test"])(
     const { feedbackAction } = await import("./actions");
     current.mockResolvedValue(user);
     const error = await feedbackAction(
-      form({ control: "save", itemId: "42", chip: "3-8", back }),
+      form({ control: "save", itemId: "42", back }),
     ).catch((caught: unknown) => caught);
-    expect(error).toEqual(new Error("redirect:/?chip=3-8"));
+    expect(error).toEqual(new Error("redirect:/"));
   },
 );
 
 // ADR-0026: a reported reason is stored once and counted; the feed isn't recomputed.
 test("reporting a wrong reason stores it, emits it once and goes back", async () => {
   await expect(press("wrong_reason:goal_match")).rejects.toThrow(
-    "redirect:/?chip=3-8",
+    new Error("redirect:/"),
   );
   expect(port.reportReason).toHaveBeenCalledExactlyOnceWith(
     "g1",
@@ -232,7 +233,7 @@ test("reporting a wrong reason stores it, emits it once and goes back", async ()
   emit.mockClear();
   port.reportReason.mockResolvedValueOnce(false); // already reported: no event
   await expect(press("wrong_reason:goal_match")).rejects.toThrow(
-    "redirect:/?chip=3-8",
+    new Error("redirect:/"),
   );
   expect(emit).not.toHaveBeenCalled();
   await expect(press("wrong_reason:nonsense")).rejects.toThrow("redirect:/");

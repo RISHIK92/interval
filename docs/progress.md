@@ -6222,3 +6222,42 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Next:**
   - **Stage B:** switch workers, web, mobile, CLI and VS Code to articles. Stop segmentation first. Add the HNSW index.
   - **Stage C:** fold the `moments:` rows, section overrides and notes into the article. Change `quiz_attempt.moment_id`'s cascade first, then drop the moment tables.
+
+## 2026-11-28: ADR-0058 stage B, switch to articles (workers, web, mobile, CLI, VS Code)
+
+- **Migration** `20261127310000_articles_switch_workers.sql`:
+  - Questions, drafting and batches are keyed by article.
+  - Path sessions are by article; `user_path_articles()` is added and later duplicate entries of one article in a section are removed.
+  - Adds the HNSW index on `item_embedding.embedding` and `user_article_opened.last_opened_at`.
+  - The ING-2 purge now also clears article vectors, drafting state and article questions.
+  - `game_match_question` now cascades with its question, so lowering a source's rights no longer fails. A purged question takes its past match rounds with it.
+- **Workers:**
+  - Segmentation and `check-links` are removed.
+  - Embedding and tagging run once per article. Existing tags are kept and the model isn't asked again.
+  - Questions: `min(8, 2 × sections)` per article. Articles that already have questions are never redrafted, and a guard enforces that.
+  - The feed is one article list (`FEED_CHIP` '3-8' until stage C drops the column).
+  - Explainers, Ask, paths and reminders work by article.
+  - `generate_questions` takes `content_item_id`; `segment_item` is removed.
+- **Web:**
+  - No chips anywhere: Home, onboarding, profile, Also fits and the review sizing.
+  - Article cards carry their state: continue reading or completed.
+  - The reader has Quiz me (always, up to 5 of the article's questions), Done or Completed, and no section navigation.
+  - Continue reading and Library history go by `last_opened_at`.
+  - Notes are per article, with older section notes listed under it.
+  - Paths, Explore ("Make it a reading session": the top 3 cited articles) and admin work by article.
+  - The api-client shapes are article-only.
+  - Events: `card_opened` v5; `article_completed` replaces `section_finished` and `article_finished`; the metric queries count both old and new completion events.
+- **Mobile, CLI and VS Code:**
+  - Mobile has no chip picker. Its reader has Quiz me and Done or Completed, and auto-finish completes the whole page.
+  - The CLI's `--chip` and the extension's `interval.chip` setting are removed.
+  - The extension's unused `zod` dependency is dropped.
+- **Checks:** `pnpm check` passes, 68 of 68 tasks, against the local `interval_test` DB. The reviewer's should-fix items are all fixed.
+- **For the owner:**
+  - Accept ADR-0058.
+  - CLAUDE.md still lists the `segment-item` and `check-links` commands. I'm not allowed to edit it.
+  - Check the wording "Read while you wait" and "Make it a reading session".
+- **Next, stage C (contract):**
+  - Fold the moment-era tag rows, section overrides and notes into the article.
+  - Change `quiz_attempt.moment_id`'s cascade.
+  - Drop the stage A triggers, the moment tables, the chip column and `break_length`.
+  - Queue `recompute-due` after migrating.

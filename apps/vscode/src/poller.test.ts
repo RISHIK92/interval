@@ -11,7 +11,7 @@ afterEach(() => {
 
 const OK: StatusResult = {
   kind: "ok",
-  status: { task: { state: "idle" }, chip: "3-8", suggestions: [] },
+  status: { task: { state: "idle" }, suggestions: [] },
 };
 
 // A check that answers each call with the next of `results` (the last one repeats).

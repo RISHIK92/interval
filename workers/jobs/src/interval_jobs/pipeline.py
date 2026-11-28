@@ -1,5 +1,6 @@
 """The staged ingestion pipeline (ING-1, LOAD-3): discover, then fetch and extract, then
-segment, each stage a queue message (ADR-0014).
+embed and tag, each stage a queue message (ADR-0014). Articles are not split
+(ADR-0058): each is embedded, tagged and drafted questions for whole.
 
 Every stage:
 - checks the source's rights profile first (ING-2), so a message sent before a profile
@@ -51,7 +52,6 @@ from interval_db.messages import (
     RecomputeFeed,
     RemoveFile,
     ReviewCode,
-    SegmentItem,
     TagItem,
     ValidateQuestion,
 )
@@ -114,22 +114,24 @@ from interval_jobs.ports import (
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.questions import (
     QuestionReplyError,
+    article_passage,
     content_hash,
     parse_answer,
     parse_reply,
+    passage_chars,
+    passage_with,
     prompt,
+    question_count,
     shuffled,
     validation_prompt,
 )
 from interval_jobs.queue import ATTEMPTS
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
-from interval_jobs.segment import segment_item
 from interval_jobs.tagging import (
     DECISIONS_PREFIX,
     PROMPT_VERSION,
     TaggingError,
     active_concepts,
-    moment_texts,
     tag_item,
 )
 from interval_jobs.tagging_decide import decide
@@ -141,7 +143,6 @@ from interval_jobs.tagging_rollup import rollup
 STAGES: tuple[MessageName, ...] = (
     "discover_source",
     "fetch_item",
-    "segment_item",
     "tag_item",
     "embed_item",
     "recompute_feed",
@@ -159,11 +160,11 @@ STAGES: tuple[MessageName, ...] = (
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
 # a model error waits this long and tries again, without end (the queue's own retries,
 # ATTEMPTS, would give up); a reply that breaks a rule does too, up to
-# QUESTION_BROKEN_REPLIES times, so a moment the model can't do doesn't spend the free
+# QUESTION_BROKEN_REPLIES times, so an article the model can't do doesn't spend the free
 # tier's daily requests forever. Config and infrastructure errors still raise.
 QUESTION_RETRY_SECONDS = 300
 # Q-P2-13: QUESTIONS_MODEL=batch:<model> drafts and validates through the provider's
-# batch API (question_batches.py) instead of one call per moment here.
+# batch API (question_batches.py) instead of one call per article here.
 BATCH_PREFIX = "batch:"
 
 
@@ -207,14 +208,28 @@ type Next = tuple[MessageName, dict[str, object], str]
 type Answered = tuple[str, Validators | None] | None
 
 
-def moment_text(store: Store, target: QuestionTarget | None) -> str:
-    """A question target's text, as drafting reads it; empty when there is none."""
+def question_passage(store: Store, target: QuestionTarget | None) -> str:
+    """A question target's passage, as drafting reads it (ADR-0058); empty when there
+    is none (the rights or the tags no longer allow it, ING-2)."""
     if target is None:
         return ""
     item = store.tags.input(target.item_id)
     if item is None or item.full_text is None:
         return ""
-    return moment_texts(item.full_text, item.moments).get(target.moment_id, "").strip()
+    return article_passage(item.full_text, question_count(target.sections))
+
+
+def cited_passage(store: Store, target: QuestionTarget | None, citation: str) -> str:
+    """The passage a drafted question is validated (or its stem rewritten) against:
+    drafting's, or as long around the words it cites (a question drafted for one of
+    the article's moments may cite past it); empty as question_passage is."""
+    if target is None:
+        return ""
+    item = store.tags.input(target.item_id)
+    if item is None or item.full_text is None:
+        return ""
+    chars = passage_chars(question_count(target.sections))
+    return passage_with(item.full_text, chars, citation)
 
 
 class Pipeline:
@@ -267,7 +282,6 @@ class Pipeline:
         return {
             "discover_source": self._discover_stage,
             "fetch_item": self._stage(self._fetch),
-            "segment_item": self._stage(self._segment),
             "tag_item": self._tag_stage,
             "embed_item": self._embed_stage,
             "recompute_feed": self._recompute_stage,
@@ -465,7 +479,7 @@ class Pipeline:
             )
             passages = relevant(found)
             bodies = {
-                p.passage: passage_body(p, self._section_text(services.store, p))
+                p.passage: passage_body(p, self._article_text(services.store, p))
                 for p in passages
             }
         if not passages:
@@ -486,17 +500,15 @@ class Pipeline:
         )
 
     @staticmethod
-    def _section_text(store: Store, p: AskPassage) -> str | None:
-        # Full text is read here, in the worker, and only for a moment of a source
+    def _article_text(store: Store, p: AskPassage) -> str | None:
+        # Full text is read here, in the worker, and only for an article of a source
         # whose rights allow it (ING-2); passage_body decides what the model sees.
-        if p.kind != "moment" or p.item_id is None or p.moment_id is None:
+        if p.kind != "item" or p.item_id is None:
             return None
         if p.rights_profile not in ("full_text_internal", "full_text_display"):
             return None
         item = store.tags.input(p.item_id)
-        if item is None or item.full_text is None:
-            return None
-        return moment_texts(item.full_text, item.moments).get(p.moment_id)
+        return None if item is None else item.full_text
 
     def _ask_done(self, request: AskRequest, result: AskResult) -> None:
         with self._unit() as services:
@@ -947,7 +959,6 @@ class Pipeline:
         new_items = sum(1 for e in entries if e.guid not in seen)
         profile = source.rights_profile
         keep_excerpt = allowed(profile, "store_excerpt")
-        segments = source.moments_enabled and allowed(profile, "make_moments")
         follow_ups: list[Next] = []
         for entry in entries:
             item_id = store.items.upsert_from_feed(source.id, entry, keep_excerpt)
@@ -959,11 +970,6 @@ class Pipeline:
             if not store.items.has_body(item_id):
                 follow_ups.append(
                     ("fetch_item", {"content_item_id": item_id}, f"fetch-{item_id}")
-                )
-            # A segment that failed earlier is retried on the next poll.
-            elif segments and not store.moments.exist(item_id):
-                follow_ups.append(
-                    ("segment_item", {"content_item_id": item_id}, f"segment-{item_id}")
                 )
             # Tagging or embedding that failed or was over budget is retried on the
             # next poll.
@@ -1015,27 +1021,17 @@ class Pipeline:
             fingerprint = simhash(text)
             if fingerprint is not None:
                 store.items.set_simhash(item_id, fingerprint)
-            follow_ups.append(
-                ("segment_item", {"content_item_id": item_id}, f"segment-{item_id}")
+            # Embedded, then tagged; it reaches users' feeds at each user's next
+            # recompute (hourly, or after feedback, Q-P1-17).
+            follow_ups.extend(
+                self._embed_if_needed(store, item_id)
+                or self._tag_if_needed(store, item_id)
             )
         elif allowed(item.rights_profile, "store_excerpt"):
             store.items.set_excerpt(item_id, text[:EXCERPT_MAX_CHARS])
             follow_ups.extend(self._tag_if_needed(store, item_id))
         store.items.link_duplicates(item_id)
         return follow_ups
-
-    def _segment(self, services: StageServices, message: BaseModel) -> list[Next]:
-        assert isinstance(message, SegmentItem)
-        store, item_id = services.store, message.content_item_id
-        # segment_item checks the profile and the moments switch itself (ING-2, §3.2)
-        # and stores nothing when they don't allow moments.
-        segment_item(store, item_id)
-        # Moments are embedded, then tagged (the shortlist reuses their vectors); they
-        # reach users' feeds at each user's next recompute (hourly, or after
-        # feedback, Q-P1-17).
-        return self._embed_if_needed(store, item_id) or self._tag_if_needed(
-            store, item_id
-        )
 
     def _embed_if_needed(self, store: Store, item_id: int) -> list[Next]:
         job = self._embedding
@@ -1045,7 +1041,7 @@ class Pipeline:
 
     def _embed_stage(self, message: BaseModel, delivery: Delivery) -> None:
         """Like tagging: read, call the model outside any transaction, then save only
-        if the moments didn't change meanwhile."""
+        if the article's text didn't change meanwhile."""
         assert isinstance(message, EmbedItem)
         item_id, job = message.content_item_id, self._embedding
         if job is None:
@@ -1054,81 +1050,71 @@ class Pipeline:
         with self._unit() as services:
             item = services.store.tags.input(item_id)
             missing = services.store.embeddings.missing(item_id, job.model)
-            done = services.store.embeddings.done(item_id, job.model)
             then = self._tag_if_needed(services.store, item_id)
         # Once per item and model (AI-4); duplicates aren't shown, so not embedded.
         if item is None or not missing:
             self._enqueue(then)
             return
         with job.gateway() as gateway:
-            embedded = embed_item(gateway, job.model, item, skip=done)
+            embedded = embed_item(gateway, job.model, item)
         if embedded.refused is not None:
-            # LOAD-5: degrade, observably; what was paid for is kept and the next
-            # poll finishes the item.
+            # LOAD-5: degrade, observably; the next poll embeds it.
             log.warn(
                 "pipeline: embedding over budget",
                 content_item_id=item_id,
                 scope=embedded.refused.scope,
             )
-        with self._unit() as services:
-            now = services.store.tags.input(item_id)
-            if now is None or now.moments != item.moments:
-                log.info(
-                    "pipeline: moments changed; vectors dropped",
-                    content_item_id=item_id,
-                )
-                return
-            services.store.embeddings.save(
-                item_id,
-                embedded.vectors,
-                job.model,
-                complete=embedded.refused is None,
-            )
+        elif embedded.vector is not None:
+            with self._unit() as services:
+                now = services.store.tags.input(item_id)
+                if now is None or now.full_text != item.full_text:
+                    log.info(
+                        "pipeline: text changed; vector dropped",
+                        content_item_id=item_id,
+                    )
+                    return
+                services.store.embeddings.save(item_id, embedded.vector, job.model)
         self._enqueue(then)
 
     def _questions_for(self, store: Store, item_id: int) -> list[Next]:
-        """Q-P2-09: each tagged full-text moment's questions, once tagging saved its
-        tags; drafting skips a moment whose text and prompt are unchanged (AI-4). In
+        """Q-P2-09: a tagged full-text article's questions, once tagging saved its
+        tags; drafting skips an article whose text and prompt are unchanged (AI-4). In
         batch mode (Q-P2-13) the batch commands draft instead."""
         if self._questions is None or self._questions.model.startswith(BATCH_PREFIX):
             return []
-        return [
-            (
-                "generate_questions",
-                {"moment_id": moment_id, "attempt": 0, "broken": 0},
-                f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}",
-            )
-            for moment_id in store.questions.targets(item_id)
-        ]
+        return [questions_job(target) for target in store.questions.targets(item_id)]
 
     def _questions_stage(self, message: BaseModel, delivery: Delivery) -> None:
-        """Q-1: draft a tagged moment's questions (P2-W8-S01). Read, call the model
+        """Q-1: draft a tagged article's questions (P2-W8-S01). Read, call the model
         with no transaction open, then save, as tagging does."""
         assert isinstance(message, GenerateQuestions)
-        moment_id, job = message.moment_id, self._questions
+        item_id, job = message.content_item_id, self._questions
         if job is None or job.model.startswith(BATCH_PREFIX):
-            log.info("pipeline: sync questions are off", moment_id=moment_id)
+            log.info("pipeline: sync questions are off", content_item_id=item_id)
             return
         now = self._clock()
         with self._unit() as services:
             questions = services.store.questions
-            target = questions.target(moment_id)
-            drafted = questions.drafted_hash(moment_id)
-            pending_ids = questions.pending_ids(moment_id)
-            retry = questions.retry_state(moment_id)
-            text = moment_text(services.store, target)
-        # One retry chain per moment: a re-tag or a second backfill while a retry
+            # targets() leaves out an article whose questions came from its moments
+            # (ADR-0058): a stray job never retires them.
+            target = questions.target(item_id) if questions.targets(item_id) else None
+            drafted = questions.drafted_hash(item_id)
+            pending_ids = questions.pending_ids(item_id)
+            retry = questions.retry_state(item_id)
+            text = question_passage(services.store, target)
+        # One retry chain per article: a re-tag or a second backfill while a retry
         # waits starts another, which is dropped here.
         if (
             retry is not None
             and message.attempt < retry[0]
             and now < retry[1] + QUESTION_RETRY_LOST
         ):
-            log.info("questions: a newer retry is waiting", moment_id=moment_id)
+            log.info("questions: a newer retry is waiting", content_item_id=item_id)
             return
         if target is None or not text:
-            log.info("questions: not a target now", moment_id=moment_id)
+            log.info("questions: not a target now", content_item_id=item_id)
             return
+        count = question_count(target.sections)
         slugs = [slug for slug, _ in target.concepts]
         digest = content_hash(text, slugs)
         if digest == drafted:
@@ -1144,41 +1130,42 @@ class Pipeline:
                     feature="questions",
                     user_id=None,
                     model=job.model,
-                    messages=prompt(text, [name for _, name in target.concepts]),
+                    messages=prompt(text, [name for _, name in target.concepts], count),
                 )
             if isinstance(answered, OverBudget):
                 raise ModelError(f"the {answered.scope} AI budget is spent")
-            drafts = parse_reply(answered.text, text)
+            drafts = parse_reply(answered.text, text, count)
         except (ModelError, QuestionReplyError) as error:
             attempt = message.attempt + 1
             # The retry state first: the retry it describes may run as soon as it's
             # queued.
             with self._unit() as services:
                 services.store.questions.record_retry(
-                    moment_id, attempt, now + timedelta(seconds=QUESTION_RETRY_SECONDS)
+                    item_id, attempt, now + timedelta(seconds=QUESTION_RETRY_SECONDS)
                 )
             if not self._retry_question_call(
                 "generate_questions",
-                {"moment_id": moment_id},
-                f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}",
+                {"content_item_id": item_id},
+                questions_job(item_id)[2],
                 attempt,
                 broken,
                 error,
             ):
                 with self._unit() as services:
-                    services.store.questions.clear_retry(moment_id)
+                    services.store.questions.clear_retry(item_id)
             return
         with self._unit() as services:
-            # The moment changed or lost its target while the model ran: the next
+            # The article changed or lost its target while the model ran: the next
             # tagging pass queues it again.
-            current = services.store.questions.target(moment_id)
-            if current is None or moment_text(services.store, current) != text:
+            current = services.store.questions.target(item_id)
+            if current is None or question_passage(services.store, current) != text:
                 log.info(
-                    "questions: moment changed; drafts dropped", moment_id=moment_id
+                    "questions: article changed; drafts dropped",
+                    content_item_id=item_id,
                 )
                 return
             saved = services.store.questions.save(
-                moment_id,
+                item_id,
                 [shuffled(draft) for draft in drafts],
                 [slug for slug, _ in current.concepts],
                 job.model,
@@ -1247,17 +1234,22 @@ class Pipeline:
             return
         with self._unit() as services:
             pending = services.store.questions.pending(question_id)
-            target = (
-                None if pending is None else services.store.questions.target(pending[0])
+            text = (
+                ""
+                if pending is None
+                else cited_passage(
+                    services.store,
+                    services.store.questions.target(pending[0]),
+                    pending[1].citation,
+                )
             )
-            text = moment_text(services.store, target)
         if pending is None:
             return  # decided, retired or gone: a repeat delivery
         if not text:
-            # Its moment lost its rights or tags meanwhile (ING-2): left pending, and
+            # Its article lost its rights or tags meanwhile (ING-2): left pending, and
             # a later backfill re-queues it if they come back.
             log.warn(
-                "questions: pending, but its moment isn't a target",
+                "questions: pending, but its article isn't a target",
                 question_id=question_id,
             )
             return
@@ -1306,8 +1298,9 @@ class Pipeline:
     def _tag_by_decisions(
         self, item_id: int, item: TagInput, graph: ConceptGraph
     ) -> None:
-        """Tagging v3 (2026-10-27): ask the decision model about moments whose content
-        changed (a shortlist of concepts each), keep the raw answers, roll them up."""
+        """Tagging v3 (2026-10-27): ask the decision model about the article (a
+        shortlist of concepts) when its content changed, keep the raw answers, roll
+        them up (ADR-0058: the article is asked about whole)."""
         assert self._tagging is not None
         if self._embedding is None:
             log.warn(
@@ -1319,13 +1312,8 @@ class Pipeline:
         active = {c.slug for c in graph.concepts if not c.retired}
         with self._unit() as services:
             stored = services.store.concepts.vectors(self._embedding.model)
-            known = services.store.decisions.moment_hashes(item_id, decider)
             known_item = services.store.decisions.item_hash(item_id, decider)
-            embedded = services.store.embeddings.vectors_of_item(
-                item_id, self._embedding.model
-            )
-            # Re-fetched since the tag stage read it: these vectors may be of the new
-            # text, and re-segmenting queues a fresh pass.
+            # Re-fetched since the tag stage read it: the next pass tags the new one.
             if services.store.tags.input(item_id) != item:
                 log.info(
                     "pipeline: item changed; tagging left to the next pass",
@@ -1356,28 +1344,16 @@ class Pipeline:
                 item,
                 graph,
                 vectors,
-                known,
                 known_item,
-                embedded=embedded,
             )
         questions: list[Next] = []
         with self._unit() as services:
-            now = services.store.tags.input(item_id)
-            if now is None or now.moments != item.moments:
+            if not _same_text(services.store.tags.input(item_id), item):
                 log.info(
-                    "pipeline: moments changed; answers dropped",
-                    content_item_id=item_id,
+                    "pipeline: text changed; answers dropped", content_item_id=item_id
                 )
                 return
             decisions = services.store.decisions
-            for moment_id, answer in asked.moments.items():
-                decisions.save_moment(
-                    moment_id,
-                    decider,
-                    answer.content_hash,
-                    answer.difficulty,
-                    answer.probabilities,
-                )
             if asked.item is not None:
                 decisions.save_item(
                     item_id,
@@ -1391,9 +1367,7 @@ class Pipeline:
             if asked.refused is None and asked.stopped is None:
                 services.store.tags.save(
                     item_id,
-                    rollup(
-                        decisions.read(item_id, decider), active, current=asked.current
-                    ),
+                    rollup(decisions.read(item_id, decider), active),
                     self._tagging.model,
                     PROMPT_VERSION,
                 )
@@ -1411,7 +1385,7 @@ class Pipeline:
 
     def _tag_stage(self, message: BaseModel, delivery: Delivery) -> None:
         """Read, then call the model with no transaction open, then save in a second
-        unit of work only if the item's moments didn't change meanwhile."""
+        unit of work only if the item's text didn't change meanwhile."""
         assert isinstance(message, TagItem)
         item_id = message.content_item_id
         if self._tagging is None:
@@ -1442,11 +1416,9 @@ class Pipeline:
             )
             return
         with self._unit() as services:
-            now = services.store.tags.input(item_id)
-            if now is None or now.moments != item.moments:
-                # Re-segmented while the model ran: segmentation queues a fresh pass.
+            if not _same_text(services.store.tags.input(item_id), item):
                 log.info(
-                    "pipeline: moments changed; tags dropped", content_item_id=item_id
+                    "pipeline: text changed; tags dropped", content_item_id=item_id
                 )
                 return
             services.store.tags.save(
@@ -1454,3 +1426,21 @@ class Pipeline:
             )
             questions = self._questions_for(services.store, item_id)
         self._enqueue(questions)
+
+
+def _same_text(now: TagInput | None, then: TagInput) -> bool:
+    """Whether the item still reads as it did when the model was asked."""
+    return now is not None and (now.full_text, now.excerpt) == (
+        then.full_text,
+        then.excerpt,
+    )
+
+
+def questions_job(item_id: int) -> Next:
+    """The job drafting an article's questions (Q-1, ADR-0058). Its own key: a job
+    queued for a moment of the same id is another job."""
+    return (
+        "generate_questions",
+        {"content_item_id": item_id, "attempt": 0, "broken": 0},
+        f"article-questions-{item_id}-v{QUESTIONS_PROMPT_VERSION}",
+    )

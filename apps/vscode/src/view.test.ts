@@ -3,7 +3,7 @@ import type { AgentStatus } from "@interval/api-client";
 import { type BarState, show } from "./view";
 
 function status(task: AgentStatus["task"]): BarState {
-  return { kind: "ok", status: { task, chip: "3-8", suggestions: [] } };
+  return { kind: "ok", status: { task, suggestions: [] } };
 }
 
 test("the agent's state is the label", () => {

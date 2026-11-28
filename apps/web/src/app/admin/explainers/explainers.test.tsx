@@ -59,18 +59,8 @@ const consensus: ExplainerReview = {
   createdAt: new Date("2026-11-09T12:00:00Z"),
   missing: 0,
   citations: [
-    {
-      momentId: "9",
-      articleTitle: "Raft",
-      sectionTitle: "Elections",
-      link: "https://blog.test/raft#elections",
-    },
-    {
-      momentId: "10",
-      articleTitle: "Paxos",
-      sectionTitle: "Basics",
-      link: "https://blog.test/paxos#basics",
-    },
+    { itemId: "9", articleTitle: "Raft", link: "https://blog.test/raft" },
+    { itemId: "10", articleTitle: "Paxos", link: "https://blog.test/paxos" },
   ],
 };
 
@@ -98,8 +88,8 @@ test("pending scripts, labeled AI-drafted, with their sources as deep links", as
   expect(html).toContain("Consensus");
   expect(html).toContain("AI-drafted");
   expect(html).toContain(consensus.script);
-  expect(html).toContain('href="https://blog.test/raft#elections"');
-  expect(html).toContain("Raft: Elections");
+  // ADR-0058: each cited article, linked to its page.
+  expect(html).toMatch(/href="https:\/\/blog.test\/raft"[^>]*>Raft</);
   expect(html).toContain("Approve");
   expect(html).toContain("Reject");
 });
@@ -111,7 +101,7 @@ test("a script left with one source says so and can only be rejected (AI-1)", as
     { ...consensus, missing: 1, citations: consensus.citations.slice(0, 1) },
   ]);
   const html = await page();
-  expect(html).toContain("1 cited section is gone since it was written.");
+  expect(html).toContain("1 cited article is gone since it was written.");
   expect(html).not.toContain("Approve");
   expect(html).toContain("Reject");
 });

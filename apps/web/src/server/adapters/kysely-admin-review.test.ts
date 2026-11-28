@@ -34,8 +34,6 @@ async function seed(trx: Transaction<DB>): Promise<string> {
       name: `review-${tag}`,
       feed_url: `https://review-${tag}.example.test/feed`,
       rights_profile: "full_text_internal",
-      moments_seeded: true,
-      moments_enabled: true,
     })
     .returning("id")
     .executeTakeFirstOrThrow();
@@ -68,28 +66,6 @@ async function seed(trx: Transaction<DB>): Promise<string> {
       },
     ])
     .execute();
-  const moments = await trx
-    .insertInto("moment")
-    .values([
-      {
-        content_item_id: item.id,
-        ordinal: 0,
-        title: "WAL",
-        estimated_minutes: 1,
-        link: "https://x.test/wal",
-        link_type: "page_top",
-      },
-      {
-        content_item_id: item.id,
-        ordinal: 1,
-        title: "Setup",
-        estimated_minutes: 2,
-        link: "https://x.test/wal#setup",
-        link_type: "anchor",
-      },
-    ])
-    .returning("id")
-    .execute();
   const concept = await trx
     .insertInto("concept")
     .values({ slug: `review-wal-${tag}`, name: "WAL", topic: "databases" })
@@ -108,65 +84,63 @@ async function seed(trx: Transaction<DB>): Promise<string> {
     .insertInto("item_concept")
     .values({ content_item_id: item.id, concept_id: concept.id })
     .execute();
-  const setupMoment = moments[1];
-  if (setupMoment === undefined) throw new Error("no moment");
-  await trx
-    .insertInto("moment_tagging")
-    .values({ moment_id: setupMoment.id, difficulty: "advanced" })
-    .execute();
   return item.id;
 }
 
-test("an item reads back with its sections, moments and the model's tags", async () => {
+test("an item reads back with its sections and the model's tags", async () => {
   await rolledBack(async (trx) => {
     const id = await seed(trx);
     const item = await kyselyAdminReview(trx).item(id);
     expect(item?.sections.map((s) => s.heading)).toEqual([null, "Setup"]);
-    expect(item?.moments.map((m) => m.heading)).toEqual([null, "Setup"]);
-    expect(item?.modelTags.item?.difficulty).toBe("intermediate");
-    expect(item?.modelTags.item?.concepts).toHaveLength(1);
-    expect(item?.modelTags.moments.get(1)).toEqual({
-      difficulty: "advanced",
-      concepts: [],
-    });
-    expect(item?.boundaries).toBeNull();
+    expect(item?.modelTags?.difficulty).toBe("intermediate");
+    expect(item?.modelTags?.concepts).toHaveLength(1);
+    expect(item?.tagOverride).toBeNull();
     expect(await kyselyAdminReview(trx).item("999999999999")).toBeNull();
     expect(await kyselyAdminReview(trx).item("not-a-number")).toBeNull();
   });
 });
 
-test("overrides are written, replaced and cleared", async () => {
+// ADR-0058: the whole article's override only; a section's row left from before is
+// neither read nor touched (stage C folds it in).
+test("the article's override is written, replaced and cleared", async () => {
   await rolledBack(async (trx) => {
     const id = await seed(trx);
     const review = kyselyAdminReview(trx);
-    await review.setBoundaries(id, ["Setup"], "admin-1");
-    await review.setBoundaries(id, ["Setup", "Setup"], "admin-2");
+    await trx
+      .insertInto("tag_override")
+      .values({
+        content_item_id: id,
+        heading: "Setup",
+        difficulty: "advanced",
+        concepts: [],
+        updated_by: "admin-0",
+      })
+      .execute();
     await review.setTags(
       id,
-      "",
-      { difficulty: "beginner", concepts: [] },
-      "admin-1",
-    );
-    await review.setTags(
-      id,
-      "Setup",
       { difficulty: "advanced", concepts: [] },
       "admin-1",
     );
-    let item = await review.item(id);
-    expect(item?.boundaries).toEqual(["Setup", "Setup"]);
-    expect(item?.tagOverrides.get("")).toEqual({
+    await review.setTags(
+      id,
+      { difficulty: "beginner", concepts: [] },
+      "admin-2",
+    );
+    expect((await review.item(id))?.tagOverride).toEqual({
       difficulty: "beginner",
       concepts: [],
     });
-    expect(item?.tagOverrides.get("Setup")?.difficulty).toBe("advanced");
-    await review.setBoundaries(id, null, "admin-1");
-    await review.setTags(id, "", null, "admin-1");
-    item = await review.item(id);
-    expect(item?.boundaries).toBeNull();
-    expect(item?.tagOverrides.has("")).toBe(false);
+    await review.setTags(id, null, "admin-1");
+    expect((await review.item(id))?.tagOverride).toBeNull();
+    expect(
+      await trx
+        .selectFrom("tag_override")
+        .select("heading")
+        .where("content_item_id", "=", id)
+        .execute(),
+    ).toEqual([{ heading: "Setup" }]);
     expect(await review.recent(500)).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id, momentCount: 2 })]),
+      expect.arrayContaining([expect.objectContaining({ id, reports: [] })]),
     );
   });
 });

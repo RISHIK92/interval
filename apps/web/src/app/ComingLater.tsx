@@ -42,7 +42,7 @@ export function ComingLater(props: {
     props.path === null
       ? null
       : props.path.kind === "reading"
-        ? props.path.reading.sectionTitle
+        ? props.path.reading.articleTitle
         : `Checkpoint · ${props.path.concepts.join(", ")}`;
   return (
     <>

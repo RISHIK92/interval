@@ -10,7 +10,6 @@ import {
   type QuizQuestion,
   type Quizzes,
   type Streak,
-  quizKey,
 } from "../ports";
 import {
   dailyPoints,
@@ -47,35 +46,37 @@ const notServedThisWeek = (userId: string) => sql`
     where a.user_id = ${userId} and qa.served_at > now() - interval '7 days'
   )`;
 
-// Live questions in moments their source's rights allow (Q-1, ING-2), as `q` and `m`.
+// Live questions in articles their source's rights allow (Q-1, ING-2), as `q` and `ci`.
+// ADR-0058: a question's home is its article (question.content_item_id, moment-era
+// questions included), so the per-source moments switch no longer gates it.
 // Multiple choice only: an estimate is answered with a number (P3-W13-S03). Live
 // matches draw from the same (P3-W15-S03, kysely-matches.ts).
 export const LIVE = sql`
   question q
-  join moment m on m.id = q.moment_id and q.kind = 'choice'
-  join content_item ci on ci.id = m.content_item_id
+  join content_item ci on ci.id = q.content_item_id and q.kind = 'choice'
   join source s on s.id = ci.source_id
-   and s.moments_enabled
    and s.rights_profile in ('full_text_internal', 'full_text_display')
 `;
 
 // P3-W13-S04, S03b: live estimates, as `q`: hand-written ones (their home is their
-// source page) and those in moments their source's rights allow (ING-2) whose link
-// works, since the section is all their reveal can cite (AI-3).
+// source page) and those in articles their source's rights allow (ING-2) whose link
+// works, since the article is all their reveal can cite (AI-3).
 const LIVE_ESTIMATE = sql`(
   select q.* from question q
   where q.kind = 'estimate' and (
     q.source_url is not null
     or exists (
-      select 1 from moment m
-      join content_item ci on ci.id = m.content_item_id
+      select 1 from content_item ci
       join source s on s.id = ci.source_id
-       and s.moments_enabled
        and s.rights_profile in ('full_text_internal', 'full_text_display')
-      where m.id = q.moment_id and ci.link_broken_at is null
+      where ci.id = q.content_item_id and ci.link_broken_at is null
     )
   )
 ) q`;
+
+// ADR-0058 (its open question's default): an article's quiz asks up to 5 questions,
+// the old quiz's length, sampled from all of the article's own.
+const ARTICLE_QUIZ_SIZE = 5;
 
 // P3-W13-S05 (§6.3, Q-P3-06; owner, 2026-11-01): the daily challenge runs the UTC
 // day's set on one 2-minute clock (its points: @interval/scoring's dailyPoints).
@@ -370,31 +371,28 @@ const dueConcepts = (userId: string) => sql<{
 
 export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   // §6.1: a sprint's (and the daily challenge's) misses go back to reading, at the
-  // sections their questions came from, while their source still allows moments
+  // articles their questions came from (ADR-0058), while their rights allow them
   // (ING-2) and links work.
-  const missedSections = (attemptId: string, from: Kysely<DB> = db) =>
+  const missedArticles = (attemptId: string, from: Kysely<DB> = db) =>
     from
       .selectFrom("quiz_answer as qa")
       .innerJoin("question as q", "q.id", "qa.question_id")
-      .innerJoin("moment as m", "m.id", "q.moment_id")
-      .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
+      .innerJoin("content_item as ci", "ci.id", "q.content_item_id")
       .innerJoin("source as s", "s.id", "ci.source_id")
       .select([
         "ci.id as item_id",
-        "m.id as moment_id",
-        "m.title",
+        "ci.title",
         sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
       ])
       .distinct()
       .where("qa.attempt_id", "=", attemptId)
       .where("qa.correct", "=", false)
       .where("ci.link_broken_at", "is", null)
-      .where("s.moments_enabled", "=", true)
       .where("s.rights_profile", "in", [
         "full_text_internal",
         "full_text_display",
       ])
-      .orderBy("m.id")
+      .orderBy("ci.id")
       .execute();
 
   // Q-P2-16: a card is made by a quiz answer, so a quiz left behind (the tab closed
@@ -441,24 +439,22 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     if (row === undefined) return null;
     const at = checkpointAt(row);
     // P3-W18-S03: what its results page sends back to reading (Read again).
-    const sections =
-      row.sprint || row.daily ? await missedSections(attemptId) : [];
+    const articles =
+      row.sprint || row.daily ? await missedArticles(attemptId) : [];
     const estimates =
       row.estimation || row.daily
         ? (await reveals(userId, attemptId).execute()).map(asReveal)
         : [];
-    const missedTargets = new Map(
-      [
-        ...sections.map((m) => ({ itemId: m.item_id, momentId: m.moment_id })),
-        ...estimates.flatMap((e) =>
-          e.source?.kind === "section" && missed(e.score)
-            ? [{ itemId: e.source.itemId, momentId: e.source.momentId }]
-            : [],
-        ),
-      ].map((t) => [t.momentId, t]),
-    );
+    const missedItems = new Set([
+      ...articles.map((m) => m.item_id),
+      ...estimates.flatMap((e) =>
+        e.source?.kind === "article" && missed(e.score)
+          ? [e.source.itemId]
+          : [],
+      ),
+    ]);
     return {
-      missed: [...missedTargets.values()],
+      missed: [...missedItems].map((itemId) => ({ itemId })),
       answered: row.answered,
       correct: row.correct,
       firstTime,
@@ -560,23 +556,21 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   };
 
   // P3-W13-S04, S03b: an attempt's answered estimates with the real answer and its
-  // source (AI-3): a hand-written question's page, or a moment's section while its
-  // source allows moments and its link works (ING-2, as the sprint's misses).
+  // source (AI-3): a hand-written question's page, or its article while its rights
+  // allow it and its link works (ING-2, as the sprint's misses; ADR-0058).
   const reveals = (userId: string, attemptId: string) =>
     db
       .selectFrom("quiz_answer as qa")
       .innerJoin("quiz_attempt as a", "a.id", "qa.attempt_id")
       .innerJoin("question as q", "q.id", "qa.question_id")
-      .leftJoin("moment as m", "m.id", "q.moment_id")
       .leftJoin("content_item as ci", (join) =>
         join
-          .onRef("ci.id", "=", "m.content_item_id")
+          .onRef("ci.id", "=", "q.content_item_id")
           .on("ci.link_broken_at", "is", null),
       )
       .leftJoin("source as s", (join) =>
         join
           .onRef("s.id", "=", "ci.source_id")
-          .on("s.moments_enabled", "=", true)
           .on("s.rights_profile", "in", [
             "full_text_internal",
             "full_text_display",
@@ -593,8 +587,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         "q.citation",
         "q.source_title",
         "q.source_url",
-        "m.id as moment_id",
-        "m.title as section_title",
+        "ci.title as article_title",
         "ci.id as item_id",
         sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
         sql<boolean>`s.id is not null`.as("allowed"),
@@ -631,15 +624,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             title: row.source_title,
             citation: row.citation,
           }
-        : row.allowed &&
-            row.moment_id !== null &&
-            row.item_id !== null &&
-            row.section_title !== null
+        : row.allowed && row.item_id !== null && row.article_title !== null
           ? {
-              kind: "section",
+              kind: "article",
               itemId: row.item_id,
-              momentId: row.moment_id,
-              sectionTitle: row.section_title,
+              articleTitle: row.article_title,
               frameable: row.frameable,
             }
           : null,
@@ -763,16 +752,12 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           order by a.id
           for update of a skip locked
         `.execute(trx);
-        const misses = new Map<
-          string,
-          { itemId: string; momentId: string }[]
-        >();
+        const misses = new Map<string, { itemId: string }[]>();
         for (const attempt of pending) {
           misses.set(
             attempt.id,
-            (await missedSections(attempt.id, trx)).map((m) => ({
+            (await missedArticles(attempt.id, trx)).map((m) => ({
               itemId: m.item_id,
-              momentId: m.moment_id,
             })),
           );
           const { rows: answers } = await sql<{
@@ -818,18 +803,15 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         }));
       }),
 
-    start: async (userId, itemId, momentId) => {
+    start: async (userId, itemId) => {
       const running = await db
         .selectFrom("quiz_attempt")
         // A sprint (content_item_id set) always has an end.
         .select(["id", sql<Date>`ends_at`.as("ends_at")])
         .where("user_id", "=", userId)
         .where("content_item_id", "=", itemId)
-        .where((eb) =>
-          momentId === null
-            ? eb("moment_id", "is", null)
-            : eb("moment_id", "=", momentId),
-        )
+        // ADR-0058: one quiz per article; a moment-era attempt was on one section.
+        .where("moment_id", "is", null)
         .where("finished_at", "is", null)
         .where(sql<boolean>`ends_at > now()`)
         .orderBy("started_at", "desc")
@@ -841,12 +823,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           firstTime: false,
         };
       const { rows } = await sql<{ id: string; ends_at: Date }>`
-        insert into quiz_attempt (user_id, content_item_id, moment_id, ends_at)
-        select ${userId}, ${itemId}, ${momentId}, now() + ${DURATION}
+        insert into quiz_attempt (user_id, content_item_id, ends_at)
+        select ${userId}, ${itemId}, now() + ${DURATION}
         where exists (
           select 1 from ${LIVE}
-          where q.status = 'live' and m.content_item_id = ${itemId}
-            and (${momentId}::bigint is null or m.id = ${momentId})
+          where q.status = 'live' and q.content_item_id = ${itemId}
         )
         returning id, ends_at
       `.execute(db);
@@ -1018,18 +999,28 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           ? "over"
           : asQuestion(served);
       }
-      // The target's own questions in order, then live questions on the same (live)
+      // ADR-0058: up to ARTICLE_QUIZ_SIZE questions. A sample of the article's own,
+      // drawn by a hash of the attempt and question so every request of the attempt
+      // sees the same sample (another attempt draws another), asked in the article's
+      // order; then (an article with fewer) live questions on the same (live)
       // concepts at random; never one already served in this attempt. A second
       // request racing this one serves nothing (one open question per attempt).
+      // A moment-era attempt still running keeps to its section's questions.
       // shortcut: order by random() over every related question; fine for a few
       // thousand questions, sample (tablesample or a precomputed list) past that.
       await sql`
         with a as (select * from quiz_attempt where id = ${attemptId}),
         own as (
-          select q.id, 0 as tier, m.ordinal as mo, q.ordinal as qo, 0::float8 as r
+          select q.id, q.article_ordinal,
+                 md5(a.id::text || ':' || q.id::text) as draw
           from ${LIVE}, a
-          where q.status = 'live' and m.content_item_id = a.content_item_id
-            and (a.moment_id is null or m.id = a.moment_id)
+          where q.status = 'live' and q.content_item_id = a.content_item_id
+            and (a.moment_id is null or q.moment_id = a.moment_id)
+        ),
+        sampled as (
+          select id, 0 as tier, article_ordinal as ao, 0::float8 as r from own
+          order by draw
+          limit ${ARTICLE_QUIZ_SIZE}
         ),
         concepts as (
           select distinct qc.concept_id from question_concept qc
@@ -1037,7 +1028,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           where qc.question_id in (select id from own)
         ),
         related as (
-          select q.id, 1, 0, 0, random()
+          select q.id, 1, 0, random()
           from ${LIVE}
           where q.status = 'live'
             and q.id not in (select id from own)
@@ -1048,15 +1039,17 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             )
         ),
         pick as (
-          select id from (select * from own union all select * from related) c
+          select id from (select * from sampled union all select * from related) c
           where id not in (
             select question_id from quiz_answer where attempt_id = ${attemptId}
           )
-          order by tier, mo, qo, r
+          order by tier, ao, r
           limit 1
         )
         insert into quiz_answer (attempt_id, question_id)
         select ${attemptId}, id from pick
+        where (select count(*) from quiz_answer where attempt_id = ${attemptId})
+          < ${ARTICLE_QUIZ_SIZE}
         on conflict do nothing
       `.execute(db);
       const served = await open(attemptId);
@@ -1222,33 +1215,20 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       return summary(userId, attemptId, finished !== undefined);
     },
 
-    offered: async (targets) => {
-      if (targets.length === 0) return new Set();
-      const items = [...new Set(targets.map((t) => t.itemId))];
-      // Per article: its moments with a live question; the article itself when any.
-      const { rows } = await sql<{ item: string; moment: string }>`
-        select distinct m.content_item_id as item, m.id as moment
+    offered: async (itemIds) => {
+      if (itemIds.length === 0) return new Set();
+      const { rows } = await sql<{ item: string }>`
+        select distinct q.content_item_id as item
         from ${LIVE}
-        where q.status = 'live' and m.content_item_id = any(${items}::bigint[])
+        where q.status = 'live' and q.content_item_id = any(${itemIds}::bigint[])
       `.execute(db);
-      const live = new Set(rows.map((r) => quizKey(r.item, r.moment)));
-      const articles = new Set(rows.map((r) => r.item));
-      return new Set(
-        targets
-          .filter((t) =>
-            t.momentId === null
-              ? articles.has(t.itemId)
-              : live.has(quizKey(t.itemId, t.momentId)),
-          )
-          .map((t) => quizKey(t.itemId, t.momentId)),
-      );
+      return new Set(rows.map((r) => r.item));
     },
 
     attempt: async (userId, attemptId) => {
       const row = await db
         .selectFrom("quiz_attempt as a")
         .leftJoin("content_item as ci", "ci.id", "a.content_item_id")
-        .leftJoin("moment as m", "m.id", "a.moment_id")
         .select([
           "a.review",
           "a.sprint",
@@ -1256,7 +1236,6 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           sql<boolean>`a.daily_day is not null`.as("daily"),
           "a.share_id",
           "a.content_item_id",
-          "a.moment_id",
           "a.started_at",
           "a.ends_at",
           "a.finished_at",
@@ -1269,7 +1248,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.checkpoint_size",
           "a.pass_mark",
           "a.checkpoint_passed",
-          sql<string>`coalesce(m.title, ci.title, case
+          sql<string>`coalesce(ci.title, case
             when a.daily_day is not null then 'Daily challenge'
             when a.estimation then 'Estimation'
             when a.sprint then '60-second sprint'
@@ -1319,7 +1298,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .orderBy("c.name")
         .execute();
       const missed =
-        row.sprint || row.daily ? await missedSections(attemptId) : [];
+        row.sprint || row.daily ? await missedArticles(attemptId) : [];
       const estimates =
         row.estimation || row.daily
           ? (
@@ -1360,7 +1339,6 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
                 shareId: row.share_id,
               },
         itemId: row.content_item_id,
-        momentId: row.moment_id,
         title: checkpoint === null ? row.title : checkpoint.title,
         startedAt: row.started_at,
         endsAt: row.ends_at,
@@ -1373,8 +1351,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         checkpoint,
         missed: missed.map((m) => ({
           itemId: m.item_id,
-          momentId: m.moment_id,
-          sectionTitle: m.title,
+          articleTitle: m.title,
           frameable: m.frameable,
         })),
       };
@@ -1592,7 +1569,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       }));
     },
 
-    startReview: async (userId, limit) => {
+    startReview: async (userId) => {
       return inTransaction(db, async (trx) => {
         // One running review per user: a double tap, or coming back, continues it.
         const running = await trx
@@ -1613,8 +1590,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             concepts: running.concepts,
             firstTime: false,
           };
-        const { rows: all } = await dueConcepts(userId).execute(trx);
-        const due = limit === undefined ? all : all.slice(0, limit);
+        const { rows: due } = await dueConcepts(userId).execute(trx);
         if (due.length === 0) return null;
         // A double tap racing this one inserts nothing (one open review per user,
         // an index): it then meets the one that won.

@@ -3,15 +3,12 @@ import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
 import { z } from "zod";
 import type { Listening } from "../ports";
+import { citedArticles } from "./explainer-citations";
 
 // P4-W23-S01 (§5G, §5I): the audio queue. Only approved explainers with audio are ever
-// offered, queued or played; a citation whose section is gone is left out of the
-// sources rather than shown without its link (as the admin page does).
-const Cited = z.array(
-  z.object({ moment_id: z.union([z.number(), z.string()]) }),
-);
-const cited = (raw: unknown) =>
-  Cited.parse(raw).map((c) => String(c.moment_id));
+// offered, queued or played; a citation whose article is gone is left out of the
+// sources rather than shown without its link (as the admin page does). ADR-0058: each
+// source is a cited article, linked to its page.
 // TTS-3 (P4-W23-S03): made by the worker at voicing, in the script's own words.
 const Captions = z.array(Caption);
 
@@ -43,31 +40,21 @@ function voicedExplainers(db: Kysely<DB>) {
 
 export function kyselyListening(db: Kysely<DB>): Listening {
   async function explained(rows: Row[]): Promise<ListenExplainer[]> {
-    const ids = [...new Set(rows.flatMap((r) => cited(r.citations)))];
-    const sections =
-      ids.length === 0
-        ? []
-        : await db
-            .selectFrom("moment as m")
-            .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
-            .select(["m.id", "m.title", "ci.title as article", "m.link"])
-            .where("m.id", "in", ids)
-            .execute();
-    const byId = new Map(sections.map((s) => [s.id, s]));
-    return rows.map((r) => ({
+    const cited = await citedArticles(
+      db,
+      rows.map((r) => r.citations),
+    );
+    return rows.map((r, i) => ({
       explainerId: r.explainerId,
       conceptId: r.conceptId,
       concept: r.concept,
       src: `/${r.playlist}`,
       durationSeconds: Number(r.duration),
       positionSeconds: Number(r.position ?? 0),
-      sources: cited(r.citations).flatMap((id) => {
-        const m = byId.get(id);
-        if (m === undefined) return [];
-        const title =
-          m.title === m.article ? m.article : `${m.title} — ${m.article}`;
-        return [{ title, href: m.link }];
-      }),
+      sources: (cited[i]?.articles ?? []).map((a) => ({
+        title: a.title,
+        href: a.link,
+      })),
       captions: Captions.parse(r.captions),
       scene: r.scene === null ? null : `/${r.scene}`,
     }));
@@ -85,75 +72,24 @@ export function kyselyListening(db: Kysely<DB>): Listening {
   ] as const;
 
   return {
-    voiced: async (itemId, momentId) => {
+    // ADR-0058: the article's concepts; an admin's whole-article tags replace the
+    // model's, as reading credits them (kysely-progress.ts).
+    voiced: async (itemId) => {
       const rows = await voicedExplainers(db)
         .select("x.id")
         .where(
-          "x.concept_id",
-          "in",
-          momentId === null
-            ? db
-                .selectFrom("item_concept")
-                .select("concept_id")
-                .where("content_item_id", "=", itemId)
-            : db
-                .selectFrom("moment_concept as mc")
-                .innerJoin("moment as m", "m.id", "mc.moment_id")
-                .select("mc.concept_id")
-                .where("m.id", "=", momentId)
-                .where("m.content_item_id", "=", itemId),
+          sql<boolean>`c.slug = any(coalesce(
+            (select o.concepts from tag_override o
+             where o.content_item_id = ${itemId} and o.heading = ''),
+            array(select c2.slug from item_concept ic
+                  join concept c2 on c2.id = ic.concept_id
+                  where ic.content_item_id = ${itemId})
+          ))`,
         )
         .orderBy("c.name")
         .orderBy("x.id")
         .execute();
       return rows.map((r) => r.id);
-    },
-    fitting: async (userId, cards, maxSeconds) => {
-      if (cards.length === 0) return null;
-      const { rows } = await sql<{
-        id: string;
-        concept: string;
-        duration: string;
-      }>`
-        with card (item_id, moment_id, n) as (
-          select * from unnest(
-            ${cards.map((c) => c.itemId)}::bigint[],
-            ${cards.map((c) => c.momentId)}::bigint[]
-          ) with ordinality
-        ),
-        tagged as (
-          select card.n, mc.concept_id
-          from card
-          join moment m on m.id = card.moment_id and m.content_item_id = card.item_id
-          join moment_concept mc on mc.moment_id = m.id
-          union all
-          select card.n, ic.concept_id
-          from card
-          join item_concept ic on ic.content_item_id = card.item_id
-          where card.moment_id is null
-        )
-        select x.id, c.name as concept, a.duration_seconds as duration
-        from tagged t
-        join concept_explainer x on x.concept_id = t.concept_id and x.status = 'approved'
-        join explainer_audio a on a.explainer_id = x.id
-        join concept c on c.id = x.concept_id
-        where a.duration_seconds <= ${maxSeconds}
-          and not exists (
-            select 1 from explainer_listen l
-            where l.user_id = ${userId} and l.explainer_id = x.id
-              and l.finished_at is not null
-          )
-        order by t.n, c.name, x.id
-        limit 1
-      `.execute(db);
-      const found = rows[0];
-      return found === undefined
-        ? null
-        : {
-            explainerId: found.id,
-            concept: found.concept,
-            durationSeconds: Number(found.duration),
-          };
     },
     queue: async (userId) => {
       const queued = await voicedExplainers(db)

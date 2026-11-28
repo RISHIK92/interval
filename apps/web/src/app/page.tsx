@@ -9,7 +9,6 @@ import {
   events,
   feedback,
   feedReader,
-  listening,
   notes,
   paths,
   progress,
@@ -17,21 +16,12 @@ import {
   quizzes,
   sessionReader,
 } from "../server/container";
-import {
-  type Chip,
-  CHIP_COOKIE,
-  chipFor,
-  chipLabel,
-  CHIPS,
-} from "../server/chips";
 import { loadFeed } from "../server/feed";
-import { outHref, readHref } from "../server/outbound";
 import { parseReading, READING_COOKIE } from "../server/reading";
-import { BIGINT_ID, type FeedCard, quizKey } from "../server/ports";
+import { BIGINT_ID, type FeedCard } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { AgentBanner } from "./AgentBanner";
-import { AlsoFits, breakMinutes } from "./AlsoFits";
 import { applyMatchEvidence } from "./play/live/evidence";
 import { requireUsername } from "./username/gate";
 import { ArticleCard } from "./ArticleCard";
@@ -43,13 +33,11 @@ import { Greeting } from "./Greeting";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
 import { UndoNotInterested } from "./UndoNotInterested";
-import { MomentCard } from "./MomentCard";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
 import { BookCard } from "./BookCard";
 import { DailyCard } from "./DailyCard";
 import { PathCard } from "./PathCard";
 import { ReviewCard } from "./ReviewCard";
-import { reviewsFitting } from "./reviewTime";
 import { Card } from "./ui/Card";
 import { Page } from "./ui/Page";
 
@@ -67,7 +55,7 @@ export default async function HomePage({
   if (actor === null) redirect("/join");
   // ADR-0029: guests play, and only play; the rest is for accounts.
   if (actor.isGuest) redirect("/sign-up");
-  // Guest-first onboarding (§5A, P1-W4-S01): topics, level and break length first.
+  // Guest-first onboarding (§5A, P1-W4-S01): goals, topics and level first.
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   await requireUsername(actor.userId, "/");
@@ -82,17 +70,11 @@ export default async function HomePage({
   );
   // ADR-0019: a greeting line picked on the device; the profile moves to the sidebar on
   // wide screens.
-  const header = (chip: Chip, continuing: string | null) => (
+  // ADR-0058: no break-length question above it any more.
+  const header = (continuing: string | null) => (
     <header className="flex items-start justify-between gap-4">
       <div>
-        <p className="text-sm text-ink-muted lg:font-medium">
-          How long is this break?
-        </p>
-        <Greeting
-          firstName={chosen.firstName}
-          chip={chip}
-          continuing={continuing}
-        />
+        <Greeting firstName={chosen.firstName} continuing={continuing} />
         {account}
       </div>
       <Link
@@ -119,17 +101,16 @@ export default async function HomePage({
   if (!(await entitlements().can(actor.userId, "feed.read"))) {
     return (
       <main className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-        {header(chosen.breakLength, null)}
+        {header(null)}
         <Card className="mt-6 p-8 text-center text-ink-muted">
           <p>Your plan doesn&apos;t include the feed.</p>
         </Card>
       </main>
     );
   }
-  // The selected time chip picks the feed (Q-P1-16); the proxy remembers a chip link.
+  // ADR-0058: one feed, no time chips; an old link's ?chip= is ignored.
   const jar = await cookies();
   const params = await searchParams;
-  const chip = chipFor(params["chip"], jar.get(CHIP_COOKIE)?.value, chosen);
   // Offered only for an item this user really marked Not interested (P1-W4-S07).
   const undo = params["undo"];
   const undoable =
@@ -138,31 +119,32 @@ export default async function HomePage({
     (await feedback().notInterested(actor.userId, undo))
       ? undo
       : null;
-  // The card opened last (C-22), checked against what exists: the cookie is only ids.
+  // The article opened last (C-22), checked against what exists: the cookie is an id.
   const reading = parseReading(jar.get(READING_COOKIE)?.value);
   const [readingTitles, readingNote] =
     reading === null
       ? [null, null]
       : await Promise.all([
-          progress().describe(reading.itemId, reading.momentId),
-          notes().get(actor.userId, reading.itemId, reading.momentId),
+          progress().describe(reading),
+          notes().get(actor.userId, reading),
         ]);
-  // After Yes or Mark done on a section: the next section, or the end (owner).
-  const finished = parseReading(
+  // After Yes or Mark done: the article is Completed, and its quiz is offered again
+  // (ADR-0058). Only for an article that exists: a forged param says nothing.
+  const finishedId = parseReading(
     typeof params["finished"] === "string" ? params["finished"] : undefined,
   );
-  // Only for a section that exists and may be shown: a forged param says nothing.
-  const next =
-    finished === null || finished.momentId === null
-      ? undefined
-      : (await progress().describe(finished.itemId, finished.momentId)) === null
-        ? undefined
-        : await progress().nextMoment(finished.itemId, finished.momentId);
-  // Back from the in-app reader (ADR-0018): ask about what it showed. Ids only, in the
-  // reading cookie's form; a finish of ids that name nothing writes nothing.
-  const ask = parseReading(
+  const completed =
+    finishedId === null ? null : await progress().describe(finishedId);
+  const finished =
+    finishedId === null || completed === null
+      ? null
+      : { itemId: finishedId, articleTitle: completed.articleTitle };
+  // Back from the in-app reader (ADR-0018): ask about what it showed. An id, in the
+  // reading cookie's form; a finish of an id that names nothing writes nothing.
+  const askId = parseReading(
     typeof params["ask"] === "string" ? params["ask"] : undefined,
   );
+  const ask = askId === null ? null : { itemId: askId };
   // Read live: a finish shows its continue card at once (owner, 2026-10-26).
   const continuing = await progress().continueCards(
     actor.userId,
@@ -174,7 +156,6 @@ export default async function HomePage({
     { feed: feedReader() },
     actor.userId,
     chosen,
-    chip,
     FEED_LIMIT,
   );
   // An article already in Continue reading isn't offered again below it (owner,
@@ -182,27 +163,24 @@ export default async function HomePage({
   const fresh = loaded.filter(
     (card) => !continuing.some((c) => c.itemId === card.itemId),
   );
-  // Never "No moments yet" while there are moments: then they show after all.
+  // Never "Nothing to read yet" while there are cards: then they show after all.
   const cards = fresh.length > 0 ? fresh : loaded;
   events().emit(
     "feed_viewed",
     { card_count: cards.length },
     { ...actor, sessionId: visitId(jar) },
   );
-  // P2-W7-S04: each card's own note, on its section (or the article for an article
-  // card).
+  // P2-W7-S04: each card's own note on its article. ADR-0058: a note written on one
+  // of its sections before is not the article's own, so the card doesn't show it.
   const onCards = await notes().onItems(
     actor.userId,
     cards.map((c) => c.itemId),
   );
   const yours = new Map(
-    onCards.map((n) => [quizKey(n.itemId, n.momentId), n.body]),
+    onCards
+      .filter((n) => n.sectionTitle === null)
+      .map((n) => [n.itemId, n.body]),
   );
-  // P2-W9-S02: which cards, and the section just finished, can start Test 60s.
-  const target = (card: FeedCard) => ({
-    itemId: card.itemId,
-    momentId: card.kind === "moment" ? card.momentId : null,
-  });
   // P2-W9-S06: due reviews are read when the feed is served; they change by the
   // minute.
   // P2-W10-S06: so is the active path's next step (the first card), and (S05) the
@@ -221,9 +199,10 @@ export default async function HomePage({
     place,
   ] = await Promise.all([
     quizzes().dueReviews(actor.userId),
+    // P2-W9-S02: which cards, and the article just completed, can start Quiz me.
     quizzes().offered([
-      ...cards.map(target),
-      ...(finished === null || next === undefined ? [] : [finished]),
+      ...cards.map((card) => card.itemId),
+      ...(finished === null ? [] : [finished.itemId]),
     ]),
     paths().next(actor.userId),
     books().nextSession(actor.userId),
@@ -236,77 +215,24 @@ export default async function HomePage({
     playsDaily && daily.today === "open" ? (
       <DailyCard streak={daily.streak} />
     ) : null;
-  // ADR-0044: on wide screens the challenge and the review leave the sideways feed for
-  // "Also fits"; its explainer comes from the feed cards after the hero (the path's or
-  // the book's card when there is one, else the first ranked card).
-  const minutes = breakMinutes(chip);
-  const explainer = await listening().fitting(
-    actor.userId,
-    (pathNext === null && bookNext === null ? cards.slice(1) : cards).map(
-      target,
-    ),
-    minutes * 60,
-  );
-  const alsoFits = (
-    <AlsoFits
-      chip={chip}
-      cards={{
-        daily: dailyCard === null ? null : { streak: daily.streak },
-        review:
-          due.length === 0
-            ? null
-            : { count: reviewsFitting(due.length, minutes) },
-        explainer,
-      }}
+  // ADR-0058: Also fits sized its cards to the break; with no break length it is gone,
+  // and the challenge and the review stay in the row on every screen.
+  const renderCard = (card: FeedCard, index: number) => (
+    <ArticleCard
+      card={card}
+      position={index + 1}
+      controls={
+        <CardControls
+          itemId={card.itemId}
+          title={card.articleTitle}
+          saved={card.saved}
+          reasons={card.reasons?.kinds ?? []}
+          testable={testable.has(card.itemId)}
+        />
+      }
+      yourNote={yours.get(card.itemId) ?? null}
     />
   );
-  const yourNote = (card: FeedCard) =>
-    yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;
-  const renderCard = (card: FeedCard, index: number) => {
-    const on = target(card);
-    const controls = (
-      <CardControls
-        itemId={card.itemId}
-        title={card.kind === "moment" ? card.sectionTitle : card.articleTitle}
-        saved={card.saved}
-        chip={chip}
-        reasons={card.reasons?.kinds ?? []}
-        test={
-          testable.has(quizKey(on.itemId, on.momentId))
-            ? { momentId: on.momentId }
-            : null
-        }
-        originalHref={
-          card.kind === "moment"
-            ? outHref({
-                itemId: card.itemId,
-                momentId: card.momentId,
-                chip,
-                from: { position: index + 1 },
-                target: "original",
-              })
-            : null
-        }
-      />
-    );
-    return card.kind === "moment" ? (
-      <MomentCard
-        card={card}
-        chip={chip}
-        position={index + 1}
-        controls={controls}
-        yourNote={yourNote(card)}
-      />
-    ) : (
-      <ArticleCard
-        card={card}
-        chip={chip}
-        position={index + 1}
-        controls={controls}
-        yourNote={yourNote(card)}
-      />
-    );
-  };
   return (
     <Page
       tab="home"
@@ -320,8 +246,8 @@ export default async function HomePage({
       }
     >
       <div className="lg:mb-5 lg:flex lg:flex-wrap lg:items-end lg:justify-between lg:gap-x-6">
-        {header(chip, continuing[0]?.sectionTitle ?? null)}
-        {/* On the web, under the greeting and the chips rather than between them. */}
+        {header(continuing[0]?.articleTitle ?? null)}
+        {/* On the web, under the greeting rather than beside it. */}
         <div className="lg:order-last lg:mt-4 lg:w-full lg:empty:hidden">
           <AgentBanner
             startedAt={agentRun?.startedAt.getTime() ?? null}
@@ -329,120 +255,58 @@ export default async function HomePage({
             now={now.getTime()}
           />
         </div>
-        <nav
-          aria-label="Break length"
-          className="my-4 lg:my-0 lg:w-75 lg:shrink-0"
-        >
-          {/* The design's segmented chips: a well, the chosen one lifted. */}
-          <ul className="flex gap-1 rounded-2xl bg-well p-1 lg:h-12 lg:rounded-[14px]">
-            {CHIPS.map((option) => (
-              <li key={option} className="flex-1">
-                <Link
-                  href={`/?chip=${option}`}
-                  aria-current={option === chip ? "true" : undefined}
-                  className={`block rounded-xl py-2 text-center lg:flex lg:h-full lg:items-center lg:justify-center lg:rounded-[10px] lg:py-0 lg:text-[15px] ${option === chip ? "bg-lift shadow-card" : "text-ink-muted lg:font-medium lg:text-ink-soft"}`}
-                >
-                  {option === chip ? (
-                    <strong>{chipLabel(option)}</strong>
-                  ) : (
-                    chipLabel(option)
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
       </div>
       {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
-      <ReturnPrompt chip={chip} initialAsk={ask}>
+      <ReturnPrompt initialAsk={ask}>
         {reading === null || readingTitles === null ? null : (
           <NowReading
-            reading={reading}
-            titles={readingTitles}
-            chip={chip}
+            itemId={reading}
+            articleTitle={readingTitles.articleTitle}
             note={readingNote}
           />
         )}
       </ReturnPrompt>
-      {finished === null || next === undefined ? null : next === null ? (
-        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
-          That was the last section.
-        </p>
-      ) : (
-        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
-          Continue:{" "}
-          {/* In the reader when the page can be framed, as the cards do
-            (ADR-0018). */}
-          {next.frameable ? (
-            <a
-              href={readHref({
-                itemId: finished.itemId,
-                momentId: next.momentId,
-                chip,
-                from: "continue",
-              })}
-              data-read-item={finished.itemId}
-              data-read-moment={next.momentId}
-              className="font-semibold text-select"
-            >
-              {next.title}
-            </a>
-          ) : (
-            <a
-              href={outHref({
-                itemId: finished.itemId,
-                momentId: next.momentId,
-                from: "continue",
-                target: "section",
-              })}
-              data-item={finished.itemId}
-              data-moment={next.momentId}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-select"
-            >
-              {next.title}
-            </a>
-          )}
-        </p>
-      )}
-      {/* The end of a section offers a test or the next one (wireframe 03, end). */}
-      {finished !== null &&
-      next !== undefined &&
-      testable.has(quizKey(finished.itemId, finished.momentId)) ? (
-        <StartQuiz
-          itemId={finished.itemId}
-          momentId={finished.momentId}
-          chip={chip}
-          back={`/?chip=${chip}`}
-          className="mb-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+      {finished === null ? null : (
+        <div
+          role="status"
+          className="my-4 flex flex-wrap items-center gap-3 rounded-2xl bg-well px-4 py-3"
         >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="size-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          >
-            <path d={ZAP} />
-          </svg>
-          Test yourself · 60s
-        </StartQuiz>
-      ) : null}
-      <ContinueReading cards={continuing} chip={chip} />
-      {undoable === null ? null : (
-        <UndoNotInterested itemId={undoable} chip={chip} />
+          <p>
+            Completed: <strong>{finished.articleTitle}</strong>
+          </p>
+          {/* ADR-0058: the article's quiz is offered again once it is Completed. */}
+          {testable.has(finished.itemId) ? (
+            <StartQuiz
+              itemId={finished.itemId}
+              back="/"
+              className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              >
+                <path d={ZAP} />
+              </svg>
+              Quiz me
+            </StartQuiz>
+          ) : null}
+        </div>
       )}
+      <ContinueReading cards={continuing} />
+      {undoable === null ? null : <UndoNotInterested itemId={undoable} />}
       {cards.length === 0 ? (
         <>
           <Card className="mt-6 p-8 text-center text-ink-muted">
-            <p>No moments yet.</p>
+            <p>Nothing to read yet.</p>
           </Card>
           {pathNext === null ? null : (
             <div className="mt-4">
-              <PathCard next={pathNext} chip={chip} />
+              <PathCard next={pathNext} />
             </div>
           )}
           {bookNext === null ? null : (
@@ -450,17 +314,14 @@ export default async function HomePage({
               <BookCard next={bookNext} />
             </div>
           )}
-          {dailyCard === null ? null : (
-            <div className="mt-4 lg:hidden">{dailyCard}</div>
-          )}
+          {dailyCard === null ? null : <div className="mt-4">{dailyCard}</div>}
           {/* With no cards to sit behind, the review shows alone (owner,
             2026-10-28, Q-P2-21). */}
           {due.length > 0 ? (
-            <div className="mt-4 lg:hidden">
-              <ReviewCard due={due} chip={chip} />
+            <div className="mt-4">
+              <ReviewCard due={due} />
             </div>
           ) : null}
-          {alsoFits}
         </>
       ) : (
         // ADR-0019: one full-size card at a time, sideways; only a sliver of the next
@@ -473,7 +334,7 @@ export default async function HomePage({
               ranked cards keep their positions. */}
             {pathNext === null ? null : (
               <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
-                <PathCard next={pathNext} chip={chip} />
+                <PathCard next={pathNext} />
               </li>
             )}
             {bookNext === null ? null : (
@@ -484,26 +345,20 @@ export default async function HomePage({
             {/* P3-W13-S05: after the path and book; the ranked cards keep their
               positions. */}
             {dailyCard === null ? null : (
-              <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full lg:hidden">
+              <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
                 {dailyCard}
               </li>
             )}
             {cards.map((card, index) => (
-              <Fragment
-                key={
-                  card.kind === "moment"
-                    ? `m${card.momentId}`
-                    : `a${card.itemId}`
-                }
-              >
+              <Fragment key={card.itemId}>
                 <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
                   {renderCard(card, index)}
                 </li>
                 {/* P2-W9-S06 (Q-P2-17): the review takes the second slot; the
                   cards keep their ranked positions. */}
                 {index === 0 && due.length > 0 ? (
-                  <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full lg:hidden">
-                    <ReviewCard due={due} chip={chip} />
+                  <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                    <ReviewCard due={due} />
                   </li>
                 ) : null}
               </Fragment>
@@ -511,7 +366,6 @@ export default async function HomePage({
           </ul>
         </FeedRow>
       )}
-      {cards.length === 0 ? null : alsoFits}
     </Page>
   );
 }

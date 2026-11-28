@@ -91,7 +91,6 @@ const MISSING: Record<string, string> = {
   goal: "Pick at least one goal.",
   topic: "Pick at least one topic.",
   level: "Pick a level.",
-  break: "Pick a break length.",
   // ADR-0049: a topic that isn't offered, from a stale or forged form.
   "topic-unavailable": "That topic isn't available yet.",
 };
@@ -453,8 +452,8 @@ export default async function ProfilePage(props: {
             <h2 className="text-section lg:text-[17px]">Your concepts</h2>
             {concepts.length === 0 ? (
               <p className="text-ink-muted">
-                Finish a section or an article, or take Test 60s, to start: the
-                concepts it covers show up here.
+                Complete an article, or take Test 60s, to start: the concepts it
+                covers show up here.
               </p>
             ) : (
               concepts.map((group) => (

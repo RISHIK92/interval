@@ -22,10 +22,10 @@ class Rollback extends Error {}
 type Seeded = {
   user: string;
   item: string;
-  moment: string;
-  // Explainers by concept: raft and paxos voiced and approved on the section; quorum
-  // voiced on the article only; draft approved but not voiced; leases voiced, reached
-  // from raft by an edge only.
+  // Explainers by concept: raft, paxos and quorum voiced and approved on the article;
+  // draft approved but not voiced; leases voiced, reached from raft by an edge only.
+  // ADR-0058: each cites the article itself, and a moment-era citation (moment_id
+  // only) of a second article's section.
   x: Record<"raft" | "paxos" | "quorum" | "draft" | "leases", string>;
   c: Record<"raft" | "paxos" | "quorum" | "draft" | "leases", string>;
 };
@@ -63,6 +63,7 @@ async function inRollback(
           name: `Listen source ${tag}`,
           feed_url: `https://${tag}.test/feed`,
           rights_profile: "full_text_internal",
+          // The moment-era section below needs moments on, as it had them then.
           moments_enabled: true,
           moments_seeded: true,
         })
@@ -78,22 +79,28 @@ async function inRollback(
         })
         .returning("id")
         .executeTakeFirstOrThrow();
+      const older = await trx
+        .insertInto("content_item")
+        .values({
+          source_id: source.id,
+          guid: `${tag}-older`,
+          canonical_url: `https://${tag}.test/older`,
+          title: "Older",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
       const moment = await trx
         .insertInto("moment")
         .values({
-          content_item_id: item.id,
+          content_item_id: older.id,
           ordinal: 0,
           title: "Elections",
           estimated_minutes: 3,
-          link: `https://${tag}.test/raft#elections`,
+          link: `https://${tag}.test/older#elections`,
           link_type: "anchor",
         })
         .returning("id")
         .executeTakeFirstOrThrow();
-      await trx
-        .insertInto("moment_tagging")
-        .values({ moment_id: moment.id, difficulty: "beginner" })
-        .execute();
       const names = ["raft", "paxos", "quorum", "draft", "leases"] as const;
       const c = {} as Seeded["c"];
       const x = {} as Seeded["x"];
@@ -114,7 +121,8 @@ async function inRollback(
             concept_id: concept.id,
             script: `About ${name}.`,
             citations: JSON.stringify([
-              { moment_id: Number(moment.id), quote: "q" },
+              { content_item_id: Number(item.id), quote: "q" },
+              { moment_id: Number(moment.id), quote: "older" },
               { moment_id: 999999999999, quote: "gone" },
             ]),
             generator_model: "m",
@@ -141,15 +149,6 @@ async function inRollback(
         }
       }
       await trx
-        .insertInto("moment_concept")
-        .values(
-          (["raft", "paxos", "draft"] as const).map((n) => ({
-            moment_id: moment.id,
-            concept_id: c[n],
-          })),
-        )
-        .execute();
-      await trx
         .insertInto("item_tagging")
         .values({
           content_item_id: item.id,
@@ -160,21 +159,41 @@ async function inRollback(
         .execute();
       await trx
         .insertInto("item_concept")
-        .values({ content_item_id: item.id, concept_id: c.quorum })
+        .values(
+          (["raft", "paxos", "quorum", "draft"] as const).map((n) => ({
+            content_item_id: item.id,
+            concept_id: c[n],
+          })),
+        )
         .execute();
-      await body(trx, { user, item: item.id, moment: moment.id, x, c });
+      await body(trx, { user, item: item.id, x, c });
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-test("voiced: the section's concepts, or the article's; approved with audio only", async () => {
-  await inRollback(async (trx, { item, moment, x }) => {
+// ADR-0058: by the article's concepts; an admin's whole-article tags replace them.
+test("voiced: the article's concepts, approved with audio only", async () => {
+  await inRollback(async (trx, { item, x, c }) => {
     const store = kyselyListening(trx);
-    expect(await store.voiced(item, moment)).toEqual([x.paxos, x.raft]);
-    expect(await store.voiced(item, null)).toEqual([x.quorum]);
-    // A section of another article names nothing.
-    expect(await store.voiced("999999999999", moment)).toEqual([]);
+    expect(await store.voiced(item)).toEqual([x.paxos, x.quorum, x.raft]);
+    expect(await store.voiced("999999999999")).toEqual([]);
+    const raft = await trx
+      .selectFrom("concept")
+      .select("slug")
+      .where("id", "=", c.raft)
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("tag_override")
+      .values({
+        content_item_id: item,
+        heading: "",
+        difficulty: "beginner",
+        concepts: [raft.slug],
+        updated_by: "admin",
+      })
+      .execute();
+    expect(await store.voiced(item)).toEqual([x.raft]);
   });
 });
 
@@ -210,7 +229,7 @@ test("an explainer's timeline is offered once approved, never while pending", as
 });
 
 test("the queue keeps its order, adds once, and lists sources and positions", async () => {
-  await inRollback(async (trx, { user, moment, x, c }) => {
+  await inRollback(async (trx, { user, x, c }) => {
     const store = kyselyListening(trx);
     await store.add(user, [x.raft, x.paxos]);
     await store.add(user, [x.paxos, x.quorum, x.draft]);
@@ -227,16 +246,21 @@ test("the queue keeps its order, adds once, and lists sources and positions", as
       src: `/media/explainers/${c.raft}/${x.raft}/r/index.m3u8`,
       durationSeconds: 90,
       positionSeconds: 0,
+      // ADR-0058: each cited article once, linked to its page; a moment-era
+      // citation by its moment's article; one naming nothing left out.
       sources: [
         {
-          title: "Elections — Raft",
-          href: expect.stringMatching(/#elections$/) as string,
+          title: "Raft",
+          href: expect.stringMatching(/\/raft$/) as string,
+        },
+        {
+          title: "Older",
+          href: expect.stringMatching(/\/older$/) as string,
         },
       ],
       captions: [],
       scene: null,
     });
-    expect(moment).toBeTruthy();
     // Saved only once it's started.
     expect(await store.save(user, x.paxos, 41.5)).toBe(false);
     await store.start(user, x.paxos);
@@ -329,8 +353,8 @@ test("captions as the worker stored them", async () => {
   });
 });
 
-// ADR-0044: what add accepted, so "Also fits" can tell a voiced explainer from a
-// forged id; one queued before still counts.
+// What add accepted, so a caller can tell a voiced explainer from a forged id; one
+// queued before still counts.
 test("add returns the voiced ones it was given, queued now or before", async () => {
   await inRollback(async (trx, { user, x }) => {
     const store = kyselyListening(trx);
@@ -341,45 +365,5 @@ test("add returns the voiced ones it was given, queued now or before", async () 
     expect(await store.add(user, [x.paxos])).toEqual([x.paxos]);
     expect(await store.add(user, [x.draft])).toEqual([]);
     expect(await store.add(user, [])).toEqual([]);
-  });
-});
-
-// ADR-0044: the "Also fits" explainer: along the cards in order, voiced, unfinished,
-// within the break.
-test("fitting: the first card's voiced concept that fits and isn't finished", async () => {
-  await inRollback(async (trx, { user, item, moment, x }) => {
-    const store = kyselyListening(trx);
-    const section = { itemId: item, momentId: moment };
-    const article = { itemId: item, momentId: null };
-    // The section's raft and paxos are voiced (draft isn't): by name, Paxos first.
-    expect(await store.fitting(user, [section], 90)).toEqual({
-      explainerId: x.paxos,
-      concept: expect.stringMatching(/^Paxos /) as string,
-      durationSeconds: 90,
-    });
-    // Cards keep their order: the article's own quorum comes first.
-    expect(
-      (await store.fitting(user, [article, section], 90))?.explainerId,
-    ).toBe(x.quorum);
-    // Too long for the break, or no cards: nothing.
-    expect(await store.fitting(user, [section], 89)).toBeNull();
-    expect(await store.fitting(user, [], 900)).toBeNull();
-    // A finished one is left out; one only started isn't.
-    expect(await store.start(user, x.paxos)).not.toBeNull();
-    expect((await store.fitting(user, [section], 90))?.explainerId).toBe(
-      x.paxos,
-    );
-    await store.finish(user, x.paxos);
-    expect((await store.fitting(user, [section], 90))?.explainerId).toBe(
-      x.raft,
-    );
-    // A section named under another article tags nothing.
-    expect(
-      await store.fitting(
-        user,
-        [{ itemId: "999999999999", momentId: moment }],
-        90,
-      ),
-    ).toBeNull();
   });
 });

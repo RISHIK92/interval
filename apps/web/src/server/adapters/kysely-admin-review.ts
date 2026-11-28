@@ -9,7 +9,9 @@ import {
 } from "../ports";
 
 // Postgres adapter (ADR-0012) for the admin review page (ING-6, P1-W3-S05). Reads
-// headings, counts, moments and tags; never body text (Q-P1-01).
+// headings, counts and tags; never body text (Q-P1-01). ADR-0058: tags and their
+// override are the whole article's; section overrides left from before wait for stage
+// C to fold them in, and nothing here reads or writes them.
 
 function tags(
   difficulty: ReviewTags["difficulty"],
@@ -30,11 +32,6 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
           "ci.id",
           "ci.title",
           "s.name as sourceName",
-          eb
-            .selectFrom("moment as m")
-            .whereRef("m.content_item_id", "=", "ci.id")
-            .select((m) => m.fn.countAll<string>().as("n"))
-            .as("momentCount"),
           eb
             .selectFrom("reason_report as rr")
             .whereRef("rr.content_item_id", "=", "ci.id")
@@ -69,7 +66,6 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
         id: r.id,
         title: r.title,
         sourceName: r.sourceName,
-        momentCount: Number(r.momentCount ?? 0),
         reports: counts
           .filter((c) => c.content_item_id === r.id)
           .flatMap((c) =>
@@ -90,70 +86,35 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
         .where("ci.id", "=", id)
         .executeTakeFirst();
       if (head === undefined) return null;
-      const [sections, moments, itemTag, momentTags, boundaries, overrides] =
-        await Promise.all([
-          db
-            .selectFrom("content_item_section")
-            .select(["heading", "level", "word_count"])
-            .where("content_item_id", "=", id)
-            .orderBy("ordinal")
-            .execute(),
-          db
-            .selectFrom("moment")
-            .select([
-              "id",
-              "ordinal",
-              "title",
-              "link_type",
-              "estimated_minutes",
-              "oversized",
-            ])
-            .where("content_item_id", "=", id)
-            .orderBy("ordinal")
-            .execute(),
-          db
-            .selectFrom("item_tagging as it")
-            .select((eb) => [
-              "it.difficulty",
-              eb
-                .selectFrom("item_concept as ic")
-                .innerJoin("concept as c", "c.id", "ic.concept_id")
-                .whereRef("ic.content_item_id", "=", "it.content_item_id")
-                .select(
-                  sql<string[]>`coalesce(array_agg(c.slug), '{}')`.as("slugs"),
-                )
-                .as("concepts"),
-            ])
-            .where("it.content_item_id", "=", id)
-            .executeTakeFirst(),
-          db
-            .selectFrom("moment as m")
-            .innerJoin("moment_tagging as mt", "mt.moment_id", "m.id")
-            .select((eb) => [
-              "m.ordinal",
-              "mt.difficulty",
-              eb
-                .selectFrom("moment_concept as mc")
-                .innerJoin("concept as c", "c.id", "mc.concept_id")
-                .whereRef("mc.moment_id", "=", "m.id")
-                .select(
-                  sql<string[]>`coalesce(array_agg(c.slug), '{}')`.as("slugs"),
-                )
-                .as("concepts"),
-            ])
-            .where("m.content_item_id", "=", id)
-            .execute(),
-          db
-            .selectFrom("moment_boundary_override")
-            .select("headings")
-            .where("content_item_id", "=", id)
-            .executeTakeFirst(),
-          db
-            .selectFrom("tag_override")
-            .select(["heading", "difficulty", "concepts"])
-            .where("content_item_id", "=", id)
-            .execute(),
-        ]);
+      const [sections, itemTag, override] = await Promise.all([
+        db
+          .selectFrom("content_item_section")
+          .select(["heading", "level", "word_count"])
+          .where("content_item_id", "=", id)
+          .orderBy("ordinal")
+          .execute(),
+        db
+          .selectFrom("item_tagging as it")
+          .select((eb) => [
+            "it.difficulty",
+            eb
+              .selectFrom("item_concept as ic")
+              .innerJoin("concept as c", "c.id", "ic.concept_id")
+              .whereRef("ic.content_item_id", "=", "it.content_item_id")
+              .select(
+                sql<string[]>`coalesce(array_agg(c.slug), '{}')`.as("slugs"),
+              )
+              .as("concepts"),
+          ])
+          .where("it.content_item_id", "=", id)
+          .executeTakeFirst(),
+        db
+          .selectFrom("tag_override")
+          .select(["difficulty", "concepts"])
+          .where("content_item_id", "=", id)
+          .where("heading", "=", "")
+          .executeTakeFirst(),
+      ]);
       return {
         id: head.id,
         title: head.title,
@@ -164,28 +125,12 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
           level: s.level,
           wordCount: s.word_count,
         })),
-        moments: moments.map((m) => ({
-          ordinal: m.ordinal,
-          title: m.title,
-          heading: m.link_type === "page_top" ? null : m.title,
-          estimatedMinutes: m.estimated_minutes,
-          oversized: m.oversized,
-        })),
-        modelTags: {
-          item: itemTag
-            ? tags(itemTag.difficulty, itemTag.concepts ?? [])
-            : null,
-          moments: new Map(
-            momentTags.map((t) => [
-              t.ordinal,
-              tags(t.difficulty, t.concepts ?? []),
-            ]),
-          ),
-        },
-        boundaries: boundaries?.headings ?? null,
-        tagOverrides: new Map(
-          overrides.map((o) => [o.heading, tags(o.difficulty, o.concepts)]),
-        ),
+        modelTags: itemTag
+          ? tags(itemTag.difficulty, itemTag.concepts ?? [])
+          : null,
+        tagOverride: override
+          ? tags(override.difficulty, override.concepts)
+          : null,
       };
     },
 
@@ -199,33 +144,13 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
       return rows.map((r) => r.slug);
     },
 
-    async setBoundaries(itemId, headings, by): Promise<void> {
-      if (headings === null) {
-        await db
-          .deleteFrom("moment_boundary_override")
-          .where("content_item_id", "=", itemId)
-          .execute();
-        return;
-      }
-      await db
-        .insertInto("moment_boundary_override")
-        .values({ content_item_id: itemId, headings, updated_by: by })
-        .onConflict((oc) =>
-          oc.column("content_item_id").doUpdateSet({
-            headings,
-            updated_by: by,
-            updated_at: sql`now()`,
-          }),
-        )
-        .execute();
-    },
-
-    async setTags(itemId, heading, value, by): Promise<void> {
+    // The whole article's row is heading '' (ADR-0058).
+    async setTags(itemId, value, by): Promise<void> {
       if (value === null) {
         await db
           .deleteFrom("tag_override")
           .where("content_item_id", "=", itemId)
-          .where("heading", "=", heading)
+          .where("heading", "=", "")
           .execute();
         return;
       }
@@ -233,7 +158,7 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
         .insertInto("tag_override")
         .values({
           content_item_id: itemId,
-          heading,
+          heading: "",
           difficulty: value.difficulty,
           concepts: value.concepts,
           updated_by: by,

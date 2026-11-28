@@ -1,5 +1,6 @@
 """Postgres per-user feeds (CACHE-1, P1-W4-S04): the *_visible views, their gate,
-cascades, and the per-user lock."""
+cascades, and the per-user lock. ADR-0058: one list of articles, stored under one chip
+until stage C drops the column."""
 
 import os
 import threading
@@ -8,20 +9,13 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import psycopg
-import pytest
-from psycopg import sql
 
-from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import Arm, Breakdown, RankedEntry
+from interval_jobs.ports import FEED_CHIP, Arm, Breakdown, RankedEntry
 
 
 def add_item(
-    conn: psycopg.Connection,
-    source_id: int,
-    guid: str,
-    published: datetime,
-    sections: int,
+    conn: psycopg.Connection, source_id: int, guid: str, published: datetime
 ) -> int:
     row = conn.execute(
         "insert into content_item "
@@ -36,34 +30,16 @@ def add_item(
         ),
     ).fetchone()
     assert row is not None
-    item_id: int = row[0]
-    for ordinal in range(sections):
-        conn.execute(
-            "insert into moment "
-            "(content_item_id, ordinal, title, estimated_minutes, link, link_type) "
-            "values (%s, %s, %s, 1, %s, 'page_top')",
-            (
-                item_id,
-                ordinal,
-                f"{guid} s{ordinal}",
-                f"https://feed.example.test/{guid}",
-            ),
-        )
-    return item_id
+    return int(row[0])
 
 
 def source(conn: psycopg.Connection, name: str) -> int:
-    source_id = PostgresStore(conn).sources.upsert(
+    return PostgresStore(conn).sources.upsert(
         name=name,
         feed_url=f"https://feed.example.test/{name}.xml",
         rights_profile="full_text_internal",
         homepage=None,
     )
-    conn.execute(
-        "update source set moments_seeded = true, moments_enabled = true where id = %s",
-        (source_id,),
-    )
-    return source_id
 
 
 def user(conn: psycopg.Connection) -> str:
@@ -82,143 +58,71 @@ def user(conn: psycopg.Connection) -> str:
     return user_id
 
 
-def moments_of(conn: psycopg.Connection, item_id: int) -> list[int]:
-    rows = conn.execute(
-        "select id from moment where content_item_id = %s order by ordinal", (item_id,)
-    ).fetchall()
-    return [r[0] for r in rows]
-
-
-def give(
-    conn: psycopg.Connection,
-    user_id: str,
-    moment_ids: list[int],
-    others: dict[BreakLength, list[int]] | None = None,
-) -> None:
-    by_chip: dict[BreakLength, list[int]] = {"3-8": moment_ids, **(others or {})}
-    item_of = dict(
-        conn.execute(
-            "select id, content_item_id from moment where id = any(%s)",
-            ([m for ids in by_chip.values() for m in ids],),
-        ).fetchall()
-    )
+def give(conn: psycopg.Connection, user_id: str, item_ids: list[int]) -> None:
     PostgresStore(conn).feed.replace_user(
         user_id,
-        {
-            chip: [RankedEntry(item_of[m], m, "topic_match", None) for m in ids]
-            for chip, ids in by_chip.items()
-        },
+        [RankedEntry(i, "topic_match", None) for i in item_ids],
         datetime.now(UTC),
     )
 
 
-def visible(
-    conn: psycopg.Connection, user_id: str, chip: BreakLength = "3-8"
-) -> list[tuple[str, int, int]]:
+def visible(conn: psycopg.Connection, user_id: str) -> list[tuple[str, str]]:
     return conn.execute(
-        "select section_title, section_number, section_count from user_feed_visible "
-        "where user_id = %s and chip = %s order by rank",
-        (user_id, chip),
+        "select article_title, chip::text from user_feed_visible "
+        "where user_id = %s order by rank",
+        (user_id,),
     ).fetchall()
 
 
 def test_a_user_sees_their_own_feed_in_rank_order(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-a")
-    item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
-    first, second = moments_of(conn, item)
+    one = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC))
+    two = add_item(conn, src, "two", datetime(2026, 10, 2, tzinfo=UTC))
     me, other = user(conn), user(conn)
-    give(conn, me, [second, first])
-    give(conn, other, [first])
-    assert visible(conn, me) == [("one s1", 2, 2), ("one s0", 1, 2)]
-    assert visible(conn, other) == [("one s0", 1, 2)]
+    give(conn, me, [two, one])
+    give(conn, other, [one])
+    assert visible(conn, me) == [
+        ("Article two", FEED_CHIP),
+        ("Article one", FEED_CHIP),
+    ]
+    assert visible(conn, other) == [("Article one", FEED_CHIP)]
 
 
-def test_each_chip_is_its_own_feed(conn: psycopg.Connection) -> None:
-    src = source(conn, "feedtest-f")
-    item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
-    first, second = moments_of(conn, item)
-    me = user(conn)
-    give(conn, me, [first, second], {"1-3": [second], "8-15": []})
-    assert visible(conn, me, "3-8") == [("one s0", 1, 2), ("one s1", 2, 2)]
-    assert visible(conn, me, "1-3") == [("one s1", 2, 2)]
-    assert visible(conn, me, "8-15") == []
-
-
-def test_switching_moments_off_cascades_to_every_feed(conn: psycopg.Connection) -> None:
-    src = source(conn, "feedtest-c")
-    item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
-    me = user(conn)
-    moments = moments_of(conn, item)
-    give(conn, me, moments)
-    PostgresStore(conn).feed.replace_starter(
-        "databases",
-        "beginner",
-        "3-8",
-        [RankedEntry(item, m, "quality", None) for m in moments],
-    )
-    conn.execute(
-        "update source set moments_seeded = false, moments_enabled = false "
-        "where id = %s",
-        (src,),
-    )
-    # No recompute: the purge trigger deletes the moments and the entries cascade.
-    assert visible(conn, me) == []
-    # This test's moments only: the shared database may hold real starter feeds.
-    left = conn.execute(
-        "select count(*) from starter_feed_entry where moment_id = any(%s)",
-        (moments,),
-    ).fetchone()
-    assert left == (0,)
-
-
-def test_section_count_covers_moments_left_out_of_the_feed(
+def test_a_feed_is_one_list_of_articles_under_the_one_chip(
     conn: psycopg.Connection,
 ) -> None:
-    src = source(conn, "feedtest-e")
-    item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 3)
+    src = source(conn, "feedtest-b")
+    item = add_item(conn, src, "whole", datetime(2026, 10, 1, tzinfo=UTC))
     me = user(conn)
-    give(conn, me, moments_of(conn, item)[1:2])
-    assert visible(conn, me) == [("one s1", 2, 3)]
-
-
-@pytest.mark.parametrize(
-    "change",
-    [
-        # The admin switch: moments_enabled follows it (P1-W3-S06).
-        {"moments_switched_off": True, "moments_enabled": False},
-        {"rights_profile": "excerpt"},
-        {"rights_profile": "metadata_only"},
-    ],
-)
-def test_views_hide_stale_entries_when_the_source_no_longer_allows_moments(
-    conn: psycopg.Connection, change: dict[str, object]
-) -> None:
-    src = source(conn, "feedtest-d")
-    item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 1)
-    me = user(conn)
-    give(conn, me, moments_of(conn, item))
-    PostgresStore(conn).feed.replace_starter(
-        "databases",
-        "advanced",
-        "3-8",
-        [RankedEntry(item, m, "quality", None) for m in moments_of(conn, item)],
-    )
-    # Skip triggers for this transaction only, to leave stale feed entries behind.
-    conn.execute("set local session_replication_role = replica")
+    # A feed of before ADR-0058: one list per chip, moments among them.
+    for chip in ("1-3", "8-15"):
+        conn.execute(
+            "insert into user_feed_entry (user_id, chip, content_item_id, rank, "
+            "top_signal) values (%s, %s, %s, 1, 'quality')",
+            (me, chip, item),
+        )
+    give(conn, me, [item])
+    rows = conn.execute(
+        "select chip::text, content_item_id, moment_id from user_feed_entry "
+        "where user_id = %s",
+        (me,),
+    ).fetchall()
+    assert rows == [(FEED_CHIP, item, None)]
+    store = PostgresStore(conn)
     conn.execute(
-        sql.SQL("update source set {} where id = %s").format(
-            sql.SQL(", ").join(
-                sql.SQL("{} = %s").format(sql.Identifier(column)) for column in change
-            )
-        ),
-        (*change.values(), src),
+        "insert into starter_feed_entry (topic, level, chip, content_item_id, rank) "
+        "values ('databases', 'beginner', '8-15', %s, 1)",
+        (item,),
     )
-    conn.execute("set local session_replication_role = origin")
-    assert visible(conn, me) == []
+    store.feed.replace_starter(
+        "databases", "beginner", [RankedEntry(item, "quality", None)]
+    )
     starter = conn.execute(
-        "select count(*) from starter_feed_visible where source_name = 'feedtest-d'"
-    ).fetchone()
-    assert starter == (0,)
+        "select chip::text, moment_id from starter_feed_entry "
+        "where topic = 'databases' and level = 'beginner' and content_item_id = %s",
+        (item,),
+    ).fetchall()
+    assert starter == [(FEED_CHIP, None)]
 
 
 def test_two_recomputes_of_one_user_wait_for_each_other(
@@ -256,19 +160,17 @@ def test_two_recomputes_of_one_user_wait_for_each_other(
             cleanup.execute("delete from app_user where id = %s", (me,))
 
 
-def test_a_whole_article_shows_title_and_link_from_any_profile(
+def test_an_article_shows_title_and_link_from_any_profile(
     conn: psycopg.Connection,
 ) -> None:
     # Q-P1-39: a metadata-only article has no length; its card links to the page.
     src = source(conn, "feedtest-g")
     conn.execute(
-        "update source set rights_profile = 'metadata_only', moments_seeded = false, "
-        "moments_enabled = false where id = %s",
-        (src,),
+        "update source set rights_profile = 'metadata_only' where id = %s", (src,)
     )
-    listed = add_item(conn, src, "listed", datetime(2026, 10, 1, tzinfo=UTC), 0)
+    listed = add_item(conn, src, "listed", datetime(2026, 10, 1, tzinfo=UTC))
     full = source(conn, "feedtest-h")
-    counted = add_item(conn, full, "counted", datetime(2026, 10, 2, tzinfo=UTC), 1)
+    counted = add_item(conn, full, "counted", datetime(2026, 10, 2, tzinfo=UTC))
     conn.execute(
         "insert into content_item_section "
         "(content_item_id, ordinal, heading, level, anchor_id, word_count) "
@@ -276,20 +178,10 @@ def test_a_whole_article_shows_title_and_link_from_any_profile(
         (counted,),
     )
     me = user(conn)
-    PostgresStore(conn).feed.replace_user(
-        me,
-        {
-            "8-15": [
-                RankedEntry(listed, None, "topic_match", None),
-                RankedEntry(counted, None, "time_fit", None),
-            ]
-        },
-        datetime.now(UTC),
-    )
+    give(conn, me, [listed, counted])
     rows = conn.execute(
         "select kind, content_item_id, moment_id, section_title, estimated_minutes, "
-        "link from user_feed_visible where user_id = %s and chip = '8-15' "
-        "order by rank",
+        "link from user_feed_visible where user_id = %s order by rank",
         (me,),
     ).fetchall()
     assert rows == [
@@ -299,46 +191,26 @@ def test_a_whole_article_shows_title_and_link_from_any_profile(
     ]
 
 
-def test_an_entry_cannot_pair_a_moment_with_another_items_title(
-    conn: psycopg.Connection,
-) -> None:
-    # The view takes the title, source and rights gate from the entry's item; the
-    # moment must belong to it, or one item's link would show under another's title.
-    src = source(conn, "feedtest-i")
-    one = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 1)
-    other = add_item(conn, src, "other", datetime(2026, 10, 2, tzinfo=UTC), 1)
-    me = user(conn)
-    with pytest.raises(psycopg.errors.ForeignKeyViolation):
-        PostgresStore(conn).feed.replace_user(
-            me,
-            {"3-8": [RankedEntry(other, moments_of(conn, one)[0], "quality", None)]},
-            datetime.now(UTC),
-        )
-
-
 # ADR-0027: the card's explanation, its kind and its difficulty are stored per entry and
 # read through the views; a starter feed's too.
 def test_a_cards_reasons_are_stored_and_shown(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-j")
-    item = add_item(conn, src, "reasoned", datetime(2026, 10, 1, tzinfo=UTC), 2)
+    item = add_item(conn, src, "reasoned", datetime(2026, 10, 1, tzinfo=UTC))
+    plain = add_item(conn, src, "plain", datetime(2026, 10, 2, tzinfo=UTC))
     store = PostgresStore(conn)
     me = user(conn)
-    first, second = moments_of(conn, item)
     store.feed.replace_user(
         me,
-        {
-            "3-8": [
-                RankedEntry(
-                    item,
-                    first,
-                    "topic_match",
-                    "Homework for velox: Transactions.",
-                    reason_kinds=("project_match",),
-                    difficulty="intermediate",
-                ),
-                RankedEntry(item, second, "quality", None),
-            ]
-        },
+        [
+            RankedEntry(
+                item,
+                "topic_match",
+                "Homework for velox: Transactions.",
+                reason_kinds=("project_match",),
+                difficulty="intermediate",
+            ),
+            RankedEntry(plain, "quality", None),
+        ],
         datetime.now(UTC),
     )
     assert conn.execute(
@@ -352,25 +224,23 @@ def test_a_cards_reasons_are_stored_and_shown(conn: psycopg.Connection) -> None:
     store.feed.replace_starter(
         "databases",
         "beginner",
-        "3-8",
-        [RankedEntry(item, first, "quality", "Worth a look.", difficulty="beginner")],
+        [RankedEntry(item, "quality", "Worth a look.", difficulty="beginner")],
     )
     assert conn.execute(
         "select reasons, difficulty from starter_feed_visible "
-        "where topic = 'databases' "
-        "and level = 'beginner' and chip = '3-8' and content_item_id = %s",
-        (item,),
+        "where topic = 'databases' and level = 'beginner' and chip = %s "
+        "and content_item_id = %s",
+        (FEED_CHIP, item),
     ).fetchall() == [("Worth a look.", "beginner")]
 
 
 def test_an_explored_entry_is_stored_with_its_arm(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-l")
-    item = add_item(conn, src, "explored", datetime(2026, 10, 1, tzinfo=UTC), 1)
-    (moment,) = moments_of(conn, item)
+    item = add_item(conn, src, "explored", datetime(2026, 10, 1, tzinfo=UTC))
     me = user(conn)
     PostgresStore(conn).feed.replace_user(
         me,
-        {"3-8": [RankedEntry(item, moment, "quality", None, Arm("topic", "backend"))]},
+        [RankedEntry(item, "quality", None, Arm("topic", "backend"))],
         datetime.now(UTC),
     )
     row = conn.execute(
@@ -384,8 +254,8 @@ def test_an_entry_keeps_its_score_breakdown_for_inspection(
     conn: psycopg.Connection,
 ) -> None:
     src = source(conn, "feedtest-m")
-    item = add_item(conn, src, "inspected", datetime(2026, 10, 1, tzinfo=UTC), 2)
-    scored, plain = moments_of(conn, item)
+    scored = add_item(conn, src, "inspected", datetime(2026, 10, 1, tzinfo=UTC))
+    plain = add_item(conn, src, "plain-m", datetime(2026, 10, 2, tzinfo=UTC))
     me = user(conn)
     parts = Breakdown(
         values={"topic_match": 1.0, "quality": 0.5},
@@ -395,12 +265,10 @@ def test_an_entry_keeps_its_score_breakdown_for_inspection(
     )
     PostgresStore(conn).feed.replace_user(
         me,
-        {
-            "3-8": [
-                RankedEntry(item, scored, "topic_match", None, None, parts),
-                RankedEntry(item, plain, "quality", None),
-            ]
-        },
+        [
+            RankedEntry(scored, "topic_match", None, None, parts),
+            RankedEntry(plain, "quality", None),
+        ],
         datetime.now(UTC),
     )
     rows = conn.execute(
@@ -422,14 +290,11 @@ def test_an_entry_keeps_its_score_breakdown_for_inspection(
 
 def test_a_broken_link_leaves_every_feed_at_once(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-n")
-    item = add_item(conn, src, "broken", datetime(2026, 10, 1, tzinfo=UTC), 1)
+    item = add_item(conn, src, "broken", datetime(2026, 10, 1, tzinfo=UTC))
     me = user(conn)
-    give(conn, me, moments_of(conn, item))
+    give(conn, me, [item])
     PostgresStore(conn).feed.replace_starter(
-        "databases",
-        "advanced",
-        "3-8",
-        [RankedEntry(item, m, "quality", None) for m in moments_of(conn, item)],
+        "databases", "advanced", [RankedEntry(item, "quality", None)]
     )
     assert visible(conn, me) != []
     PostgresStore(conn).items.set_link_broken(item, datetime.now(UTC))
@@ -443,9 +308,9 @@ def test_a_broken_link_leaves_every_feed_at_once(conn: psycopg.Connection) -> No
 def test_the_views_say_whether_an_entry_can_be_framed(conn: psycopg.Connection) -> None:
     # ADR-0018: the web opens a card in-app only when its page allows framing.
     src = source(conn, "feedtest-o")
-    item = add_item(conn, src, "framed", datetime(2026, 10, 1, tzinfo=UTC), 1)
+    item = add_item(conn, src, "framed", datetime(2026, 10, 1, tzinfo=UTC))
     me = user(conn)
-    give(conn, me, moments_of(conn, item))
+    give(conn, me, [item])
     store = PostgresStore(conn)
 
     def framed() -> object:

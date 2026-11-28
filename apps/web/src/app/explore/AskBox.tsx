@@ -127,9 +127,8 @@ function Answer({
               key={c.passage}
               href={outHref({
                 itemId: c.itemId,
-                ...(c.momentId === null ? {} : { momentId: c.momentId }),
                 from: "explore",
-                target: "section",
+                target: "article",
               })}
               target="_blank"
               rel="noopener noreferrer"
@@ -174,9 +173,7 @@ function Answer({
             Ask a follow-up
           </button>
         ) : null}
-        {answer?.citations.some(
-          (c) => c.kind === "reading" && c.momentId !== null,
-        ) === true ? (
+        {answer?.citations.some((c) => c.kind === "reading") === true ? (
           <a
             href={`/explore/session?question=${thread.id}`}
             className="flex h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold text-page"
@@ -184,7 +181,8 @@ function Answer({
             <svg aria-hidden="true" viewBox="0 0 24 24" className="size-[11px]">
               <path d="M7 4.5v15l12-7.5z" fill="currentColor" />
             </svg>
-            Make it a 4-min session
+            {/* ADR-0058: whole articles, so no longer sized to 4 minutes. */}
+            Make it a reading session
           </a>
         ) : null}
       </div>

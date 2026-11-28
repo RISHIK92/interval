@@ -31,7 +31,7 @@ test("each applied match is one event", async () => {
       outcome: "finished",
       won: true,
       abandoned: false,
-      missed: [{ itemId: "4", momentId: "40" }],
+      missed: [{ itemId: "4" }],
     },
     { outcome: "abandoned", won: false, abandoned: true, missed: [] },
   ]);
@@ -46,7 +46,7 @@ test("each applied match is one event", async () => {
     // P3-W18-S03: its miss, back to reading.
     [
       "concept_missed",
-      { game: "live", item_id: "4", moment_id: "40" },
+      { game: "live", item_id: "4" },
       expect.objectContaining({ userId: "u1" }),
     ],
     [

@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import get_args
 
-from interval_db.generated import BreakLength, Difficulty, Topic
+from interval_db.generated import Difficulty, Topic
 from interval_jobs import log
 from interval_jobs.feed.project_notes import PROJECT_NOTES_PER_RECOMPUTE
 from interval_jobs.feed.reasons import concept_map, explain
@@ -22,19 +22,17 @@ from interval_jobs.ports import (
 )
 from interval_jobs.ranking.rank import (
     TOPICS,
-    Ranked,
     goal_sets,
     rank_for_preferences,
     rank_for_user,
 )
+from interval_jobs.ranking.scoring import Scored
 
 FEED_LIMIT = 50
 # Owner, 2026-10-26: active = an auth session used in the last 7 days. Better Auth moves
 # updated_at at most once a day (updateAge), so in practice this is 6 to 7 days.
 ACTIVE_DAYS = 7
 LEVELS: tuple[Difficulty, ...] = get_args(Difficulty.__value__)
-# Only fills the required field: ranking replaces it with each chip's own break.
-STARTER_BREAK: BreakLength = "3-8"
 
 
 @dataclass
@@ -47,38 +45,34 @@ class Recomputed:
 
 def _with_reasons(
     store: Store,
-    ranked: Ranked,
+    ranked: list[Scored],
     preferences: UserPreferences,
     now: datetime,
     done: Recomputed,
     user_id: str | None,
-) -> dict[BreakLength, list[RankedEntry]]:
-    """Every chip's entries with their one explanation (ADR-0027). A starter feed has
-    no user: no goals, projects or repositories, so it states none of them."""
+) -> list[RankedEntry]:
+    """The entries with their one explanation (ADR-0027). A starter feed has no user:
+    no goals, projects or repositories, so it states none of them."""
     projects = store.ranking.project_concepts(user_id) if user_id else {}
     repositories = store.ranking.project_repositories(user_id) if user_id else {}
     goals = goal_sets(store.ranking, preferences, projects) if user_id else ()
     concepts = concept_map(store.concepts.state())
-    by_chip: dict[BreakLength, list[RankedEntry]] = {}
-    for chip, scored in ranked.items():
-        entries: list[RankedEntry] = []
-        for s in scored:
-            found = explain(s, now, goals, projects, repositories, concepts)
-            entries.append(
-                RankedEntry(
-                    s.item_id,
-                    s.moment_id,
-                    s.top_signal,
-                    found.text,
-                    s.arm,
-                    s.breakdown,
-                    () if found.kind is None else (found.kind,),
-                    s.facts.difficulty,
-                )
+    entries: list[RankedEntry] = []
+    for s in ranked:
+        found = explain(s, now, goals, projects, repositories, concepts)
+        entries.append(
+            RankedEntry(
+                s.item_id,
+                s.top_signal,
+                found.text,
+                s.arm,
+                s.breakdown,
+                () if found.kind is None else (found.kind,),
+                s.facts.difficulty,
             )
-        by_chip[chip] = entries
-        done.entries += len(entries)
-    return by_chip
+        )
+    done.entries += len(entries)
+    return entries
 
 
 def recompute_user_feed(
@@ -88,8 +82,8 @@ def recompute_user_feed(
     now: datetime,
     rng: random.Random | None = None,
 ) -> Recomputed:
-    """Ranks the user's feed for every chip and stores it whole. A user without
-    preferences gets empty feeds, still stored, so the web stops waiting for them."""
+    """Ranks the user's feed and stores it whole (one list, ADR-0058). A user without
+    preferences gets an empty feed, still stored, so the web stops waiting for it."""
     done = Recomputed(0)
     try:
         # Before ranking: a recompute running alongside finishes first, and this one
@@ -97,21 +91,21 @@ def recompute_user_feed(
         store.feed.hold_user(user_id)
         ranked = rank_for_user(store, user_id, model, now, FEED_LIMIT, rng)
         preferences = store.ranking.preferences(user_id)
-        by_chip: dict[BreakLength, list[RankedEntry]] = (
+        entries = (
             _with_reasons(store, ranked, preferences, now, done, user_id)
             if preferences
-            else {chip: [] for chip in ranked}
+            else []
         )
-        store.feed.replace_user(user_id, by_chip, now)
-        # Best position in any chip first: the highest-ranked across the chips.
-        best: dict[int, int] = {}
-        for entries in by_chip.values():
-            for position, e in enumerate(entries):
-                if e.breakdown and e.breakdown.values.get("project_match", 0) > 0:
-                    best[e.item_id] = min(position, best.get(e.item_id, position))
-        if best:
+        store.feed.replace_user(user_id, entries, now)
+        # Highest-ranked first.
+        on_projects = [
+            e.item_id
+            for e in entries
+            if e.breakdown and e.breakdown.values.get("project_match", 0) > 0
+        ]
+        if on_projects:
             done.project_notes = store.github.project_notes_missing(
-                user_id, sorted(best, key=best.__getitem__), PROJECT_NOTES_PER_RECOMPUTE
+                user_id, on_projects, PROJECT_NOTES_PER_RECOMPUTE
             )
     except Exception as error:
         log.error("feed: recompute failed", user_id=user_id, error=error)
@@ -127,18 +121,15 @@ STARTERS: tuple[tuple[Topic, Difficulty], ...] = tuple(
 def recompute_starter(
     store: Store, topic: Topic, level: Difficulty, model: str | None, now: datetime
 ) -> Recomputed:
-    """The starter feeds of one topic and level, every chip (ADR-0008). Every topic,
-    not only those the concept graph uses now, so a topic it drops is emptied."""
+    """The starter feed of one topic and level (ADR-0008). Every topic, not only those
+    the concept graph uses now, so a topic it drops is emptied."""
     done = Recomputed(0)
-    preferences = UserPreferences(
-        topics=[topic], level=level, break_length=STARTER_BREAK
-    )
+    preferences = UserPreferences(topics=[topic], level=level)
     try:
         ranked = rank_for_preferences(store, preferences, None, model, now, FEED_LIMIT)
-        for chip, entries in _with_reasons(
-            store, ranked, preferences, now, done, None
-        ).items():
-            store.feed.replace_starter(topic, level, chip, entries)
+        store.feed.replace_starter(
+            topic, level, _with_reasons(store, ranked, preferences, now, done, None)
+        )
     except Exception as error:
         log.error("feed: recompute failed", topic=topic, level=level, error=error)
         raise

@@ -71,7 +71,7 @@ export default function PathsScreen() {
           {list === "loading"
             ? "Loading…"
             : list === "setup"
-              ? "Finish setting up on the web (topics, level and break length), then come back."
+              ? "Finish setting up on the web (topics and level), then come back."
               : "Couldn't load your paths."}
         </Text>
       </View>

@@ -2,7 +2,11 @@ import type { DB } from "@interval/db";
 import type { Kysely } from "kysely";
 import { z } from "zod";
 import { log } from "../log";
-import type { RankingInspection, ScoreBreakdown } from "../ports";
+import {
+  FEED_CHIP,
+  type RankingInspection,
+  type ScoreBreakdown,
+} from "../ports";
 
 // Postgres adapter (ADR-0012) for ranking inspection (P1-W6-S01). Titles come from the
 // feed's visible view, so they follow the same rights gate the feed does (ING-2).
@@ -31,7 +35,7 @@ function breakdown(stored: unknown): ScoreBreakdown | null {
 
 export function kyselyRanking(db: Kysely<DB>): RankingInspection {
   return {
-    async entries(userId, chip) {
+    async entries(userId) {
       const rows = await db
         .selectFrom("user_feed_visible as v")
         .innerJoin("user_feed_entry as e", (join) =>
@@ -42,9 +46,7 @@ export function kyselyRanking(db: Kysely<DB>): RankingInspection {
         )
         .select([
           "v.rank",
-          "v.kind",
           "v.article_title",
-          "v.section_title",
           "v.source_name",
           "e.top_signal",
           "e.explore_kind",
@@ -52,14 +54,14 @@ export function kyselyRanking(db: Kysely<DB>): RankingInspection {
           "e.score_parts",
         ])
         .where("v.user_id", "=", userId)
-        .where("v.chip", "=", chip)
+        // ADR-0058: one list until stage C drops the chip column, articles only.
+        .where("v.chip", "=", FEED_CHIP)
+        .where("v.moment_id", "is", null)
         .orderBy("v.rank")
         .execute();
       return rows.map((row) => ({
         rank: row.rank ?? 0,
-        kind: row.kind === "article" ? "article" : "moment",
         articleTitle: row.article_title ?? "",
-        sectionTitle: row.kind === "article" ? null : row.section_title,
         sourceName: row.source_name ?? "",
         topSignal: row.top_signal,
         explored:

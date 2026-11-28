@@ -1,11 +1,13 @@
-import { type Chip, ReaderResponse } from "@interval/api-client";
+import { ReaderResponse } from "@interval/api-client";
 import { api } from "./api";
 
 // P4-W20-S02 (ADR-0018): the reader's page and its row's actions, from the site's API.
+// ADR-0058: always the whole article.
 export async function readPage(
   itemId: string,
-  // path: a path's reading (P4-W21-S03), counted as the web's from=path.
-  query: { moment?: string; chip?: Chip; pos?: string; path?: string },
+  // pos: a feed card's position; path: a path's reading (P4-W21-S03), counted as the
+  // web's from=path.
+  query: { pos?: string; path?: string },
 ): Promise<
   { status: "ok"; page: ReaderResponse } | { status: "gone" | "failed" }
 > {
@@ -33,28 +35,17 @@ const sent = async (path: string, method: string, body: object) => {
   return response.ok;
 };
 
-// The section reached, or the article when it fell back (reached is null).
-const on = (itemId: string, momentId: string | null) =>
-  momentId === null ? { itemId } : { itemId, momentId };
-
-// Mark done, or auto: the reader saw the section read through (P4-W20-S03).
+// Done, or auto: the reader saw the article read through (P4-W20-S03). Either
+// completes the whole article (ADR-0058).
 export const markDone = (
   itemId: string,
-  momentId: string | null,
   method: "mark_done" | "auto" = "mark_done",
-) => sent("/api/read/finish", "POST", { ...on(itemId, momentId), method });
+) => sent("/api/read/finish", "POST", { itemId, method });
 
 // Empty deletes the note (§5I).
-export const writeNote = (
-  itemId: string,
-  momentId: string | null,
-  body: string,
-) => sent("/api/notes", "PUT", { ...on(itemId, momentId), body });
+export const writeNote = (itemId: string, body: string) =>
+  sent("/api/notes", "PUT", { itemId, body });
 
 // Open in browser from a page shown in the app: the click, as the web's /out records it.
-export const recordOutbound = (itemId: string, momentId: string | null) =>
-  sent(
-    `/api/read/${itemId}/out`,
-    "POST",
-    momentId === null ? {} : { moment: momentId },
-  );
+export const recordOutbound = (itemId: string) =>
+  sent(`/api/read/${itemId}/out`, "POST", {});

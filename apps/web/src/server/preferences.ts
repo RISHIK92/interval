@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Topic } from "@interval/db";
 import {
-  BREAK_LENGTHS,
   type FeedReader,
   GOALS,
   LAUNCH_TOPICS,
@@ -13,12 +12,11 @@ import {
 } from "./ports";
 
 // §5A, PER-1, C-21, P1-W4-S01, ADR-0015: onboarding asks for goals and topics (at least
-// one of each), a level and a break length, and keeps them as the user's explicit
-// choices.
+// one of each) and a level, and keeps them as the user's explicit choices. ADR-0058: no
+// break length; one an old form still sends is ignored.
 
 // "topic-unavailable": a topic that isn't offered (ADR-0049), apart from none at all.
-export type OnboardingField =
-  "goal" | "topic" | "topic-unavailable" | "level" | "break";
+export type OnboardingField = "goal" | "topic" | "topic-unavailable" | "level";
 // `created` is false when the user had already onboarded: nothing was changed.
 export type OnboardingResult =
   { ok: true; created: boolean } | { ok: false; field: OnboardingField };
@@ -39,14 +37,12 @@ const schema = z.object({
   goals: z.array(z.enum(LIVE_GOALS)).min(1),
   topics: z.array(z.enum(TOPICS)).min(1),
   level: z.enum(LEVELS),
-  breakLength: z.enum(BREAK_LENGTHS),
 });
 
 type Input = {
   goals: string[];
   topics: string[];
   level: string;
-  breakLength: string;
 };
 
 // The same rules at onboarding and on the Profile page (P1-W4-S08). `allowed` is the
@@ -59,9 +55,9 @@ function parsePreferences(
   | { ok: true; preferences: Preferences }
   | { ok: false; field: OnboardingField } {
   const parsed = schema.safeParse({
-    ...input,
     goals: [...new Set(input.goals)],
     topics: [...new Set(input.topics)],
+    level: input.level,
   });
   if (parsed.success && !parsed.data.topics.every((t) => allowed.includes(t)))
     return { ok: false, field: "topic-unavailable" };
@@ -72,13 +68,7 @@ function parsePreferences(
   }
   const path = parsed.error.issues[0]?.path[0];
   const field: OnboardingField =
-    path === "goals"
-      ? "goal"
-      : path === "topics"
-        ? "topic"
-        : path === "level"
-          ? "level"
-          : "break";
+    path === "goals" ? "goal" : path === "topics" ? "topic" : "level";
   return { ok: false, field };
 }
 

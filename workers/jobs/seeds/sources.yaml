@@ -2,7 +2,7 @@
 # the source table. Fields per source:
 #   name (required, the key), homepage, feed_url (sources without one are skipped in
 #   Phase 1), rights_profile (required: metadata_only | excerpt | full_text_internal |
-#   full_text_display, ING-2), moments_enabled (full_text_* only), paywalled,
+#   full_text_display, ING-2), paywalled,
 #   quality_score (optional, 1-5, Q-P1-37), topics (kebab-case).
 # Removing a source disables it (no more polling); its items stay in the feed.
 # The first 10 were accepted in docs/proposals/seed-sources.md (2026-10-25).
@@ -13,7 +13,6 @@
   homepage: https://blog.cloudflare.com/
   feed_url: https://blog.cloudflare.com/rss/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, distributed-systems]
 
@@ -21,7 +20,6 @@
   homepage: https://netflixtechblog.com/
   feed_url: https://netflixtechblog.com/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design, distributed-systems]
 
@@ -29,7 +27,6 @@
   homepage: https://martinfowler.com/
   feed_url: https://martinfowler.com/feed.atom
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design, backend]
 
@@ -37,7 +34,6 @@
   homepage: https://jvns.ca/
   feed_url: https://jvns.ca/atom.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -45,7 +41,6 @@
   homepage: https://danluu.com/
   feed_url: https://danluu.com/atom.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design]
 
@@ -53,7 +48,6 @@
   homepage: https://aws.amazon.com/blogs/architecture/
   feed_url: https://aws.amazon.com/blogs/architecture/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design, distributed-systems]
 
@@ -61,7 +55,6 @@
   homepage: https://github.blog/engineering/
   feed_url: https://github.blog/engineering/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, databases]
 
@@ -69,7 +62,6 @@
   homepage: https://www.brendangregg.com/blog/
   feed_url: https://www.brendangregg.com/blog/rss.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -77,7 +69,6 @@
   homepage: https://brooker.co.za/blog/
   feed_url: https://brooker.co.za/blog/rss.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems, databases]
 
@@ -85,7 +76,6 @@
   homepage: https://planetscale.com/blog
   feed_url: https://planetscale.com/blog/feed.atom
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -93,7 +83,6 @@
   homepage: https://blog.bytebytego.com/
   feed_url: https://blog.bytebytego.com/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design]
 
@@ -101,7 +90,6 @@
   homepage: https://blog.algomaster.io/
   feed_url: https://blog.algomaster.io/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design]
 
@@ -109,7 +97,6 @@
   homepage: https://newsletter.systemdesigncodex.com/
   feed_url: https://newsletter.systemdesigncodex.com/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design]
 
@@ -117,7 +104,6 @@
   homepage: https://newsletter.systemdesign.one/
   feed_url: https://newsletter.systemdesign.one/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design, distributed-systems]
 
@@ -125,7 +111,6 @@
   homepage: https://newsletter.pragmaticengineer.com/
   feed_url: https://newsletter.pragmaticengineer.com/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: true
   topics: [backend, system-design]
 
@@ -133,7 +118,6 @@
   homepage: https://highscalability.com/
   feed_url: https://highscalability.com/rss/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design, distributed-systems]
 
@@ -141,7 +125,6 @@
   homepage: https://www.infoq.com/architecture-design/
   feed_url: https://feed.infoq.com/architecture-design/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design]
 
@@ -149,7 +132,6 @@
   homepage: https://thenewstack.io/
   feed_url: https://thenewstack.io/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -157,7 +139,6 @@
   homepage: https://lwn.net/
   feed_url: https://lwn.net/headlines/rss
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: true
   topics: [backend]
 
@@ -165,7 +146,6 @@
   homepage: https://www.allthingsdistributed.com/
   feed_url: https://www.allthingsdistributed.com/atom.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems, system-design]
 
@@ -173,7 +153,6 @@
   homepage: https://charity.wtf/
   feed_url: https://charity.wtf/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -181,7 +160,6 @@
   homepage: https://muratbuffalo.blogspot.com/
   feed_url: https://muratbuffalo.blogspot.com/feeds/posts/default
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems, databases]
 
@@ -189,7 +167,6 @@
   homepage: https://research.swtch.com/
   feed_url: https://research.swtch.com/feed.atom
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -197,7 +174,6 @@
   homepage: https://eli.thegreenplace.net/
   feed_url: https://eli.thegreenplace.net/feeds/all.atom.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -205,7 +181,6 @@
   homepage: https://samwho.dev/
   feed_url: https://samwho.dev/rss.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
 
@@ -213,7 +188,6 @@
   homepage: https://mitchellh.com/
   feed_url: https://mitchellh.com/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -221,7 +195,6 @@
   homepage: https://engineering.fb.com/
   feed_url: https://engineering.fb.com/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, distributed-systems]
 
@@ -229,7 +202,6 @@
   homepage: https://stripe.com/blog/engineering
   feed_url: https://stripe.com/blog/feed.rss
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, distributed-systems]
 
@@ -237,7 +209,6 @@
   homepage: https://slack.engineering/
   feed_url: https://slack.engineering/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
 
@@ -245,7 +216,6 @@
   homepage: https://dropbox.tech/
   feed_url: https://dropbox.tech/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, distributed-systems]
 
@@ -253,7 +223,6 @@
   homepage: https://engineering.atspotify.com/
   feed_url: https://engineering.atspotify.com/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -261,7 +230,6 @@
   homepage: https://engineering.grab.com/
   feed_url: https://engineering.grab.com/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, distributed-systems]
 
@@ -269,7 +237,6 @@
   homepage: https://www.canva.dev/blog/engineering/
   feed_url: https://www.canva.dev/blog/engineering/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -277,7 +244,6 @@
   homepage: https://zerodha.tech/
   feed_url: https://zerodha.tech/index.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, databases]
 
@@ -285,7 +251,6 @@
   homepage: https://medium.com/airbnb-engineering
   feed_url: https://medium.com/feed/airbnb-engineering
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
 
@@ -293,7 +258,6 @@
   homepage: https://medium.com/pinterest-engineering
   feed_url: https://medium.com/feed/pinterest-engineering
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
 
@@ -301,7 +265,6 @@
   homepage: https://blog.flipkart.tech/
   feed_url: https://blog.flipkart.tech/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
 
@@ -312,7 +275,6 @@
   homepage: https://shopify.engineering/
   feed_url: https://shopify.engineering/blog.atom
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
 
@@ -320,7 +282,6 @@
   homepage: https://engineeringblog.yelp.com/
   feed_url: https://engineeringblog.yelp.com/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, distributed-systems]
 
@@ -328,7 +289,6 @@
   homepage: https://engineering.zalando.com/
   feed_url: https://engineering.zalando.com/atom.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
 
@@ -336,7 +296,6 @@
   homepage: https://architecturenotes.co/
   feed_url: https://architecturenotes.co/feed
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design]
 
@@ -344,7 +303,6 @@
   homepage: https://www.hillelwayne.com/
   feed_url: https://www.hillelwayne.com/index.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [system-design]
 
@@ -352,7 +310,6 @@
   homepage: https://fly.io/blog/
   feed_url: https://fly.io/blog/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems, backend]
 
@@ -360,7 +317,6 @@
   homepage: https://aphyr.com/
   feed_url: https://aphyr.com/posts.atom
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems, databases]
 
@@ -368,7 +324,6 @@
   homepage: https://jack-vanlightly.com/
   feed_url: https://jack-vanlightly.com/blog?format=rss
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems, databases]
 
@@ -376,7 +331,6 @@
   homepage: https://charap.co/
   feed_url: https://charap.co/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems]
 
@@ -384,7 +338,6 @@
   homepage: https://www.inkandswitch.com/
   feed_url: https://www.inkandswitch.com/index.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems]
 
@@ -392,7 +345,6 @@
   homepage: https://tigerbeetle.com/blog/
   feed_url: https://tigerbeetle.com/blog/atom.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, distributed-systems]
 
@@ -400,7 +352,6 @@
   homepage: https://transactional.blog/
   feed_url: https://transactional.blog/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, distributed-systems]
 
@@ -408,7 +359,6 @@
   homepage: https://www.percona.com/blog/
   feed_url: https://www.percona.com/blog/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -416,7 +366,6 @@
   homepage: https://www.crunchydata.com/blog
   feed_url: https://www.crunchydata.com/blog/rss.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -424,7 +373,6 @@
   homepage: https://duckdb.org/news/
   feed_url: https://duckdb.org/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -432,7 +380,6 @@
   homepage: https://vitess.io/blog/
   feed_url: https://vitess.io/blog/index.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, distributed-systems]
 
@@ -440,7 +387,6 @@
   homepage: https://www.depesz.com/
   feed_url: https://www.depesz.com/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -448,7 +394,6 @@
   homepage: https://rhaas.blogspot.com/
   feed_url: https://rhaas.blogspot.com/feeds/posts/default
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -456,7 +401,6 @@
   homepage: https://www.cs.cmu.edu/~pavlo/blog/
   feed_url: https://www.cs.cmu.edu/~pavlo/blog/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -464,7 +408,6 @@
   homepage: https://buttondown.com/jaffray
   feed_url: https://buttondown.com/jaffray/rss
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -472,7 +415,6 @@
   homepage: https://pganalyze.com/blog
   feed_url: https://pganalyze.com/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases]
 
@@ -480,7 +422,6 @@
   homepage: https://www.morling.dev/
   feed_url: https://www.morling.dev/index.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, distributed-systems]
 
@@ -488,7 +429,6 @@
   homepage: http://antirez.com/
   feed_url: http://antirez.com/rss
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, backend]
 
@@ -496,7 +436,6 @@
   homepage: https://brandur.org/
   feed_url: https://brandur.org/articles.atom
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, databases]
 
@@ -504,7 +443,6 @@
   homepage: https://tailscale.com/blog
   feed_url: https://tailscale.com/blog/index.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend, distributed-systems]
 
@@ -512,7 +450,6 @@
   homepage: https://blog.janestreet.com/
   feed_url: https://blog.janestreet.com/feed.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [backend]
 
@@ -520,7 +457,6 @@
   homepage: https://notes.eatonphil.com/
   feed_url: https://notes.eatonphil.com/rss.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, distributed-systems]
 
@@ -528,7 +464,6 @@
   homepage: https://bravenewgeek.com/
   feed_url: https://bravenewgeek.com/feed/
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [distributed-systems, system-design]
 
@@ -536,7 +471,6 @@
   homepage: https://hakibenita.com/
   feed_url: https://hakibenita.com/feeds/all.atom.xml
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, backend]
 
@@ -544,6 +478,5 @@
   homepage: https://www.evanjones.ca/
   feed_url: https://www.evanjones.ca/index.rss
   rights_profile: full_text_internal
-  moments_enabled: true
   paywalled: false
   topics: [databases, backend]

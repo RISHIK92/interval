@@ -1,5 +1,6 @@
 """Question drafting and validation through the provider's batch API (Q-P2-13,
-P2-W8-S05): the same prompts and rules as the per-moment stages (Q-1, Q-P2-08..12),
+P2-W8-S05): the same prompts and rules as the per-article stages (Q-1, Q-P2-08..12,
+ADR-0058),
 sent many at a time at half price and collected later (minutes to 24 hours on).
 
 `question-batches` runs `collect` then `submit` every 30 minutes, one run at a time
@@ -7,16 +8,16 @@ sent many at a time at half price and collected later (minutes to 24 hours on).
 spend in flight (OPS-4). A kind's batch goes lazily (Q-P2-46): once it would hold
 MIN_BATCH requests, or once that kind's last batch is MAX_WAIT old. Users' project
 notes ride the first batch that goes when NOTES_MODEL is the same batched model;
-their share of the cost goes to each user. A moment or question in an open batch
+their share of the cost goes to each user. An article or question in an open batch
 isn't sent again; a broken reply counts toward the cap (QUESTION_BROKEN_REPLIES, per
-moment and text, per question); a provider error or a failed batch just frees it for
+article and text, per question); a provider error or a failed batch just frees it for
 the next submit. A batch's cost is claimed on its row before it's recorded, and
 saving its results can safely run again, so a collection that fails part way is
 simply retried. Reads and writes happen in short units of work; the model calls
 happen between them, with no transaction open.
 
-shortcut: every run reads each target moment's text (N+1 over the store); fine for a
-few thousand moments, batch the reads if that grows."""
+shortcut: every run reads each target article's text (N+1 over the store); fine for a
+few thousand articles, batch the reads if that grows."""
 
 from collections.abc import Callable, Mapping
 from contextlib import AbstractContextManager
@@ -26,7 +27,11 @@ from datetime import UTC, datetime, timedelta
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.feed.project_notes import accepted, note_messages
-from interval_jobs.pipeline import QUESTION_BROKEN_REPLIES, moment_text
+from interval_jobs.pipeline import (
+    QUESTION_BROKEN_REPLIES,
+    cited_passage,
+    question_passage,
+)
 from interval_jobs.ports import (
     PROJECT_NOTE_PROMPT_VERSION,
     BatchItemResult,
@@ -53,12 +58,13 @@ from interval_jobs.questions import (
     parse_estimate_answer,
     parse_reply,
     prompt,
+    question_count,
     shuffled,
     validation_prompt,
 )
 
-# Requests per batch: well inside the provider's 200 MB body (4,000-character
-# passages), and a failed batch frees no more than this.
+# Requests per batch: well inside the provider's 200 MB body (passages of 16,000
+# characters at most), and a failed batch frees no more than this.
 MAX_BATCH = 1000
 # A batch the provider still doesn't know this long after submitting (its window is
 # 24h) never will.
@@ -74,10 +80,10 @@ type StoreUnit = Callable[[], AbstractContextManager[Store]]
 
 @dataclass(frozen=True)
 class Submitted:
-    drafts: int  # moments' multiple-choice drafts
+    drafts: int  # articles' multiple-choice drafts
     validations: int
     notes: int = 0
-    estimates: int = 0  # moments' estimate drafts, in the same batch (P3-W13-S03b)
+    estimates: int = 0  # articles' estimate drafts, in the same batch (P3-W13-S03b)
 
 
 @dataclass(frozen=True)
@@ -126,7 +132,7 @@ def _note_work(
 def submit(
     unit: StoreUnit, gateway: AiGateway, model: str, notes: bool = False
 ) -> Submitted:
-    """Gather every moment whose questions need drafting, every question waiting for
+    """Gather every article whose questions need drafting, every question waiting for
     its verdict and (with `notes`) every missing project note that no open batch is
     working on; each kind's batch goes when it's due (Q-P2-46)."""
     drafts: list[tuple[QuestionBatchEntry, BatchRequest]] = []
@@ -134,41 +140,42 @@ def submit(
     with unit() as store:
         questions = store.questions
         open_kinds = {kind for _, kind, _ in questions.open_batches()}
-        busy_moments, busy_questions = questions.in_open_batches()
-        broken_moments, broken_questions = questions.broken_counts()
-        for moment_id in [] if "draft" in open_kinds else questions.targets(None):
-            target = questions.target(moment_id)
-            text = moment_text(store, target)
+        busy_items, busy_questions = questions.in_open_batches()
+        broken_items, broken_questions = questions.broken_counts()
+        for item_id in [] if "draft" in open_kinds else questions.targets(None):
+            target = questions.target(item_id)
+            text = question_passage(store, target)
             if target is None or not text:
                 continue
             slugs = [slug for slug, _ in target.concepts]
             names = [name for _, name in target.concepts]
             digest = content_hash(text, slugs)
             if (
-                (moment_id, "choice") not in busy_moments
-                and digest != questions.drafted_hash(moment_id)  # AI-4: drafted once
-                and broken_moments.get((moment_id, digest), 0) < QUESTION_BROKEN_REPLIES
+                (item_id, "choice") not in busy_items
+                and digest != questions.drafted_hash(item_id)  # AI-4: drafted once
+                and broken_items.get((item_id, digest), 0) < QUESTION_BROKEN_REPLIES
             ):
-                custom_id = f"draft-{moment_id}"
+                custom_id = f"draft-{item_id}"
+                count = question_count(target.sections)
                 drafts.append(
                     (
-                        QuestionBatchEntry(custom_id, moment_id, None, digest),
-                        BatchRequest(custom_id, prompt(text, names)),
+                        QuestionBatchEntry(custom_id, item_id, None, digest),
+                        BatchRequest(custom_id, prompt(text, names, count)),
                     )
                 )
             # P3-W13-S03b: its estimate, only where a number could be stated.
             digest = estimate_hash(text, slugs)
             if (
                 has_number(text)
-                and (moment_id, "estimate") not in busy_moments
-                and digest != questions.estimate_drafted_hash(moment_id)
-                and broken_moments.get((moment_id, digest), 0) < QUESTION_BROKEN_REPLIES
+                and (item_id, "estimate") not in busy_items
+                and digest != questions.estimate_drafted_hash(item_id)
+                and broken_items.get((item_id, digest), 0) < QUESTION_BROKEN_REPLIES
             ):
-                custom_id = f"estimate-{moment_id}"
+                custom_id = f"estimate-{item_id}"
                 drafts.append(
                     (
                         QuestionBatchEntry(
-                            custom_id, moment_id, None, digest, "estimate"
+                            custom_id, item_id, None, digest, "estimate"
                         ),
                         BatchRequest(custom_id, estimate_prompt(text, names)),
                     )
@@ -187,10 +194,10 @@ def submit(
             )
             if found is None:
                 continue
-            moment_id, draft = found
-            text = moment_text(store, questions.target(moment_id))
+            item_id, draft = found
+            text = cited_passage(store, questions.target(item_id), draft.citation)
             if not text:
-                continue  # its moment lost its rights meanwhile (ING-2)
+                continue  # its article lost its rights meanwhile (ING-2)
             messages = (
                 estimate_validation_prompt(text, draft.stem, draft.unit)
                 if isinstance(draft, EstimateDraft)
@@ -294,7 +301,7 @@ def collect(unit: StoreUnit, gateway: AiGateway, model: str) -> Collected:
                 )
                 continue
             # Past the provider's 24h window it can't still be running: failed, so
-            # its moments and questions aren't stranded behind it.
+            # its articles and questions aren't stranded behind it.
             log.warn("questions: batch unknown, failed", batch_id=batch_id)
             with unit() as store:
                 store.questions.close_batch(batch_id, "failed", {})
@@ -396,15 +403,18 @@ def _save_note(
 def _save_draft(
     store: Store, entry: QuestionBatchEntry, reply: str, model: str
 ) -> BatchItemResult:
-    assert entry.moment_id is not None  # a draft entry always names its moment
-    target = store.questions.target(entry.moment_id)
-    text = moment_text(store, target)
+    assert entry.item_id is not None  # a draft entry always names its article
+    # Not an article whose questions came from its moments (ADR-0058).
+    drafting = store.questions.targets(entry.item_id)
+    target = store.questions.target(entry.item_id) if drafting else None
+    text = question_passage(store, target)
     slugs = [slug for slug, _ in target.concepts] if target else []
     digest = (estimate_hash if entry.kind == "estimate" else content_hash)(text, slugs)
+    # A moment's entry, from a batch sent before ADR-0058, never matches: skipped.
     if target is None or not text or digest != entry.content_hash:
         return "skipped"  # it changed or lost its rights meanwhile: the next submit
     if entry.kind == "estimate":
-        if store.questions.estimate_drafted_hash(entry.moment_id) == digest:
+        if store.questions.estimate_drafted_hash(entry.item_id) == digest:
             return "saved"  # saved by an earlier, interrupted collection
         try:
             estimate = parse_estimate(reply, text)
@@ -412,17 +422,17 @@ def _save_draft(
             return "broken"
         # Saved even when the passage states no number: not asked again (AI-4).
         store.questions.save_estimate(
-            entry.moment_id, estimate, slugs, model, digest, target.difficulty
+            entry.item_id, estimate, slugs, model, digest, target.difficulty
         )
         return "saved"
-    if store.questions.drafted_hash(entry.moment_id) == entry.content_hash:
+    if store.questions.drafted_hash(entry.item_id) == entry.content_hash:
         return "saved"  # saved by an earlier, interrupted collection of this batch
     try:
-        drafts = parse_reply(reply, text)
+        drafts = parse_reply(reply, text, question_count(target.sections))
     except QuestionReplyError:
         return "broken"
     store.questions.save(
-        entry.moment_id,
+        entry.item_id,
         [shuffled(draft) for draft in drafts],
         slugs,
         model,

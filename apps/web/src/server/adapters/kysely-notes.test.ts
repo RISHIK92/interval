@@ -5,8 +5,9 @@ import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
 import { kyselyNotes } from "./kysely-notes";
 
-// Notes (§5I, Q-P2-01, P2-W7-S03): one private note per user on a section or an
-// article, kept when re-segmenting removes its section.
+// Notes (§5I, Q-P2-01, P2-W7-S03): one private note per user on an article (ADR-0058).
+// Notes written on a section before it are still listed, under their section's title,
+// until stage C joins them into the article's note.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) {
   throw new Error("DATABASE_URL is not set; copy .env.example to .env");
@@ -94,86 +95,84 @@ async function inRollback(
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-test("a note is written, replaced and removed per section or article", async () => {
+// An earlier section note, as the web wrote them before ADR-0058.
+async function sectionNote(
+  trx: Transaction<DB>,
+  userId: string,
+  itemId: string,
+  momentId: string,
+  body: string,
+) {
+  const moment = await trx
+    .selectFrom("moment")
+    .select("title")
+    .where("id", "=", momentId)
+    .executeTakeFirstOrThrow();
+  const row = await trx
+    .insertInto("user_note")
+    .values({
+      user_id: userId,
+      content_item_id: itemId,
+      moment_id: momentId,
+      section_title: moment.title,
+      body,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  return row.id;
+}
+
+test("an article's note is written, replaced and removed, beside earlier section notes", async () => {
   await inRollback(async (trx, { userId, itemId, momentIds }) => {
     const notes = kyselyNotes(trx);
     const [, raft] = momentIds;
     if (raft === undefined) throw new Error("seed");
-    expect(await notes.get(userId, itemId, raft)).toBeNull();
-    expect(await notes.save(userId, itemId, raft, "Terms are epochs")).toBe(
-      true,
-    );
-    expect(await notes.save(userId, itemId, null, "Whole article")).toBe(true);
-    expect(await notes.save(userId, itemId, raft, "Terms are epochs!")).toBe(
-      true,
-    );
-    expect(await notes.get(userId, itemId, raft)).toBe("Terms are epochs!");
-    expect(await notes.get(userId, itemId, null)).toBe("Whole article");
-    const rows = await trx
-      .selectFrom("user_note")
-      .select(["moment_id", "section_title"])
-      .where("user_id", "=", userId)
-      .orderBy("moment_id")
-      .execute();
-    // One per target, and the section's title kept with it.
-    expect(rows).toEqual([
-      { moment_id: raft, section_title: "Raft" },
-      { moment_id: null, section_title: null },
-    ]);
-    expect(await notes.remove(userId, itemId, raft)).toBe(true);
-    expect(await notes.remove(userId, itemId, raft)).toBe(false);
-    expect(await notes.get(userId, itemId, raft)).toBeNull();
-    expect(await notes.get(userId, itemId, null)).toBe("Whole article");
-  });
-});
-
-test("ids that name no section of the article write nothing; notes are private", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const notes = kyselyNotes(trx);
-    const [intro] = momentIds;
-    if (intro === undefined) throw new Error("seed");
-    expect(await notes.save(userId, "999999999999", null, "x")).toBe(false);
-    expect(await notes.save(userId, "999999999999", intro, "x")).toBe(false);
-    await notes.save(userId, itemId, intro, "mine");
-    expect(await notes.get(`${userId}-other`, itemId, intro)).toBeNull();
-    expect(await notes.remove(`${userId}-other`, itemId, intro)).toBe(false);
-    expect(await notes.get(userId, itemId, intro)).toBe("mine");
-  });
-});
-
-test("re-segmenting away a note's section keeps the note, on the article", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
-    const notes = kyselyNotes(trx);
-    const [, raft] = momentIds;
-    if (raft === undefined) throw new Error("seed");
-    await notes.save(userId, itemId, null, "On the article");
-    await notes.save(userId, itemId, raft, "On Raft");
-    await trx.deleteFrom("moment").where("id", "=", raft).execute();
+    await sectionNote(trx, userId, itemId, raft, "Terms are epochs");
+    expect(await notes.get(userId, itemId)).toBeNull();
+    expect(await notes.save(userId, itemId, "Whole article")).toBe(true);
+    expect(await notes.save(userId, itemId, "Whole article!")).toBe(true);
+    expect(await notes.get(userId, itemId)).toBe("Whole article!");
     const rows = await trx
       .selectFrom("user_note")
       .select(["moment_id", "section_title", "body"])
       .where("user_id", "=", userId)
-      .orderBy("body")
+      .orderBy("moment_id")
       .execute();
+    // ADR-0058: a new note is on the article (no moment); the section note stays.
     expect(rows).toEqual([
-      { moment_id: null, section_title: "Raft", body: "On Raft" },
-      { moment_id: null, section_title: null, body: "On the article" },
+      { moment_id: raft, section_title: "Raft", body: "Terms are epochs" },
+      { moment_id: null, section_title: null, body: "Whole article!" },
     ]);
-    // The article's own note is still the one edited as the article's.
-    expect(await notes.get(userId, itemId, null)).toBe("On the article");
+    expect(await notes.remove(userId, itemId)).toBe(true);
+    expect(await notes.remove(userId, itemId)).toBe(false);
+    expect(await notes.get(userId, itemId)).toBeNull();
+    expect(await notes.onItems(userId, [itemId])).toEqual([
+      { itemId, sectionTitle: "Raft", body: "Terms are epochs" },
+    ]);
+  });
+});
+
+test("an id that names no article writes nothing; notes are private", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    const notes = kyselyNotes(trx);
+    expect(await notes.save(userId, "999999999999", "x")).toBe(false);
+    await notes.save(userId, itemId, "mine");
+    expect(await notes.get(`${userId}-other`, itemId)).toBeNull();
+    expect(await notes.remove(`${userId}-other`, itemId)).toBe(false);
+    expect(await notes.get(userId, itemId)).toBe("mine");
   });
 });
 
 // P2-W7-S04: the Library's list, the cards' lookup, and edits by the note's own id,
-// which also reach a note whose section was re-segmented away.
+// which also reach an earlier section note.
 test("the Library lists a user's notes newest first, with their article and section", async () => {
   await inRollback(async (trx, { userId, itemId, momentIds }) => {
     const notes = kyselyNotes(trx);
     const [, raft] = momentIds;
     if (raft === undefined) throw new Error("seed");
-    await notes.save(userId, itemId, null, "On the article");
-    await notes.save(userId, itemId, raft, "On Raft");
-    await notes.save(`${userId}-other`, itemId, null, "Someone else's");
+    await notes.save(userId, itemId, "On the article");
+    await sectionNote(trx, userId, itemId, raft, "On Raft");
+    await notes.save(`${userId}-other`, itemId, "Someone else's");
     await trx
       .updateTable("user_note")
       .set({ updated_at: new Date("2026-10-01T00:00:00Z") })
@@ -182,20 +181,20 @@ test("the Library lists a user's notes newest first, with their article and sect
     const listed = await notes.list(userId, 10);
     expect(
       listed.map((n) => ({
-        momentId: n.momentId,
+        itemId: n.itemId,
         sectionTitle: n.sectionTitle,
         articleTitle: n.articleTitle,
         body: n.body,
       })),
     ).toEqual([
       {
-        momentId: raft,
+        itemId,
         sectionTitle: "Raft",
         articleTitle: "Consensus in practice",
         body: "On Raft",
       },
       {
-        momentId: null,
+        itemId,
         sectionTitle: null,
         articleTitle: "Consensus in practice",
         body: "On the article",
@@ -206,43 +205,40 @@ test("the Library lists a user's notes newest first, with their article and sect
   });
 });
 
-test("cards find the note on their own section or article, not a fallen-back one", async () => {
+// ADR-0058: cards and the reader show the article's note first, then its earlier
+// section notes, a re-segmented-away one included.
+test("onItems gives the article's note and its earlier section notes", async () => {
   await inRollback(async (trx, { userId, itemId, momentIds }) => {
     const notes = kyselyNotes(trx);
     const [intro, raft] = momentIds;
     if (intro === undefined || raft === undefined) throw new Error("seed");
-    await notes.save(userId, itemId, intro, "On the intro");
-    await notes.save(userId, itemId, raft, "On Raft");
+    await sectionNote(trx, userId, itemId, intro, "On the intro");
+    await sectionNote(trx, userId, itemId, raft, "On Raft");
+    await notes.save(userId, itemId, "On the article");
     await trx.deleteFrom("moment").where("id", "=", raft).execute();
     expect(await notes.onItems(userId, [itemId, "999999999999"])).toEqual([
-      { itemId, momentId: intro, body: "On the intro" },
+      { itemId, sectionTitle: null, body: "On the article" },
+      { itemId, sectionTitle: "Intro", body: "On the intro" },
+      { itemId, sectionTitle: "Raft", body: "On Raft" },
     ]);
+    expect(await notes.onItems(`${userId}-other`, [itemId])).toEqual([]);
     expect(await notes.onItems(userId, [])).toEqual([]);
   });
 });
 
-test("a note is edited and deleted by its id, a fallen-back one included, only by its owner", async () => {
+test("a note is edited and deleted by its id, a section note included, only by its owner", async () => {
   await inRollback(async (trx, { userId, itemId, momentIds }) => {
     const notes = kyselyNotes(trx);
     const [, raft] = momentIds;
     if (raft === undefined) throw new Error("seed");
-    await notes.save(userId, itemId, raft, "On Raft");
-    await trx.deleteFrom("moment").where("id", "=", raft).execute();
-    const [fallen] = await notes.list(userId, 10);
-    if (fallen === undefined) throw new Error("seed");
-    expect(
-      await notes.update(`${userId}-other`, fallen.noteId, "x"),
-    ).toBeNull();
-    expect(await notes.update(userId, fallen.noteId, "Still on Raft")).toEqual({
+    const noteId = await sectionNote(trx, userId, itemId, raft, "On Raft");
+    expect(await notes.update(`${userId}-other`, noteId, "x")).toBeNull();
+    expect(await notes.update(userId, noteId, "Still on Raft")).toEqual({
       itemId,
-      momentId: null,
     });
     expect((await notes.list(userId, 10))[0]?.body).toBe("Still on Raft");
-    expect(await notes.removeById(`${userId}-other`, fallen.noteId)).toBeNull();
-    expect(await notes.removeById(userId, fallen.noteId)).toEqual({
-      itemId,
-      momentId: null,
-    });
+    expect(await notes.removeById(`${userId}-other`, noteId)).toBeNull();
+    expect(await notes.removeById(userId, noteId)).toEqual({ itemId });
     expect(await notes.list(userId, 10)).toEqual([]);
   });
 });

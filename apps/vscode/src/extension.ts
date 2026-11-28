@@ -1,6 +1,5 @@
-import { type AgentStatus, type Chip, CHIPS } from "@interval/api-client";
+import type { AgentStatus } from "@interval/api-client";
 import * as vscode from "vscode";
-import { z } from "zod";
 import { DEVICE_TOKEN, fetchStatus, type StatusResult } from "./api";
 import { Poller } from "./poller";
 import { choices } from "./session";
@@ -16,13 +15,8 @@ import { type BarState, show } from "./view";
 const TOKEN_KEY = "interval.deviceToken";
 const SIGN_IN = "interval.signIn";
 const QUICK_SESSION = "interval.openQuickSession";
-const ChipSetting = z.enum(CHIPS);
 
-type Ready = {
-  readonly site: Site;
-  readonly token: string;
-  readonly chip: Chip | undefined;
-};
+type Ready = { readonly site: Site; readonly token: string };
 type Unready = Extract<BarState, { kind: "noSite" | "badSite" | "signedOut" }>;
 type Checked =
   { readonly ready: Ready; readonly result: StatusResult } | Unready;
@@ -59,12 +53,7 @@ export function activate(context: vscode.ExtensionContext): {
       return { kind: "badSite", reason: setting.reason };
     const token = await context.secrets.get(TOKEN_KEY);
     if (token === undefined) return { kind: "signedOut" };
-    const chip = ChipSetting.safeParse(config.get<string>("chip", ""));
-    return {
-      site: setting.site,
-      token,
-      chip: chip.success ? chip.data : undefined,
-    };
+    return { site: setting.site, token };
   };
 
   const poller = new Poller<Checked>(
@@ -74,12 +63,7 @@ export function activate(context: vscode.ExtensionContext): {
         if (!("token" in settings)) return settings;
         return {
           ready: settings,
-          result: await fetchStatus(
-            fetch,
-            settings.site,
-            settings.token,
-            settings.chip,
-          ),
+          result: await fetchStatus(fetch, settings.site, settings.token),
         };
       },
       resultOf: (checked) => ("result" in checked ? checked.result : null),
@@ -176,7 +160,7 @@ export function activate(context: vscode.ExtensionContext): {
         await explain(settings);
         return;
       }
-      await open(homeUrl(settings.site, settings.chip));
+      await open(homeUrl(settings.site));
     }),
   );
   render({ kind: "checking" });
@@ -188,12 +172,12 @@ export function activate(context: vscode.ExtensionContext): {
 async function offer(site: Site, status: AgentStatus): Promise<void> {
   const picks = choices(status, site);
   if (picks.length === 0) {
-    await open(homeUrl(site, status.chip));
+    await open(homeUrl(site));
     return;
   }
   const picked = await vscode.window.showQuickPick(picks, {
     title: "Interval: a quick session",
-    placeHolder: `For a ${status.chip.replace("-", "–")} min break`,
+    placeHolder: "Read while you wait",
   });
   if (picked !== undefined) await open(picked.url);
 }

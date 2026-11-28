@@ -17,7 +17,7 @@ from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.ports import AskPassage, AskRequest, AskResult, Message
 
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2  # 2: articles' passages are "i" ids, never moments' (ADR-0058)
 MAX_WORDS = 120  # ADR-0046
 # AI-1: no verbatim run longer than this from any source text...
 VERBATIM_MAX_WORDS = 25
@@ -30,7 +30,7 @@ INTERNAL_VERBATIM_MAX_WORDS = 7
 # PROVISIONAL (owner, 2026-11-26): kept at 0.5 until the Ask eval (AI-5) says otherwise.
 MIN_SCORE = 0.5
 MAX_PASSAGES = 8  # what the model reads, at most
-MAX_BODY_CHARS = 2000  # of a section's text: a cost guard, not a rights rule
+MAX_BODY_CHARS = 2000  # of an article's text: a cost guard, not a rights rule
 MAX_FOLLOW_UPS = 3  # ADR-0046: a thread is a question and up to 3 follow-ups
 DRILL_QUESTIONS = 3  # "Interview drill" answers with three practice questions
 ASK_RETENTION = timedelta(days=30)  # ADR-0046: then purged (prune-snapshots)
@@ -72,16 +72,17 @@ def relevant(passages: Sequence[AskPassage]) -> list[AskPassage]:
     return kept[:MAX_PASSAGES]
 
 
-def passage_body(p: AskPassage, section_text: str | None) -> str:
+def passage_body(p: AskPassage, article_text: str | None) -> str:
     """What the model may read of a passage (ING-2): metadata for every source; the
-    stored excerpt for excerpt sources; the section's text for full-text sources (read
-    in the worker only); an approved explainer's script (original content, AI-1)."""
+    stored excerpt for excerpt sources; the article's text, from its top, for
+    full-text sources (read in the worker only); an approved explainer's script
+    (original content, AI-1)."""
     if p.kind == "explainer":
         return p.script or ""
     if p.rights_profile == "excerpt":
         return p.excerpt or ""
     if p.rights_profile in ("full_text_internal", "full_text_display"):
-        return (section_text or "")[:MAX_BODY_CHARS]
+        return (article_text or "")[:MAX_BODY_CHARS]
     return ""
 
 
@@ -119,7 +120,7 @@ def prompt(
         rules.append(
             f"Instead of an answer, write exactly {DRILL_QUESTIONS} practice interview "
             "questions on the topic, one sentence each, ending with a question mark, "
-            "each citing an article passage (an id starting m or i) to read for it."
+            "each citing an article passage (an id starting i) to read for it."
         )
     parts = [_describe(p, bodies.get(p.passage, "")) for p in passages]
     for turn in request.thread[-MAX_FOLLOW_UPS:]:
@@ -196,7 +197,7 @@ def validate(
         ):
             return "a drill question that isn't one, or cites no article"
         sentences.append(sentence.strip())
-        # Stored with its citations, "[m12, c3]", so the page numbers each sentence's
+        # Stored with its citations, "[i12, c3]", so the page numbers each sentence's
         # sources (AI-3).
         marked.append(f"{sentence.strip()} [{', '.join(cast(list[str], ids))}]")
         cited.extend(cast(str, c) for c in ids if c not in cited)
@@ -221,8 +222,6 @@ def validate(
 def citation(p: AskPassage) -> dict[str, str]:
     """What a cited passage was, as ask_answer.citations stores it (ids as text)."""
     out = {"passage": p.passage}
-    if p.moment_id is not None:
-        out["moment_id"] = str(p.moment_id)
     if p.item_id is not None:
         out["item_id"] = str(p.item_id)
     if p.concept_id is not None:

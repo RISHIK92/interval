@@ -5,8 +5,9 @@ answered there.
 
 Run by hand (`rewrite-stems`). Each live question, multiple-choice or estimate,
 whose stem refers to its source gets a new stem from the question model, through the
-gateway on the global budget (ADR-0008, OPS-4), with its moment's text only where the
-source's rights allow it (ING-2, as drafting reads it). The new stem must stand alone
+gateway on the global budget (ADR-0008, OPS-4), with its article's text only where
+the source's rights allow it (ING-2, as validation reads it: the passage around its
+citation). The new stem must stand alone
 and not give the key away, and is validated blind again (Q-1); only when the
 validator agrees is it saved, with the options, key (or answer and unit) and citation
 kept. A rewritten stem no longer matches, so running again carries on with what is
@@ -26,7 +27,7 @@ from pydantic import BaseModel, ValidationError
 
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
-from interval_jobs.pipeline import moment_text
+from interval_jobs.pipeline import cited_passage
 from interval_jobs.ports import (
     EstimateDraft,
     Message,
@@ -46,7 +47,6 @@ from interval_jobs.questions import (
     refers_to_source,
     validation_prompt,
 )
-from interval_jobs.tagging import MOMENT_CHARS
 
 type Stores = Callable[[], AbstractContextManager[Store]]
 
@@ -99,7 +99,7 @@ class RewriteRun:
     disagreed: int  # the validator didn't pick the key: left as it was
     broken: int  # a reply that broke a rule (refers to its source, gives the key away)
     errors: int  # a model error: left for a later run
-    no_text: int  # its moment's rights or tags no longer allow its text (ING-2)
+    no_text: int  # its article's rights or tags no longer allow its text (ING-2)
     options_refer: int  # an option refers to its source: a new stem can't fix it
     changed: int  # its stem changed while it was being rewritten: left as it is now
     cooling_off: int  # tried within `retry_after`: not sent this run
@@ -113,7 +113,7 @@ def prompt(text: str, draft: QuestionDraft) -> list[Message]:
         {
             "role": "user",
             "content": (
-                f"<passage>\n{text[:MOMENT_CHARS]}\n</passage>\n\n"
+                f"<passage>\n{text}\n</passage>\n\n"
                 f"Stem: {draft.stem}\n{options}\nCorrect option: {draft.correct}"
             ),
         },
@@ -126,7 +126,7 @@ def estimate_prompt(text: str, draft: EstimateDraft) -> list[Message]:
         {
             "role": "user",
             "content": (
-                f"<passage>\n{text[:MOMENT_CHARS]}\n</passage>\n\n"
+                f"<passage>\n{text}\n</passage>\n\n"
                 f"Stem: {draft.stem}\nAnswer: {draft.answer:g} {draft.unit}"
             ),
         },
@@ -185,7 +185,9 @@ def rewrite_stems(
     for candidate in due[:limit]:
         question_id, draft = candidate.question_id, candidate.draft
         with stores() as store:
-            text = moment_text(store, store.questions.target(candidate.moment_id))
+            text = cited_passage(
+                store, store.questions.target(candidate.item_id), draft.citation
+            )
         if not text:
             no_text += 1
             _mark_tried(stores, question_id)

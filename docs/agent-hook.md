@@ -88,15 +88,13 @@ Run `interval start` when a task begins and `interval stop` when it ends.
 
 ```
 Agent: working for 2m 10s
-For a 3–8 min break:
-1. Why consensus · 2 min
-   https://your-interval-site/read/10?moment=1&chip=3-8&pos=1&via=agent
+Read while you wait:
+1. Why consensus · 6 min
+   https://your-interval-site/read/10?pos=1&via=agent
 ```
 
 - **The agent's state:** "working", "finished" for 10 minutes after it finishes, then
   "idle".
-- **Break length:** `--chip 1-3|3-8|8-15` picks one; otherwise it uses the one you chose
-  at onboarding.
 - **`--json`** prints the API's answer as it came.
 
 The VS Code extension and the desktop app read the same API, `GET /api/agent/status`,
@@ -120,8 +118,7 @@ quick session in your browser.
 - **Sign in:** set `interval.url` to your site (https; plain http only for localhost),
   then run **Interval: Sign in** and paste a device token from Profile → Agent hook.
   The token is kept in VS Code's secret storage; **Interval: Sign out** removes it.
-- **Settings:** `interval.url`, and `interval.chip` (`1-3`, `3-8` or `8-15`; empty uses
-  your onboarding choice).
+- **Settings:** `interval.url`.
 - **What it sends:** only `GET /api/agent/status` with the token, every 15 seconds while
   the window has focus (longer if Interval asks with a 429). It never reads your code,
   file names, workspace or terminal, and opens only links on your Interval site.

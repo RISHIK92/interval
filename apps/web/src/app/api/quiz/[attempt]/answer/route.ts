@@ -66,10 +66,9 @@ export async function POST(
         source === null || source.kind === "page"
           ? source
           : {
-              kind: "section",
+              kind: "article",
               itemId: source.itemId,
-              momentId: source.momentId,
-              sectionTitle: source.sectionTitle,
+              articleTitle: source.articleTitle,
             },
     };
   }

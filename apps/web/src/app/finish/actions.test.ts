@@ -1,16 +1,11 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { Actor, Progress } from "../../server/ports";
 
-// §5D, C-22, Q-P1-35, P1-W5-S02: finishing from the return prompt or Mark done.
+// §5D, C-22, Q-P1-35, P1-W5-S02: completing from the return prompt or Done (ADR-0058:
+// an article is the only reading unit).
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
-const finishMoment = vi.fn<Progress["finishMoment"]>(() =>
-  Promise.resolve(true),
-);
 const finishArticle = vi.fn<Progress["finishArticle"]>(() =>
   Promise.resolve(true),
-);
-const finishArticleIfComplete = vi.fn<Progress["finishArticleIfComplete"]>(() =>
-  Promise.resolve(false),
 );
 const dismissContinue = vi.fn<Progress["dismissContinue"]>(() =>
   Promise.resolve(),
@@ -20,13 +15,11 @@ const countExploreFinish = vi.fn<Progress["countExploreFinish"]>(() =>
 );
 const emit = vi.fn();
 const deleteCookie = vi.fn();
-let readingCookie = "5.9";
+let readingCookie = "5";
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   progress: () => ({
-    finishMoment,
     finishArticle,
-    finishArticleIfComplete,
     dismissContinue,
     countExploreFinish,
   }),
@@ -75,95 +68,65 @@ async function finish(fields: Record<string, string>) {
 }
 
 test.each(["return_prompt", "mark_done"] as const)(
-  "a section finished by %s is recorded once, then the next is offered",
+  "an article completed by %s is recorded once, then Home says so",
   async (method) => {
     await expect(
-      finish({
-        control: "finish",
-        itemId: "5",
-        momentId: "9",
-        method,
-        chip: "3-8",
-      }),
-    ).rejects.toThrow("redirect:/?chip=3-8&finished=5.9");
-    expect(finishMoment).toHaveBeenCalledExactlyOnceWith(
-      "g1",
-      "5",
-      "9",
-      method,
-    );
+      finish({ control: "finish", itemId: "5", method }),
+    ).rejects.toThrow(/^redirect:\/\?finished=5$/);
+    expect(finishArticle).toHaveBeenCalledExactlyOnceWith("g1", "5", method);
     expect(emit).toHaveBeenCalledExactlyOnceWith(
-      "section_finished",
-      { method, item_id: "5", moment_id: "9" },
+      "article_completed",
+      { method, item_id: "5" },
       context,
     );
     expect(deleteCookie).toHaveBeenCalledWith("iv_reading");
   },
 );
 
-test("a whole article is finished as an article", async () => {
-  await expect(
-    finish({
-      control: "finish",
-      itemId: "5",
-      method: "mark_done",
-      chip: "8-15",
-    }),
-  ).rejects.toThrow("redirect:/?chip=8-15&finished=5.");
-  expect(finishArticle).toHaveBeenCalledExactlyOnceWith("g1", "5", "mark_done");
-  expect(finishMoment).not.toHaveBeenCalled();
-  expect(emit).toHaveBeenCalledExactlyOnceWith(
-    "article_finished",
-    { method: "mark_done", item_id: "5" },
-    context,
-  );
-});
-
-test("a repeat records nothing new and counts nothing", async () => {
-  finishMoment.mockResolvedValueOnce(false);
+// A page from before ADR-0058 may still post its section and chip: both are ignored.
+test("an older form's section and chip are ignored", async () => {
   await expect(
     finish({
       control: "finish",
       itemId: "5",
       momentId: "9",
-      method: "return_prompt",
-      chip: "3-8",
+      chip: "8-15",
+      method: "mark_done",
     }),
+  ).rejects.toThrow(/^redirect:\/\?finished=5$/);
+  expect(finishArticle).toHaveBeenCalledExactlyOnceWith("g1", "5", "mark_done");
+});
+
+test("a repeat records nothing new and counts nothing", async () => {
+  finishArticle.mockResolvedValueOnce(false);
+  await expect(
+    finish({ control: "finish", itemId: "5", method: "mark_done" }),
   ).rejects.toThrow("redirect:");
   expect(emit).not.toHaveBeenCalled();
+  expect(countExploreFinish).not.toHaveBeenCalled();
+});
+
+test("a new completion counts toward the item's exploration arm", async () => {
+  await expect(
+    finish({ control: "finish", itemId: "5", method: "mark_done" }),
+  ).rejects.toThrow("redirect:");
+  expect(countExploreFinish).toHaveBeenCalledExactlyOnceWith("g1", "5");
 });
 
 test("dismiss clears the panel and records nothing", async () => {
   await expect(
-    finish({
-      control: "dismiss",
-      itemId: "5",
-      chip: "3-8",
-      method: "mark_done",
-    }),
-  ).rejects.toThrow(/^redirect:\/\?chip=3-8$/);
+    finish({ control: "dismiss", itemId: "5", method: "return_prompt" }),
+  ).rejects.toThrow(/^redirect:\/$/);
   expect(deleteCookie).toHaveBeenCalledWith("iv_reading");
-  expect(finishMoment).not.toHaveBeenCalled();
   expect(finishArticle).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
 });
 
 test.each([
-  [
-    "a bad method",
-    { control: "finish", itemId: "5", method: "guess", chip: "3-8" },
-  ],
-  [
-    "a bad item",
-    { control: "finish", itemId: "x", method: "mark_done", chip: "3-8" },
-  ],
-  [
-    "a bad chip",
-    { control: "finish", itemId: "5", method: "mark_done", chip: "9" },
-  ],
-])("%s is refused without a write", async (_name, fields) => {
+  ["a bad method", { control: "finish", itemId: "5", method: "guess" }],
+  ["a bad id", { control: "finish", itemId: "x", method: "mark_done" }],
+])("%s goes home and records nothing", async (_, fields) => {
   await expect(finish(fields)).rejects.toThrow(/^redirect:\/$/);
-  expect(finishMoment).not.toHaveBeenCalled();
   expect(finishArticle).not.toHaveBeenCalled();
 });
 
@@ -171,172 +134,73 @@ test("without a session the visitor is sent to /join", async () => {
   const { finishAction } = await import("./actions");
   current.mockResolvedValue(null);
   await expect(
-    finishAction(
-      form({
-        control: "finish",
-        itemId: "5",
-        method: "mark_done",
-        chip: "3-8",
-      }),
-    ),
+    finishAction(form({ control: "finish", itemId: "5", method: "mark_done" })),
   ).rejects.toThrow("redirect:/join");
-  expect(finishArticle).not.toHaveBeenCalled();
-});
-
-// P1-W5-S03 (Q-P1-35): the finish that completes an article finishes the article.
-test("the last section's finish also finishes the article, once", async () => {
-  finishArticleIfComplete.mockResolvedValueOnce(true);
-  await expect(
-    finish({
-      control: "finish",
-      itemId: "5",
-      momentId: "9",
-      method: "return_prompt",
-      chip: "3-8",
-    }),
-  ).rejects.toThrow("redirect:");
-  expect(finishArticleIfComplete).toHaveBeenCalledWith(
-    "g1",
-    "5",
-    "return_prompt",
-  );
-  expect(emit.mock.calls.map((c) => [c[0], c[1]] as const)).toEqual([
-    [
-      "section_finished",
-      { method: "return_prompt", item_id: "5", moment_id: "9" },
-    ],
-    ["article_finished", { method: "return_prompt", item_id: "5" }],
-  ]);
-});
-
-test("a repeated section finish doesn't look at the article", async () => {
-  finishMoment.mockResolvedValueOnce(false);
-  await expect(
-    finish({
-      control: "finish",
-      itemId: "5",
-      momentId: "9",
-      method: "mark_done",
-      chip: "3-8",
-    }),
-  ).rejects.toThrow("redirect:");
-  expect(finishArticleIfComplete).not.toHaveBeenCalled();
 });
 
 test("a continue card can be dismissed", async () => {
   const { continueAction } = await import("./actions");
   current.mockResolvedValue(user);
-  await expect(
-    continueAction(form({ itemId: "5", chip: "3-8" })),
-  ).rejects.toThrow(/^redirect:\/\?chip=3-8$/);
-  expect(dismissContinue).toHaveBeenCalledExactlyOnceWith("g1", "5");
-});
-
-test("a new finish counts toward the item's exploration arm; a repeat doesn't", async () => {
-  await expect(
-    finish({
-      control: "finish",
-      itemId: "5",
-      momentId: "9",
-      method: "mark_done",
-      chip: "3-8",
-    }),
-  ).rejects.toThrow("redirect:");
-  expect(countExploreFinish).toHaveBeenCalledExactlyOnceWith("g1", "5");
-  countExploreFinish.mockClear();
-  finishMoment.mockResolvedValueOnce(false);
-  await expect(
-    finish({
-      control: "finish",
-      itemId: "5",
-      momentId: "9",
-      method: "mark_done",
-      chip: "3-8",
-    }),
-  ).rejects.toThrow("redirect:");
-  expect(countExploreFinish).not.toHaveBeenCalled();
-});
-
-test("a whole article's new finish counts toward its arm; a repeat doesn't", async () => {
-  await expect(
-    finish({
-      control: "finish",
-      itemId: "5",
-      method: "mark_done",
-      chip: "8-15",
-    }),
-  ).rejects.toThrow("redirect:");
-  expect(countExploreFinish).toHaveBeenCalledExactlyOnceWith("g1", "5");
-  countExploreFinish.mockClear();
-  finishArticle.mockResolvedValueOnce(false);
-  await expect(
-    finish({
-      control: "finish",
-      itemId: "5",
-      method: "mark_done",
-      chip: "8-15",
-    }),
-  ).rejects.toThrow("redirect:");
-  expect(countExploreFinish).not.toHaveBeenCalled();
+  await expect(continueAction(form({ itemId: "5" }))).rejects.toThrow(
+    /^redirect:\/$/,
+  );
+  expect(dismissContinue).toHaveBeenCalledWith("g1", "5");
 });
 
 // The Library's prompt and a reader opened from it answer back to the Library (owner,
 // 2026-10-26); a path off this site is ignored.
 test("a finish or dismiss with back returns there, if it is on this site", async () => {
-  const base = { itemId: "5", momentId: "9", chip: "3-8" };
   await expect(
     finish({
-      ...base,
       control: "finish",
+      itemId: "5",
       method: "mark_done",
       back: "/library",
     }),
   ).rejects.toThrow(/^redirect:\/library$/);
   await expect(
     finish({
-      ...base,
       control: "dismiss",
+      itemId: "5",
       method: "return_prompt",
       back: "/library",
     }),
   ).rejects.toThrow(/^redirect:\/library$/);
   await expect(
     finish({
-      ...base,
       control: "finish",
+      itemId: "5",
       method: "mark_done",
       back: "https://evil.test/x",
     }),
-  ).rejects.toThrow("redirect:/?chip=3-8&finished=5.9");
+  ).rejects.toThrow("redirect:/?finished=5");
 });
 
 // Now reading is about what the feed opened (owner, 2026-10-26): a finish from the
-// Library leaves it unless it is the same article.
+// Library leaves it unless it is the same article. A cookie from before ADR-0058
+// ("item.moment") names its article.
 test("a Library finish keeps Now reading for another article", async () => {
-  readingCookie = "77.1";
+  readingCookie = "77";
   await expect(
     finish({
       control: "finish",
       itemId: "5",
-      momentId: "9",
       method: "mark_done",
-      chip: "3-8",
       back: "/library",
     }),
   ).rejects.toThrow("redirect:/library");
   expect(deleteCookie).not.toHaveBeenCalled();
-  readingCookie = "5.";
+  readingCookie = "5.9";
   await expect(
     finish({
       control: "dismiss",
       itemId: "5",
       method: "return_prompt",
-      chip: "3-8",
       back: "/library",
     }),
   ).rejects.toThrow("redirect:/library");
   expect(deleteCookie).toHaveBeenCalledWith("iv_reading");
-  readingCookie = "5.9";
+  readingCookie = "5";
 });
 
 // ADR-0029: guests play, and only play; this action is for accounts.

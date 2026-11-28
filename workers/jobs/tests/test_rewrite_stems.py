@@ -15,7 +15,7 @@ import pytest
 from interval_db.generated import AiProvider
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredQuestion
 from interval_jobs.ai.gateway import AiGateway
-from interval_jobs.pipeline import moment_text
+from interval_jobs.pipeline import cited_passage
 from interval_jobs.ports import (
     Completion,
     EstimateDraft,
@@ -132,12 +132,12 @@ def bank(key: str = "It") -> tuple[World, list[StoredQuestion]]:
     return world, live
 
 
-def live_estimate(world: World, moment_id: int) -> StoredQuestion:
-    """A live estimate on `moment_id`, its stem pointing at the passage."""
+def live_estimate(world: World, item_id: int) -> StoredQuestion:
+    """A live estimate on `item_id`, its stem pointing at the passage."""
     rows = world.store.questions.rows
     q = StoredQuestion(
         max(r.id for r in rows) + 1,
-        moment_id,
+        item_id,
         0,
         EstimateDraft(OLD_ESTIMATE, 40, "ms", "lag of 40 ms"),
         (),
@@ -363,21 +363,21 @@ def test_a_spent_budget_stops_the_run_cleanly_and_a_rerun_finishes() -> None:
 
 def test_only_the_text_the_rights_allow_is_sent() -> None:
     world, live = bank()
-    target = world.store.questions.target(live[0].moment_id)
-    text = moment_text(world.store, target)
+    target = world.store.questions.target(live[0].item_id)
+    text = cited_passage(world.store, target, live[0].draft.citation)
     assert text
     llm = RewriteLlm()
     rewrite(world.store, llm, limit=1)
-    # The moment's own text, as drafting reads it: not the whole item.
+    # The article's passage around the question's citation, as validation reads it.
     assert f"<passage>\n{text}\n</passage>" in llm.prompts[0][1]["content"]
     # A source whose rights no longer allow full text: nothing is sent (ING-2).
     world.store.sources.rows[world.source_id].rights_profile = "metadata_only"
     llm = RewriteLlm()
     got = rewrite(world.store, llm, retry_after=timedelta(0))
     assert (got.no_text, got.rewritten, llm.prompts) == (len(live) - 1, 0, [])
-    # Nor once its moments are switched off.
+    # Nor once the article has no live concept (not a target).
     world.store.sources.rows[world.source_id].rights_profile = "full_text_internal"
-    world.store.sources.set_moments_enabled(world.source_id, False)
+    world.store.tags.rows.clear()
     got = rewrite(world.store, llm, retry_after=timedelta(0))
     assert (got.no_text, llm.prompts) == (len(live) - 1, [])
 
@@ -398,7 +398,7 @@ def test_a_question_whose_option_refers_to_its_source_is_counted_not_sent() -> N
 
 def test_a_live_estimate_gets_a_stand_alone_stem_when_the_validator_agrees() -> None:
     world, live = bank()
-    estimate = live_estimate(world, live[0].moment_id)
+    estimate = live_estimate(world, live[0].item_id)
     llm = RewriteLlm()
     # Within the drafting rule's factor (ESTIMATE_AGREES) of the key.
     llm.estimate = 45
@@ -423,7 +423,7 @@ def test_a_live_estimate_gets_a_stand_alone_stem_when_the_validator_agrees() -> 
 
 def test_an_estimate_the_validator_puts_elsewhere_is_left_as_it_was() -> None:
     world, live = bank()
-    estimate = live_estimate(world, live[0].moment_id)
+    estimate = live_estimate(world, live[0].item_id)
     llm = RewriteLlm()
     llm.estimate = 60  # past the factor: the new stem may ask something else
     got = rewrite(world.store, llm)
@@ -434,7 +434,7 @@ def test_an_estimate_the_validator_puts_elsewhere_is_left_as_it_was() -> None:
 
 def test_an_estimate_rewrite_that_gives_the_answer_away_is_broken() -> None:
     world, live = bank()
-    estimate = live_estimate(world, live[0].moment_id)
+    estimate = live_estimate(world, live[0].item_id)
     llm = RewriteLlm()
     llm.estimate_stem = "A Raft follower lags its leader by 40 ms: how many ms?"
     got = rewrite(world.store, llm)

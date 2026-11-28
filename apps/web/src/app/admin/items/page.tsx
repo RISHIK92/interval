@@ -35,7 +35,6 @@ export default async function ReviewListPage() {
             <tr>
               <th>Item</th>
               <th>Source</th>
-              <th>Moments</th>
               <th>Reported</th>
             </tr>
           </thead>
@@ -51,7 +50,6 @@ export default async function ReviewListPage() {
                   </Link>
                 </td>
                 <td className="text-ink-muted">{item.sourceName}</td>
-                <td>{item.momentCount} moments</td>
                 <td className="text-sm">
                   {item.reports
                     .map((r) => `${REASON_NAMES[r.reason]} ×${String(r.count)}`)

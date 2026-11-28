@@ -4,7 +4,6 @@ import { CARD_CONTROLS } from "@interval/api-client";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { CHIPS } from "../../server/chips";
 import { applyControl } from "../../server/card-controls";
 import { events, feedback, sessionReader } from "../../server/container";
 import { type Actor, BIGINT_ID, REASON_KINDS } from "../../server/ports";
@@ -16,11 +15,11 @@ import { sameSitePath, textField } from "../form";
 const WRONG_REASON = "wrong_reason:";
 const Reason = z.enum(REASON_KINDS);
 
-// The card controls (§5C, Q-P1-15, ADR-0006 C-20, P1-W4-S07).
+// The card controls (§5C, Q-P1-15, ADR-0006 C-20, P1-W4-S07). ADR-0058: one feed, so
+// no chip rides along; an old form's chip is ignored.
 const Control = z.object({
   control: z.enum(CARD_CONTROLS),
   itemId: z.string().regex(BIGINT_ID),
-  chip: z.enum(CHIPS),
 });
 
 export async function feedbackAction(form: FormData): Promise<void> {
@@ -38,7 +37,7 @@ export async function feedbackAction(form: FormData): Promise<void> {
   }
   const parsed = Control.safeParse(raw);
   if (!parsed.success) redirect("/");
-  const { control, itemId, chip } = parsed.data;
+  const { control, itemId } = parsed.data;
   await applyControl(actor, itemId, control, {
     ...actor,
     sessionId: visitId(await cookies()),
@@ -47,9 +46,7 @@ export async function feedbackAction(form: FormData): Promise<void> {
   redirect(
     sameSitePath(
       textField(form, "back"),
-      control === "not_interested"
-        ? `/?chip=${chip}&undo=${itemId}`
-        : `/?chip=${chip}`,
+      control === "not_interested" ? `/?undo=${itemId}` : "/",
     ),
   );
 }
@@ -65,11 +62,10 @@ async function reportReason(
     .object({
       reason: Reason,
       itemId: z.string().regex(BIGINT_ID),
-      chip: z.enum(CHIPS),
     })
     .safeParse({ ...raw, reason: kind });
   if (!parsed.success) redirect("/");
-  const { reason, itemId, chip } = parsed.data;
+  const { reason, itemId } = parsed.data;
   if (await feedback().reportReason(actor.userId, itemId, reason)) {
     events().emit(
       "reason_reported",
@@ -77,5 +73,5 @@ async function reportReason(
       { ...actor, sessionId: visitId(await cookies()) },
     );
   }
-  redirect(`/?chip=${chip}`);
+  redirect("/");
 }

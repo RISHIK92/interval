@@ -8,7 +8,7 @@ import {
   type Asks,
   type Entitlements,
   type JobQueue,
-  type SessionMoment,
+  type SessionArticle,
 } from "./ports";
 
 // ADR-0046: Explore's rules that aren't SQL. Ask is asked here and answered by the
@@ -113,42 +113,33 @@ export async function submitAsk(
   return { status: "queued", id: asked.id };
 }
 
-// "Make it a 4-min session" (ADR-0046; owner, 2026-11-26): the cited moments in
-// concept-prerequisite order (a moment teaching a prerequisite of another's concept
-// comes first; otherwise citation order), cut to about SESSION_MINUTES, or the
-// shortest one alone when none fits. The page shows the real total.
-export const SESSION_MINUTES = 4;
+// An Ask answer's reading session (ADR-0046; owner, 2026-11-26): the cited articles in
+// concept-prerequisite order (one teaching a prerequisite of another's concept comes
+// first; otherwise citation order). ADR-0058 removed sizing reading to a break, so the
+// session is the top SESSION_ARTICLES of that order, not a cut to some minutes.
+export const SESSION_ARTICLES = 3;
 
 export function sessionPlan(
-  moments: readonly SessionMoment[],
+  articles: readonly SessionArticle[],
   prerequisites: readonly (readonly [string, string])[],
-): SessionMoment[] {
-  const before = (a: SessionMoment, b: SessionMoment) =>
+): SessionArticle[] {
+  const before = (a: SessionArticle, b: SessionArticle) =>
     a !== b &&
     prerequisites.some(
       ([from, to]) => a.conceptIds.includes(from) && b.conceptIds.includes(to),
     );
-  const ordered: SessionMoment[] = [];
-  const left = [...moments];
+  const ordered: SessionArticle[] = [];
+  const left = [...articles];
   while (left.length > 0) {
     // The first in citation order that nothing left must precede; in a cycle, the
     // first left.
     const next =
-      left.find((m) => !left.some((other) => before(other, m))) ?? left[0];
+      left.find((a) => !left.some((other) => before(other, a))) ?? left[0];
     if (next === undefined) break;
     ordered.push(next);
     left.splice(left.indexOf(next), 1);
   }
-  const cut: SessionMoment[] = [];
-  let total = 0;
-  for (const m of ordered) {
-    if (total + m.minutes > SESSION_MINUTES) break;
-    cut.push(m);
-    total += m.minutes;
-  }
-  if (cut.length > 0) return cut;
-  const shortest = [...moments].sort((a, b) => a.minutes - b.minutes)[0];
-  return shortest === undefined ? [] : [shortest];
+  return ordered.slice(0, SESSION_ARTICLES);
 }
 
 // Following a space is choosing its topic (PER-1): the same list onboarding and Profile

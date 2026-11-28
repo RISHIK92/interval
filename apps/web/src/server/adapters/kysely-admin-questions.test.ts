@@ -99,7 +99,7 @@ async function inRollback(
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-test("the queue lists undecided reviews with the question, its key and its section", async () => {
+test("the queue lists undecided reviews with the question, its key and its article", async () => {
   await inRollback(async (trx, { sampled, flagged }) => {
     const queue = await kyselyAdminQuestions(trx).open();
     const ours = queue.filter((q) => [sampled, flagged].includes(q.questionId));
@@ -110,8 +110,8 @@ test("the queue lists undecided reviews with the question, its key and its secti
       validatorAnswer: 0,
       citation: "Raft elects a leader.",
       articleTitle: "Consensus in practice",
-      sectionTitle: "Raft",
-      link: "https://aq.example.test/post#raft",
+      // ADR-0058: the article's own page, not the moment-era section's anchor.
+      link: "https://aq.example.test/post",
     });
   });
 });
@@ -265,7 +265,6 @@ test("an estimate in the queue shows its answer, unit and source; Keep and Retir
       unit: "writes per second",
       citation: "A single box takes about ten thousand writes per second.",
       articleTitle: "Postgres limits",
-      sectionTitle: null,
       link: "https://docs.example.test/limits",
       validatorAnswer: null, // hand-written: no model checked it
     });

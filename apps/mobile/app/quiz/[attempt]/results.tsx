@@ -95,13 +95,13 @@ export default function ResultsScreen() {
           <Text style={[styles.heading, { color: c.ink }]}>Read again</Text>
           {results.missed.map((m) => (
             <Pressable
-              key={`${m.itemId}.${m.momentId}`}
+              key={m.itemId}
               accessibilityRole="link"
               onPress={() => {
-                router.push(`/read/${m.itemId}?moment=${m.momentId}`);
+                router.push(`/read/${m.itemId}`);
               }}
             >
-              <Text style={{ color: c.ink }}>{m.sectionTitle}</Text>
+              <Text style={{ color: c.ink }}>{m.articleTitle}</Text>
             </Pressable>
           ))}
         </View>

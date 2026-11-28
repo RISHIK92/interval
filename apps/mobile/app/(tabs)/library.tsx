@@ -27,7 +27,7 @@ export default function LibraryScreen() {
         <Text style={{ color: c.ink }}>Couldn’t load your audio queue.</Text>
       ) : state.queue.length === 0 ? (
         <Text style={{ color: c["ink-muted"] }}>
-          Nothing queued. Listen in the reader adds a section’s AI explainers
+          Nothing queued. Listen in the reader adds an article’s AI explainers
           here.
         </Text>
       ) : (

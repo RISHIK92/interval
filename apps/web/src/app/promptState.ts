@@ -1,7 +1,8 @@
 // When the return prompt asks (§5D, Q-P1-32): after a card is opened and the reader
 // leaves for the publisher's tab, coming back asks once about that card. Pure, so the
 // rule is tested without a browser.
-export type Opened = { itemId: string; momentId: string | null };
+// ADR-0058: an article, the only thing a card opens.
+export type Opened = { itemId: string };
 
 export type PromptState = {
   open: Opened | null; // the card opened last, not yet asked about

@@ -17,7 +17,7 @@ from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.pipeline import ModelJob
-from interval_jobs.ports import FeedEntry, Fetched, FetchKind, MomentRow
+from interval_jobs.ports import FeedEntry
 from interval_jobs.rewrite_stems import RewriteRun
 
 from .test_pipeline import NoEmbeddings, TagLlm
@@ -95,7 +95,6 @@ SEEDS = """\
 - name: CLI Source
   feed_url: https://cli.example.test/feed
   rights_profile: full_text_internal
-  moments_enabled: true
 - name: CLI Newsletter
   rights_profile: metadata_only
 """
@@ -254,16 +253,11 @@ def test_the_eval_commands_print_a_report_and_fail_below_the_mark(
 ) -> None:
     from interval_jobs.ai.gateway import AiGateway
 
-    from .test_embedding_eval import QUERIES, URL, KeywordVoyage
+    from .test_embedding_eval import CRASH, INTRO, LOG, QUERIES, KeywordVoyage
     from .test_tagging import ScriptedLlm
 
-    item = _item_with_moments(store, URL)
-    answer: dict[str, object] = {
-        "item": {"difficulty": "beginner", "concepts": []},
-        "moments": [
-            {"ordinal": o, "difficulty": "beginner", "concepts": []} for o in (0, 1, 2)
-        ],
-    }
+    item = _articles(store, [LOG, CRASH, INTRO])[0]
+    answer: dict[str, object] = {"item": {"difficulty": "beginner", "concepts": []}}
 
     def fake_gateway(ledger: object, http: object) -> AiGateway:
         return AiGateway(InMemoryAi(store.users), ScriptedLlm(answer), KeywordVoyage())
@@ -289,10 +283,11 @@ def test_the_eval_commands_print_a_report_and_fail_below_the_mark(
         ]
     )
     report = json.loads(capsys.readouterr().out.splitlines()[-1])
-    assert report["mrr"] == 1.0 and report["cost_usd"] == "0.002"
+    # One vector per article (ADR-0058): three articles and the queries' call.
+    assert report["mrr"] == 1.0 and report["cost_usd"] == "0.004"
     labels = tmp_path / "labels.yaml"
     labels.write_text(
-        f'version: 1\nmoments:\n  - {{url: "{URL}", moment: null,'
+        f'version: 1\nmoments:\n  - {{url: "{LOG}", moment: null,'
         " difficulty: advanced, concepts: [a]}\n",
         encoding="utf-8",
     )
@@ -303,38 +298,30 @@ def test_the_eval_commands_print_a_report_and_fail_below_the_mark(
     assert store.tags.version(item) is None
 
 
-def _item_with_moments(store: InMemoryStore, url: str) -> int:
-    from interval_jobs.ports import FeedEntry, MomentRow
-
+def _articles(store: InMemoryStore, urls: list[str]) -> list[int]:
     sid = store.sources.upsert(
         name="eval",
         feed_url="https://e.test/f",
         rights_profile="full_text_internal",
         homepage=None,
     )
-    store.sources.set_moments_enabled(sid, True)
-    entry = FeedEntry(
-        guid="e",
-        link=url,
-        title="T",
-        author=None,
-        published_at=None,
-        updated_at=None,
-        summary=None,
-    )
-    item = store.items.upsert_from_feed(sid, entry, keep_excerpt=False)
-    store.items.store_full_text(
-        item, "intro text\nWhy a log\nthe log comes first\nRecovery\nafter a crash"
-    )
-    store.moments.replace(
-        item,
-        [
-            MomentRow(0, "T", 1, url, "page_top"),
-            MomentRow(1, "Why a log", 1, f"{url}#a", "anchor"),
-            MomentRow(2, "Recovery", 1, f"{url}#b", "anchor"),
-        ],
-    )
-    return item
+    items: list[int] = []
+    for url, text in zip(
+        urls, ("the log comes first", "after a crash", "intro text"), strict=True
+    ):
+        entry = FeedEntry(
+            guid=url,
+            link=url,
+            title="T",
+            author=None,
+            published_at=None,
+            updated_at=None,
+            summary=None,
+        )
+        item = store.items.upsert_from_feed(sid, entry, keep_excerpt=False)
+        store.items.store_full_text(item, text)
+        items.append(item)
+    return items
 
 
 def test_poll_due_queues_due_sources_once(
@@ -372,65 +359,6 @@ def test_the_commands_run_through_python_dash_m() -> None:
     )
     assert "NameError" not in result.stderr
     assert "QUEUE_TRANSPORT must be bullmq or sqs" in result.stderr
-
-
-def test_check_links_prints_a_report_per_source(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    memory = InMemoryStore()
-    source_id = memory.sources.upsert(
-        name="Blog",
-        feed_url="https://blog.example.test/feed.xml",
-        rights_profile="full_text_internal",
-        homepage=None,
-    )
-    memory.sources.set_moments_enabled(source_id, True)
-    item = memory.items.upsert_from_feed(
-        source_id,
-        FeedEntry(
-            guid="g",
-            link="https://blog.example.test/post",
-            title="Post",
-            author=None,
-            published_at=None,
-            updated_at=None,
-            summary=None,
-        ),
-        keep_excerpt=False,
-    )
-    memory.moments.replace(
-        item,
-        [MomentRow(0, "Post", 1, "https://blog.example.test/post", "page_top")],
-    )
-
-    class Fetcher:
-        def fetch(self, url: str, kind: FetchKind) -> Fetched:
-            return Fetched(url, b"<h1>Post</h1>", "utf-8")
-
-    @dataclass
-    class LinkServices:
-        store: InMemoryStore
-        fetcher: Fetcher
-
-    @contextmanager
-    def services() -> Generator[LinkServices]:
-        yield LinkServices(memory, Fetcher())
-
-    monkeypatch.setattr(cli, "services", services)
-    main(["check-links"])
-    report = json.loads(capsys.readouterr().out)
-    assert report["sources"] == [
-        {
-            "source_id": source_id,
-            "source_name": "Blog",
-            "passed": 1,
-            "failed": 0,
-            "unchecked": 0,
-            "pass_rate": 1.0,
-            "flagged": False,
-        }
-    ]
-    assert report["flagged"] == []
 
 
 def test_check_links_due_queues_every_item(

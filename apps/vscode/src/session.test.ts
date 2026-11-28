@@ -8,7 +8,7 @@ if (setting.kind !== "ok") throw new Error("the test site is refused");
 const site = setting.site;
 
 function status(suggestions: AgentStatus["suggestions"]): AgentStatus {
-  return { task: { state: "idle" }, chip: "3-8", suggestions };
+  return { task: { state: "idle" }, suggestions };
 }
 
 test("each suggestion shows its title and minutes", () => {

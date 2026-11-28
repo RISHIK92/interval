@@ -3,7 +3,6 @@ import {
   ListenQueued,
   ListenResponse,
 } from "@interval/api-client";
-import type { Chip } from "../../server/chips";
 
 // P4-W23-S01 (§5G, §4.1, Q-P4-12): the PWA's one player, shared by the mini-player,
 // the full player, the reader's Listen and Library's queue. One audio element outside
@@ -302,22 +301,9 @@ export function createPlayer(deps: PlayerDeps) {
     }
   }
 
-  async function enqueue(
-    itemId: string,
-    momentId: string | null,
-  ): Promise<boolean> {
-    return queueAndPlay({
-      itemId,
-      ...(momentId === null ? {} : { momentId }),
-    });
-  }
-
-  // ADR-0044: an "Also fits" card's one explainer.
-  async function enqueueExplainer(
-    explainerId: string,
-    alsoFits: { position: number; chip: Chip },
-  ): Promise<boolean> {
-    return queueAndPlay({ explainerId, alsoFits });
+  // ADR-0058: the article's explainers.
+  async function enqueue(itemId: string): Promise<boolean> {
+    return queueAndPlay({ itemId });
   }
 
   async function queueAndPlay(body: object): Promise<boolean> {
@@ -430,7 +416,6 @@ export function createPlayer(deps: PlayerDeps) {
     next,
     remove,
     enqueue,
-    enqueueExplainer,
     cycleSpeed,
     dismiss,
   };

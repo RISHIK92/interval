@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { FeedResponse, sentenceAt } from "./index";
+import { FeedResponse, ReaderResponse, sentenceAt } from "./index";
 
-// P4-W20-S01: a feed answer with a moment and an article card parses; anything off isn't.
+// P4-W20-S01, ADR-0058: a feed answer of article cards, each with its state, parses;
+// a section card or a time chip no longer does.
 const card = {
   itemId: "5",
   articleTitle: "Raft",
@@ -13,29 +14,43 @@ const card = {
   frameable: true,
   topic: "distributed-systems",
   difficulty: "intermediate",
+  estimatedMinutes: 12,
+  state: "continue_reading",
 };
 
-test("a feed with both kinds of card parses", () => {
+test("a feed of article cards parses", () => {
   const feed = {
-    chip: "3-8",
-    cards: [
-      {
-        ...card,
-        kind: "moment",
-        momentId: "9",
-        sectionTitle: "Leader election",
-        sectionNumber: 2,
-        sectionCount: 5,
-        estimatedMinutes: 6,
-      },
-      { ...card, kind: "article", estimatedMinutes: null },
-    ],
+    cards: [card, { ...card, estimatedMinutes: null, state: "unread" }],
   };
   expect(FeedResponse.parse(feed)).toEqual(feed);
-  expect(FeedResponse.safeParse({ ...feed, chip: "2-4" }).success).toBe(false);
   expect(
-    FeedResponse.safeParse({ ...feed, cards: [{ ...card, kind: "video" }] })
-      .success,
+    FeedResponse.safeParse({ cards: [{ ...card, state: "halfway" }] }).success,
+  ).toBe(false);
+  // A field the server no longer sends is dropped, never trusted.
+  expect(
+    FeedResponse.parse({ chip: "3-8", cards: [{ ...card, momentId: "9" }] }),
+  ).toEqual({ cards: [card] });
+});
+
+// ADR-0058: the app's reader shows an article, its state and its notes; it measures
+// the whole page to complete it, never a section.
+test("a reader answer is an article", () => {
+  const reader = {
+    url: "https://example.com/raft",
+    inApp: true,
+    title: "Raft",
+    domain: "example.com",
+    saved: false,
+    state: "unread",
+    note: null,
+    sectionNotes: [{ sectionTitle: "Leader election", body: "terms" }],
+    testable: true,
+    listen: false,
+    measure: { minutes: 12 },
+  };
+  expect(ReaderResponse.parse(reader)).toEqual(reader);
+  expect(
+    ReaderResponse.safeParse({ ...reader, measure: { minutes: 0 } }).success,
   ).toBe(false);
 });
 

@@ -279,7 +279,7 @@ test("the daily challenge card starts today's set, carries on, or shows today's 
   });
   const played = await page();
   expect(words(played)).toMatch(/Today: 430 points/);
-  expect(played).toMatch(/href="\/quiz\/71\/results\?chip=3-8"/);
+  expect(played).toMatch(/href="\/quiz\/71\/results"/);
   expect(played).toContain("8-day streak · a freeze held");
   expect(played).not.toContain("Start today&#x27;s challenge");
   dailyStatus.mockResolvedValueOnce({

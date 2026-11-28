@@ -45,7 +45,7 @@ const (
 	// All tries together: a hook runs before the agent goes on (Claude Code's
 	// UserPromptSubmit holds the prompt), so an unreachable Interval costs at most this.
 	sendDeadline = 3 * time.Second
-	usage        = "usage: interval start | stop [--for <agent>] | status [--chip 1-3|3-8|8-15] [--json] | hook install|uninstall --agent <agent> | login <token> | version"
+	usage        = "usage: interval start | stop [--for <agent>] | status [--json] | hook install|uninstall --agent <agent> | login <token> | version"
 )
 
 // Exit codes: 0, also when Interval can't be reached (a hook must never break its

@@ -54,17 +54,16 @@ test("a choice: right or wrong and the right option, from android", async () => 
   );
 });
 
-test("an estimate: the answer, its score and its source to read", async () => {
+test("an estimate: the answer, its score and its article to read", async () => {
   current.mockResolvedValue(account);
   answerEstimate.mockResolvedValue({ answer: 300, unit: "ms", score: 0.6 });
   answered.mockResolvedValue({
     kind: "estimate",
     flagged: false,
     source: {
-      kind: "section",
+      kind: "article",
       itemId: "5",
-      momentId: "9",
-      sectionTitle: "Timeouts",
+      articleTitle: "Timeouts",
       frameable: true,
     },
   } as QuizFeedback);
@@ -76,12 +75,7 @@ test("an estimate: the answer, its score and its source to read", async () => {
     answer: 300,
     unit: "ms",
     score: 0.6,
-    source: {
-      kind: "section",
-      itemId: "5",
-      momentId: "9",
-      sectionTitle: "Timeouts",
-    },
+    source: { kind: "article", itemId: "5", articleTitle: "Timeouts" },
   });
 });
 

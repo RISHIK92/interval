@@ -10,11 +10,11 @@ import {
   sessionReader,
   quizzes,
 } from "../../server/container";
-import type { Chip } from "../../server/chips";
 import { outHref, readHref } from "../../server/outbound";
 import type { HistoryItem, NoteEntry, SavedItem } from "../../server/ports";
 import { parseReading } from "../../server/reading";
 import { AudioQueue } from "../listen/AudioQueue";
+import { stateLabel } from "../articleState";
 import { NoteBox } from "../NoteBox";
 import { ReturnPrompt } from "../ReturnPrompt";
 import { TabBar } from "../TabBar";
@@ -29,58 +29,49 @@ export const dynamic = "force-dynamic";
 const LIMIT = 50;
 
 // The Library tab (§4.1, §5I, C-06, Q-P1-19, P1-W5-S05): what you saved and what you
-// finished (owner: finished, not opened). Everything, hidden sources included: it is
-// the reader's own record, not the feed.
-// The link follows the reader (owner, 2026-10-26): Continue reading at the first
-// unfinished section, Open article when none is done, Read again from the top when
-// finished. In Interval's reader when the page can be framed (ADR-0018), marked so
-// Back asks; else the browser. Unless the weekly check found the page gone
-// (P1-W6-S03): the item stays listed so the reader knows why it left the feed.
-function ReadLink(props: { item: SavedItem | HistoryItem; chip: Chip }) {
-  const { item, chip } = props;
-  const momentId =
-    !item.finished && item.finishedSections > 0
-      ? (item.nextMomentId ?? undefined)
-      : undefined;
-  const label = item.finished
-    ? "Read again"
-    : momentId === undefined
-      ? "Open article"
-      : "Continue reading";
+// read. Everything, hidden sources included: it is the reader's own record, not the
+// feed.
+// The link follows the article's state (ADR-0058): Open article when unread, Continue
+// reading when opened, Read again when completed; always the article's own page. In
+// Interval's reader when the page can be framed (ADR-0018), marked so Back asks; else
+// the browser. Unless the weekly check found the page gone (P1-W6-S03): the item stays
+// listed so the reader knows why it left the feed.
+function ReadLink(props: { item: SavedItem | HistoryItem }) {
+  const { item } = props;
+  const label =
+    item.state === "completed"
+      ? "Read again"
+      : item.state === "continue_reading"
+        ? "Continue reading"
+        : "Open article";
   return (
     <LibraryLink
       itemId={item.itemId}
-      momentId={momentId}
       label={label}
       name={`${label}: ${item.articleTitle}`}
       frameable={item.frameable}
       linkBroken={item.linkBroken}
-      chip={chip}
     />
   );
 }
 
-// A link out of the Library to a section (or the article) on the publisher's page:
-// the in-app reader when it can frame it, else the browser through /out.
+// A link out of the Library to the article on the publisher's page: the in-app reader
+// when it can frame it, else the browser through /out.
 function LibraryLink(props: {
   itemId: string;
-  momentId: string | undefined;
   label: string;
   name: string;
   frameable: boolean;
   linkBroken: boolean;
-  chip: Chip;
 }) {
-  const { itemId, momentId, label, name, chip } = props;
+  const { itemId, label, name } = props;
   if (props.linkBroken)
     return <p className="text-sm text-ink-muted">Link broken</p>;
-  const at = momentId === undefined ? {} : { momentId };
   const className = "text-sm font-semibold text-select";
   return props.frameable ? (
     <a
-      href={readHref({ itemId, ...at, chip, from: "library" })}
+      href={readHref({ itemId, from: "library" })}
       data-read-item={itemId}
-      data-read-moment={momentId}
       aria-label={name}
       className={className}
     >
@@ -88,14 +79,8 @@ function LibraryLink(props: {
     </a>
   ) : (
     <a
-      href={outHref({
-        itemId,
-        ...at,
-        from: "library",
-        target: momentId === undefined ? "original" : "section",
-      })}
+      href={outHref({ itemId, from: "library", target: "original" })}
       data-item={itemId}
-      data-moment={momentId}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={name}
@@ -186,47 +171,24 @@ function Row(props: {
   );
 }
 
-// How far: "Finished" or "n of m sections", and a bar unless it has one section, as on
-// Home (owner, 2026-10-26).
-function Reached(props: { item: SavedItem | HistoryItem }) {
-  const { finished, finishedSections, totalSections } = props.item;
-  const done = finished ? totalSections : finishedSections;
-  return (
-    <>
-      <p className={`text-sm ${finished ? "text-go-text" : "text-ink-muted"}`}>
-        {finished
-          ? "Finished"
-          : `${String(finishedSections)} of ${String(totalSections)} sections`}
-      </p>
-      {totalSections <= 1 ? null : (
-        <div aria-hidden="true" className="flex gap-1">
-          {Array.from({ length: totalSections }, (_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 flex-1 rounded-full ${i < done ? "bg-go" : "bg-track"}`}
-            />
-          ))}
-        </div>
-      )}
-    </>
-  );
+// ADR-0058: a completed article says so; Continue reading is its link's own words.
+function Completed(props: { item: SavedItem | HistoryItem }) {
+  return props.item.state === "completed" ? (
+    <p className="text-sm text-go-text">{stateLabel(props.item.state)}</p>
+  ) : null;
 }
 
-// A note goes back to its section on the publisher's page (§3.2), or to the article
-// when it is on the whole article or its section was re-segmented away; named by the
-// section, so notes on one article's sections read apart.
-function NoteLink(props: { note: NoteEntry; chip: Chip }) {
-  const { note, chip } = props;
-  const label = note.momentId === null ? "Open article" : "Open section";
+// A note goes back to its article on the publisher's page (§3.2); a note written on a
+// section before ADR-0058 is named by its section, so they read apart.
+function NoteLink(props: { note: NoteEntry }) {
+  const { note } = props;
   return (
     <LibraryLink
       itemId={note.itemId}
-      momentId={note.momentId ?? undefined}
-      label={label}
-      name={`${label}: ${note.sectionTitle ?? note.articleTitle}`}
+      label="Open article"
+      name={`Open article: ${note.sectionTitle ?? note.articleTitle}`}
       frameable={note.frameable}
       linkBroken={note.linkBroken}
-      chip={chip}
     />
   );
 }
@@ -284,15 +246,13 @@ export default async function LibraryPage({
   if (actor.isGuest) redirect("/sign-up");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  // The reader opens and finishes in the user's usual break length; nothing here
-  // counts toward a feed (owner, 2026-10-26).
-  const chip = chosen.breakLength;
   // Back from a reader opened here: ask about what it showed (ADR-0018).
   const params = await searchParams;
-  const ask = parseReading(
+  const askId = parseReading(
     typeof params["ask"] === "string" ? params["ask"] : undefined,
   );
-  const [saved, finished, written, due, listen] = await Promise.all([
+  const ask = askId === null ? null : { itemId: askId };
+  const [saved, read, written, due, listen] = await Promise.all([
     library().saves(actor.userId, LIMIT),
     library().history(actor.userId, LIMIT),
     notes().list(actor.userId, LIMIT),
@@ -363,7 +323,6 @@ export default async function LibraryPage({
                 ))}
               </ul>
               <form action={startReviewAction}>
-                <input type="hidden" name="chip" value={chip} />
                 <Button type="submit" className="lg:h-[50px] lg:w-full">
                   Start review
                 </Button>
@@ -446,11 +405,9 @@ export default async function LibraryPage({
                   source={item.sourceName}
                   mark="saved"
                 >
-                  {item.finished || item.finishedSections > 0 ? (
-                    <Reached item={item} />
-                  ) : null}
+                  <Completed item={item} />
                   <div className="flex items-center justify-between gap-3">
-                    <ReadLink item={item} chip={chip} />
+                    <ReadLink item={item} />
                     <form action={libraryUnsaveAction}>
                       <input type="hidden" name="itemId" value={item.itemId} />
                       <Button
@@ -471,7 +428,7 @@ export default async function LibraryPage({
       </section>
 
       {/* P2-W7-S04 (§5I, Q-P2-01): your notes, newest edit first; each edited by its
-        own id, so one whose section was re-segmented away is still yours to edit. */}
+        own id, so a note written on a section before ADR-0058 is still yours to edit. */}
       <section className="lg:order-6 lg:col-span-2" aria-label="Notes">
         <h2 className="mb-3 text-section lg:text-[17px]">Notes</h2>
         <Card className={LIST_CARD}>
@@ -493,7 +450,7 @@ export default async function LibraryPage({
                     {note.sectionTitle ?? "Whole article"}
                   </p>
                   <p className="whitespace-pre-line">{note.body}</p>
-                  <NoteLink note={note} chip={chip} />
+                  <NoteLink note={note} />
                   <NoteBox
                     on={{ noteId: note.noteId }}
                     about={note.sectionTitle ?? note.articleTitle}
@@ -507,31 +464,31 @@ export default async function LibraryPage({
         </Card>
       </section>
 
-      {/* "History", not "Finished" (owner, 2026-10-26): it lists what you've read,
-        part or whole. */}
+      {/* "History", not "Finished" (owner, 2026-10-26): it lists what you've opened
+        or completed (ADR-0058). */}
       <section aria-label="History" className="lg:order-7 lg:col-span-2">
         <h2 className="mb-3 text-section lg:text-[17px]">History</h2>
         <Card className={LIST_CARD}>
-          {finished.length === 0 ? (
+          {read.length === 0 ? (
             <p className="px-5 py-4 text-ink-muted">Nothing here yet.</p>
           ) : (
             <ul className="divide-y divide-hairline">
-              {finished.map((item) => (
+              {read.map((item) => (
                 <Row
                   key={item.itemId}
                   title={item.articleTitle}
                   source={item.sourceName}
                   mark="read"
                 >
-                  <Reached item={item} />
-                  <ReadLink item={item} chip={chip} />
+                  <Completed item={item} />
+                  <ReadLink item={item} />
                 </Row>
               ))}
             </ul>
           )}
         </Card>
       </section>
-      <ReturnPrompt chip={chip} initialAsk={ask} back="/library">
+      <ReturnPrompt initialAsk={ask} back="/library">
         {null}
       </ReturnPrompt>
     </main>

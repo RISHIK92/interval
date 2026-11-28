@@ -37,9 +37,7 @@ const daily = {
   title: "Today's challenge",
   answered: 5,
   correct: 3,
-  missed: [
-    { itemId: "5", momentId: "9", sectionTitle: "Timeouts", frameable: true },
-  ],
+  missed: [{ itemId: "5", articleTitle: "Timeouts", frameable: true }],
 } as unknown as QuizAttempt;
 afterEach(() => {
   vi.clearAllMocks();
@@ -55,7 +53,7 @@ const post = async (headers: Record<string, string> = APP) => {
   );
 };
 
-test("the daily's results: points, its share and streak, sections to read again", async () => {
+test("the daily's results: points, its share and streak, articles to read again", async () => {
   current.mockResolvedValue(account);
   finishAttempt.mockResolvedValue({ firstTime: true });
   attempt.mockResolvedValue(daily);
@@ -69,7 +67,7 @@ test("the daily's results: points, its share and streak, sections to read again"
       shareId: "0b6f1c2e-0000-4000-8000-000000000001",
       streak: { days: 4, freezes: 0 },
     },
-    missed: [{ itemId: "5", momentId: "9", sectionTitle: "Timeouts" }],
+    missed: [{ itemId: "5", articleTitle: "Timeouts" }],
   });
   expect(finishAttempt).toHaveBeenCalledWith(
     expect.objectContaining({ source: "ios" }),

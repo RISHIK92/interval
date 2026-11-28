@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { GOALS, type PreferencesStore, TOPICS } from "../ports";
+import { FEED_CHIP, GOALS, type PreferencesStore, TOPICS } from "../ports";
 
 // Postgres adapter (ADR-0012) for the explicit preferences (PER-1, P1-W4-S01).
 export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
@@ -15,7 +15,6 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
           sql<string[]>`topics::text[]`.as("topics"),
           sql<string[]>`goals::text[]`.as("goals"),
           "level",
-          "break_length",
           "onboarded_at",
           "app_user.name",
           "app_user.is_anonymous",
@@ -29,7 +28,6 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
         goals,
         topics,
         level: row.level,
-        breakLength: row.break_length,
         onboardedAt: row.onboarded_at,
         // A guest is named "Anonymous" by Better Auth: no name to greet.
         firstName: row.is_anonymous
@@ -45,7 +43,6 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
           goals: preferences.goals,
           topics: preferences.topics,
           level: preferences.level,
-          break_length: preferences.breakLength,
           updated_at: sql<Date>`now()`,
         })
         .where("user_id", "=", userId)
@@ -62,7 +59,8 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
           goals: preferences.goals,
           topics: preferences.topics,
           level: preferences.level,
-          break_length: preferences.breakLength,
+          // ADR-0058: one list until stage C drops the chip column; nothing reads it.
+          break_length: FEED_CHIP,
         })
         .onConflict((oc) => oc.column("user_id").doNothing())
         .returning("user_id")

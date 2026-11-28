@@ -33,19 +33,21 @@ const put = async (body: unknown, headers: Record<string, string> = APP) => {
   );
 };
 
-test("a note is written, trimmed, on the section or the article", async () => {
+// ADR-0058: notes are per article; an app from before it may still send a section,
+// which is ignored.
+test("a note is written, trimmed, on the article", async () => {
   current.mockResolvedValue(account);
   const on = { itemId: "5", momentId: "9", body: "  Leader leases.  " };
   expect((await put(on)).status).toBe(204);
   expect(writeNote).toHaveBeenCalledWith(
     expect.objectContaining({ userId: "u1", source: "ios" }),
-    { itemId: "5", momentId: "9" },
+    { itemId: "5" },
     "Leader leases.",
   );
   expect((await put({ itemId: "5", body: "" })).status).toBe(204);
   expect(writeNote).toHaveBeenLastCalledWith(
     expect.anything(),
-    { itemId: "5", momentId: null },
+    { itemId: "5" },
     "",
   );
 });

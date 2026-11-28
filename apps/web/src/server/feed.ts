@@ -1,4 +1,3 @@
-import type { Chip } from "./chips";
 import { log } from "./log";
 import type { FeedCard, FeedReader, Preferences } from "./ports";
 
@@ -22,7 +21,6 @@ export async function loadFeed(
   },
   userId: string,
   preferences: Preferences & { onboardedAt: Date },
-  chip: Chip,
   limit: number,
 ): Promise<{ cards: FeedCard[] }> {
   const sleep = deps.sleep ?? pause;
@@ -37,12 +35,12 @@ export async function loadFeed(
   };
   const newGuest =
     started.getTime() - preferences.onboardedAt.getTime() < NEW_GUEST_MS;
-  let read = await deps.feed.read(userId, chip, limit);
+  let read = await deps.feed.read(userId, limit);
   let waited = 0;
   while (newGuest && !read.computed && waited < FIRST_VISIT_WAIT_MS) {
     await sleep(POLL_MS);
     waited += POLL_MS;
-    read = await deps.feed.read(userId, chip, limit);
+    read = await deps.feed.read(userId, limit);
   }
   if (read.computed) {
     served("user");
@@ -52,7 +50,7 @@ export async function loadFeed(
   const cards =
     topic === undefined
       ? []
-      : await deps.feed.starter(userId, topic, preferences.level, chip, limit);
+      : await deps.feed.starter(userId, topic, preferences.level, limit);
   served(topic === undefined ? "empty" : "starter");
   return { cards };
 }

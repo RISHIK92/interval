@@ -41,56 +41,31 @@ async function open(query: string) {
   return GET(new Request(`http://localhost:3100/out?${query}`));
 }
 
-describe("each link type lands where it points, attributed", () => {
+// ADR-0058: every link is the article's own page. A section, chip or the old
+// "section" target from a page or app built before it is ignored.
+const ARTICLE = { url: "https://pub.test/post", linkType: "article" } as const;
+
+describe("the article's page, attributed", () => {
   test.each([
-    [
-      "anchor",
-      "https://pub.test/post#raft",
-      "https://pub.test/post?utm_source=interval#raft",
-    ],
-    [
-      "text_fragment",
-      "https://pub.test/post#:~:text=Raft%20in%20practice",
-      "https://pub.test/post?utm_source=interval#:~:text=Raft%20in%20practice",
-    ],
-    [
-      "page_top",
-      "https://pub.test/post",
-      "https://pub.test/post?utm_source=interval",
-    ],
-    [
-      "article",
-      "https://pub.test/post?ref=feed",
-      "https://pub.test/post?ref=feed&utm_source=interval",
-    ],
+    ["https://pub.test/post", "https://pub.test/post?utm_source=interval"],
     // The publisher's own query is kept byte for byte: re-encoding could change it.
     [
-      "article",
       "https://pub.test/post?q=a%20b&flag&x=a/b",
       "https://pub.test/post?q=a%20b&flag&x=a/b&utm_source=interval",
     ],
-  ] as const)("%s", async (linkType, stored, expected) => {
+  ])("%s", async (stored, expected) => {
     current.mockResolvedValue(user);
-    resolve.mockResolvedValue({ url: stored, linkType });
-    const moment = linkType === "article" ? "" : "&moment=9";
-    const response = await open(
-      `item=5${moment}&chip=3-8&pos=4&target=section`,
-    );
+    resolve.mockResolvedValue({ url: stored, linkType: "article" });
+    const response = await open("item=5&pos=4&target=article");
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(expected);
-    expect(resolve).toHaveBeenCalledWith(
-      "5",
-      linkType === "article" ? null : "9",
-    );
+    expect(resolve).toHaveBeenCalledWith("5");
     expect(emit).toHaveBeenCalledWith(
       "card_opened",
       {
-        kind: linkType === "article" ? "article" : "moment",
-        chip: "3-8",
         position: 4,
-        // The ids match an open to its finish (P1-W6-S04).
+        // The id matches an open to its completion (P1-W6-S04).
         item_id: "5",
-        moment_id: linkType === "article" ? null : "9",
         surface: "browser", // ADR-0018: /out opens the publisher's page in the browser
         via: "feed",
       },
@@ -98,51 +73,48 @@ describe("each link type lands where it points, attributed", () => {
     );
     expect(emit).toHaveBeenCalledWith(
       "outbound_click",
-      { link_type: linkType, target: "section" },
+      { target: "article" },
       context,
     );
   });
 });
 
-test("Open original website goes to the page itself, not the section", async () => {
+test("an older link's section, chip and section target are ignored", async () => {
   current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  const response = await open("item=5&moment=9&chip=3-8&pos=1&target=original");
-  expect(resolve).toHaveBeenCalledWith("5", null);
+  resolve.mockResolvedValue(ARTICLE);
+  const response = await open(
+    "item=5&moment=abc&chip=2-4&pos=1&target=section",
+  );
   expect(response.headers.get("location")).toBe(
     "https://pub.test/post?utm_source=interval",
   );
-  expect(emit).toHaveBeenCalledWith(
-    "card_opened",
-    // Landed on the article, so it's matched to the article's finish (owner).
-    {
-      kind: "moment",
-      chip: "3-8",
-      position: 1,
-      item_id: "5",
-      moment_id: null,
-      surface: "browser",
-      via: "feed",
-    },
-    context,
-  );
+  expect(resolve).toHaveBeenCalledWith("5");
   expect(emit).toHaveBeenCalledWith(
     "outbound_click",
-    { link_type: "article", target: "original" },
+    { target: "article" },
+    context,
+  );
+});
+
+test("Open original website is counted as such", async () => {
+  current.mockResolvedValue(user);
+  resolve.mockResolvedValue(ARTICLE);
+  await open("item=5&pos=1&target=original");
+  expect(emit).toHaveBeenCalledWith(
+    "outbound_click",
+    { target: "original" },
     context,
   );
 });
 
 test.each([
-  ["a bad item id", "item=5x&chip=3-8&pos=1&target=section"],
-  ["a bad moment id", "item=5&moment=abc&chip=3-8&pos=1&target=section"],
-  ["a bad chip", "item=5&chip=2-4&pos=1&target=section"],
-  ["a bad target", "item=5&chip=3-8&pos=1&target=elsewhere"],
-  ["a position of 0", "item=5&chip=3-8&pos=0&target=section"],
-  ["a position past 200", "item=5&chip=3-8&pos=201&target=section"],
+  ["a bad item id", "item=5x&pos=1&target=article"],
+  ["a bad target", "item=5&pos=1&target=elsewhere"],
+  ["a position of 0", "item=5&pos=0&target=article"],
+  ["a position past 200", "item=5&pos=201&target=article"],
+  ["from with a position", "item=5&from=continue&pos=1&target=article"],
+  ["no from and no position", "item=5&target=original"],
+  ["a forged via", "item=5&pos=2&via=vscode&target=article"],
 ])("%s goes home without a lookup or events", async (_name, query) => {
   current.mockResolvedValue(user);
   const response = await open(query);
@@ -156,19 +128,16 @@ test.each([
 test("an unknown item goes home with no events", async () => {
   current.mockResolvedValue(user);
   resolve.mockResolvedValue(null);
-  const response = await open("item=5&chip=3-8&pos=1&target=section");
+  const response = await open("item=5&pos=1&target=article");
   expect(response.headers.get("location")).toBe("/");
   expect(emit).not.toHaveBeenCalled();
 });
 
 test("a URL in the query is never followed: only the stored one is", async () => {
   current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
+  resolve.mockResolvedValue(ARTICLE);
   const response = await open(
-    "item=5&chip=3-8&pos=1&target=original&url=https://evil.test&to=https://evil.test",
+    "item=5&pos=1&target=original&url=https://evil.test&to=https://evil.test",
   );
   expect(response.headers.get("location")).toBe(
     "https://pub.test/post?utm_source=interval",
@@ -181,7 +150,7 @@ test.each(["javascript:alert(1)", "data:text/html,hi", "/relative/path"])(
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     current.mockResolvedValue(user);
     resolve.mockResolvedValue({ url: stored, linkType: "article" });
-    const response = await open("item=5&chip=3-8&pos=1&target=original");
+    const response = await open("item=5&pos=1&target=original");
     expect(response.headers.get("location")).toBe("/");
     expect(emit).not.toHaveBeenCalled();
   },
@@ -189,320 +158,101 @@ test.each(["javascript:alert(1)", "data:text/html,hi", "/relative/path"])(
 
 test("without a session the reader still reaches the publisher, unrecorded", async () => {
   current.mockResolvedValue(null);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  const response = await open("item=5&chip=3-8&pos=1&target=original");
+  resolve.mockResolvedValue(ARTICLE);
+  const response = await open("item=5&pos=1&target=original");
   expect(response.headers.get("location")).toBe(
     "https://pub.test/post?utm_source=interval",
   );
   expect(emit).not.toHaveBeenCalled();
+  expect(setCookie).not.toHaveBeenCalled();
+  expect(recordOpen).not.toHaveBeenCalled();
 });
 
-// P1-W5-S02: the feed's "Now reading" panel knows what was opened.
+// P1-W5-S02: the feed's "Now reading" panel knows what was opened: the article.
 test("an open is remembered for the session's Now reading panel", async () => {
   current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
+  resolve.mockResolvedValue(ARTICLE);
+  await open("item=5&moment=9&pos=1&target=article");
   const [name, value, options] = setCookie.mock.calls[0] as [
     string,
     string,
     Record<string, unknown>,
   ];
-  expect([name, value]).toEqual(["iv_reading", "5.9"]);
+  expect([name, value]).toEqual(["iv_reading", "5"]);
   expect(options).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/" });
   expect(options["maxAge"]).toBeUndefined();
-  setCookie.mockClear();
-  await open("item=5&chip=3-8&pos=1&target=original");
-  expect(setCookie.mock.calls[0]?.[1]).toBe("5.");
 });
 
-test("without a session nothing is remembered", async () => {
-  current.mockResolvedValue(null);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  await open("item=5&chip=3-8&pos=1&target=original");
-  expect(setCookie).not.toHaveBeenCalled();
-});
-
-test("an open that fell back to the article page is remembered as the article", async () => {
+// ADR-0058: any open makes the article Continue reading; only a feed card's counts
+// toward its exploration arm (P1-W5-S03).
+test("a feed card's open is recorded and counted for exploration", async () => {
   current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
-  expect(setCookie.mock.calls[0]?.[1]).toBe("5.");
+  resolve.mockResolvedValue(ARTICLE);
+  await open("item=5&pos=1&target=article");
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5");
+  expect(countExploreOpen).toHaveBeenCalledExactlyOnceWith("g1", "5");
 });
 
-// Owner, 2026-10-26: Continue after a finish counts as continue_clicked, not a card.
+// Owner, 2026-10-26: Continue counts as continue_clicked, not a card.
 test("a Continue link counts as continue_clicked, not as a feed card", async () => {
   current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  const response = await open(
-    "item=5&moment=9&chip=3-8&from=continue&target=section",
-  );
-  expect(response.headers.get("location")).toBe(
-    "https://pub.test/post?utm_source=interval#raft",
-  );
+  resolve.mockResolvedValue(ARTICLE);
+  await open("item=5&from=continue&target=article");
   expect(emit).toHaveBeenCalledWith("continue_clicked", {}, context);
-  expect(emit).toHaveBeenCalledWith(
-    "outbound_click",
-    { link_type: "anchor", target: "section" },
-    context,
-  );
   expect(emit.mock.calls.map((c) => c[0] as string)).not.toContain(
     "card_opened",
   );
-});
-
-// P1-W5-S03: an open section counts for continue cards (owner, 2026-10-26).
-test("an opened section is recorded; a whole article or fallback is not", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
-  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
-  recordOpen.mockClear();
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
-  await open("item=5&moment=9&chip=3-8&pos=1&target=original");
-  expect(recordOpen).not.toHaveBeenCalled();
-});
-
-// P1-W5-S03: a feed card's open counts toward its exploration arm, if it had one.
-test("a feed card's open is counted for exploration; a Continue open is not", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
-  expect(countExploreOpen).toHaveBeenCalledExactlyOnceWith(
-    "g1",
-    "3-8",
-    "5",
-    "9",
-  );
-  countExploreOpen.mockClear();
-  await open("item=5&moment=9&chip=3-8&from=continue&target=section");
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5");
   expect(countExploreOpen).not.toHaveBeenCalled();
+  expect(setCookie).toHaveBeenCalled();
 });
 
-test("an article card's open is counted for its whole-article entry", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  await open("item=5&chip=8-15&pos=2&target=original");
-  expect(countExploreOpen).toHaveBeenCalledExactlyOnceWith(
-    "g1",
-    "8-15",
-    "5",
-    null,
-  );
-});
-
-// P1-W5-S05 (owner): a Library open is attributed and counts as an outbound click only.
-test("a Library open records outbound_click only, and needs no chip", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  const response = await open("item=5&from=library&target=original");
-  expect(response.headers.get("location")).toBe(
-    "https://pub.test/post?utm_source=interval",
-  );
-  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
-    "outbound_click",
-  ]);
-  expect(countExploreOpen).not.toHaveBeenCalled();
-});
-
-test("a continue open needs no chip; a feed card without one goes home", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  const cont = await open("item=5&moment=9&from=continue&target=section");
-  expect(cont.headers.get("location")).toBe(
-    "https://pub.test/post?utm_source=interval#raft",
-  );
-  emit.mockClear();
-  const card = await open("item=5&moment=9&pos=1&target=section");
-  expect(card.headers.get("location")).toBe("/");
-  expect(emit).not.toHaveBeenCalled();
-});
-
-test.each([
-  [
-    "from with a position",
-    "item=5&moment=9&from=continue&pos=1&target=section",
-  ],
-  [
-    "a Library open with chip and position",
-    "item=5&from=library&chip=3-8&pos=1&target=original",
-  ],
-  ["no from, no chip, no position", "item=5&target=original"],
-  ["a chip with no position and no from", "item=5&chip=3-8&target=original"],
-])("%s goes home without a lookup", async (_name, query) => {
-  current.mockResolvedValue(user);
-  const response = await open(query);
-  expect(response.headers.get("location")).toBe("/");
-  expect(resolve).not.toHaveBeenCalled();
-});
-
-// Owner, 2026-10-26: Now reading is about what the feed sent you to.
-test("a Library open doesn't feed the Now reading panel", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post",
-    linkType: "article",
-  });
-  await open("item=5&from=library&target=original");
-  expect(setCookie).not.toHaveBeenCalled();
-});
-
-// ADR-0018: Open in browser after moving inside the in-app reader (Next section).
-test("a reader link records the section and the outbound click only", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  const response = await open(
-    "item=5&moment=9&chip=3-8&from=reader&target=section",
-  );
-  expect(response.headers.get("location")).toBe(
-    "https://pub.test/post?utm_source=interval#raft",
-  );
-  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
-  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
-    "outbound_click",
-  ]);
-  expect(countExploreOpen).not.toHaveBeenCalled();
-});
-
-// The Library's Continue reading names the next section (owner, 2026-10-26): still an
-// outbound click only, and the section counts as reached.
-test("a Library open of a section goes to it and records the outbound click only", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  const response = await open("item=5&moment=9&from=library&target=section");
-  expect(response.headers.get("location")).toBe(
-    "https://pub.test/post?utm_source=interval#raft",
-  );
-  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
-    "outbound_click",
-  ]);
-  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
-  expect(setCookie).not.toHaveBeenCalled();
-});
-
-// P2-W10-S03: a path's reading the reader can't frame opens through /out as a Library
-// one does: the outbound click only, no Now reading cookie.
-test("a path open of a section records the outbound click only", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  const response = await open("item=5&moment=9&from=path&target=section");
-  expect(response.headers.get("location")).toBe(
-    "https://pub.test/post?utm_source=interval#raft",
-  );
-  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
-    "outbound_click",
-  ]);
-  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
-  expect(setCookie).not.toHaveBeenCalled();
-});
+// P1-W5-S05, P2-W10-S03, ADR-0046 (owner): Library, path and Explore opens are an
+// outbound click only, still recorded as opened, without the Now reading cookie; a
+// move inside the reader (ADR-0018) keeps the cookie.
+test.each(["library", "path", "explore", "reader"] as const)(
+  "a %s open records the outbound click only",
+  async (from) => {
+    current.mockResolvedValue(user);
+    resolve.mockResolvedValue(ARTICLE);
+    const response = await open(`item=5&from=${from}&target=article`);
+    expect(response.headers.get("location")).toBe(
+      "https://pub.test/post?utm_source=interval",
+    );
+    expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
+      "outbound_click",
+    ]);
+    expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5");
+    expect(countExploreOpen).not.toHaveBeenCalled();
+    expect(setCookie.mock.calls.length).toBe(from === "reader" ? 1 : 0);
+  },
+);
 
 // ADR-0029: a guest (from a sprint's Read again) reaches the publisher, and only the
 // outbound click is recorded: no reading progress, no Now reading panel.
 test("a guest's open records the outbound click only", async () => {
   current.mockResolvedValue(guest);
-  resolve.mockResolvedValue({
-    url: "https://example.test/post#raft",
-    linkType: "anchor",
-  });
-  const response = await open("item=5&moment=9&from=reader&target=section");
-  expect(response.headers.get("location")).toContain("example.test/post");
+  resolve.mockResolvedValue(ARTICLE);
+  const response = await open("item=5&from=reader&target=article");
+  expect(response.headers.get("location")).toContain("pub.test/post");
   expect(recordOpen).not.toHaveBeenCalled();
   expect(setCookie).not.toHaveBeenCalled();
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "outbound_click",
-    { link_type: "anchor", target: "section" },
+    { target: "article" },
     { ...guest, sessionId: "visit-1" },
   );
 });
 
-// ADR-0046: a search result, the gap card or a cited source on Explore opens as a
-// Library one does: the section counts as reached, the outbound click only, and no Now
-// reading cookie (Explore isn't the feed).
-test("an Explore open of a section records the outbound click only", async () => {
-  current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/post#raft",
-    linkType: "anchor",
-  });
-  const response = await open("item=5&moment=9&from=explore&target=section");
-  expect(response.headers.get("location")).toBe(
-    "https://pub.test/post?utm_source=interval#raft",
-  );
-  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
-    "outbound_click",
-  ]);
-  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
-  expect(setCookie).not.toHaveBeenCalled();
-});
-
 // P7-W46 (owner, 2026-11-27): a suggestion a companion surface showed is counted as an
-// open offered there; anything else in `via` is no card at all.
+// open offered there.
 test("a companion's suggestion is an open via the agent", async () => {
   current.mockResolvedValue(user);
-  resolve.mockResolvedValue({
-    url: "https://pub.test/p#a",
-    linkType: "anchor",
-  });
-  await open("item=5&moment=9&chip=1-3&pos=2&via=agent&target=section");
+  resolve.mockResolvedValue(ARTICLE);
+  await open("item=5&chip=1-3&pos=2&via=agent&target=article");
   expect(emit).toHaveBeenCalledWith(
     "card_opened",
-    {
-      kind: "moment",
-      chip: "1-3",
-      position: 2,
-      item_id: "5",
-      moment_id: "9",
-      surface: "browser",
-      via: "agent",
-    },
+    { position: 2, item_id: "5", surface: "browser", via: "agent" },
     context,
   );
-  emit.mockClear();
-  const forged = await open(
-    "item=5&moment=9&chip=1-3&pos=2&via=vscode&target=section",
-  );
-  expect(forged.headers.get("location")).toBe("/");
-  expect(emit).not.toHaveBeenCalled();
 });

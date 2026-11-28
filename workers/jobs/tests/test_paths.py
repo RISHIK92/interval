@@ -117,12 +117,12 @@ def test_an_order_breaking_a_rule_is_refused(
 
 
 def candidate(
-    moment: int, source: int, concepts: set[str], live: bool, frameable: bool
+    item: int, source: int, concepts: set[str], live: bool, frameable: bool
 ) -> SessionCandidate:
-    return SessionCandidate(moment, frozenset(concepts), source, frameable, live)
+    return SessionCandidate(item, frozenset(concepts), source, frameable, live)
 
 
-def test_sessions_spread_sources_and_prefer_moments_with_questions_then_frameable() -> (
+def test_sessions_spread_sources_and_prefer_ones_with_questions_then_frameable() -> (
     None
 ):
     pool = [
@@ -160,7 +160,7 @@ def test_a_path_drops_sections_under_two_readings_and_needs_two_sections() -> No
     sections = [("tcp",), ("tls",), ("http",)]
     draft = draft_path(WEB, sections, pool)
     assert draft is not None
-    assert [(s.concepts, s.moment_ids) for s in draft.sections] == [
+    assert [(s.concepts, s.item_ids) for s in draft.sections] == [
         (("tcp",), (2, 1)),
         (("http",), (4, 5)),
     ]

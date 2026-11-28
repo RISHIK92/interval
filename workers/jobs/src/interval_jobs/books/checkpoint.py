@@ -144,7 +144,6 @@ def _ask(
             _as_item(chapter, picked),
             graph,
             {slug: v for slug, (_, v) in stored.items() if slug in active},
-            {},
             None,
             user_id=chapter.user_id,
         )

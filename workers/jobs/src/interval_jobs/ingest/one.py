@@ -9,7 +9,6 @@ from typing import Literal
 from interval_jobs.ingest.feed import newest_entry
 from interval_jobs.ports import Extractor, Fetcher, Store
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
-from interval_jobs.segment import segment_item
 
 
 @dataclass(frozen=True)
@@ -44,12 +43,10 @@ def ingest_one(
 
     if allowed(profile, "store_full_text"):
         store.items.store_full_text(item_id, text)
-        # Heading structure for segmentation (ING-4): headings and counts, no text.
+        # Heading structure (headings and counts, no text): the article's reading time.
         store.items.replace_sections(
             item_id, extractor.sections(article.body, article.encoding, entry.title)
         )
-        # Moments always match the stored structure (owner, 2026-10-25).
-        segment_item(store, item_id)
         return IngestResult(content_item_id=item_id, stored="full_text")
 
     if allowed(profile, "store_excerpt"):

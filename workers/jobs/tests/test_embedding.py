@@ -1,19 +1,20 @@
-"""Embeddings per moment (DB-3, AI-4, P1-W3-S04): one batch per item through the
-gateway, only for moments whose text is stored (full-text rights)."""
+"""One embedding per article (DB-3, AI-4, P1-W3-S04, ADR-0058): its stored full text,
+cut to TEXT_CHARS, in one call through the gateway; nothing without stored text."""
 
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from interval_db.generated import AiProvider
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore
 from interval_jobs.ai.gateway import AiGateway, OverBudget
-from interval_jobs.embedding import BATCH, embed_item
+from interval_jobs.embedding import TEXT_CHARS, embed_item
 from interval_jobs.ports import (
     Completion,
     EmbeddingPurpose,
     Embeddings,
     Message,
     TagInput,
-    TagMoment,
+    Usage,
 )
 
 TEXT = "Intro.\nWhy a log\nWrites first.\nRecovery\nReplay.\n"
@@ -42,55 +43,32 @@ class NoLlm:
         raise AssertionError("embedding never completes")
 
 
-def item(moments: list[TagMoment], text: str | None = TEXT) -> TagInput:
-    return TagInput("T", None, text, None, moments, None, False)
+def item(text: str | None = TEXT, excerpt: str | None = None) -> TagInput:
+    return TagInput("T", None, text, excerpt, [], None, False)
 
 
-def test_each_moment_with_text_gets_a_document_vector() -> None:
+def test_an_article_gets_one_document_vector_of_its_whole_text() -> None:
     voyage = FakeVoyage()
     gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
-    moments = [
-        TagMoment(1, 0, None),
-        TagMoment(2, 1, "Why a log"),
-        TagMoment(3, 2, "Gone"),
-    ]
-    got = embed_item(gateway, "voyage-3.5", item(moments), skip=set())
-    assert got.refused is None
-    assert set(got.vectors) == {1, 2}  # "Gone" isn't in the text: nothing to embed
-    assert voyage.batches[0] == (
-        ["Intro.", "Writes first.\nRecovery\nReplay."],
-        "document",
-    )
+    got = embed_item(gateway, "voyage-3.5", item())
+    assert got.refused is None and got.vector is not None
+    assert got.cost_usd == Decimal("0.0001")
+    assert voyage.batches == [([TEXT.strip()], "document")]
 
 
-def test_no_stored_text_means_no_call() -> None:
+def test_a_long_article_is_cut_not_refused() -> None:
     voyage = FakeVoyage()
     gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
-    got = embed_item(gateway, "voyage-3.5", item([TagMoment(1, 0, None)], None), set())
-    assert got.vectors == {}
+    embed_item(gateway, "voyage-3.5", item("x" * (TEXT_CHARS + 50)))
+    assert voyage.batches[0][0] == ["x" * TEXT_CHARS]
+
+
+def test_no_stored_text_means_no_call_even_with_an_excerpt() -> None:
+    voyage = FakeVoyage()
+    gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
+    got = embed_item(gateway, "voyage-3.5", item(None, excerpt="An excerpt."))
+    assert got.vector is None and got.refused is None
     assert voyage.batches == []
-
-
-def test_many_moments_go_in_batches() -> None:
-    voyage = FakeVoyage()
-    gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
-    lines = ["intro"] + [line for i in range(BATCH + 3) for line in (f"H{i}", f"b{i}")]
-    moments = [TagMoment(0, 0, None)] + [
-        TagMoment(i + 1, i + 1, f"H{i}") for i in range(BATCH + 3)
-    ]
-    got = embed_item(gateway, "voyage-3.5", item(moments, "\n".join(lines)), set())
-    assert len(got.vectors) == BATCH + 4
-    assert got.cost_usd == Decimal("0.0002")
-    assert [len(b[0]) for b in voyage.batches] == [BATCH, 4]
-
-
-def test_moments_already_embedded_are_skipped() -> None:
-    voyage = FakeVoyage()
-    gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
-    moments = [TagMoment(1, 0, None), TagMoment(2, 1, "Why a log")]
-    got = embed_item(gateway, "voyage-3.5", item(moments), skip={1})
-    assert set(got.vectors) == {2}
-    assert voyage.batches[0][0] == ["Writes first.\nRecovery\nReplay."]
 
 
 class MeteredEmbeddings(FakeVoyage):
@@ -98,25 +76,33 @@ class MeteredEmbeddings(FakeVoyage):
     provider: AiProvider = "openrouter"
 
 
-def test_a_budget_stop_keeps_the_batches_already_paid_for() -> None:
-    voyage = MeteredEmbeddings(cost=Decimal(6))  # one batch spends the $5 budget
-    gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
-    lines = ["intro"] + [line for i in range(BATCH + 3) for line in (f"H{i}", f"b{i}")]
-    moments = [TagMoment(0, 0, None)] + [
-        TagMoment(i + 1, i + 1, f"H{i}") for i in range(BATCH + 3)
-    ]
-    got = embed_item(gateway, "voyage-3.5", item(moments, "\n".join(lines)), set())
+def spent_ledger() -> InMemoryAi:
+    ledger = InMemoryAi(InMemoryStore().users)
+    ledger.record(
+        Usage(
+            None,
+            "embeddings",
+            "openrouter",
+            "m",
+            0,
+            0,
+            Decimal(1000),
+            datetime.now(UTC),
+        )
+    )
+    return ledger
+
+
+def test_a_spent_budget_refuses_and_embeds_nothing() -> None:
+    voyage = MeteredEmbeddings()
+    gateway = AiGateway(spent_ledger(), NoLlm(), voyage)
+    got = embed_item(gateway, "voyage-3.5", item())
     assert got.refused == OverBudget("global")
-    assert len(got.vectors) == BATCH
+    assert got.vector is None and voyage.batches == []
 
 
-def test_voyage_embeds_every_batch_past_the_budget() -> None:
-    voyage = FakeVoyage(cost=Decimal(6))
-    gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
-    lines = ["intro"] + [line for i in range(BATCH + 3) for line in (f"H{i}", f"b{i}")]
-    moments = [TagMoment(0, 0, None)] + [
-        TagMoment(i + 1, i + 1, f"H{i}") for i in range(BATCH + 3)
-    ]
-    got = embed_item(gateway, "voyage-3.5", item(moments, "\n".join(lines)), set())
-    assert got.refused is None
-    assert len(got.vectors) == len(moments)
+def test_voyage_embeds_past_the_budget() -> None:
+    voyage = FakeVoyage()
+    gateway = AiGateway(spent_ledger(), NoLlm(), voyage)
+    got = embed_item(gateway, "voyage-3.5", item())
+    assert got.refused is None and got.vector is not None

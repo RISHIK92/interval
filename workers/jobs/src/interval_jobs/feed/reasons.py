@@ -203,7 +203,7 @@ def explain(
                 values = {"concept": concepts.names[hit]}
                 break
     # Only a topic pick is "beyond your usual topics": a source pick is just one the
-    # chip's main picks didn't reach, maybe one the user reads often, so it claims no
+    # feed's main picks didn't reach, maybe one the user reads often, so it claims no
     # novelty and falls through.
     if category == "neutral" and scored.arm is not None and scored.arm.kind == "topic":
         category = "explore"

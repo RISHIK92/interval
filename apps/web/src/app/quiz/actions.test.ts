@@ -71,7 +71,8 @@ async function actions() {
   return import("./actions");
 }
 
-test("starting a section's sprint records it and opens the quiz", async () => {
+// ADR-0058: "Quiz me" is on an article; a stray chip or momentId is ignored.
+test("starting an article's quiz records it and opens the quiz", async () => {
   const { startQuizAction } = await actions();
   start.mockResolvedValue({
     attemptId: "41",
@@ -82,11 +83,11 @@ test("starting a section's sprint records it and opens the quiz", async () => {
     startQuizAction(
       form({ itemId: "5", momentId: "9", chip: "3-8", back: "/read/5" }),
     ),
-  ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
-  expect(start).toHaveBeenCalledWith("u1", "5", "9");
+  ).rejects.toThrow(/^redirect:\/quiz\/41$/);
+  expect(start).toHaveBeenCalledWith("u1", "5");
   expect(emit).toHaveBeenCalledWith(
     "quiz_started",
-    { attempt_id: "41", kind: "test", item_id: "5", moment_id: "9" },
+    { attempt_id: "41", kind: "test", item_id: "5" },
     context,
   );
   // A double-tap returns the running sprint (LOAD-5): opened, not recorded again.
@@ -96,19 +97,19 @@ test("starting a section's sprint records it and opens the quiz", async () => {
     endsAt: new Date(),
     firstTime: false,
   });
-  await expect(
-    startQuizAction(form({ itemId: "5", momentId: "9", chip: "3-8" })),
-  ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
+  await expect(startQuizAction(form({ itemId: "5" }))).rejects.toThrow(
+    /^redirect:\/quiz\/41$/,
+  );
   expect(emit).not.toHaveBeenCalled();
 });
 
-test("an article's sprint has no section; no live questions goes back", async () => {
+test("an article with no live questions goes back", async () => {
   const { startQuizAction } = await actions();
   start.mockResolvedValue(null);
   await expect(
-    startQuizAction(form({ itemId: "5", chip: "3-8", back: "/read/5" })),
+    startQuizAction(form({ itemId: "5", back: "/read/5" })),
   ).rejects.toThrow("redirect:/read/5");
-  expect(start).toHaveBeenCalledWith("u1", "5", null);
+  expect(start).toHaveBeenCalledWith("u1", "5");
   expect(emit).not.toHaveBeenCalled();
 });
 
@@ -123,10 +124,8 @@ test("an answer is recorded once, with its time to answer", async () => {
     firstTime: true,
   });
   await expect(
-    answerQuizAction(
-      form({ attemptId: "41", questionId: "7", chosen: "2", chip: "3-8" }),
-    ),
-  ).rejects.toThrow("redirect:/quiz/41?chip=3-8&answered=7");
+    answerQuizAction(form({ attemptId: "41", questionId: "7", chosen: "2" })),
+  ).rejects.toThrow("redirect:/quiz/41?answered=7");
   expect(answer).toHaveBeenCalledWith("u1", "41", "7", 2);
   expect(emit).toHaveBeenCalledWith(
     "quiz_answered",
@@ -143,10 +142,8 @@ test("an answer is recorded once, with its time to answer", async () => {
     firstTime: false,
   });
   await expect(
-    answerQuizAction(
-      form({ attemptId: "41", questionId: "7", chosen: "2", chip: "3-8" }),
-    ),
-  ).rejects.toThrow("redirect:/quiz/41?chip=3-8&answered=7");
+    answerQuizAction(form({ attemptId: "41", questionId: "7", chosen: "2" })),
+  ).rejects.toThrow("redirect:/quiz/41?answered=7");
   expect(emit).not.toHaveBeenCalled();
 });
 
@@ -155,10 +152,8 @@ test("a late or foreign answer records nothing", async () => {
   for (const got of ["late", null] as const) {
     answer.mockResolvedValue(got);
     await expect(
-      answerQuizAction(
-        form({ attemptId: "41", questionId: "7", chosen: "1", chip: "3-8" }),
-      ),
-    ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
+      answerQuizAction(form({ attemptId: "41", questionId: "7", chosen: "1" })),
+    ).rejects.toThrow("redirect:/quiz/41");
   }
   expect(emit).not.toHaveBeenCalled();
 });
@@ -175,9 +170,9 @@ test("finishing reports once", async () => {
     daily: null,
     checkpoint: null,
   });
-  await expect(
-    finishQuizAction(form({ attemptId: "41", chip: "3-8" })),
-  ).rejects.toThrow("redirect:/quiz/41/results?chip=3-8");
+  await expect(finishQuizAction(form({ attemptId: "41" }))).rejects.toThrow(
+    "redirect:/quiz/41/results",
+  );
   expect(emit).toHaveBeenCalledWith(
     "quiz_finished",
     { attempt_id: "41", answered: 6, correct: 4 },
@@ -194,23 +189,20 @@ test("finishing reports once", async () => {
     daily: null,
     checkpoint: null,
   });
-  await expect(
-    finishQuizAction(form({ attemptId: "41", chip: "3-8" })),
-  ).rejects.toThrow("redirect:/quiz/41/results?chip=3-8");
+  await expect(finishQuizAction(form({ attemptId: "41" }))).rejects.toThrow(
+    "redirect:/quiz/41/results",
+  );
   expect(emit).not.toHaveBeenCalled();
   // Not a game: on no board (P3-W14-S01).
   expect(record).not.toHaveBeenCalled();
 });
 
 test.each([
-  ["start", { itemId: "x", chip: "3-8" }],
-  ["start", { itemId: "5", momentId: "0", chip: "3-8" }],
-  ["answer", { attemptId: "41", questionId: "7", chosen: "4", chip: "3-8" }],
-  ["answer", { attemptId: "41", questionId: "7", chosen: "a", chip: "3-8" }],
-  ["answer", { attemptId: "-1", questionId: "7", chosen: "1", chip: "3-8" }],
-  ["finish", { attemptId: "x", chip: "3-8" }],
-  ["finish", { attemptId: "41", chip: "huge" }],
-  ["start", { itemId: "5" }],
+  ["start", { itemId: "x" }],
+  ["answer", { attemptId: "41", questionId: "7", chosen: "4" }],
+  ["answer", { attemptId: "41", questionId: "7", chosen: "a" }],
+  ["answer", { attemptId: "-1", questionId: "7", chosen: "1" }],
+  ["finish", { attemptId: "x" }],
 ] as const)(
   "bad input to %s goes home without a call",
   async (kind, fields) => {
@@ -235,13 +227,11 @@ test("starting a review records it once and opens it; nothing due goes back", as
     concepts: 3,
     firstTime: true,
   });
-  await expect(startReviewAction(form({ chip: "1-3" }))).rejects.toThrow(
-    "redirect:/quiz/52?chip=1-3",
-  );
+  await expect(startReviewAction()).rejects.toThrow("redirect:/quiz/52");
   expect(startReview).toHaveBeenCalledWith("u1");
   expect(emit).toHaveBeenCalledWith(
     "quiz_started",
-    { attempt_id: "52", kind: "review", item_id: null, moment_id: null },
+    { attempt_id: "52", kind: "review", item_id: null },
     context,
   );
   emit.mockClear();
@@ -250,17 +240,10 @@ test("starting a review records it once and opens it; nothing due goes back", as
     concepts: 3,
     firstTime: false,
   });
-  await expect(startReviewAction(form({ chip: "1-3" }))).rejects.toThrow(
-    "redirect:/quiz/52?chip=1-3",
-  );
+  await expect(startReviewAction()).rejects.toThrow("redirect:/quiz/52");
   expect(emit).not.toHaveBeenCalled();
   startReview.mockResolvedValue(null);
-  await expect(startReviewAction(form({ chip: "1-3" }))).rejects.toThrow(
-    "redirect:/library",
-  );
-  await expect(startReviewAction(form({ chip: "huge" }))).rejects.toThrow(
-    "redirect:/library",
-  );
+  await expect(startReviewAction()).rejects.toThrow("redirect:/library");
 });
 
 // P2-W9-S07 (Q-2, Q-P2-18, Q-P2-20): flagging, recorded once.
@@ -271,10 +254,9 @@ test("a flag is recorded once and goes back to the question's feedback", async (
     attemptId: "41",
     questionId: "7",
     reason: "wrong_key",
-    chip: "3-8",
   };
   await expect(flagQuestionAction(form(fields))).rejects.toThrow(
-    "redirect:/quiz/41?chip=3-8&answered=7",
+    "redirect:/quiz/41?answered=7",
   );
   expect(flag).toHaveBeenCalledWith("u1", "41", "7", "wrong_key");
   expect(emit).toHaveBeenCalledWith(
@@ -285,9 +267,20 @@ test("a flag is recorded once and goes back to the question's feedback", async (
   emit.mockClear();
   flag.mockResolvedValue(false);
   await expect(flagQuestionAction(form(fields))).rejects.toThrow(
-    "redirect:/quiz/41?chip=3-8&answered=7",
+    "redirect:/quiz/41?answered=7",
   );
   expect(emit).not.toHaveBeenCalled();
+  // ADR-0058: the stored reason keeps its moment-era name; the event names the article.
+  flag.mockResolvedValue(true);
+  await expect(
+    flagQuestionAction(form({ ...fields, reason: "not_in_section" })),
+  ).rejects.toThrow("redirect:/quiz/41?answered=7");
+  expect(flag).toHaveBeenLastCalledWith("u1", "41", "7", "not_in_section");
+  expect(emit).toHaveBeenCalledWith(
+    "question_flagged",
+    { question_id: "7", reason: "not_in_article" },
+    context,
+  );
   flag.mockClear();
   await expect(
     flagQuestionAction(form({ ...fields, reason: "spam" })),
@@ -308,33 +301,33 @@ test("Close finishes and goes back to the feed", async () => {
     checkpoint: null,
   });
   await expect(
-    finishQuizAction(form({ attemptId: "41", chip: "1-3", leave: "feed" })),
-  ).rejects.toThrow("redirect:/?chip=1-3");
+    finishQuizAction(form({ attemptId: "41", leave: "feed" })),
+  ).rejects.toThrow("redirect:/");
   // Leaving a review goes back to the Library, where it started (P2-W9-S05).
   await expect(
-    finishQuizAction(form({ attemptId: "41", chip: "1-3", leave: "library" })),
+    finishQuizAction(form({ attemptId: "41", leave: "library" })),
   ).rejects.toThrow("redirect:/library");
 });
 
 test("signed out goes to join", async () => {
   const { startQuizAction } = await actions();
   current.mockResolvedValue(null);
-  await expect(
-    startQuizAction(form({ itemId: "5", chip: "3-8" })),
-  ).rejects.toThrow("redirect:/join");
+  await expect(startQuizAction(form({ itemId: "5" }))).rejects.toThrow(
+    "redirect:/join",
+  );
 });
 
 // P2-W10-S04 (§5F, Q-P2-26, Q-P2-28): checkpoints.
 test("a checkpoint starts once, recorded, and opens the quiz; not ready goes back", async () => {
   const { startCheckpointAction } = await actions();
-  const fields = { sectionId: "60", chip: "3-8", back: "/paths/6" };
+  const fields = { sectionId: "60", back: "/paths/6" };
   startCheckpoint.mockResolvedValue({
     attemptId: "41",
     pathId: "6",
     firstTime: true,
   });
   await expect(startCheckpointAction(form(fields))).rejects.toThrow(
-    "redirect:/quiz/41?chip=3-8",
+    "redirect:/quiz/41",
   );
   expect(startCheckpoint).toHaveBeenCalledWith("u1", "60");
   expect(emit).toHaveBeenCalledWith(
@@ -349,7 +342,7 @@ test("a checkpoint starts once, recorded, and opens the quiz; not ready goes bac
     firstTime: false,
   });
   await expect(startCheckpointAction(form(fields))).rejects.toThrow(
-    "redirect:/quiz/41?chip=3-8",
+    "redirect:/quiz/41",
   );
   expect(emit).not.toHaveBeenCalled();
   startCheckpoint.mockResolvedValue(null);
@@ -377,7 +370,7 @@ test("a checkpoint's finish reports whether it passed; Close goes back to the pa
     },
   });
   await expect(
-    finishQuizAction(form({ attemptId: "41", chip: "3-8", leave: "path" })),
+    finishQuizAction(form({ attemptId: "41", leave: "path" })),
   ).rejects.toThrow("redirect:/paths/6");
   expect(emit).toHaveBeenCalledTimes(1);
   expect(emit).toHaveBeenCalledWith(
@@ -430,8 +423,8 @@ test("a start records the finishes of the quizzes it closed, then its own start"
     firstTime: true,
   });
   await expect(
-    startCheckpointAction(form({ sectionId: "61", chip: "3-8" })),
-  ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
+    startCheckpointAction(form({ sectionId: "61" })),
+  ).rejects.toThrow("redirect:/quiz/41");
   expect(closeStale).toHaveBeenCalledWith("u1");
   expect(emit.mock.calls.map((c): unknown => c[0])).toEqual([
     "quiz_finished",
@@ -465,9 +458,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
     },
   ]);
   startReview.mockResolvedValue(null);
-  await expect(startReviewAction(form({ chip: "3-8" }))).rejects.toThrow(
-    "redirect:/library",
-  );
+  await expect(startReviewAction()).rejects.toThrow("redirect:/library");
   expect(emit).toHaveBeenCalledWith(
     "quiz_finished",
     { attempt_id: "32", answered: 1, correct: 1 },
@@ -484,9 +475,7 @@ test("a sprint starts from Play, recorded once as a game, and opens the quiz", a
     endsAt: new Date(Date.now() + 60_000),
     firstTime: true,
   });
-  await expect(startSprintAction()).rejects.toThrow(
-    "redirect:/quiz/61?chip=3-8",
-  );
+  await expect(startSprintAction()).rejects.toThrow("redirect:/quiz/61");
   expect(can).toHaveBeenCalledWith("u1", "play.sprint");
   expect(closeStale).toHaveBeenCalledWith("u1");
   expect(emit).toHaveBeenCalledExactlyOnceWith(
@@ -529,7 +518,7 @@ test("a sprint's finish is a game_finished, not a quiz_finished; Close goes to P
     daily: null,
   });
   await expect(
-    finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
+    finishQuizAction(form({ attemptId: "61", leave: "play" })),
   ).rejects.toThrow("redirect:/play");
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "game_finished",
@@ -549,26 +538,23 @@ test("a game's finish tells each miss it sends back to reading", async () => {
     answered: 7,
     correct: 5,
     firstTime: true,
-    missed: [
-      { itemId: "4", momentId: "40" },
-      { itemId: "5", momentId: "52" },
-    ],
+    missed: [{ itemId: "4" }, { itemId: "5" }],
     checkpoint: null,
     sprint: false,
     estimation: null,
     daily: { points: 320 },
   });
   await expect(
-    finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
+    finishQuizAction(form({ attemptId: "61", leave: "play" })),
   ).rejects.toThrow("redirect:/play");
   expect(emit).toHaveBeenCalledWith(
     "concept_missed",
-    { game: "daily", item_id: "4", moment_id: "40" },
+    { game: "daily", item_id: "4" },
     context,
   );
   expect(emit).toHaveBeenCalledWith(
     "concept_missed",
-    { game: "daily", item_id: "5", moment_id: "52" },
+    { game: "daily", item_id: "5" },
     context,
   );
   expect(emit).toHaveBeenCalledTimes(3); // and the game_finished
@@ -578,14 +564,14 @@ test("a game's finish tells each miss it sends back to reading", async () => {
     answered: 7,
     correct: 5,
     firstTime: false,
-    missed: [{ itemId: "4", momentId: "40" }],
+    missed: [{ itemId: "4" }],
     checkpoint: null,
     sprint: false,
     estimation: null,
     daily: { points: 320 },
   });
   await expect(
-    finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
+    finishQuizAction(form({ attemptId: "61", leave: "play" })),
   ).rejects.toThrow("redirect:/play");
   expect(emit).not.toHaveBeenCalled();
 });
@@ -613,9 +599,7 @@ test("Start just after a sprint's clock ran out finishes it, records it, and sta
     estimation: null,
     daily: null,
   });
-  await expect(startSprintAction()).rejects.toThrow(
-    "redirect:/quiz/62?chip=3-8",
-  );
+  await expect(startSprintAction()).rejects.toThrow("redirect:/quiz/62");
   expect(finish).toHaveBeenCalledWith("u1", "61");
   expect(emit.mock.calls.map((c: unknown[]) => c[0])).toEqual([
     "game_finished",
@@ -640,9 +624,7 @@ test("a game a start closes goes on its board too", async () => {
     },
   ]);
   startReview.mockResolvedValue(null);
-  await expect(startReviewAction(form({ chip: "3-8" }))).rejects.toThrow(
-    "redirect:/library",
-  );
+  await expect(startReviewAction()).rejects.toThrow("redirect:/library");
   expect(record).toHaveBeenCalledExactlyOnceWith("u1", "33", 3);
 });
 
@@ -656,10 +638,9 @@ test("a guest's flag is refused: nothing recorded, back to the feedback", async 
         attemptId: "61",
         questionId: "7",
         reason: "wrong_key",
-        chip: "3-8",
       }),
     ),
-  ).rejects.toThrow("redirect:/quiz/61?chip=3-8&answered=7");
+  ).rejects.toThrow("redirect:/quiz/61?answered=7");
   expect(flag).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
 });
@@ -673,9 +654,7 @@ test("an estimation round starts from Play, recorded once as a game, and opens t
     endsAt: new Date(Date.now() + 60_000),
     firstTime: true,
   });
-  await expect(startEstimationAction()).rejects.toThrow(
-    "redirect:/quiz/71?chip=3-8",
-  );
+  await expect(startEstimationAction()).rejects.toThrow("redirect:/quiz/71");
   expect(can).toHaveBeenCalledWith("u1", "play.estimation");
   expect(closeStale).toHaveBeenCalledWith("u1");
   expect(startSprint).not.toHaveBeenCalled();
@@ -721,9 +700,7 @@ test("Start just after a round's clock ran out finishes it, records it, and star
     estimation: { points: 158 },
     daily: null,
   });
-  await expect(startEstimationAction()).rejects.toThrow(
-    "redirect:/quiz/72?chip=3-8",
-  );
+  await expect(startEstimationAction()).rejects.toThrow("redirect:/quiz/72");
   expect(finish).toHaveBeenCalledWith("u1", "71");
   expect(emit.mock.calls.map((c: unknown[]) => c[0])).toEqual([
     "game_finished",
@@ -745,9 +722,9 @@ test("an estimate is answered with a positive number, recorded once with its poi
   });
   await expect(
     answerEstimateAction(
-      form({ attemptId: "71", questionId: "9", guess: "900", chip: "3-8" }),
+      form({ attemptId: "71", questionId: "9", guess: "900" }),
     ),
-  ).rejects.toThrow("redirect:/quiz/71?chip=3-8&answered=9");
+  ).rejects.toThrow("redirect:/quiz/71?answered=9");
   expect(answerEstimate).toHaveBeenCalledWith("u1", "71", "9", 900);
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "estimate_answered",
@@ -765,9 +742,9 @@ test("an estimate is answered with a positive number, recorded once with its poi
   });
   await expect(
     answerEstimateAction(
-      form({ attemptId: "71", questionId: "9", guess: "1e3", chip: "3-8" }),
+      form({ attemptId: "71", questionId: "9", guess: "1e3" }),
     ),
-  ).rejects.toThrow("redirect:/quiz/71?chip=3-8&answered=9");
+  ).rejects.toThrow("redirect:/quiz/71?answered=9");
   expect(emit).not.toHaveBeenCalled();
 });
 
@@ -775,10 +752,8 @@ test("a guess that isn't a positive number goes back to the question, untaken", 
   const { answerEstimateAction } = await actions();
   for (const guess of ["0", "-5", "lots", "", "Infinity", "1e400"])
     await expect(
-      answerEstimateAction(
-        form({ attemptId: "71", questionId: "9", guess, chip: "3-8" }),
-      ),
-    ).rejects.toThrow(/^redirect:\/quiz\/71\?chip=3-8$/);
+      answerEstimateAction(form({ attemptId: "71", questionId: "9", guess })),
+    ).rejects.toThrow(/^redirect:\/quiz\/71$/);
   expect(answerEstimate).not.toHaveBeenCalled();
 });
 
@@ -787,9 +762,9 @@ test("a late estimate goes back to the round, unrecorded", async () => {
   answerEstimate.mockResolvedValue("late");
   await expect(
     answerEstimateAction(
-      form({ attemptId: "71", questionId: "9", guess: "10", chip: "3-8" }),
+      form({ attemptId: "71", questionId: "9", guess: "10" }),
     ),
-  ).rejects.toThrow(/^redirect:\/quiz\/71\?chip=3-8$/);
+  ).rejects.toThrow(/^redirect:\/quiz\/71$/);
   expect(emit).not.toHaveBeenCalled();
 });
 
@@ -805,9 +780,9 @@ test("a round's finish is a game_finished with its points", async () => {
     estimation: { points: 158 },
     daily: null,
   });
-  await expect(
-    finishQuizAction(form({ attemptId: "71", chip: "3-8" })),
-  ).rejects.toThrow("redirect:/quiz/71/results?chip=3-8");
+  await expect(finishQuizAction(form({ attemptId: "71" }))).rejects.toThrow(
+    "redirect:/quiz/71/results",
+  );
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "game_finished",
     {
@@ -831,9 +806,7 @@ test("today's challenge starts from Play once, under play.daily", async () => {
     endsAt: new Date(Date.now() + 120_000),
     firstTime: true,
   });
-  await expect(startDailyAction()).rejects.toThrow(
-    "redirect:/quiz/71?chip=3-8",
-  );
+  await expect(startDailyAction()).rejects.toThrow("redirect:/quiz/71");
   expect(can).toHaveBeenCalledWith("u1", "play.daily");
   expect(closeStale).toHaveBeenCalledWith("u1");
   expect(emit).toHaveBeenCalledExactlyOnceWith(
@@ -892,7 +865,7 @@ test("the daily challenge's finish is a game_finished with its points", async ()
     daily: { points: 430 },
   });
   await expect(
-    finishQuizAction(form({ attemptId: "71", chip: "3-8", leave: "play" })),
+    finishQuizAction(form({ attemptId: "71", leave: "play" })),
   ).rejects.toThrow("redirect:/play");
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "game_finished",
@@ -900,76 +873,4 @@ test("the daily challenge's finish is a game_finished with its points", async ()
     context,
   );
   expect(record).toHaveBeenCalledExactlyOnceWith("u1", "71", 430);
-});
-
-// ADR-0044: desktop Home's "Also fits" review starts only what fits the break, and a
-// tap in the grid is recorded with its place and chip; other forms record nothing.
-test("an Also fits review starts the cards that fit and is recorded as the grid's", async () => {
-  const { startReviewAction } = await actions();
-  startReview.mockResolvedValue({
-    attemptId: "52",
-    concepts: 3,
-    firstTime: false,
-  });
-  await expect(
-    startReviewAction(form({ chip: "1-3", limit: "3", alsoFits: "2" })),
-  ).rejects.toThrow("redirect:/quiz/52?chip=1-3");
-  expect(startReview).toHaveBeenCalledWith("u1", 3);
-  expect(emit).toHaveBeenCalledWith(
-    "also_fits_opened",
-    { kind: "review", position: 2, chip: "1-3" },
-    context,
-  );
-  emit.mockClear();
-  // A forged place records nothing; a forged size starts nothing.
-  await expect(
-    startReviewAction(form({ chip: "1-3", alsoFits: "9" })),
-  ).rejects.toThrow("redirect:/quiz/52?chip=1-3");
-  expect(emit).not.toHaveBeenCalled();
-  startReview.mockClear();
-  await expect(
-    startReviewAction(form({ chip: "1-3", limit: "0" })),
-  ).rejects.toThrow("redirect:/library");
-  expect(startReview).not.toHaveBeenCalled();
-  // Nothing due any more: nothing opened, nothing counted.
-  startReview.mockResolvedValue(null);
-  await expect(
-    startReviewAction(form({ chip: "1-3", limit: "3", alsoFits: "2" })),
-  ).rejects.toThrow("redirect:/library");
-  expect(emit).not.toHaveBeenCalled();
-});
-
-test("an Also fits challenge is recorded as the grid's; Play's own isn't", async () => {
-  const { startDailyAction } = await actions();
-  // Nothing to play today: nothing opened, nothing counted.
-  startDaily.mockResolvedValue(null);
-  await startDailyAction(form({ chip: "3-8", alsoFits: "1" })).catch(
-    () => undefined,
-  );
-  expect(emit).not.toHaveBeenCalledWith(
-    "also_fits_opened",
-    expect.anything(),
-    expect.anything(),
-  );
-  startDaily.mockResolvedValue({
-    attemptId: "81",
-    endsAt: new Date(Date.now() + 60_000),
-    firstTime: false,
-  });
-  await expect(
-    startDailyAction(form({ chip: "3-8", alsoFits: "1" })),
-  ).rejects.toThrow("redirect:/quiz/81");
-  expect(emit).toHaveBeenCalledWith(
-    "also_fits_opened",
-    { kind: "daily", position: 1, chip: "3-8" },
-    context,
-  );
-  emit.mockClear();
-  await startDailyAction(form({})).catch(() => undefined);
-  await startDailyAction().catch(() => undefined);
-  expect(emit).not.toHaveBeenCalledWith(
-    "also_fits_opened",
-    expect.anything(),
-    expect.anything(),
-  );
 });

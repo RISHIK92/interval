@@ -1,47 +1,39 @@
-import type { Chip } from "./chips";
-
 // A card's link through /out (P1-W5-S01), which records the open and redirects. Only
 // ids and the card's place go in it; the publisher URL is looked up there.
-// A feed card has a chip and position. A Continue link counts as continue_clicked and
-// a Library link as an outbound click only (owner, 2026-10-26); neither needs a chip.
-// An Explore link (ADR-0046) counts as a Library one does.
-export function outHref(
-  link: {
-    itemId: string;
-    momentId?: string;
-    target: "section" | "original";
-  } &
-    // P7-W46: `via` "agent" marks a suggestion a companion surface showed.
-    (
-      | { from: { position: number }; chip: Chip; via?: "agent" }
-      | {
-          from: "continue" | "library" | "reader" | "path" | "explore";
-          chip?: never;
-        }
-    ),
-): string {
+// A feed card has a position. A Continue link counts as continue_clicked and a Library
+// link as an outbound click only (owner, 2026-10-26). An Explore link (ADR-0046) counts
+// as a Library one does. ADR-0058: every link is the article's, so no section or chip.
+export function outHref(link: {
+  itemId: string;
+  // "original": the reader's link to the publisher's own page.
+  target: "article" | "original";
+  // P7-W46: `via` "agent" marks a suggestion a companion surface showed.
+  from:
+    | { position: number; via?: "agent" }
+    | "continue"
+    | "library"
+    | "reader"
+    | "path"
+    | "explore";
+}): string {
   const query = new URLSearchParams({ item: link.itemId });
-  if (link.momentId !== undefined) query.set("moment", link.momentId);
   if (typeof link.from === "string") {
     query.set("from", link.from);
   } else {
-    query.set("chip", link.chip);
     query.set("pos", String(link.from.position));
-    if (link.via !== undefined) query.set("via", link.via);
+    if (link.from.via !== undefined) query.set("via", link.from.via);
   }
   query.set("target", link.target);
   return `/out?${query.toString()}`;
 }
 
 // ADR-0018: a link into Interval's in-app reader, for a page that allows framing. /read
-// records the open as /out does; the chip takes the reader back to the same feed.
-// "reader" is a move inside the reader (Next section, or back after Save); "library"
-// an open from the Library, which counts no feed event (owner, 2026-10-26); a path's
-// reading names its path, to come back to (P2-W10-S03), and counts none either.
+// records the open as /out does. "reader" is a move inside the reader (back after
+// Save); "library" an open from the Library, which counts no feed event (owner,
+// 2026-10-26); a path's reading names its path, to come back to (P2-W10-S03), and
+// counts none either.
 export function readHref(link: {
   itemId: string;
-  momentId?: string;
-  chip: Chip;
   from:
     | { position: number; via?: "agent" }
     | { path: string }
@@ -50,8 +42,6 @@ export function readHref(link: {
     | "library";
 }): string {
   const query = new URLSearchParams();
-  if (link.momentId !== undefined) query.set("moment", link.momentId);
-  query.set("chip", link.chip);
   if (typeof link.from === "string") {
     query.set("from", link.from);
   } else if ("path" in link.from) {

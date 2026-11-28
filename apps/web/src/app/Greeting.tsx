@@ -1,7 +1,6 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { Chip } from "../server/chips";
 import { greeting } from "./greetings";
 
 const noChanges = () => () => undefined;
@@ -10,11 +9,9 @@ const noChanges = () => () => undefined;
 // sends a plain hello (ADR-0019).
 export function Greeting({
   firstName,
-  chip,
   continuing,
 }: {
   firstName: string | null;
-  chip: Chip;
   continuing: string | null;
 }) {
   const line = useSyncExternalStore(
@@ -27,7 +24,6 @@ export function Greeting({
           hour: now.getHours(),
           weekday: now.getDay(),
           firstName,
-          chip,
           continuing,
         },
         day,

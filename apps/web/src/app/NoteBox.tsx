@@ -1,13 +1,13 @@
 import { noteAction } from "./notes/actions";
 import { Button } from "./ui/Button";
 
-// A private note (§5I, Q-P2-01) on a section or article being read, or (the Library)
-// a note by its own id, which also reaches one whose section was re-segmented away. A
+// A private note (§5I, Q-P2-01) on the article being read (ADR-0058), or (the Library)
+// a note by its own id, which also reaches an earlier section note. A
 // small icon at its container's top right (the container is `relative`; owner,
 // 2026-10-27; `at` moves it) opens the text area below; a dot marks an existing note. A disclosure,
 // so it works without script. `about` names what it's on, so a list of them reads
 // apart.
-type On = { itemId: string; momentId: string | null } | { noteId: string };
+type On = { itemId: string } | { noteId: string };
 
 export function NoteBox({
   on,
@@ -53,12 +53,7 @@ export function NoteBox({
         {"noteId" in on ? (
           <input type="hidden" name="noteId" value={on.noteId} />
         ) : (
-          <>
-            <input type="hidden" name="itemId" value={on.itemId} />
-            {on.momentId === null ? null : (
-              <input type="hidden" name="momentId" value={on.momentId} />
-            )}
-          </>
+          <input type="hidden" name="itemId" value={on.itemId} />
         )}
         <input type="hidden" name="back" value={back} />
         <textarea

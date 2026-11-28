@@ -1,13 +1,10 @@
-import type { Chip } from "../server/chips";
-
 // Home's greeting (ADR-0019): short, nerdy, a little meme-y, picked from what Interval
 // knows. Add lines as context grows (streaks, GitHub, …); each says when it fits.
 export type GreetingContext = {
   hour: number; // the device's, 0–23
   weekday: number; // 0 is Sunday
   firstName: string | null;
-  chip: Chip;
-  continuing: string | null; // the first Continue card's section title
+  continuing: string | null; // the first Continue card's article title (ADR-0058)
 };
 
 type Part = "late" | "morning" | "afternoon" | "evening" | "night";
@@ -35,7 +32,7 @@ const always = () => true;
 const LINES: Line[] = [
   {
     when: at("late"),
-    text: (_, n) => `It's late${n}. Consensus says: one more section.`,
+    text: (_, n) => `It's late${n}. Consensus says: one more article.`,
   },
   { when: at("late"), text: () => "sudo sleep? Permission denied." },
   {
@@ -70,11 +67,6 @@ const LINES: Line[] = [
     when: (c) => c.weekday === 0 || c.weekday === 6,
     text: (_, n) => `Weekend mode${n}. Zero standups.`,
   },
-  { when: (c) => c.chip === "1-3", text: () => "3 minutes. Speedrun any%." },
-  {
-    when: (c) => c.chip === "8-15",
-    text: () => "15 minutes. Practically a sprint.",
-  },
   {
     when: (c) => c.continuing !== null,
     text: (c) => `You left “${c.continuing ?? ""}” on read.`,
@@ -91,8 +83,8 @@ export function linesFor(context: GreetingContext): string[] {
   );
 }
 
-// One line per day and part of day, so a refresh doesn't reshuffle it. A new chip
-// or a new Continue card changes the pool, and may change the line: that's fine.
+// One line per day and part of day, so a refresh doesn't reshuffle it. A new
+// Continue card changes the pool, and may change the line: that's fine.
 export function greeting(context: GreetingContext, day: string): string {
   const lines = linesFor(context);
   const seed = `${day}|${partOf(context.hour)}`;

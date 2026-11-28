@@ -13,7 +13,7 @@ import (
 
 // P7-W46 (Q-P7-02, owner 2026-11-20): `interval status` reads what the companion
 // surfaces read: the agent's task as the hooks reported it, and 3 suggestions, each a
-// link into the web app.
+// link into the web app. ADR-0058: the feed's first articles, with no time chip.
 
 type agentStatus struct {
 	Task struct {
@@ -21,7 +21,6 @@ type agentStatus struct {
 		Seconds    int    `json:"seconds"`
 		FinishedAt string `json:"finishedAt"`
 	} `json:"task"`
-	Chip        string `json:"chip"`
 	Suggestions []struct {
 		Title   string `json:"title"`
 		Minutes *int   `json:"minutes"`
@@ -30,26 +29,19 @@ type agentStatus struct {
 }
 
 const (
-	statusUsage = "usage: interval status [--chip 1-3|3-8|8-15] [--json]"
+	statusUsage = "usage: interval status [--json]"
 	// A status body is three links and a state; anything much bigger isn't one.
 	maxStatusBody = 64 << 10
 )
 
-var chips = map[string]bool{"1-3": true, "3-8": true, "8-15": true}
-
 func status(d deps, args []string) int {
-	chip, raw := "", false
-	for i := 0; i < len(args); i++ {
-		switch {
-		case args[i] == "--json":
-			raw = true
-		case args[i] == "--chip" && i+1 < len(args) && chips[args[i+1]]:
-			chip = args[i+1]
-			i++
-		default:
+	raw := false
+	for _, arg := range args {
+		if arg != "--json" {
 			fmt.Fprintln(d.stderr, statusUsage)
 			return 1
 		}
+		raw = true
 	}
 	site := strings.TrimRight(strings.TrimSpace(d.getenv("INTERVAL_URL")), "/")
 	if site == "" {
@@ -70,9 +62,6 @@ func status(d deps, args []string) int {
 		return 1
 	}
 	url := site + "/api/agent/status"
-	if chip != "" {
-		url += "?chip=" + chip
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), sendDeadline)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -121,7 +110,7 @@ func status(d deps, args []string) int {
 		fmt.Fprintln(d.stdout, "No suggestions right now.")
 		return 0
 	}
-	fmt.Fprintf(d.stdout, "For a %s min break:\n", strings.Replace(s.Chip, "-", "–", 1))
+	fmt.Fprintln(d.stdout, "Read while you wait:")
 	for i, sug := range s.Suggestions {
 		minutes := ""
 		if sug.Minutes != nil {

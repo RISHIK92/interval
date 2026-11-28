@@ -4,7 +4,8 @@ import type { Transaction } from "kysely";
 
 // Tests that need a whole match or sprint of live multiple-choice questions seed them
 // here: a fresh database (CI) has none, so leaning on whatever a local one holds hid
-// failures. Each is on its own section of a full-text source with moments on.
+// failures. ADR-0058: all on one article of a full-text source, with no moment, as
+// the worker now drafts them.
 export async function seedLiveQuestions(
   trx: Transaction<DB>,
   count: number,
@@ -16,8 +17,6 @@ export async function seedLiveQuestions(
       name: `bank-${tag}`,
       feed_url: `https://bank.example.test/${tag}.xml`,
       rights_profile: "full_text_internal",
-      moments_seeded: true,
-      moments_enabled: true,
     })
     .returning("id")
     .executeTakeFirstOrThrow();
@@ -33,23 +32,12 @@ export async function seedLiveQuestions(
     .executeTakeFirstOrThrow();
   const ids: string[] = [];
   for (let n = 0; n < count; n += 1) {
-    const moment = await trx
-      .insertInto("moment")
-      .values({
-        content_item_id: item.id,
-        ordinal: n,
-        title: `Bank ${String(n)}`,
-        estimated_minutes: 3,
-        link: `https://bank.example.test/${tag}#m${String(n)}`,
-        link_type: "anchor",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
     const question = await trx
       .insertInto("question")
       .values({
-        moment_id: moment.id,
-        ordinal: 0,
+        content_item_id: item.id,
+        article_ordinal: n,
+        ordinal: n,
         stem: `Bank ${String(n)}?`,
         options: ["right", "w1", "w2", "w3"],
         correct: 0,

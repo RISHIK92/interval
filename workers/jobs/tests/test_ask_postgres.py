@@ -1,7 +1,8 @@
 """ADR-0046 in Postgres: a waiting question with its thread, level and stack; what
-retrieval may return (never a hidden source, a broken link, a source switched off or a
-duplicate; sources without full text through their concepts, by metadata); the answer
-stored once; the 30-day purge."""
+retrieval may return (full-text articles by their article vector, ADR-0058; never a
+hidden source, a broken link, a source switched off or a duplicate; sources without
+full text through their concepts, by metadata); the answer stored once; the 30-day
+purge."""
 
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -29,12 +30,10 @@ def user(conn: psycopg.Connection, user_id: str) -> None:
 def source(
     conn: psycopg.Connection, name: str, profile: str, *, active: bool = True
 ) -> int:
-    full = profile.startswith("full_text")
     row = conn.execute(
-        "insert into source (name, feed_url, rights_profile, moments_enabled, "
-        "moments_seeded, moments_switched_off, active) "
-        "values (%s, %s, %s, %s, true, %s, %s) returning id",
-        (f"ask-{name}", f"https://{name}.test/feed", profile, full, not full, active),
+        "insert into source (name, feed_url, rights_profile, active) "
+        "values (%s, %s, %s, %s) returning id",
+        (f"ask-{name}", f"https://{name}.test/feed", profile, active),
     ).fetchone()
     assert row is not None
     return int(row[0])
@@ -58,21 +57,13 @@ def item(
     return int(row[0])
 
 
-def moment(
-    conn: psycopg.Connection, item_id: int, title: str, vector: list[float]
-) -> int:
-    row = conn.execute(
-        "insert into moment (content_item_id, ordinal, title, estimated_minutes, link, "
-        "link_type) values (%s, 0, %s, 3, 'https://x.test/a#s', 'anchor') returning id",
-        (item_id, title),
-    ).fetchone()
-    assert row is not None
+def embedded(conn: psycopg.Connection, item_id: int, vector: list[float]) -> int:
     conn.execute(
-        "insert into moment_embedding (moment_id, model, embedding) "
+        "insert into item_embedding (content_item_id, model, embedding) "
         "values (%s, 'ask-m', %s::vector)",
-        (row[0], vec(vector)),
+        (item_id, vec(vector)),
     )
-    return int(row[0])
+    return item_id
 
 
 def test_retrieval_respects_hiding_links_switches_and_rights(
@@ -88,10 +79,10 @@ def test_retrieval_respects_hiding_links_switches_and_rights(
         "insert into user_hidden_source (user_id, source_id) values ('ask-u1', %s)",
         (hidden,),
     )
-    kept = moment(conn, item(conn, full, "ask-a"), "Partitioning", NEAR)
-    moment(conn, item(conn, full, "ask-broken", broken=True), "Broken", NEAR)
-    moment(conn, item(conn, hidden, "ask-h"), "Hidden", NEAR)
-    moment(conn, item(conn, off, "ask-off"), "Off", NEAR)
+    kept = embedded(conn, item(conn, full, "ask-a"), NEAR)
+    embedded(conn, item(conn, full, "ask-broken", broken=True), NEAR)
+    embedded(conn, item(conn, hidden, "ask-h"), NEAR)
+    embedded(conn, item(conn, off, "ask-off"), NEAR)
     concept = conn.execute(
         "insert into concept (slug, name, topic) values "
         "('ask-sharding', 'Sharding', 'databases') returning id"
@@ -122,11 +113,11 @@ def test_retrieval_respects_hiding_links_switches_and_rights(
         )
     found = PostgresAsk(conn).nearest("ask-u1", NEAR, "ask-m", 8)
     by_id = {p.passage: p for p in found}
-    assert f"m{kept}" in by_id
-    assert {p.title for p in found if p.kind == "moment"} == {
-        "Item ask-a: Partitioning"
-    }
-    assert by_id[f"m{kept}"].score > 0.99
+    articles = [p for p in found if p.rights_profile == "full_text_internal"]
+    assert [(p.passage, p.kind, p.title) for p in articles] == [
+        (f"i{kept}", "item", "Item ask-a")
+    ]
+    assert by_id[f"i{kept}"].rights_profile == "full_text_internal"
     assert by_id[f"c{concept[0]}"].script == "An approved script."
     assert by_id[f"i{meta_item}"].excerpt is None
     assert by_id[f"i{meta_item}"].concept_names == ["Sharding"]
@@ -192,7 +183,7 @@ def test_a_waiting_question_its_thread_level_and_stack(
     )
     store = PostgresAsk(conn)
     q1 = ask(conn, "ask-u2", "first")
-    store.save(q1, AskResult("answered", "One.", [{"passage": "m1"}], "m", 1))
+    store.save(q1, AskResult("answered", "One.", [{"passage": "i1"}], "m", 1))
     q2 = ask(conn, "ask-u2", "second", follow_up_of=q1)
     q3 = ask(conn, "ask-u2", "third", follow_up_of=q2, chip="my_stack")
     request = store.to_answer(q3)

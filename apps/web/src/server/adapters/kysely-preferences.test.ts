@@ -57,7 +57,6 @@ test("onboarding's choices are kept once; a second create changes nothing", asyn
       goals: ["system-design-interviews"],
       topics: ["databases"],
       level: "beginner",
-      breakLength: "1-3",
     };
     expect(await store.createIfAbsent(userId, first)).toBe(true);
     expect(
@@ -65,11 +64,19 @@ test("onboarding's choices are kept once; a second create changes nothing", asyn
         goals: ["system-design-interviews"],
         topics: ["backend"],
         level: "advanced",
-        breakLength: "8-15",
       }),
     ).toBe(false);
     const stored = await store.get(userId);
     expect(stored).toMatchObject(first);
+    // ADR-0058: no break length is asked or read back; the NOT NULL column holds the
+    // one feed's chip until stage C drops it.
+    expect(stored).not.toHaveProperty("breakLength");
+    const row = await trx
+      .selectFrom("user_preferences")
+      .select("break_length")
+      .where("user_id", "=", userId)
+      .executeTakeFirstOrThrow();
+    expect(row.break_length).toBe("3-8");
     // When onboarding saved them: the home page waits for a first feed only just after.
     expect(stored?.onboardedAt).toBeInstanceOf(Date);
   });
@@ -83,7 +90,6 @@ test("the account's first name comes with the preferences", async () => {
       goals: ["system-design-interviews"],
       topics: ["databases"],
       level: "beginner",
-      breakLength: "1-3",
     });
     const named = async (name: string) => {
       await trx
@@ -112,7 +118,6 @@ test("the guest purge takes the preferences with the user", async () => {
       goals: ["system-design-interviews"],
       topics: ["backend"],
       level: "beginner",
-      breakLength: "3-8",
     });
     await trx.deleteFrom("app_user").where("id", "=", userId).execute();
     expect(await store.get(userId)).toBeNull();
@@ -127,7 +132,6 @@ test("the database refuses an empty topic list", async () => {
         goals: ["system-design-interviews"],
         topics: [],
         level: "beginner",
-        breakLength: "1-3",
       }),
     ).rejects.toThrow(/check constraint/);
   });
@@ -140,21 +144,19 @@ test("the database refuses an empty goal list (ADR-0015)", async () => {
         goals: [],
         topics: ["backend"],
         level: "beginner",
-        breakLength: "1-3",
       }),
     ).rejects.toThrow(/check constraint/);
   });
 });
 
 // P1-W4-S08: the Profile page edits the explicit choices (PER-1).
-test("an edit replaces the four choices and keeps when onboarding happened", async () => {
+test("an edit replaces the three choices and keeps when onboarding happened", async () => {
   await withUser(async (trx, userId) => {
     const store = kyselyPreferences(trx);
     await store.createIfAbsent(userId, {
       goals: ["stay-sharp"],
       topics: ["databases"],
       level: "beginner",
-      breakLength: "1-3",
     });
     const before = await store.get(userId);
     const edited: Preferences = {
@@ -162,7 +164,6 @@ test("an edit replaces the four choices and keeps when onboarding happened", asy
       goals: ["system-design-interviews", "stay-sharp"],
       topics: ["system-design", "backend"],
       level: "advanced",
-      breakLength: "8-15",
     };
     expect(await store.update(userId, edited)).toBe(true);
     const after = await store.get(userId);

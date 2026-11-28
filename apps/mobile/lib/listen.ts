@@ -262,15 +262,12 @@ export function createListen(deps: ListenDeps) {
     }
   }
 
-  async function enqueue(
-    itemId: string,
-    momentId: string | null,
-  ): Promise<boolean> {
+  async function enqueue(itemId: string): Promise<boolean> {
     try {
       const queued = await got(
         await deps.api("/api/listen", {
           method: "POST",
-          body: { itemId, ...(momentId === null ? {} : { momentId }) },
+          body: { itemId },
         }),
         ListenQueued,
         "listen: queue",

@@ -4,8 +4,7 @@ import { z } from "zod";
 export const EVENT_NAMES = [
   "agent_task_finished",
   "agent_task_started",
-  "also_fits_opened",
-  "article_finished",
+  "article_completed",
   "ask_answered",
   "ask_session_started",
   "ask_submitted",
@@ -61,7 +60,6 @@ export const EVENT_NAMES = [
   "quiz_finished",
   "quiz_started",
   "reason_reported",
-  "section_finished",
   "session_started",
   "signup_completed",
   "source_hidden",
@@ -74,10 +72,9 @@ export type EventName = (typeof EVENT_NAMES)[number];
 export const EVENT_VERSIONS = {
   agent_task_finished: 1,
   agent_task_started: 1,
-  also_fits_opened: 1,
-  article_finished: 3,
+  article_completed: 1,
   ask_answered: 1,
-  ask_session_started: 1,
+  ask_session_started: 2,
   ask_submitted: 1,
   battle_window_grouped: 1,
   book_checkpoint_finished: 1,
@@ -87,10 +84,10 @@ export const EVENT_VERSIONS = {
   book_session_finished: 1,
   book_uploaded: 1,
   card_impression: 1,
-  card_opened: 4,
+  card_opened: 5,
   checkpoint_finished: 1,
   checkpoint_started: 1,
-  concept_missed: 1,
+  concept_missed: 2,
   continue_clicked: 1,
   country_changed: 1,
   estimate_answered: 1,
@@ -115,10 +112,10 @@ export const EVENT_VERSIONS = {
   lld_practice_submitted: 1,
   match_finished: 1,
   match_found: 2,
-  note_deleted: 1,
-  note_saved: 1,
+  note_deleted: 2,
+  note_saved: 2,
   onboarding_completed: 1,
-  outbound_click: 1,
+  outbound_click: 2,
   path_paused: 1,
   path_section_skipped: 2,
   path_started: 1,
@@ -126,12 +123,11 @@ export const EVENT_VERSIONS = {
   player_unfollowed: 1,
   push_setting_changed: 2,
   pwa_installed: 1,
-  question_flagged: 1,
+  question_flagged: 2,
   quiz_answered: 1,
   quiz_finished: 1,
-  quiz_started: 2,
+  quiz_started: 3,
   reason_reported: 1,
-  section_finished: 3,
   session_started: 1,
   signup_completed: 1,
   source_hidden: 1,
@@ -146,12 +142,7 @@ export const propsSchemas = {
     place_saved: z.boolean(),
   }),
   agent_task_started: z.strictObject({}),
-  also_fits_opened: z.strictObject({
-    kind: z.enum(["daily", "review", "explainer"]),
-    position: z.number().int().nonnegative(),
-    chip: z.enum(["1-3", "3-8", "8-15"]),
-  }),
-  article_finished: z.strictObject({
+  article_completed: z.strictObject({
     method: z.enum(["return_prompt", "mark_done", "auto"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
@@ -169,7 +160,7 @@ export const propsSchemas = {
     cost_micro_usd: z.number().int().nonnegative(),
   }),
   ask_session_started: z.strictObject({
-    moment_count: z.number().int().nonnegative(),
+    article_count: z.number().int().nonnegative(),
     minutes: z.number().int().nonnegative(),
   }),
   ask_submitted: z.strictObject({
@@ -217,14 +208,8 @@ export const propsSchemas = {
   }),
   card_impression: z.strictObject({}),
   card_opened: z.strictObject({
-    kind: z.enum(["moment", "article"]),
-    chip: z.enum(["1-3", "3-8", "8-15"]),
     position: z.number().int().nonnegative(),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    moment_id: z
-      .string()
-      .regex(/^[1-9][0-9]{0,18}$/)
-      .nullable(),
     surface: z.enum(["in_app", "browser"]),
     via: z.enum(["feed", "agent"]),
   }),
@@ -244,7 +229,6 @@ export const propsSchemas = {
   concept_missed: z.strictObject({
     game: z.enum(["sprint", "estimation", "daily", "live"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    moment_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   continue_clicked: z.strictObject({}),
   country_changed: z.strictObject({ action: z.enum(["set", "removed"]) }),
@@ -328,23 +312,12 @@ export const propsSchemas = {
   }),
   note_deleted: z.strictObject({
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    moment_id: z
-      .string()
-      .regex(/^[1-9][0-9]{0,18}$/)
-      .nullable(),
   }),
   note_saved: z.strictObject({
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    moment_id: z
-      .string()
-      .regex(/^[1-9][0-9]{0,18}$/)
-      .nullable(),
   }),
   onboarding_completed: z.strictObject({}),
-  outbound_click: z.strictObject({
-    link_type: z.enum(["anchor", "text_fragment", "page_top", "article"]),
-    target: z.enum(["section", "original"]),
-  }),
+  outbound_click: z.strictObject({ target: z.enum(["article", "original"]) }),
   path_paused: z.strictObject({
     path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     cause: z.enum(["user", "started_other"]),
@@ -371,7 +344,7 @@ export const propsSchemas = {
   pwa_installed: z.strictObject({}),
   question_flagged: z.strictObject({
     question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    reason: z.enum(["wrong_key", "unclear", "not_in_section", "other"]),
+    reason: z.enum(["wrong_key", "unclear", "not_in_article", "other"]),
   }),
   quiz_answered: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -391,10 +364,6 @@ export const propsSchemas = {
       .string()
       .regex(/^[1-9][0-9]{0,18}$/)
       .nullable(),
-    moment_id: z
-      .string()
-      .regex(/^[1-9][0-9]{0,18}$/)
-      .nullable(),
   }),
   reason_reported: z.strictObject({
     kind: z.enum([
@@ -407,11 +376,6 @@ export const propsSchemas = {
       "freshness",
       "explore",
     ]),
-  }),
-  section_finished: z.strictObject({
-    method: z.enum(["return_prompt", "mark_done", "auto"]),
-    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    moment_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   session_started: z.strictObject({}),
   signup_completed: z.strictObject({}),
@@ -471,15 +435,9 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   }),
   z.strictObject({
     ...base,
-    name: z.literal("also_fits_opened"),
+    name: z.literal("article_completed"),
     version: z.literal(1),
-    props: propsSchemas.also_fits_opened,
-  }),
-  z.strictObject({
-    ...base,
-    name: z.literal("article_finished"),
-    version: z.literal(3),
-    props: propsSchemas.article_finished,
+    props: propsSchemas.article_completed,
   }),
   z.strictObject({
     ...base,
@@ -490,7 +448,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("ask_session_started"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.ask_session_started,
   }),
   z.strictObject({
@@ -550,7 +508,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("card_opened"),
-    version: z.literal(4),
+    version: z.literal(5),
     props: propsSchemas.card_opened,
   }),
   z.strictObject({
@@ -568,7 +526,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("concept_missed"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.concept_missed,
   }),
   z.strictObject({
@@ -718,13 +676,13 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("note_deleted"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.note_deleted,
   }),
   z.strictObject({
     ...base,
     name: z.literal("note_saved"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.note_saved,
   }),
   z.strictObject({
@@ -736,7 +694,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("outbound_click"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.outbound_click,
   }),
   z.strictObject({
@@ -784,7 +742,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("question_flagged"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.question_flagged,
   }),
   z.strictObject({
@@ -802,7 +760,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("quiz_started"),
-    version: z.literal(2),
+    version: z.literal(3),
     props: propsSchemas.quiz_started,
   }),
   z.strictObject({
@@ -810,12 +768,6 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("reason_reported"),
     version: z.literal(1),
     props: propsSchemas.reason_reported,
-  }),
-  z.strictObject({
-    ...base,
-    name: z.literal("section_finished"),
-    version: z.literal(3),
-    props: propsSchemas.section_finished,
   }),
   z.strictObject({
     ...base,

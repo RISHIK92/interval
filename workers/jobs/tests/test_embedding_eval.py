@@ -1,5 +1,6 @@
 """The embeddings eval (ADR-0007, Q-P1-27, P1-W3-S04): owner queries with their
-relevant moments; a candidate Voyage model is scored on recall and cost."""
+relevant articles (one vector each, ADR-0058); a candidate Voyage model is scored on
+recall and cost."""
 
 from decimal import Decimal
 
@@ -15,26 +16,30 @@ from interval_jobs.ports import (
     Embeddings,
     FeedEntry,
     Message,
-    MomentRow,
 )
 
-URL = "https://s.test/p"
+LOG = "https://s.test/log"
+CRASH = "https://s.test/crash"
+INTRO = "https://s.test/intro"
 QUERIES = f"""version: 1
 queries:
   - query: why write the log first
-    relevant: [{{url: "{URL}", moment: Why a log}}]
+    relevant: [{{url: "{LOG}", moment: Why a log}}]
   - query: what happens after a crash
-    relevant: [{{url: "{URL}", moment: Recovery}}]
+    relevant: [{{url: "{CRASH}"}}]
+distractors: ["{INTRO}"]
 """
 
 
 def test_queries_are_read_and_checked() -> None:
-    queries = parse_queries(QUERIES + "distractors: [https://other.test/x]\n", "q.yaml")
-    assert queries.distractors == ["https://other.test/x"]
+    queries = parse_queries(QUERIES, "q.yaml")
+    assert queries.distractors == [INTRO]
     assert [q.query for q in queries.queries] == [
         "why write the log first",
         "what happens after a crash",
     ]
+    # A moment-era entry's heading no longer counts: the article is the unit.
+    assert queries.queries[0].relevant == frozenset({LOG})
     with pytest.raises(EvalError, match="relevant"):
         parse_queries("version: 1\nqueries:\n  - {query: x, relevant: []}\n", "q.yaml")
 
@@ -78,38 +83,33 @@ def stocked() -> tuple[InMemoryStore, AiGateway]:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    store.sources.set_moments_enabled(sid, True)
-    entry = FeedEntry(
-        guid="g",
-        link=URL,
-        title="T",
-        author=None,
-        published_at=None,
-        updated_at=None,
-        summary=None,
-    )
-    item = store.items.upsert_from_feed(sid, entry, keep_excerpt=False)
-    store.items.store_full_text(
-        item, "intro text\nWhy a log\nthe log comes first\nRecovery\nafter a crash"
-    )
-    store.moments.replace(
-        item,
-        [
-            MomentRow(0, "T", 1, URL, "page_top"),
-            MomentRow(1, "Why a log", 1, f"{URL}#a", "anchor"),
-            MomentRow(2, "Recovery", 1, f"{URL}#b", "anchor"),
-        ],
-    )
+    for url, text in (
+        (LOG, "the log comes first"),
+        (CRASH, "after a crash"),
+        (INTRO, "intro text"),
+    ):
+        entry = FeedEntry(
+            guid=url,
+            link=url,
+            title="T",
+            author=None,
+            published_at=None,
+            updated_at=None,
+            summary=None,
+        )
+        item = store.items.upsert_from_feed(sid, entry, keep_excerpt=False)
+        store.items.store_full_text(item, text)
     return store, AiGateway(InMemoryAi(store.users), NoLlm(), KeywordVoyage())
 
 
-def test_the_eval_ranks_the_pool_and_stores_nothing() -> None:
+def test_the_eval_ranks_the_pool_of_articles_and_stores_nothing() -> None:
     store, gateway = stocked()
     queries = parse_queries(QUERIES, "q.yaml")
     report = run_eval(gateway, "voyage-3.5", store, queries, min_pool=3)
-    # Each query's own moment ranks first: a broken ranking would fail this.
+    # Each query's own article ranks first: a broken ranking would fail this.
     assert (report.queries, report.pool, report.mrr) == (2, 3, 1.0)
-    assert report.cost_usd == Decimal("0.002")  # one pool call, one query call
+    # One call per article, one for the queries.
+    assert report.cost_usd == Decimal("0.004")
     assert all(store.embeddings.missing(i, "voyage-3.5") for i in store.items.rows)
 
 
@@ -119,8 +119,8 @@ def test_a_pool_too_small_to_tell_models_apart_is_refused() -> None:
         run_eval(gateway, "voyage-3.5", store, parse_queries(QUERIES, "q.yaml"))
 
 
-def test_a_labelled_moment_missing_from_the_text_is_an_error_not_a_miss() -> None:
+def test_a_labelled_article_missing_from_the_database_is_an_error() -> None:
     store, gateway = stocked()
-    typo = parse_queries(QUERIES.replace("moment: Recovery", "moment: Recovry"), "q")
-    with pytest.raises(EvalError, match="not in the stored text"):
+    typo = parse_queries(QUERIES.replace(CRASH, CRASH + "x"), "q")
+    with pytest.raises(EvalError, match="not in this database"):
         run_eval(gateway, "voyage-3.5", store, typo, min_pool=3)

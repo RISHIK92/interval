@@ -24,15 +24,14 @@ from interval_jobs.ports import (
     Message,
 )
 from interval_jobs.questions import plain_words
-from interval_jobs.tagging import moment_texts
 
 PROMPT_VERSION = 1
 # 60 to 120 seconds spoken (Q-P4-11) at about 150 words a minute.
 MIN_WORDS = 150
 MAX_WORDS = 300
-SOURCES = 3  # sections from distinct articles given to the model
+SOURCES = 3  # distinct articles given to the model
 MIN_SOURCES = 2  # "several sources" (§5G): a script cites at least two
-SOURCE_CHARS = 6000  # of each section, to keep the call within the budget
+SOURCE_CHARS = 6000  # of each article (ADR-0058: from its top), within the budget
 CITATION_WORDS = 3
 # A quote to check against, never shown or voiced: kept short so no source text is
 # stored at length beside the script (AI-3, ING-2), as questions keep theirs.
@@ -71,8 +70,8 @@ class _Reply(BaseModel):
 
 @dataclass(frozen=True)
 class Source:
-    moment_id: int
-    title: str  # "Article: Section", for the prompt
+    item_id: int
+    title: str  # the article's, for the prompt
     text: str
 
 
@@ -120,7 +119,7 @@ def parse_reply(
             raise ExplainerReplyError(f"source {c.source} wasn't given")
         source = sources[c.source - 1]
         quote = c.quote.strip()
-        # As questions check theirs: the words must be the section's own, whole.
+        # As questions check theirs: the words must be the article's own, whole.
         if (
             len(quote.split()) < CITATION_WORDS
             or len(quote) > CITATION_CHARS
@@ -128,10 +127,10 @@ def parse_reply(
             not in f" {plain_words(source.text[:SOURCE_CHARS])} "
         ):
             raise ExplainerReplyError(f"a citation isn't in source {c.source}")
-        # One citation a section: the first quote stands for it.
-        if all(kept.moment_id != source.moment_id for kept in citations):
-            citations.append(ExplainerCitation(source.moment_id, quote))
-    if len({c.moment_id for c in citations}) < MIN_SOURCES:
+        # One citation an article: the first quote stands for it.
+        if all(kept.content_item_id != source.item_id for kept in citations):
+            citations.append(ExplainerCitation(source.item_id, quote))
+    if len({c.content_item_id for c in citations}) < MIN_SOURCES:
         raise ExplainerReplyError(f"fewer than {MIN_SOURCES} sources cited")
     if any(_copied(script, s.text) for s in sources):
         raise ExplainerReplyError(f"{COPIED_RUN} or more words copied from a source")
@@ -164,11 +163,9 @@ def _sources(store: HasExplainers, concept_id: int) -> list[Source]:
         # Read under the source's current rights only (ING-2): none, no source.
         if item is None or item.full_text is None:
             continue
-        text = moment_texts(item.full_text, item.moments).get(s.moment_id, "").strip()
+        text = item.full_text.strip()
         if text:
-            found.append(
-                Source(s.moment_id, f"{s.article_title}: {s.section_title}", text)
-            )
+            found.append(Source(s.item_id, s.article_title, text))
     return found
 
 

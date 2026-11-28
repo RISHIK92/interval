@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 // P4-W22-S01 (§5G, AI-1, AI-3, Q-P4-11, ADR-0038): concept explainer scripts, written by
 // EXPLAINER_MODEL from full-text sources (`write-explainers`), each approved or rejected
 // here before it is voiced. The script is the model's, so labeled; its citations are the
-// sections it quotes, linked to the publisher's page (§3.2), never their text. Below
+// articles it quotes (ADR-0058), linked to the publisher's page (§3.2), never their
+// text. Below
 // them, P4.5-W26-S02 (Q-P4.5-03): drafted scene timelines, drawn and stepped through,
 // approved only when they keep every rule.
 export default async function ExplainersPage(props: {
@@ -74,14 +75,14 @@ export default async function ExplainersPage(props: {
                   <h3 className="font-semibold">Sources</h3>
                   <ul className="list-disc pl-5">
                     {x.citations.map((c) => (
-                      <li key={c.momentId}>
+                      <li key={c.itemId}>
                         <a
                           href={c.link}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="underline"
                         >
-                          {c.articleTitle}: {c.sectionTitle}
+                          {c.articleTitle}
                         </a>
                       </li>
                     ))}
@@ -90,8 +91,8 @@ export default async function ExplainersPage(props: {
                 {x.missing === 0 ? null : (
                   <p className="text-wrong">
                     {x.missing === 1
-                      ? "1 cited section is"
-                      : `${String(x.missing)} cited sections are`}{" "}
+                      ? "1 cited article is"
+                      : `${String(x.missing)} cited articles are`}{" "}
                     gone since it was written.
                   </p>
                 )}

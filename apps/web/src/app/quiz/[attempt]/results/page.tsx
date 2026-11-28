@@ -1,11 +1,8 @@
 import { AiDrafted } from "../../../ui/AiDrafted";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
-import { CHIPS } from "../../../../server/chips";
-import { progress, quizzes, sessionReader } from "../../../../server/container";
+import { quizzes, sessionReader } from "../../../../server/container";
 import { missed, points } from "@interval/scoring";
-import { outHref, readHref } from "../../../../server/outbound";
 import {
   BIGINT_ID,
   checkpointHome,
@@ -14,6 +11,7 @@ import {
 import { STATE_WORDS } from "../../../learnerState";
 import { amount, verdict } from "../../estimateText";
 import { SourceAnchor, sourceLink } from "../../sourceLink";
+import { StartQuiz } from "../../StartQuiz";
 import { ShareButton } from "./ShareButton";
 import {
   startBookCheckpointAction,
@@ -22,39 +20,29 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const Query = z.object({ chip: z.enum(CHIPS) });
-
 // Test 60s results (P2-W9-S02; wireframe 14, variant test): how it went, each
-// concept's state, and the next section. A checkpoint's (P2-W10-S04, Q-P2-26) says
+// concept's state, and (ADR-0058) the article's quiz offered again. A checkpoint's (P2-W10-S04, Q-P2-26) says
 // whether it passed and what that unlocked (a book chapter's, P2-W11-S06: what is now
 // practiced), or offers another try.
+// ADR-0058: no chip rides along any more; a stray ?chip= from an old link is ignored.
 export default async function ResultsPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ attempt: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   const { attempt: attemptId } = await params;
-  const parsed = Query.safeParse(await searchParams);
-  if (!BIGINT_ID.test(attemptId) || !parsed.success) redirect("/");
-  const { chip } = parsed.data;
+  if (!BIGINT_ID.test(attemptId)) redirect("/");
   const attempt = await quizzes().attempt(actor.userId, attemptId);
   if (attempt === null) redirect("/");
-  if (attempt.finishedAt === null) redirect(`/quiz/${attemptId}?chip=${chip}`);
-  const { itemId, momentId, checkpoint, estimation, daily } = attempt;
+  if (attempt.finishedAt === null) redirect(`/quiz/${attemptId}`);
+  const { itemId, checkpoint, estimation, daily } = attempt;
   // P3-W13-S05: the daily challenge scores in points, as estimation does, and lists
   // its estimates the same way.
   const scored = estimation ?? daily;
   // A game from Play goes back to Play.
   const game = attempt.sprint || daily !== null;
-  // A review (P2-W9-S05) has no section to continue.
-  const next =
-    itemId === null || momentId === null
-      ? null
-      : await progress().nextMoment(itemId, momentId);
   // A sprint ends at its clock at the latest; a review whenever it was finished.
   const usedMs =
     Math.min(
@@ -83,33 +71,16 @@ export default async function ResultsPage({
       label: "Time used",
     },
   ];
-  const nextHref =
-    next === null || itemId === null
-      ? null
-      : next.frameable
-        ? readHref({
-            itemId,
-            momentId: next.momentId,
-            chip,
-            from: "continue",
-          })
-        : outHref({
-            itemId,
-            momentId: next.momentId,
-            from: "continue",
-            target: "section",
-          });
-  const link = (source: EstimateSource) =>
-    sourceLink(source, chip, actor.isGuest);
+  const link = (source: EstimateSource) => sourceLink(source, actor.isGuest);
   // §6.1 (owner, 2026-10-31): an estimate under half points sends its source back to
-  // reading, once per page or section; a sprint's misses, their sections.
+  // reading, once per page or article; a sprint's misses, their articles (ADR-0058).
   const readAgain = [
     ...new Map(
       [
         ...(scored?.answers ?? []).flatMap((a) =>
           a.source !== null && missed(a.score) ? [link(a.source)] : [],
         ),
-        ...attempt.missed.map((m) => link({ kind: "section", ...m })),
+        ...attempt.missed.map((m) => link({ kind: "article", ...m })),
       ].map((l) => [l.href, l]),
     ).values(),
   ];
@@ -273,22 +244,6 @@ export default async function ResultsPage({
             </ul>
           </section>
         )}
-        {next === null || nextHref === null ? null : (
-          <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-ink-muted lg:text-section lg:text-ink">
-              Queued next
-            </h2>
-            <a
-              href={nextHref}
-              {...(next.frameable
-                ? {}
-                : { target: "_blank", rel: "noopener noreferrer" })}
-              className="rounded-2xl border border-hairline px-4 py-3 font-semibold lg:rounded-[18px] lg:bg-card lg:px-5 lg:py-4 lg:hover:border-hairline-strong"
-            >
-              {next.title}
-            </a>
-          </section>
-        )}
         <div className="mt-auto flex flex-col gap-2 lg:mt-1 lg:flex-row lg:flex-wrap lg:items-center lg:gap-2.5">
           {checkpoint === null || checkpoint.passed ? null : (
             <form
@@ -311,7 +266,6 @@ export default async function ResultsPage({
                   value={checkpoint.at.chapterId}
                 />
               )}
-              <input type="hidden" name="chip" value={chip} />
               <input
                 type="hidden"
                 name="back"
@@ -325,16 +279,16 @@ export default async function ResultsPage({
               </button>
             </form>
           )}
-          {nextHref === null ? null : (
-            <a
-              href={nextHref}
-              {...(next?.frameable === true
-                ? {}
-                : { target: "_blank", rel: "noopener noreferrer" })}
-              className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page lg:h-12 lg:px-6 lg:py-0"
+          {/* ADR-0058: an article's quiz is always on offer, so it can be taken
+          again straight from its results. */}
+          {itemId === null ? null : (
+            <StartQuiz
+              itemId={itemId}
+              back={`/quiz/${attemptId}/results`}
+              className="inline-flex w-full items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page lg:h-12 lg:w-auto lg:px-6 lg:py-0"
             >
-              Continue reading
-            </a>
+              Quiz me again
+            </StartQuiz>
           )}
           <a
             href={
@@ -344,7 +298,7 @@ export default async function ResultsPage({
                   ? "/library"
                   : game
                     ? "/play"
-                    : `/?chip=${chip}`
+                    : "/"
             }
             className={`inline-flex items-center justify-center rounded-full px-5 py-3 font-semibold lg:h-12 lg:px-6 lg:py-0 ${
               checkpoint?.passed === true

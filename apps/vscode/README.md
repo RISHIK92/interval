@@ -16,14 +16,12 @@ a quick session that fits the wait in your browser. Works in VS Code and in Curs
 
 - `interval.url`: your Interval site. https only; plain http only for `localhost`,
   `127.0.0.1` and `::1`, since the token travels with every request.
-- `interval.chip`: the break length the suggestions fit (`1-3`, `3-8` or `8-15`
-  minutes). Empty uses the one you chose on Interval.
 
 ## What it shows
 
 - The status bar: the agent working (and for how long), done, or idle. Click it, or run
-  **Interval: Open a quick session**, to pick one of up to 3 suggestions; with none, it
-  opens Interval's Home at your break length.
+  **Interval: Open a quick session**, to pick one of up to 3 suggestions (your feed's
+  first articles); with none, it opens Interval's Home.
 - Problems (a refused token, a plan without the agent hook, a site that can't be
   reached) show in the item's tooltip.
 

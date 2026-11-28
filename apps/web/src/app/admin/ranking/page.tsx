@@ -1,4 +1,3 @@
-import { CHIPS, parseChip } from "../../../server/chips";
 import { rankingInspection } from "../../../server/container";
 import type { RankingSetting, ScoreBreakdown } from "../../../server/ports";
 import { Card } from "../../ui/Card";
@@ -47,14 +46,13 @@ function BreakdownCells(props: {
 // ranking_config values to tune it. A change recomputes the owner's feed now and
 // everyone else's at their next hourly recompute.
 export default async function RankingPage(props: {
-  searchParams: Promise<{ chip?: string; saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   const actor = await requireAdmin();
   const params = await props.searchParams;
-  const chip = parseChip(params.chip) ?? CHIPS[0];
   const ranking = rankingInspection();
   const [entries, settings] = await Promise.all([
-    ranking.entries(actor.userId, chip),
+    ranking.entries(actor.userId),
     ranking.settings(),
   ]);
   const weights: RankingSetting[] = settings.filter((s) =>
@@ -79,27 +77,8 @@ export default async function RankingPage(props: {
           </p>
         </Card>
       ) : null}
-      <nav aria-label="Break length">
-        <ul className="flex gap-1 text-sm">
-          {CHIPS.map((c) => (
-            <li key={c}>
-              {c === chip ? (
-                <strong className="block rounded-xl bg-ink px-3 py-1.5 text-page">
-                  {c} min
-                </strong>
-              ) : (
-                <a
-                  href={`/admin/ranking?chip=${c}`}
-                  className="block rounded-xl border border-hairline px-3 py-1.5"
-                >
-                  {c} min
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <h2 className="text-section">Your feed, {chip} min</h2>
+      {/* ADR-0058: one feed, no break-length chips. */}
+      <h2 className="text-section">Your feed</h2>
       {entries.length === 0 ? (
         <p className="text-sm text-ink-muted">No entries yet.</p>
       ) : (
@@ -125,8 +104,7 @@ export default async function RankingPage(props: {
                 <tr key={entry.rank}>
                   <td>{entry.rank}</td>
                   <td>
-                    {entry.sectionTitle ?? entry.articleTitle}
-                    {entry.sectionTitle === null ? " (whole article)" : ""}
+                    {entry.articleTitle}
                     {" — "}
                     {entry.sourceName}
                     {entry.explored
@@ -161,7 +139,6 @@ export default async function RankingPage(props: {
             className="flex items-end gap-3 py-3 text-sm"
           >
             <input type="hidden" name="key" value={setting.key} />
-            <input type="hidden" name="chip" value={chip} />
             <label className="flex-1">
               <span className="font-semibold">{setting.key}</span>{" "}
               <span className="text-ink-muted">({setting.note})</span>

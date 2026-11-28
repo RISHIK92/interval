@@ -10,10 +10,10 @@ import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
 
-// Notes (§5I, Q-P2-01, P2-W7-S03): a private note on the section being read, or on
-// the article when there is no section. The Library edits a note by its own id
-// (P2-W7-S04), which also reaches one whose section was re-segmented away. Saving an
-// empty note deletes it.
+// Notes (§5I, Q-P2-01, P2-W7-S03): a private note on the article being read
+// (ADR-0058; a section sent by an older page is ignored). The Library edits a note by
+// its own id (P2-W7-S04), which also reaches an earlier section note. Saving an empty
+// note deletes it.
 const Body = z.string().trim().max(2000);
 const Note = z.union([
   z.object({
@@ -24,7 +24,6 @@ const Note = z.union([
   z.object({
     control: z.enum(["save", "delete"]),
     itemId: z.string().regex(BIGINT_ID),
-    momentId: z.string().regex(BIGINT_ID).optional(),
     body: Body,
   }),
 ]);
@@ -38,12 +37,7 @@ export async function noteAction(form: FormData): Promise<void> {
   const noteId = textField(form, "noteId");
   const parsed = Note.safeParse({
     control: textField(form, "control"),
-    ...(noteId === ""
-      ? {
-          itemId: textField(form, "itemId"),
-          momentId: textField(form, "momentId") || undefined,
-        }
-      : { noteId }),
+    ...(noteId === "" ? { itemId: textField(form, "itemId") } : { noteId }),
     // Browsers send a text area's newlines as CRLF but its maxLength counts each
     // once; count and store them as the user saw them.
     body: textField(form, "body").replaceAll("\r\n", "\n"),
@@ -73,7 +67,7 @@ export async function noteAction(form: FormData): Promise<void> {
   }
   await writeNote(
     context,
-    { itemId: note.itemId, momentId: note.momentId ?? null },
+    { itemId: note.itemId },
     // A delete is an empty save.
     note.control === "save" ? note.body : "",
   );

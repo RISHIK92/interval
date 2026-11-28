@@ -1,5 +1,5 @@
 """Heading text, cleaned the same way wherever it is compared: the extractor matching
-publisher ids, and tagging finding a moment's heading line in the stored text."""
+publisher ids, and tagging finding a section's heading line in the stored text."""
 
 import unicodedata
 

@@ -5,11 +5,12 @@ import { ALLOWED } from "./path-rights";
 // over the user's own copy of the path (P2-W10-S05, Q-P2-23).
 type Ref = RawBuilder<unknown>;
 
-// A section's sessions in the user's copy: their swapped moment while its rights allow
-// it (ING-2), else the approved one; a swap comes back if its source does. The rule is
-// the SQL function user_path_sessions, shared with the worker's path reminder (ARCH-2).
+// A section's sessions in the user's copy: their swapped article while its rights
+// allow it (ING-2), else the approved one; a swap comes back if its source does.
+// ADR-0058: by article. The rule is the SQL function user_path_articles, shared with
+// the worker's path reminder (ARCH-2).
 export const sessions = (userId: string, section: Ref) => sql`
-  select ordinal, moment_id from user_path_sessions(${userId}, ${section})
+  select ordinal, content_item_id from user_path_articles(${userId}, ${section})
 `;
 
 // A section's place in the user's order: theirs once they've edited the path (every
@@ -39,15 +40,15 @@ export const everSkipped = (
 
 // A section's checkpoint questions: live ones whose rights allow them (Q-1, ING-2),
 // from its own readings (tier 0, in reading order), then on its live concepts (tier
-// 1); a question in both is in its first tier.
+// 1); a question in both is in its first tier. ADR-0058: questions by article, in
+// their article slot order.
 export const checkpointQuestions = (userId: string, section: Ref) => sql`
   select distinct on (id) id, tier, ro, qo from (
-    select q.id, 0 as tier, ps.ordinal as ro, q.ordinal as qo
+    select q.id, 0 as tier, ps.ordinal as ro, q.article_ordinal as qo
     from (${sessions(userId, section)}) ps
-    join moment m on m.id = ps.moment_id
-    join content_item ci on ci.id = m.content_item_id
+    join content_item ci on ci.id = ps.content_item_id
     join source so on so.id = ci.source_id
-    join question q on q.moment_id = m.id and q.status = 'live'
+    join question q on q.content_item_id = ci.id and q.status = 'live'
       and q.kind = 'choice'
     where ${ALLOWED}
     union all
@@ -57,8 +58,7 @@ export const checkpointQuestions = (userId: string, section: Ref) => sql`
     join question_concept qc on qc.concept_id = pc.concept_id
     join question q on q.id = qc.question_id and q.status = 'live'
       and q.kind = 'choice'
-    join moment m on m.id = q.moment_id
-    join content_item ci on ci.id = m.content_item_id
+    join content_item ci on ci.id = q.content_item_id
     join source so on so.id = ci.source_id
     where pc.section_id = ${section} and ${ALLOWED}
   ) candidates
@@ -88,20 +88,20 @@ export const sectionOpen = (
     and not ${everSkipped(userId, sql`prev.id`)}
 )`;
 
-// Every reading the user can open is finished: its rights allow it and its link
-// works (ING-6; a broken one can't be read, so it doesn't hold the checkpoint back).
+// Every reading the user can open is completed (ADR-0058): its rights allow it and its
+// link works (ING-6; a broken one can't be read, so it doesn't hold the checkpoint
+// back).
 export const readingsDone = (
   userId: string,
   section: Ref,
 ) => sql<boolean>`not exists (
   select 1 from (${sessions(userId, section)}) ps
-  join moment m on m.id = ps.moment_id
-  join content_item ci on ci.id = m.content_item_id
+  join content_item ci on ci.id = ps.content_item_id
   join source so on so.id = ci.source_id
   where ${ALLOWED} and ci.link_broken_at is null
     and not exists (
-      select 1 from user_moment_finished f
-      where f.user_id = ${userId} and f.moment_id = ps.moment_id
+      select 1 from user_article_finished f
+      where f.user_id = ${userId} and f.content_item_id = ci.id
     )
 )`;
 

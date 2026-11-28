@@ -3,16 +3,17 @@ import { renderRouter } from "expo-router/testing-library";
 import { Linking } from "react-native";
 
 // P4-W20-S02 (ADR-0018, §3.2): the publisher's live page in a WebView, Interval's row
-// below it: Save, Note, Mark done, Next section; Highlight, Listen and Test me later.
+// below it: Save, Note, Done; Highlight later, Listen and Quiz me once there is
+// something. ADR-0058: always the whole article.
 const page = {
-  url: "https://blog.dev/raft?utm_source=interval#election",
+  url: "https://blog.dev/raft?utm_source=interval",
   inApp: true,
-  title: "Leader election — Raft",
+  title: "Raft",
   domain: "blog.dev",
   saved: false,
-  reached: "9",
-  nextMomentId: "10",
+  state: "continue_reading",
   note: null,
+  sectionNotes: [],
   testable: false,
   listen: false,
   measure: null,
@@ -34,7 +35,7 @@ const answer = (reader: object) => {
     ),
   );
 };
-const OPEN = "/read/5?moment=9&chip=3-8&pos=2";
+const OPEN = "/read/5?pos=2";
 const webView = () =>
   screen.getByTestId("publisher-page").props as {
     source: { uri: string };
@@ -58,7 +59,7 @@ test("a feed card's open shows the publisher's page and its site", async () => {
   expect(await screen.findByText("blog.dev")).toBeOnTheScreen();
   expect(webView().source.uri).toBe(page.url);
   expect(calls()[0]).toMatchObject({
-    url: "/api/read/5?moment=9&chip=3-8&pos=2",
+    url: "/api/read/5?pos=2",
     method: "GET",
   });
 });
@@ -77,7 +78,7 @@ test("Save saves through the card controls", async () => {
   });
 });
 
-test("Highlight, Listen and Test me are shown, not usable yet", async () => {
+test("Highlight, Listen and Quiz me are shown, not usable yet", async () => {
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
   expect(
@@ -87,39 +88,62 @@ test("Highlight, Listen and Test me are shown, not usable yet", async () => {
   expect(
     screen.getByRole("button", { name: "Listen. No AI explainer here yet" }),
   ).toBeDisabled();
-  // P4-W21-S01: Test me waits for its section's questions.
+  // P4-W21-S01, ADR-0058: Quiz me waits for the article's questions.
   expect(
-    screen.getByRole("button", { name: "Test me. No questions yet" }),
+    screen.getByRole("button", { name: "Quiz me. No questions yet" }),
   ).toBeDisabled();
 });
 
-test("Mark done finishes what's shown and leaves", async () => {
+test("Done completes the article and leaves", async () => {
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
-  await fireEvent.press(screen.getByRole("button", { name: "Mark done" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Done" }));
   expect(calls()).toContainEqual({
     url: "/api/read/finish",
     method: "POST",
-    body: { itemId: "5", momentId: "9", method: "mark_done" },
+    body: { itemId: "5", method: "mark_done" },
   });
   expect(screen).toHavePathname("/");
 });
 
-test("Next section opens the next moment, from the same card", async () => {
+// ADR-0058: Completed replaces Done.
+test("a completed article says Completed in Done's place", async () => {
+  answer({ ...page, state: "completed" });
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
-  answer({ ...page, reached: "10", nextMomentId: null });
-  await fireEvent.press(screen.getByRole("button", { name: "Next section" }));
-  await act(async () => {
-    await Promise.resolve();
-  });
-  expect(calls().map((c) => c.url)).toContain(
-    "/api/read/5?moment=10&chip=3-8&pos=2",
-  );
+  expect(screen.getByText("Completed")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
+});
+
+test("no Next section: the article is the one reading", async () => {
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
   expect(screen.queryByRole("button", { name: "Next section" })).toBeNull();
 });
 
-test("a note is written on what's shown", async () => {
+// ADR-0058: notes written on a section before it, folded away under the article's.
+test("older section notes are listed, collapsed", async () => {
+  answer({
+    ...page,
+    sectionNotes: [{ sectionTitle: "Leader election", body: "Terms." }],
+  });
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
+  expect(screen.queryByText("Terms.")).toBeNull();
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Notes on sections (1)" }),
+  );
+  expect(screen.getByText("Leader election")).toBeOnTheScreen();
+  expect(screen.getByText("Terms.")).toBeOnTheScreen();
+});
+
+test("no older section notes: nothing to unfold", async () => {
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
+  expect(screen.queryByText(/Notes on sections/)).toBeNull();
+});
+
+test("a note is written on the article", async () => {
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
   await fireEvent.press(screen.getByRole("button", { name: "Note" }));
@@ -131,7 +155,7 @@ test("a note is written on what's shown", async () => {
   expect(calls()).toContainEqual({
     url: "/api/notes",
     method: "PUT",
-    body: { itemId: "5", momentId: "9", body: "Leases bound the term." },
+    body: { itemId: "5", body: "Leases bound the term." },
   });
   expect(await screen.findByText("Note saved")).toBeOnTheScreen();
 });
@@ -154,7 +178,7 @@ test("a page that fails to load offers the browser below it", async () => {
   expect(calls()).toContainEqual({
     url: "/api/read/5/out",
     method: "POST",
-    body: { moment: "9" },
+    body: {},
   });
   open.mockRestore();
 });
@@ -197,7 +221,7 @@ test("loaded in time, no notice; a notice can be dismissed", async () => {
   expect(screen.queryByText("Didn't load?")).toBeNull();
 });
 
-test("a Mark done that fails says so and stays", async () => {
+test("a Done that fails says so and stays", async () => {
   fetchMock.mockImplementation((url) =>
     Promise.resolve(
       url.includes("/api/read/5?")
@@ -207,7 +231,7 @@ test("a Mark done that fails says so and stays", async () => {
   );
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
-  await fireEvent.press(screen.getByRole("button", { name: "Mark done" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Done" }));
   expect(await screen.findByText(/Couldn't mark this done/)).toBeOnTheScreen();
   expect(screen).toHavePathname("/read/5");
 });
@@ -221,12 +245,10 @@ test("a page not served over https goes to the browser, not the WebView", async 
   expect(screen.queryByTestId("publisher-page")).toBeNull();
 });
 
-// P4-W20-S03 (§5D, owner 2026-11-09): read through is 90% of the section after half its
-// minutes (30 s at least); the reader then finishes it once, quietly, and stays.
-const measured = {
-  ...page,
-  measure: { start: { id: "election" }, end: { id: "log" }, minutes: 2 },
-};
+// P4-W20-S03 (§5D, owner 2026-11-09): read through is 90% of the page after half its
+// minutes (30 s at least); the reader then completes the article once, quietly, and
+// stays (ADR-0058).
+const measured = { ...page, measure: { minutes: 2 } };
 const report = async (data: unknown) => {
   await act(async () => {
     webView().onMessage?.({ nativeEvent: { data: JSON.stringify(data) } });
@@ -235,7 +257,7 @@ const report = async (data: unknown) => {
 };
 const finishes = () => calls().filter((c) => c.url === "/api/read/finish");
 
-test("no section to measure: no script", async () => {
+test("an article of unknown length: no script", async () => {
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
   expect(webView().injectedJavaScript).toBeUndefined();
@@ -246,7 +268,7 @@ test("read through before the time floor finishes when it passes, once", async (
   answer(measured);
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
-  expect(webView().injectedJavaScript).toContain('{"id":"election"}');
+  expect(webView().injectedJavaScript).toContain(JSON.stringify(page.url));
   await report({ type: "progress", value: 0.95 });
   expect(finishes()).toEqual([]);
   // Half of 2 minutes is 60 s.
@@ -254,26 +276,27 @@ test("read through before the time floor finishes when it passes, once", async (
     jest.advanceTimersByTime(60_000);
     await Promise.resolve();
   });
-  expect(await screen.findByText("Section finished")).toBeOnTheScreen();
+  expect(await screen.findByText("Completed")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
   await report({ type: "progress", value: 1 });
   expect(finishes()).toEqual([
     {
       url: "/api/read/finish",
       method: "POST",
-      body: { itemId: "5", momentId: "9", method: "auto" },
+      body: { itemId: "5", method: "auto" },
     },
   ]);
   expect(screen).toHavePathname("/read/5");
 });
 
-test("short of 90%, an unmeasurable section or a stray message: never finished", async () => {
+test("short of 90% or a stray message: never finished", async () => {
   jest.useFakeTimers();
   answer({ ...measured, measure: { ...measured.measure, minutes: 1 } });
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
   const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
   await act(async () => {
-    // A one-minute section still waits 30 s.
+    // A one-minute article still waits 30 s.
     jest.advanceTimersByTime(30_000);
     await Promise.resolve();
   });
@@ -283,8 +306,7 @@ test("short of 90%, an unmeasurable section or a stray message: never finished",
   await report({ type: "unmeasurable" });
   expect(finishes()).toEqual([]);
   expect(warn).toHaveBeenCalledWith(
-    "reader: the section isn't in the page",
-    expect.anything(),
+    "reader: a message not from the measuring script",
   );
   warn.mockRestore();
 });
@@ -310,12 +332,19 @@ test("an automatic finish that fails is tried again", async () => {
   });
   await report({ type: "progress", value: 1 });
   expect(finishes()).toHaveLength(1);
-  expect(screen.queryByText("Section finished")).toBeNull();
+  expect(screen.queryByText("Completed")).toBeNull();
   await act(async () => {
     jest.advanceTimersByTime(15_000);
     await Promise.resolve();
   });
-  expect(await screen.findByText("Section finished")).toBeOnTheScreen();
+  expect(await screen.findByText("Completed")).toBeOnTheScreen();
   expect(finishes()).toHaveLength(2);
   warn.mockRestore();
+});
+
+test("a completed article isn't measured again", async () => {
+  answer({ ...measured, state: "completed" });
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
+  expect(webView().injectedJavaScript).toBeUndefined();
 });

@@ -25,10 +25,6 @@ const visibleTo = (userId: string) => sql`
   and not exists (select 1 from user_hidden_source h
                   where h.user_id = ${userId} and h.source_id = s.id)`;
 
-// A moment the feed itself would show: its source makes moments (ING-2).
-const momentsShown = sql`s.moments_enabled
-  and s.rights_profile in ('full_text_internal', 'full_text_display')`;
-
 // An item's topics: its source's, and its concepts'. `ci` and `s` must be in scope.
 const inTopics = (topics: readonly string[]) => sql`(
   s.topics && ${topics}::text[]
@@ -47,11 +43,10 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
   return {
     search: async (userId, query, limit) => {
       // Each kind of match scores; an item's score is their sum. Source, concept and
-      // technology matches weigh less than the item's own words.
+      // technology matches weigh less than the item's own words. ADR-0058: every hit
+      // is the whole article; section titles are no longer something a card shows.
       const { rows } = await sql<{
         item_id: string;
-        moment_id: string | null;
-        title: string | null;
         article_title: string;
         source_name: string;
         author: string | null;
@@ -61,8 +56,7 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
       }>`
         with q as (select websearch_to_tsquery('english', ${query}) as q),
         visible as (
-          select ci.id, ci.search_vector, s.name,
-                 (${momentsShown}) as shows_moments
+          select ci.id, ci.search_vector, s.name
           from content_item ci join source s on s.id = ci.source_id
           where ${visibleTo(userId)}
         ),
@@ -73,49 +67,35 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
                 @@ q.q
         ),
         hits as (
-          select v.id as item_id, null::bigint as moment_id,
-                 ts_rank(v.search_vector, q.q) as score
+          select v.id as item_id, ts_rank(v.search_vector, q.q) as score
           from visible v, q where v.search_vector @@ q.q
           union all
-          select v.id, null, 0.5 * ts_rank(to_tsvector('english', v.name), q.q)
+          select v.id, 0.5 * ts_rank(to_tsvector('english', v.name), q.q)
           from visible v, q where to_tsvector('english', v.name) @@ q.q
           union all
-          select m.content_item_id, m.id, ts_rank(m.search_vector, q.q)
-          from moment m join visible v on v.id = m.content_item_id, q
-          where v.shows_moments and m.search_vector @@ q.q
-          union all
-          select ic.content_item_id, null, 0.05
+          select ic.content_item_id, 0.05
           from live_concept c join item_concept ic on ic.concept_id = c.id
           union all
-          select m.content_item_id, m.id, 0.05
-          from live_concept c
-          join moment_concept mc on mc.concept_id = c.id
-          join moment m on m.id = mc.moment_id
-          join visible v on v.id = m.content_item_id
-          where v.shows_moments
-          union all
-          select ic.content_item_id, null, 0.03
+          select ic.content_item_id, 0.03
           from technology t, q, technology_concept tc, item_concept ic
           where t.retired_at is null and tc.technology_id = t.id
             and ic.concept_id = tc.concept_id
             and to_tsvector('english', t.name) @@ q.q
           union all
-          select n.content_item_id, n.moment_id, ts_rank(n.search_vector, q.q)
+          select n.content_item_id, ts_rank(n.search_vector, q.q)
           from user_note n, q
           where n.user_id = ${userId} and n.search_vector @@ q.q
         ),
         ranked as (
-          select h.item_id, sum(h.score) as score,
-                 (array_agg(h.moment_id order by h.score desc)
-                    filter (where h.moment_id is not null))[1] as moment_id
+          select h.item_id, sum(h.score) as score
           from hits h join visible v on v.id = h.item_id
           group by h.item_id
           order by sum(h.score) desc, h.item_id desc
           limit ${limit}
         )
-        select r.item_id, m.id as moment_id, m.title, ci.title as article_title,
+        select r.item_id, ci.title as article_title,
                s.name as source_name, ci.author,
-               coalesce(m.estimated_minutes, item_minutes(ci.id)) as minutes,
+               item_minutes(ci.id) as minutes,
                exists (select 1 from user_save us
                        where us.user_id = ${userId}
                          and us.content_item_id = ci.id) as saved,
@@ -126,14 +106,10 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
         from ranked r
         join content_item ci on ci.id = r.item_id
         join source s on s.id = ci.source_id
-        -- Only a section the feed would show; a note on another opens the article.
-        left join moment m on m.id = r.moment_id and ${momentsShown}
         order by r.score desc, r.item_id desc
       `.execute(db);
       return rows.map((r): ExploreResult => ({
         itemId: r.item_id,
-        momentId: r.moment_id,
-        title: r.title ?? r.article_title,
         articleTitle: r.article_title,
         sourceName: r.source_name,
         author: r.author,
@@ -159,10 +135,10 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
                   or exists (select 1 from item_concept ic
                              join concept c on c.id = ic.concept_id
                              where ic.content_item_id = ci.id and c.topic = t.topic))
-             and not exists (select 1 from user_moment_opened o
-                             join moment m on m.id = o.moment_id
+             -- ADR-0058: opened is the article's.
+             and not exists (select 1 from user_article_opened o
                              where o.user_id = ${userId}
-                               and m.content_item_id = ci.id))::integer as fresh
+                               and o.content_item_id = ci.id))::integer as fresh
         from unnest(${[...TOPICS]}::text[]) as t(topic)
       `.execute(db);
       return rows
@@ -181,7 +157,6 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
         topic: string;
         known: string[];
         item_id: string;
-        moment_id: string;
         minutes: number;
       }>`
         with mastered as (
@@ -205,21 +180,22 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
           group by c.id, c.name, c.topic
           having count(distinct k.id) >= 2
         ),
+        -- ADR-0058: the concept's shortest article with a known length; a link to
+        -- the publisher's page needs no full-text rights (ING-2).
         shortest as (
           select distinct on (cand.id) cand.id, cand.name, cand.topic, cand.known,
-                 m.id as moment_id, m.content_item_id, m.estimated_minutes
+                 ci.id as content_item_id, item_minutes(ci.id) as minutes
           from candidate cand
-          join moment_concept mc on mc.concept_id = cand.id
-          join moment m on m.id = mc.moment_id
-          join content_item ci on ci.id = m.content_item_id
+          join item_concept ic on ic.concept_id = cand.id
+          join content_item ci on ci.id = ic.content_item_id
           join source s on s.id = ci.source_id
-          where ${visibleTo(userId)} and ${momentsShown}
-          order by cand.id, m.estimated_minutes, m.id
+          where ${visibleTo(userId)} and item_minutes(ci.id) is not null
+          order by cand.id, item_minutes(ci.id), ci.id
         )
         select id as concept_id, name as concept, topic, known,
-               content_item_id as item_id, moment_id, estimated_minutes as minutes
+               content_item_id as item_id, minutes
         from shortest
-        order by estimated_minutes, id
+        order by minutes, id
         limit 1
       `
         .execute(db)
@@ -234,7 +210,6 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
         topic: topicOf(row.topic),
         known: [first, second],
         itemId: row.item_id,
-        momentId: row.moment_id,
         minutes: row.minutes,
       };
     },
@@ -263,12 +238,9 @@ export function kyselyExplore(db: Kysely<DB>): Explore {
         join content_item ci on ci.id = us.content_item_id
         join source s on s.id = ci.source_id
         where us.saved_at > ${since} and ${visibleTo(userId)}
-          -- Read (finished, whole or a section) or hidden by this user: left out.
+          -- Completed (ADR-0058) or hidden by this user: left out.
           and not exists (select 1 from user_article_finished f
                           where f.user_id = ${userId} and f.content_item_id = ci.id)
-          and not exists (select 1 from user_moment_finished f
-                          join moment m on m.id = f.moment_id
-                          where f.user_id = ${userId} and m.content_item_id = ci.id)
           and not exists (select 1 from item_feedback fb
                           where fb.user_id = ${userId} and fb.content_item_id = ci.id
                             and fb.kind = 'not_interested')

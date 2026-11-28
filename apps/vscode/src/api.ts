@@ -1,4 +1,4 @@
-import { AgentStatus, type Chip } from "@interval/api-client";
+import { AgentStatus } from "@interval/api-client";
 import { statusUrl, type Site } from "./site";
 
 // The shape `interval` accepts (cli/interval/cli.go, tokenShape).
@@ -21,17 +21,16 @@ export type StatusResult =
   | { readonly kind: "redirect" }
   | { readonly kind: "failed"; readonly detail: string };
 
-// The extension's only request (§7): the device token and, if set, the break length.
-// Nothing from the editor, the workspace or a terminal goes with it.
+// The extension's only request (§7): the device token. Nothing from the editor, the
+// workspace or a terminal goes with it.
 export async function fetchStatus(
   fetchFn: typeof fetch,
   site: Site,
   token: string,
-  chip: Chip | undefined,
 ): Promise<StatusResult> {
   let response: Response;
   try {
-    response = await fetchFn(statusUrl(site, chip), {
+    response = await fetchFn(statusUrl(site), {
       headers: { Authorization: `Bearer ${token}` },
       // As `interval` does: a redirect could carry the token to another host.
       redirect: "manual",

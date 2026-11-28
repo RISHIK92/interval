@@ -50,7 +50,7 @@ function fakes(
       questions.set(ask.idempotencyKey, id);
       return Promise.resolve({ id, created: true });
     },
-    sessionMoments: () => Promise.resolve(null),
+    sessionArticles: () => Promise.resolve(null),
     existing: (_userId, key) => Promise.resolve(questions.get(key) ?? null),
     drop: (id) => {
       dropped.push(id);
@@ -203,45 +203,42 @@ test("a retry of a stored question gets it back past today's limit, uncounted", 
   expect(limited.emit).not.toHaveBeenCalled();
 });
 
-const moment = (id: string, minutes: number, conceptIds: string[]) => ({
-  itemId: "5",
-  momentId: id,
-  title: `Moment ${id}`,
+const article = (id: string, minutes: number | null, conceptIds: string[]) => ({
+  itemId: id,
+  title: `Article ${id}`,
   sourceName: "DDIA",
   minutes,
   conceptIds,
 });
 
-test("a session puts prerequisites first and cuts to about 4 minutes", () => {
+test("a session puts prerequisites first, whatever their length", () => {
   // Cited sharding (needs replication), then replication, then a long one.
-  const sharding = moment("1", 2, ["c-shard"]);
-  const replication = moment("2", 2, ["c-repl"]);
-  const long = moment("3", 3, ["c-other"]);
+  const sharding = article("1", 2, ["c-shard"]);
+  const replication = article("2", 2, ["c-repl"]);
+  const long = article("3", 30, ["c-other"]);
+  // ADR-0058: no cut to a break's minutes; every article stays, in order.
   expect(
     sessionPlan([sharding, replication, long], [["c-repl", "c-shard"]]).map(
-      (m) => m.momentId,
+      (a) => a.itemId,
     ),
-  ).toEqual(["2", "1"]);
-  // No prerequisites: citation order, cut where 4 minutes would be passed.
-  expect(sessionPlan([long, sharding], []).map((m) => m.momentId)).toEqual([
-    "3",
-  ]);
+  ).toEqual(["2", "1", "3"]);
 });
 
-test("when nothing fits, the shortest moment alone; a cycle keeps citation order", () => {
-  expect(
-    sessionPlan([moment("1", 9, []), moment("2", 6, [])], []).map(
-      (m) => m.momentId,
-    ),
-  ).toEqual(["2"]);
+test("a session keeps the top three; a cycle keeps citation order", () => {
   expect(
     sessionPlan(
-      [moment("1", 1, ["a"]), moment("2", 1, ["b"])],
+      ["1", "2", "3", "4"].map((id) => article(id, null, [])),
+      [],
+    ).map((a) => a.itemId),
+  ).toEqual(["1", "2", "3"]);
+  expect(
+    sessionPlan(
+      [article("1", 1, ["a"]), article("2", 1, ["b"])],
       [
         ["a", "b"],
         ["b", "a"],
       ],
-    ).map((m) => m.momentId),
+    ).map((a) => a.itemId),
   ).toEqual(["1", "2"]);
   expect(sessionPlan([], [])).toEqual([]);
 });

@@ -2,7 +2,6 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { z } from "zod";
-import { CHIPS } from "../../../server/chips";
 import {
   listening,
   notes,
@@ -12,8 +11,7 @@ import {
 } from "../../../server/container";
 import { attributed, countOpen } from "../../../server/opens";
 import { outHref, readHref } from "../../../server/outbound";
-import { BIGINT_ID, quizKey } from "../../../server/ports";
-import { formatReading } from "../../../server/reading";
+import { BIGINT_ID } from "../../../server/ports";
 import { visitId } from "../../../server/visits";
 import { feedbackAction } from "../../feedback/actions";
 import { finishAction } from "../../finish/actions";
@@ -24,15 +22,13 @@ import { ReaderFrame } from "./ReaderFrame";
 
 export const dynamic = "force-dynamic";
 
-// As /out's query, with the chip always there: the reader goes back to that feed. A
-// feed card has a position; "continue" is a Continue card, "reader" a move inside the
-// reader (back after Save), which counts no event, and "library" an open from the
-// Library, which counts none either and goes back there (owner, 2026-10-26). "path"
-// is a path's reading (P2-W10-S03): it names its path, counts nothing, and goes back
-// to the path.
+// As /out's query. A feed card has a position; "continue" is a Continue card, "reader"
+// a move inside the reader (back after Save), which counts no event, and "library" an
+// open from the Library, which counts none either and goes back there (owner,
+// 2026-10-26). "path" is a path's reading (P2-W10-S03): it names its path, counts
+// nothing, and goes back to the path. ADR-0058: a section or chip an older link names
+// is ignored (zod drops unknown keys).
 const Read = z.object({
-  moment: z.string().regex(BIGINT_ID).optional(),
-  chip: z.enum(CHIPS),
   pos: z.coerce.number().int().min(1).max(200).optional(),
   from: z.enum(["continue", "reader", "library", "path"]).optional(),
   path: z.string().regex(BIGINT_ID).optional(),
@@ -64,43 +60,29 @@ export default async function ReadPage({
   const { item } = await params;
   const parsed = Read.safeParse(await searchParams);
   if (!BIGINT_ID.test(item) || !parsed.success) redirect("/");
-  const { moment, chip, pos, from, path, via } = parsed.data;
+  const { pos, from, path, via } = parsed.data;
   if ((from === undefined) === (pos === undefined)) redirect("/");
   // A path's reading names its path; nothing else does.
   if ((from === "path") !== (path !== undefined)) redirect("/");
   const card =
-    pos === undefined ? null : { chip, pos, via: via ?? ("feed" as const) };
-  const origin =
-    card === null
-      ? (from ?? "continue")
-      : { position: card.pos, ...(via === undefined ? {} : { via }) };
+    pos === undefined ? null : { pos, via: via ?? ("feed" as const) };
   const browserHref = outHref({
     itemId: item,
-    ...(moment === undefined ? {} : { momentId: moment }),
-    target: "section",
-    ...(typeof origin === "string"
-      ? { from: origin }
-      : {
-          chip,
-          from: { position: origin.position },
-          ...(origin.via === undefined ? {} : { via: origin.via }),
-        }),
+    target: "article",
+    from:
+      card === null
+        ? (from ?? "continue")
+        : { position: card.pos, ...(via === undefined ? {} : { via }) },
   });
-  // Where Next section keeps going from: a path's reading stays one.
-  const nextFrom =
-    path !== undefined
-      ? { path }
-      : // "path" always comes with its path (checked above).
-        (origin as Exclude<typeof origin, "path">);
   // Leaving for the browser from inside the reader: the open is already counted, so
-  // only the outbound click is recorded (from=reader).
+  // only the outbound click is recorded (from=reader). ADR-0058: the article's own
+  // canonical page.
   const leaveHref = outHref({
     itemId: item,
-    ...(moment === undefined ? {} : { momentId: moment }),
-    target: "section",
+    target: "original",
     from: "reader",
   });
-  const page = await outboundLinks().reader(actor.userId, item, moment ?? null);
+  const page = await outboundLinks().reader(actor.userId, item);
   const publisher = page === null ? null : attributed(page.link.url);
   // The frame takes https only (frame-src https:); /out handles what's left, a stale
   // card and an unknown item included.
@@ -114,41 +96,30 @@ export default async function ReadPage({
   }
   await countOpen(
     { ...actor, sessionId: visitId(await cookies()) },
-    {
-      itemId: item,
-      momentId: moment,
-      link: page.link,
-      card,
-      from,
-      surface: "in_app",
-    },
+    { itemId: item, card, from, surface: "in_app" },
   );
-  // The section really reached; a link that fell back is the article (as /out says).
-  const reached = page.link.linkType === "article" ? null : (moment ?? null);
-  const title =
-    page.sectionTitle === null || page.sectionTitle === page.articleTitle
-      ? page.articleTitle
-      : `${page.sectionTitle} — ${page.articleTitle}`;
+  const title = page.articleTitle;
   const domain = new URL(publisher).hostname.replace(/^www\./, "");
-  // Back to where it was opened, asking "Finished?" about what was shown (C-22's
-  // prompt): the feed, the Library, or the path.
+  // Back to where it was opened, asking "Finished?" about it (C-22's prompt): the
+  // feed, the Library, or the path.
   const library = from === "library";
   const back =
     path !== undefined ? `/paths/${path}` : library ? "/library" : null;
-  const asked = formatReading({ itemId: item, momentId: reached });
-  const closeHref =
-    back === null ? `/?chip=${chip}&ask=${asked}` : `${back}?ask=${asked}`;
-  const note = await notes().get(actor.userId, item, reached);
-  // Test 60s on what's shown (P2-W9-S02), once it has a live question.
-  const testable = (
-    await quizzes().offered([{ itemId: item, momentId: reached }])
-  ).has(quizKey(item, reached));
+  const closeHref = `${back ?? "/"}?ask=${item}`;
+  const allNotes = await notes().onItems(actor.userId, [item]);
+  const note = allNotes.find((n) => n.sectionTitle === null)?.body ?? null;
+  // ADR-0058: notes written on a section before it, shown under the article until
+  // stage C joins them into its note.
+  const sectionNotes = allNotes.flatMap((n) =>
+    n.sectionTitle === null ? [] : [{ title: n.sectionTitle, body: n.body }],
+  );
+  // ADR-0058: Quiz me, the article's one quiz, once it has a live question; it stays
+  // after the article is completed.
+  const testable = (await quizzes().offered([item])).has(item);
   // P4-W23-S01: Listen, once a concept here has a voiced explainer.
-  const voiced = (await listening().voiced(item, reached)).length > 0;
+  const voiced = (await listening().voiced(item)).length > 0;
   const here = readHref({
     itemId: item,
-    ...(moment === undefined ? {} : { momentId: moment }),
-    chip,
     from: path !== undefined ? { path } : library ? "library" : "reader",
   });
   return (
@@ -180,8 +151,8 @@ export default async function ReadPage({
           href={leaveHref}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Open in browser"
-          title="Open in browser"
+          aria-label="Open original in browser"
+          title="Open original in browser"
           className={ROUND}
         >
           <Glyph path="M7 17L17 7M9 7h8v8" />
@@ -195,13 +166,12 @@ export default async function ReadPage({
         browserHref={leaveHref}
       />
       {/* One compact row (owner, 2026-10-30, ADR-0028): the card's why stays on the
-        card. The note's icon sits in the row's slot after Test me; its text area opens
+        card. The note's icon sits in the row's slot after Quiz me; its text area opens
         below the row. */}
       <footer className="relative flex shrink-0 flex-col gap-2 border-t border-hairline bg-page px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         <div className="flex h-11 items-center gap-2">
           <form action={feedbackAction}>
             <input type="hidden" name="itemId" value={item} />
-            <input type="hidden" name="chip" value={chip} />
             <input type="hidden" name="back" value={here} />
             <button
               type="submit"
@@ -229,7 +199,7 @@ export default async function ReadPage({
             <Glyph path="M4 20h6M14 4l6 6-9 9H5v-6z" />
           </ComingLater>
           {voiced ? (
-            <ListenButton itemId={item} momentId={reached} className={ROUND}>
+            <ListenButton itemId={item} className={ROUND}>
               <Glyph path={LISTEN} />
             </ListenButton>
           ) : (
@@ -240,66 +210,64 @@ export default async function ReadPage({
           {testable ? (
             <StartQuiz
               itemId={item}
-              momentId={reached}
-              chip={chip}
               back={here}
-              label="Test me"
+              label="Quiz me"
               className={ROUND}
             >
               <Glyph path={ZAP} />
             </StartQuiz>
           ) : (
-            <ComingLater name="Test me" why="No questions yet">
+            <ComingLater name="Quiz me" why="No questions yet">
               <Glyph path={ZAP} />
             </ComingLater>
           )}
           {/* The note's slot. */}
           <span aria-hidden="true" className="size-9 shrink-0" />
           <div className="ml-auto flex items-center gap-2">
-            {/* Mark done goes back where the reader was opened and skips the prompt
-              (ADR-0018). */}
-            <form action={finishAction}>
-              <input type="hidden" name="control" value="finish" />
-              <input type="hidden" name="itemId" value={item} />
-              {reached === null ? null : (
-                <input type="hidden" name="momentId" value={reached} />
-              )}
-              <input type="hidden" name="method" value="mark_done" />
-              <input type="hidden" name="chip" value={chip} />
-              {back !== null ? (
-                <input type="hidden" name="back" value={back} />
-              ) : null}
-              <button
-                type="submit"
-                className="inline-flex size-11 items-center justify-center rounded-full border border-hairline bg-page font-semibold text-ink sm:size-auto sm:px-4 sm:py-2.5 lg:border-[1.5px] lg:border-hairline-strong lg:px-5 lg:text-[15px]"
-              >
-                <Glyph path="M5 12l5 5 9-10" className="size-5 sm:hidden" />
-                <span className="sr-only sm:not-sr-only">Mark done</span>
-              </button>
-            </form>
-            {page.nextMomentId === null ? null : (
-              <a
-                href={readHref({
-                  itemId: item,
-                  momentId: page.nextMomentId,
-                  chip,
-                  // An open of the next section from the same card, counted like one
-                  // (owner, 2026-10-26); after Save the card is unknown, so none.
-                  from: nextFrom,
-                })}
-                className="inline-flex size-11 items-center justify-center rounded-full bg-ink font-semibold text-page sm:size-auto sm:px-4 sm:py-2.5 lg:px-5 lg:text-[15px]"
-              >
-                <Glyph
-                  path="M5 12h14M13 6l6 6-6 6"
-                  className="size-5 sm:hidden"
-                />
-                <span className="sr-only sm:not-sr-only">Next section</span>
-              </a>
+            {page.state === "completed" ? (
+              // ADR-0058: Completed replaces Done; Quiz me stays in the row.
+              <p className="inline-flex h-11 items-center gap-1.5 px-2 font-semibold text-ink-muted">
+                <Glyph path="M5 12l5 5 9-10" className="size-5" />
+                Completed
+              </p>
+            ) : (
+              // Done completes the article, goes back where the reader was opened and
+              // skips the prompt (ADR-0018, ADR-0058).
+              <form action={finishAction}>
+                <input type="hidden" name="control" value="finish" />
+                <input type="hidden" name="itemId" value={item} />
+                <input type="hidden" name="method" value="mark_done" />
+                {back !== null ? (
+                  <input type="hidden" name="back" value={back} />
+                ) : null}
+                <button
+                  type="submit"
+                  className="inline-flex size-11 items-center justify-center rounded-full bg-ink font-semibold text-page sm:size-auto sm:px-4 sm:py-2.5 lg:px-5 lg:text-[15px]"
+                >
+                  <Glyph path="M5 12l5 5 9-10" className="size-5 sm:hidden" />
+                  <span className="sr-only sm:not-sr-only">Done</span>
+                </button>
+              </form>
             )}
           </div>
         </div>
+        {sectionNotes.length === 0 ? null : (
+          <details className="text-sm">
+            <summary className="cursor-pointer text-ink-muted">
+              Notes on sections ({sectionNotes.length})
+            </summary>
+            <ul className="mt-2 flex max-h-40 flex-col gap-2 overflow-y-auto">
+              {sectionNotes.map((n, i) => (
+                <li key={i}>
+                  <p className="font-semibold">{n.title}</p>
+                  <p className="whitespace-pre-wrap text-ink-muted">{n.body}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         <NoteBox
-          on={{ itemId: item, momentId: reached }}
+          on={{ itemId: item }}
           about={title}
           note={note}
           back={here}
@@ -312,8 +280,7 @@ export default async function ReadPage({
   );
 }
 
-// Mark done and Next section are icons only on phones (owner, 2026-10-26), at their
-// own size.
+// Done is an icon only on phones (owner, 2026-10-26), at its own size.
 function Glyph({
   path,
   className = "size-4",
@@ -338,8 +305,7 @@ function Glyph({
 }
 
 // Shown, not usable yet (owner, ADR-0018): highlight comes later, Listen waits for a
-// voiced explainer (P4-W23-S01); Test me
-// waits for its section's questions.
+// voiced explainer (P4-W23-S01); Quiz me waits for the article's questions.
 function ComingLater({
   name,
   why = "Coming later",

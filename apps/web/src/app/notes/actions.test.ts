@@ -1,15 +1,14 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { Actor, Notes } from "../../server/ports";
 
-// Notes (§5I, Q-P2-01, P2-W7-S03): written from the reader and the Now reading panel.
+// Notes (§5I, Q-P2-01, P2-W7-S03): written from the reader and the Now reading panel,
+// on the article (ADR-0058).
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const save = vi.fn<Notes["save"]>(() => Promise.resolve(true));
 const remove = vi.fn<Notes["remove"]>(() => Promise.resolve(true));
-const update = vi.fn<Notes["update"]>(() =>
-  Promise.resolve({ itemId: "5", momentId: null }),
-);
+const update = vi.fn<Notes["update"]>(() => Promise.resolve({ itemId: "5" }));
 const removeById = vi.fn<Notes["removeById"]>(() =>
-  Promise.resolve({ itemId: "5", momentId: "9" }),
+  Promise.resolve({ itemId: "5" }),
 );
 const emit = vi.fn();
 const warn = vi.fn();
@@ -62,40 +61,33 @@ async function act(fields: Record<string, string>): Promise<string> {
   throw new Error("no redirect");
 }
 
-test("saving writes the trimmed note, counts it by ids only, and goes back", async () => {
+test("saving writes the trimmed note on the article, counts it by id only, and goes back", async () => {
   current.mockResolvedValue(user);
   const to = await act({
     control: "save",
     itemId: "5",
+    // A page from before ADR-0058 may still send its section: the note is the article's.
     momentId: "9",
     body: "  Terms are epochs  ",
-    back: "/read/5?moment=9&chip=3-8&from=reader",
+    back: "/read/5?from=reader",
   });
-  expect(save).toHaveBeenCalledWith("u1", "5", "9", "Terms are epochs");
-  expect(emit).toHaveBeenCalledWith(
-    "note_saved",
-    { item_id: "5", moment_id: "9" },
-    context,
-  );
-  expect(to).toBe("/read/5?moment=9&chip=3-8&from=reader");
+  expect(save).toHaveBeenCalledWith("u1", "5", "Terms are epochs");
+  expect(emit).toHaveBeenCalledWith("note_saved", { item_id: "5" }, context);
+  expect(to).toBe("/read/5?from=reader");
 });
 
-test("an article's note has no moment; an empty save deletes it", async () => {
+test("an empty save deletes the article's note", async () => {
   current.mockResolvedValue(user);
   await act({ control: "save", itemId: "5", body: "   ", back: "/" });
   expect(save).not.toHaveBeenCalled();
-  expect(remove).toHaveBeenCalledWith("u1", "5", null);
-  expect(emit).toHaveBeenCalledWith(
-    "note_deleted",
-    { item_id: "5", moment_id: null },
-    context,
-  );
+  expect(remove).toHaveBeenCalledWith("u1", "5");
+  expect(emit).toHaveBeenCalledWith("note_deleted", { item_id: "5" }, context);
 });
 
 test("deleting a note that isn't there counts nothing", async () => {
   current.mockResolvedValue(user);
   remove.mockResolvedValueOnce(false);
-  await act({ control: "delete", itemId: "5", momentId: "9", back: "/" });
+  await act({ control: "delete", itemId: "5", back: "/" });
   expect(emit).not.toHaveBeenCalled();
 });
 
@@ -123,7 +115,7 @@ test("newlines count once, as the text area counts them, and are kept as \\n", a
   // Browsers send a text area's newlines as CRLF; its maxLength counts one character.
   const atLimit = `${"a".repeat(1998)}\r\nb`;
   await act({ control: "save", itemId: "5", body: atLimit, back: "/" });
-  expect(save).toHaveBeenCalledWith("u1", "5", null, `${"a".repeat(1998)}\nb`);
+  expect(save).toHaveBeenCalledWith("u1", "5", `${"a".repeat(1998)}\nb`);
 });
 
 test("a refused note or a save with nowhere to go is logged, never dropped silently", async () => {
@@ -131,16 +123,15 @@ test("a refused note or a save with nowhere to go is logged, never dropped silen
   await act({ control: "save", itemId: "5", body: "a".repeat(2001) });
   expect(warn).toHaveBeenCalledWith("notes: refused input", { user_id: "u1" });
   save.mockResolvedValueOnce(false);
-  await act({ control: "save", itemId: "5", momentId: "9", body: "kept?" });
+  await act({ control: "save", itemId: "5", body: "kept?" });
   expect(warn).toHaveBeenCalledWith("notes: nothing to attach the note to", {
     user_id: "u1",
     item_id: "5",
-    moment_id: "9",
   });
   expect(emit).not.toHaveBeenCalled();
 });
 
-// P2-W7-S04: the Library edits a note by its id, a fallen-back one included.
+// P2-W7-S04: the Library edits a note by its id, an earlier section note included.
 test("with a note id, saving edits that note and deleting removes it", async () => {
   current.mockResolvedValue(user);
   const to = await act({
@@ -151,17 +142,13 @@ test("with a note id, saving edits that note and deleting removes it", async () 
   });
   expect(update).toHaveBeenCalledWith("u1", "42", "Still on Raft");
   expect(save).not.toHaveBeenCalled();
-  expect(emit).toHaveBeenCalledWith(
-    "note_saved",
-    { item_id: "5", moment_id: null },
-    context,
-  );
+  expect(emit).toHaveBeenCalledWith("note_saved", { item_id: "5" }, context);
   expect(to).toBe("/library");
   await act({ control: "delete", noteId: "42", back: "/library" });
   expect(removeById).toHaveBeenCalledWith("u1", "42");
   expect(emit).toHaveBeenLastCalledWith(
     "note_deleted",
-    { item_id: "5", moment_id: "9" },
+    { item_id: "5" },
     context,
   );
 });

@@ -16,8 +16,8 @@ describe("the event list (Q-P1-20)", () => {
         "feed_viewed",
         "card_impression",
         "card_opened",
-        "section_finished",
-        "article_finished",
+        // ADR-0058: replaces section_finished and article_finished.
+        "article_completed",
         "continue_clicked",
         "item_saved",
         "feedback_given",
@@ -89,8 +89,6 @@ describe("the event list (Q-P1-20)", () => {
         "ask_submitted",
         "ask_answered",
         "ask_session_started",
-        // ADR-0044 (accepted by the owner, 2026-11-23): the desktop "Also fits" grid.
-        "also_fits_opened",
       ].sort(),
     );
   });
@@ -131,16 +129,11 @@ describe("the envelope", () => {
   });
 
   // ADR-0018: an open says where it opened, Interval's reader or the browser; P7-W46
-  // (v4): and whether Home's feed or a companion surface offered it.
-  test("card_opened v4 carries its surface and where it was offered", () => {
-    const props = {
-      kind: "moment",
-      chip: "3-8",
-      position: 1,
-      item_id: "5",
-      moment_id: "9",
-    };
-    const event = { ...base, name: "card_opened", version: 4 };
+  // (v4): and whether Home's feed or a companion surface offered it. ADR-0058 (v5):
+  // always an article, with no moment or time chip.
+  test("card_opened v5 carries its surface and where it was offered", () => {
+    const props = { position: 1, item_id: "5" };
+    const event = { ...base, name: "card_opened", version: 5 };
     for (const surface of ["in_app", "browser"]) {
       for (const via of ["feed", "agent"]) {
         expect(
@@ -176,8 +169,14 @@ describe("the envelope", () => {
     expect(
       envelopeSchema.safeParse({
         ...event,
-        version: 3,
+        version: 4,
         props: { ...props, surface: "browser", via: "feed" },
+      }).success,
+    ).toBe(false);
+    expect(
+      envelopeSchema.safeParse({
+        ...event,
+        props: { ...props, moment_id: "9", surface: "browser", via: "feed" },
       }).success,
     ).toBe(false);
   });
@@ -193,7 +192,7 @@ describe("the envelope", () => {
     ],
     [
       "an unknown enum value",
-      { name: "section_finished", version: 1, props: { method: "skipped" } },
+      { name: "article_completed", version: 1, props: { method: "skipped" } },
     ],
     [
       "a stale version",

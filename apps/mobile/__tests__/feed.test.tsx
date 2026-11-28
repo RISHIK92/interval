@@ -2,19 +2,20 @@ import { act, fireEvent, screen } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { ActionSheetIOS } from "react-native";
 
-// P4-W20-S01 (§5A): Home's feed in the app: the same cards as the PWA, by time chip, with
-// the card's explanation, the project note labeled as AI, save and the card menu.
-const card = (itemId: string, title: string) => ({
-  kind: "moment",
+// P4-W20-S01 (§5A): Home's feed in the app: the same cards as the PWA, with the card's
+// explanation, the project note labeled as AI, save and the card menu. ADR-0058: each
+// card is a whole article, with no time chip.
+const card = (
+  itemId: string,
+  title: string,
+  state: "unread" | "continue_reading" | "completed" = "unread",
+) => ({
   itemId,
-  momentId: `m${itemId}`,
   articleTitle: title,
   author: null,
   sourceName: "A blog",
-  sectionTitle: "Leader election",
-  sectionNumber: 2,
-  sectionCount: 5,
   estimatedMinutes: 6,
+  state,
   reasons: { text: "On your path", kinds: ["goal_match"] },
   projectNote:
     itemId === "5"
@@ -54,8 +55,7 @@ beforeEach(() => {
     Promise.resolve(
       !url.endsWith("/api/feed/control")
         ? Response.json({
-            chip: url.endsWith("8-15") ? "8-15" : "3-8",
-            cards: [card("5", "Raft"), card("6", "Paxos")],
+            cards: [card("5", "Raft", "continue_reading"), card("6", "Paxos")],
           })
         : new Response(null, { status: 204 }),
     ),
@@ -77,23 +77,45 @@ test("the feed shows each card with its explanation and the AI-labeled project n
   ).toBeOnTheScreen();
   // AI-3: the model's line is labeled.
   expect(screen.getAllByText("AI")).toHaveLength(1);
-  expect(screen.getAllByText("Section 2 of 5 · 6 min")).toHaveLength(2);
-  expect(calls()[0]).toMatchObject({
-    // None asked: the server answers with the onboarding chip.
-    url: "/api/feed",
-    method: "GET",
-  });
+  expect(screen.getAllByText("6 min read")).toHaveLength(2);
+  expect(calls()[0]).toMatchObject({ url: "/api/feed", method: "GET" });
 });
 
-test("a chip change reads that chip's feed", async () => {
+// ADR-0058: an article opened and not completed says so; an unread one says nothing.
+test("an article read part way says Continue reading, and a completed one Completed", async () => {
+  fetchMock.mockImplementation(() =>
+    Promise.resolve(
+      Response.json({
+        cards: [
+          card("5", "Raft", "continue_reading"),
+          card("6", "Paxos"),
+          card("7", "Gossip", "completed"),
+        ],
+      }),
+    ),
+  );
   await renderRouter("./app", { initialUrl: "/" });
   await screen.findByText("Raft");
-  await fireEvent.press(screen.getByRole("button", { name: "8–15 min" }));
+  expect(screen.getAllByText("Continue reading")).toHaveLength(1);
+  expect(screen.getAllByText("Completed")).toHaveLength(1);
+});
+
+test("an article of unknown length says so", async () => {
+  fetchMock.mockImplementation(() =>
+    Promise.resolve(
+      Response.json({
+        cards: [{ ...card("5", "Raft"), estimatedMinutes: null }],
+      }),
+    ),
+  );
+  await renderRouter("./app", { initialUrl: "/" });
+  expect(await screen.findByText("Length unknown")).toBeOnTheScreen();
+});
+
+test("no time chips", async () => {
+  await renderRouter("./app", { initialUrl: "/" });
   await screen.findByText("Raft");
-  expect(calls().map((c) => c.url)).toContain("/api/feed?chip=8-15");
-  expect(
-    screen.getByRole("button", { name: "8–15 min", selected: true }),
-  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: /min$/ })).toBeNull();
 });
 
 test("Save saves through the card controls and says Saved", async () => {
@@ -122,17 +144,17 @@ test("Hide source reads the feed again, so the source's other cards go too", asy
     Promise.resolve(
       url.endsWith("/api/feed/control")
         ? new Response(null, { status: 204 })
-        : Response.json({ chip: "3-8", cards: [] }),
+        : Response.json({ cards: [] }),
     ),
   );
   await fireEvent.press(
     first(screen.getAllByRole("button", { name: "More options" })),
   );
-  expect(await screen.findByText(/Nothing for this break/)).toBeOnTheScreen();
+  expect(await screen.findByText(/Nothing to read yet/)).toBeOnTheScreen();
   expect(calls().map((c) => c.url)).toEqual([
     "/api/feed",
     "/api/feed/control",
-    "/api/feed?chip=3-8",
+    "/api/feed",
   ]);
   sheet.mockRestore();
 });
@@ -141,9 +163,7 @@ test("a save that can't be sent is undone", async () => {
   fetchMock.mockImplementation((url) =>
     url.endsWith("/api/feed/control")
       ? Promise.reject(new TypeError("Network request failed"))
-      : Promise.resolve(
-          Response.json({ chip: "3-8", cards: [card("6", "Paxos")] }),
-        ),
+      : Promise.resolve(Response.json({ cards: [card("6", "Paxos")] })),
   );
   await renderRouter("./app", { initialUrl: "/" });
   await screen.findByText("Paxos");
@@ -165,7 +185,7 @@ test("Not interested from the card menu takes the card away", async () => {
     Promise.resolve(
       url.endsWith("/api/feed/control")
         ? new Response(null, { status: 204 })
-        : Response.json({ chip: "3-8", cards: [card("6", "Paxos")] }),
+        : Response.json({ cards: [card("6", "Paxos")] }),
     ),
   );
   await fireEvent.press(
@@ -229,7 +249,7 @@ test("pull to refresh reads the feed again, from a failure too", async () => {
   expect(calls().filter((c) => c.method === "GET")).toHaveLength(2);
 });
 
-test("a slow answer for an earlier chip doesn't replace the later one", async () => {
+test("a slow earlier read doesn't replace a later one", async () => {
   let answerFirst: (r: Response) => void = () => undefined;
   let feedReads = 0;
   // By URL: the mini-player reads the audio queue beside the feed (P4-W23-S02).
@@ -241,15 +261,19 @@ test("a slow answer for an earlier chip doesn't replace the later one", async ()
       ? new Promise((resolve) => {
           answerFirst = resolve;
         })
-      : Promise.resolve(
-          Response.json({ chip: "8-15", cards: [card("7", "Gossip")] }),
-        );
+      : Promise.resolve(Response.json({ cards: [card("7", "Gossip")] }));
   });
   await renderRouter("./app", { initialUrl: "/" });
-  await fireEvent.press(screen.getByRole("button", { name: "8–15 min" }));
+  const { refreshControl } = screen.getByTestId("feed").props as {
+    refreshControl: { props: { onRefresh: () => void } };
+  };
+  await act(async () => {
+    refreshControl.props.onRefresh();
+    await Promise.resolve();
+  });
   await screen.findByText("Gossip");
   await act(async () => {
-    answerFirst(Response.json({ chip: "3-8", cards: [card("5", "Raft")] }));
+    answerFirst(Response.json({ cards: [card("5", "Raft")] }));
     await Promise.resolve();
   });
   expect(screen.getByText("Gossip")).toBeOnTheScreen();
@@ -261,7 +285,7 @@ test("a control the server refuses is undone", async () => {
     Promise.resolve(
       url.endsWith("/api/feed/control")
         ? new Response(null, { status: 500 })
-        : Response.json({ chip: "3-8", cards: [card("5", "Raft")] }),
+        : Response.json({ cards: [card("5", "Raft")] }),
     ),
   );
   const sheet = jest
@@ -278,14 +302,12 @@ test("a control the server refuses is undone", async () => {
   sheet.mockRestore();
 });
 
-test("a card opens the reader with its chip and position", async () => {
+test("a card opens the reader with its position", async () => {
   await renderRouter("./app", { initialUrl: "/" });
   await fireEvent.press(await screen.findByText("Paxos"));
   expect(screen).toHavePathname("/read/6");
   await act(async () => {
     await Promise.resolve();
   });
-  expect(calls().map((c) => c.url)).toContain(
-    "/api/read/6?moment=m6&chip=3-8&pos=2",
-  );
+  expect(calls().map((c) => c.url)).toContain("/api/read/6?pos=2");
 });

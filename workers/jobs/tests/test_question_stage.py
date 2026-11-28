@@ -1,6 +1,6 @@
-"""The question stage (Q-1, Q-P2-10, P2-W8-S01): tagging queues a tagged moment's
-questions; the model drafts them once; a rate limit, a model error or a broken reply
-waits 5 minutes and tries again, never giving up and never raising."""
+"""The question stage (Q-1, Q-P2-10, P2-W8-S01, ADR-0058): tagging queues a tagged
+article's questions; the model drafts them once; a rate limit, a model error or a
+broken reply waits 5 minutes and tries again, never giving up and never raising."""
 
 import json
 import re
@@ -14,17 +14,13 @@ from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
-from interval_jobs.pipeline import ModelJob
+from interval_jobs.pipeline import ModelJob, questions_job
 from interval_jobs.ports import Completion, Message, ModelError, QuestionDraft
 
 from .test_pipeline import NOW, NoEmbeddings, World
 
-# Tags the item and its first moment, so that moment is a question target.
-TAGS = (
-    '{"item": {"difficulty": "intermediate", "concepts": ["write-ahead-log"]},'
-    ' "moments": [{"ordinal": 0, "difficulty": "beginner",'
-    ' "concepts": ["write-ahead-log"]}]}'
-)
+# Tags each article, so each is a question target.
+TAGS = '{"item": {"difficulty": "beginner", "concepts": ["write-ahead-log"]}}'
 
 
 class QuestionLlm:
@@ -41,6 +37,7 @@ class QuestionLlm:
         self.validator_wrong = False
         self.validator_fail: str | None = None
         self.validator_prompts: list[str] = []
+        self.counts: list[int] = []  # questions asked for, per drafting call
 
     def complete(self, model: str, messages: list[Message]) -> Completion:
         if messages[0]["content"].startswith("You answer a multiple-choice"):
@@ -72,8 +69,12 @@ class QuestionLlm:
             "correct": 0,
             "citation": quote,
         }
+        found = re.search(r"Write exactly (\d+) questions", messages[0]["content"])
+        assert found is not None
+        self.counts.append(int(found.group(1)))
+        drafts = [{**one, "stem": f"Question {n}?"} for n in range(self.counts[-1])]
         return Completion(
-            json.dumps({"questions": [one, {**one, "stem": "And again?"}]}),
+            json.dumps({"questions": drafts}),
             500,
             200,
             Decimal(0),
@@ -110,7 +111,7 @@ def deliver_questions_once(world: World) -> None:
         world.queue.consume_one("generate_questions", handler, threading.Event())
 
 
-def test_tagging_queues_a_tagged_moments_questions_and_they_are_drafted_once() -> None:
+def test_tagging_queues_a_tagged_articles_questions_and_they_are_drafted_once() -> None:
     world, llm = question_world()
     world.discover()
     world.run()
@@ -124,19 +125,83 @@ def test_tagging_queues_a_tagged_moments_questions_and_they_are_drafted_once() -
     )
     assert {q.concepts for q in saved} == {("write-ahead-log",)}
     assert all(q.model == "nemotron-free" for q in saved)
-    # Q-P2-11: each starts at its moment's level (the fake tags it beginner).
+    # Q-P2-11: each starts at its article's level (the fake tags it beginner).
     assert {q.difficulty for q in saved} == {"beginner"}
     drafted = llm.question_calls
-    assert drafted == len({q.moment_id for q in saved})
+    items = {q.item_id for q in saved}
+    assert drafted == len(items) == 2  # ADR-0058: one call per article
+    # Each article's count follows its sections; slots run 0.. per article.
+    for item_id in items:
+        sections = len(world.store.items.rows[item_id].sections)
+        mine = sorted(q.ordinal for q in saved if q.item_id == item_id)
+        assert mine == list(range(min(8, 2 * max(1, sections))))
+    assert all(q.moment_id is None for q in saved)
     # Queued again (a re-tag, a backfill): same text, same prompt, no new call.
-    for moment_id in {q.moment_id for q in saved}:
+    for item_id in items:
         world.queue.enqueue(
             "generate_questions",
-            {"moment_id": moment_id, "attempt": 0, "broken": 0},
-            idempotency_key=f"again-{moment_id}",
+            {"content_item_id": item_id, "attempt": 0, "broken": 0},
+            idempotency_key=f"again-{item_id}",
         )
     world.run()
     assert llm.question_calls == drafted
+
+
+def test_the_job_names_the_article_under_its_own_key() -> None:
+    world, _ = question_world()
+    world.discover()
+    world.run_except("generate_questions")
+    keys = sorted(k for k, _ in world.queue.pending_messages("generate_questions"))
+    items = sorted(world.store.items.rows)
+    assert keys == [f"article-questions-{i}-v1" for i in items]
+    sent = [
+        m["content_item_id"]
+        for _, m in world.queue.pending_messages("generate_questions")
+    ]
+    assert sorted(int(str(i)) for i in sent) == items
+
+
+def test_an_article_with_questions_carried_over_from_its_moments_is_not_drafted() -> (
+    None
+):
+    from interval_jobs.adapters.memory import StoredQuestion
+
+    world, llm = question_world()
+    world.discover()
+    world.run_except("generate_questions")
+    first = min(world.store.items.rows)
+    # ADR-0058 stage A moved a moment's questions to the article: they stand.
+    world.store.questions.rows.append(
+        StoredQuestion(
+            99,
+            first,
+            0,
+            QuestionDraft("Kept?", ("a", "b", "c", "d"), 0, "a quote here"),
+            ("write-ahead-log",),
+            "m",
+            1,
+            "moment-hash",
+            status="live",
+            moment_id=7,
+        )
+    )
+    world.queue.drop_pending("generate_questions")
+    # A backfill (enqueue-questions) drafts the targets only.
+    targets = world.store.questions.targets(None)
+    assert first not in targets and targets
+    for item_id in targets:
+        name, payload, key = questions_job(item_id)
+        world.queue.enqueue(name, payload, idempotency_key=key)
+    world.run()
+    assert llm.question_calls == 1  # the other article only
+    # A stray job for it (queued before the switch, or by hand) asks nothing.
+    name, payload, key = questions_job(first)
+    world.queue.enqueue(name, payload, idempotency_key=f"{key}-stray")
+    world.run()
+    assert llm.question_calls == 1
+    assert world.queue.failed_messages("generate_questions") == []
+    kept = [q for q in world.store.questions.rows if q.item_id == first]
+    assert [(q.id, q.status) for q in kept] == [(99, "live")]
 
 
 def test_a_failure_waits_five_minutes_and_tries_again_without_raising() -> None:
@@ -172,22 +237,23 @@ def test_without_a_question_model_nothing_is_queued() -> None:
     assert world.queue.pending("generate_questions") == 0
 
 
-def test_one_retry_chain_per_moment_and_broken_replies_stop_after_five() -> None:
+def test_one_retry_chain_per_article_and_broken_replies_stop_after_five() -> None:
     world, llm = question_world()
     llm.fail = "garbage"
     world.discover()
     world.run_except("generate_questions")
     deliver_questions_once(world)
     moments = {
-        m["moment_id"] for _, m in world.queue.pending_messages("generate_questions")
+        m["content_item_id"]
+        for _, m in world.queue.pending_messages("generate_questions")
     }
     calls = llm.question_calls
     # A backfill while each retry waits starts a second chain: dropped, no call.
-    for moment_id in moments:
+    for item_id in moments:
         world.queue.enqueue(
             "generate_questions",
-            {"moment_id": moment_id, "attempt": 0, "broken": 0},
-            idempotency_key=f"backfill-{moment_id}",
+            {"content_item_id": item_id, "attempt": 0, "broken": 0},
+            idempotency_key=f"backfill-{item_id}",
         )
     deliver_questions_once(world)
     assert llm.question_calls == calls + len(moments)  # only the real retries ran
@@ -199,11 +265,20 @@ def test_one_retry_chain_per_moment_and_broken_replies_stop_after_five() -> None
     assert world.store.questions.retries == {}
 
 
-def test_a_moment_whose_rights_were_lowered_is_not_sent_to_the_model() -> None:
+def lower_rights(world: World) -> None:
+    world.store.sources.upsert(
+        name="pipe",
+        feed_url=world.store.sources.rows[world.source_id].feed_url,
+        rights_profile="metadata_only",
+        homepage=None,
+    )
+
+
+def test_an_article_whose_rights_were_lowered_is_not_sent_to_the_model() -> None:
     world, llm = question_world()
     world.discover()
     world.run_except("generate_questions")
-    world.store.sources.set_moments_enabled(world.source_id, False)
+    lower_rights(world)
     deliver_questions_once(world)
     assert llm.question_calls == 0
 
@@ -213,14 +288,13 @@ def test_a_redraft_retires_the_old_questions_instead_of_deleting_them() -> None:
     world.discover()
     world.run()
     first = {q.id for q in world.store.questions.rows}
-    moment_id = world.store.questions.rows[0].moment_id
-    # An admin's correction changes the concepts, so the hash: drafted again.
-    item_id = next(m.item_id for m in world.store.moments.rows if m.id == moment_id)
-    world.store.tags.moment_concept_overrides[(item_id, "x")] = frozenset()
-    world.store.questions.rows[0].content_hash = "stale"
+    item_id = world.store.questions.rows[0].item_id
+    # A changed hash (an admin's correction, a new text): drafted again.
+    for q in world.store.questions.rows:
+        q.content_hash = "stale"
     world.queue.enqueue(
         "generate_questions",
-        {"moment_id": moment_id, "attempt": 0, "broken": 0},
+        {"content_item_id": item_id, "attempt": 0, "broken": 0},
         idempotency_key="redraft",
     )
     world.run()
@@ -267,22 +341,22 @@ def test_validation_retries_errors_without_end_and_broken_replies_five_times() -
     assert all(q.status == "pending" for q in world.store.questions.rows)
     # A backfill finds them pending and queues their validation again.
     llm.validator_fail = None
-    moments = {q.moment_id for q in world.store.questions.rows}
-    for moment_id in moments:
+    items = {q.item_id for q in world.store.questions.rows}
+    for item_id in items:
         world.queue.enqueue(
             "generate_questions",
-            {"moment_id": moment_id, "attempt": 0, "broken": 0},
-            idempotency_key=f"backfill-{moment_id}",
+            {"content_item_id": item_id, "attempt": 0, "broken": 0},
+            idempotency_key=f"backfill-{item_id}",
         )
     world.run()
     assert all(q.status == "live" for q in world.store.questions.rows)
 
 
-def test_a_pending_question_whose_moment_lost_its_rights_is_not_sent() -> None:
+def test_a_pending_question_whose_article_lost_its_tags_is_not_sent() -> None:
     world, llm = question_world()
     world.discover()
     world.run_except("validate_question")
-    world.store.sources.set_moments_enabled(world.source_id, False)
+    world.store.tags.rows.clear()  # no live concept: not a target
     _validate_once(world)
     assert llm.validator_prompts == []
     assert world.queue.pending("validate_question") == 0

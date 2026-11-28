@@ -29,7 +29,6 @@ def fake_web(article: str, feed_error: FetchError | None = None) -> FakeFetcher:
 def ingest_fake(
     article: str,
     profile: RightsProfile = "full_text_internal",
-    moments_enabled: bool = True,
     store: InMemoryStore | None = None,
 ) -> tuple[InMemoryStore, int, int]:
     """Ingest the fixture feed into an in-memory store; returns store, source, item."""
@@ -37,7 +36,6 @@ def ingest_fake(
     source_id = store.sources.upsert(
         name="seg-test", feed_url=FEED_URL, rights_profile=profile, homepage=None
     )
-    store.sources.set_moments_enabled(source_id, moments_enabled)
     result = ingest_one(store, fake_web(article), TrafilaturaExtractor(), source_id)
     return store, source_id, result.content_item_id
 

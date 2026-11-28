@@ -1,6 +1,6 @@
 """Opt-in pushes in Postgres (P4-W24-S01b; owner, 2026-11-11): who wants them, what
 applies now (today's daily unplayed, a path quiet for two days, an unopened feed entry),
-and the day's one claim."""
+and the day's one claim. ADR-0058: paths and feeds are articles."""
 
 from datetime import UTC, date, datetime, timedelta
 
@@ -18,29 +18,30 @@ FAR = date(2099, 1, 1)
 
 def _source(conn: psycopg.Connection, name: str) -> int:
     row = conn.execute(
-        "insert into source (name, feed_url, rights_profile, moments_enabled, "
-        "moments_seeded) values (%s, %s, 'full_text_internal', true, true) "
-        "returning id",
+        "insert into source (name, feed_url, rights_profile) "
+        "values (%s, %s, 'full_text_internal') returning id",
         (f"src-{name}", f"https://{name}.test/feed"),
     ).fetchone()
     assert row is not None
     return int(row[0])
 
 
-def _moment(conn: psycopg.Connection, source: int, name: str) -> tuple[int, int]:
+def _article(conn: psycopg.Connection, source: int, name: str) -> int:
     item = conn.execute(
         "insert into content_item (source_id, guid, canonical_url, title) "
         "values (%s, %s, %s, %s) returning id",
         (source, name, f"https://x.test/{name}", f"Article {name}"),
     ).fetchone()
     assert item is not None
-    moment = conn.execute(
-        "insert into moment (content_item_id, ordinal, title, estimated_minutes, link, "
-        "link_type) values (%s, 0, %s, 3, %s, 'anchor') returning id",
-        (item[0], f"Section {name}", f"https://x.test/{name}#s"),
-    ).fetchone()
-    assert moment is not None
-    return int(item[0]), int(moment[0])
+    return int(item[0])
+
+
+def _finish(conn: psycopg.Connection, user: str, item: int, at: datetime) -> None:
+    conn.execute(
+        "insert into user_article_finished (user_id, content_item_id, method, "
+        "finished_at) values (%s, %s, 'mark_done', %s)",
+        (user, item, at),
+    )
 
 
 def _wants(conn: psycopg.Connection, user: str) -> None:
@@ -91,9 +92,9 @@ def test_a_path_quiet_for_two_days_names_its_next_reading(
 ) -> None:
     a_user(conn, "rm4")
     source = _source(conn, "rmpath")
-    _, first = _moment(conn, source, "one")
-    _, second = _moment(conn, source, "two")
-    _, swapped = _moment(conn, source, "swap")
+    first = _article(conn, source, "one")
+    second = _article(conn, source, "two")
+    swapped = _article(conn, source, "swap")
     path = conn.execute(
         "insert into path (name, why, status, model, prompt_version) "
         "values ('Raft', 'why', 'live', 'm', 1) returning id"
@@ -105,7 +106,7 @@ def test_a_path_quiet_for_two_days_names_its_next_reading(
     ).fetchone()
     assert section is not None
     conn.execute(
-        "insert into path_session (section_id, ordinal, moment_id) "
+        "insert into path_session (section_id, ordinal, content_item_id) "
         "values (%s, 0, %s), (%s, 1, %s)",
         (section[0], first, section[0], second),
     )
@@ -114,25 +115,21 @@ def test_a_path_quiet_for_two_days_names_its_next_reading(
         "values ('rm4', %s, 'active', %s, %s)",
         (path[0], NOW - timedelta(days=5), NOW - timedelta(days=5)),
     )
-    conn.execute(
-        "insert into user_moment_finished (user_id, moment_id, method, finished_at) "
-        "values ('rm4', %s, 'mark_done', %s)",
-        (first, NOW - timedelta(days=1)),
-    )
+    _finish(conn, "rm4", first, NOW - timedelta(days=1))
     store = PostgresReminders(conn)
     assert store.path_due("rm4", NOW) is None  # a reading yesterday
     later = NOW + timedelta(days=1, minutes=1)
     assert store.path_due("rm4", later) == PushNotice(
-        "path_reminder", "Next on Raft", "Section two", f"/paths/{path[0]}"
+        "path_reminder", "Next on Raft", "Article two", f"/paths/{path[0]}"
     )
     # The user's own swap is what they'd read next.
     conn.execute(
-        "insert into user_path_session (user_id, section_id, ordinal, moment_id) "
+        "insert into user_path_session (user_id, section_id, ordinal, content_item_id) "
         "values ('rm4', %s, 1, %s)",
         (section[0], swapped),
     )
     due = store.path_due("rm4", later)
-    assert due is not None and due.body == "Section swap"
+    assert due is not None and due.body == "Article swap"
     conn.execute("update user_path set status = 'paused' where user_id = 'rm4'")
     assert store.path_due("rm4", later) is None
 
@@ -146,28 +143,30 @@ def test_the_digest_counts_what_isnt_opened_or_finished(
         "values ('rm5', '{stay-sharp}', '{backend}', 'beginner', '3-8')"
     )
     source = _source(conn, "rmfeed")
-    items = [_moment(conn, source, n) for n in ("a", "b", "c")]
-    for rank, (item, moment) in enumerate(items):
+    items = [_article(conn, source, n) for n in ("a", "b", "c")]
+    for rank, item in enumerate(items):
         conn.execute(
-            "insert into user_feed_entry (user_id, chip, content_item_id, moment_id,"
-            " rank, top_signal) values ('rm5', '3-8', %s, %s, %s, 'topic')",
-            (item, moment, rank + 1),
+            "insert into user_feed_entry (user_id, chip, content_item_id, rank,"
+            " top_signal) values ('rm5', '3-8', %s, %s, 'topic')",
+            (item, rank + 1),
         )
+    # A list of before ADR-0058, under another chip, is no longer read.
+    conn.execute(
+        "insert into user_feed_entry (user_id, chip, content_item_id, rank,"
+        " top_signal) values ('rm5', '8-15', %s, 1, 'topic')",
+        (items[2],),
+    )
     store = PostgresReminders(conn)
     assert store.digest("rm5") == PushNotice(
-        "digest", "Your break is ready", "3 new: Section a", "/"
+        "digest", "Your break is ready", "3 new: Article a", "/"
     )
     conn.execute(
-        "insert into user_moment_opened (user_id, moment_id) values ('rm5', %s)",
-        (items[0][1],),
+        "insert into user_article_opened (user_id, content_item_id) values ('rm5', %s)",
+        (items[0],),
     )
-    conn.execute(
-        "insert into user_article_finished (user_id, content_item_id, method) "
-        "values ('rm5', %s, 'mark_done')",
-        (items[1][0],),
-    )
+    _finish(conn, "rm5", items[1], NOW)
     due = store.digest("rm5")
-    assert due is not None and due.body == "New: Section c"
+    assert due is not None and due.body == "New: Article c"
 
 
 def test_one_claim_a_day(conn: psycopg.Connection) -> None:
@@ -181,7 +180,7 @@ def test_one_claim_a_day(conn: psycopg.Connection) -> None:
     assert store.claim("rm6", day + timedelta(days=1), "digest")
 
 
-def test_the_digest_never_names_a_broken_link_or_a_section_rights_no_longer_allow(
+def test_the_digest_never_names_a_broken_link(
     conn: psycopg.Connection,
 ) -> None:
     a_user(conn, "rm7")
@@ -190,28 +189,21 @@ def test_the_digest_never_names_a_broken_link_or_a_section_rights_no_longer_allo
         "values ('rm7', '{stay-sharp}', '{backend}', 'beginner', '3-8')"
     )
     source = _source(conn, "rmgate")
-    broken_item, broken = _moment(conn, source, "broken")
-    item, moment = _moment(conn, source, "ok")
-    for rank, (i, m) in enumerate([(broken_item, broken), (item, moment)]):
+    broken_item = _article(conn, source, "broken")
+    item = _article(conn, source, "ok")
+    for rank, i in enumerate([broken_item, item]):
         conn.execute(
-            "insert into user_feed_entry (user_id, chip, content_item_id, moment_id,"
-            " rank, top_signal) values ('rm7', '3-8', %s, %s, %s, 'topic')",
-            (i, m, rank + 1),
+            "insert into user_feed_entry (user_id, chip, content_item_id, rank,"
+            " top_signal) values ('rm7', '3-8', %s, %s, 'topic')",
+            (i, rank + 1),
         )
     conn.execute(
         "update content_item set link_broken_at = now() where id = %s", (broken_item,)
     )
     store = PostgresReminders(conn)
     assert store.digest("rm7") == PushNotice(
-        "digest", "Your break is ready", "New: Section ok", "/"
+        "digest", "Your break is ready", "New: Article ok", "/"
     )
-    # ING-2: the source no longer allows sections.
-    conn.execute(
-        "update source set moments_enabled = false, moments_switched_off = true "
-        "where id = %s",
-        (source,),
-    )
-    assert store.digest("rm7") is None
 
 
 def test_a_path_reminder_follows_the_users_order_and_skips(
@@ -219,15 +211,15 @@ def test_a_path_reminder_follows_the_users_order_and_skips(
 ) -> None:
     a_user(conn, "rm8")
     source = _source(conn, "rmorder")
-    _, a = _moment(conn, source, "first")
-    _, b = _moment(conn, source, "second")
+    a = _article(conn, source, "first")
+    b = _article(conn, source, "second")
     path = conn.execute(
         "insert into path (name, why, status, model, prompt_version) "
         "values ('Order', 'why', 'live', 'm', 1) returning id"
     ).fetchone()
     assert path is not None
     sections: list[int] = []
-    for ordinal, moment in enumerate((a, b)):
+    for ordinal, item in enumerate((a, b)):
         row = conn.execute(
             "insert into path_section (path_id, ordinal) values (%s, %s) returning id",
             (path[0], ordinal),
@@ -235,9 +227,9 @@ def test_a_path_reminder_follows_the_users_order_and_skips(
         assert row is not None
         sections.append(int(row[0]))
         conn.execute(
-            "insert into path_session (section_id, ordinal, moment_id) "
+            "insert into path_session (section_id, ordinal, content_item_id) "
             "values (%s, 0, %s)",
-            (row[0], moment),
+            (row[0], item),
         )
     conn.execute(
         "insert into user_path (user_id, path_id, status, started_at, updated_at) "
@@ -246,7 +238,7 @@ def test_a_path_reminder_follows_the_users_order_and_skips(
     )
     store = PostgresReminders(conn)
     due = store.path_due("rm8", NOW)
-    assert due is not None and due.body == "Section first"
+    assert due is not None and due.body == "Article first"
     # The user moved the second section first: it's next.
     conn.execute(
         "insert into user_path_section (user_id, path_id, section_id, ordinal) "
@@ -254,7 +246,7 @@ def test_a_path_reminder_follows_the_users_order_and_skips(
         (path[0], sections[0], path[0], sections[1]),
     )
     due = store.path_due("rm8", NOW)
-    assert due is not None and due.body == "Section second"
+    assert due is not None and due.body == "Article second"
     # Skipped: never named.
     conn.execute(
         "update user_path_section set skipped_at = now() "
@@ -262,12 +254,10 @@ def test_a_path_reminder_follows_the_users_order_and_skips(
         (sections[1],),
     )
     due = store.path_due("rm8", NOW)
-    assert due is not None and due.body == "Section first"
+    assert due is not None and due.body == "Article first"
 
 
-def _path_of(
-    conn: psycopg.Connection, user: str, moments: list[int]
-) -> tuple[int, int]:
+def _path_of(conn: psycopg.Connection, user: str, items: list[int]) -> tuple[int, int]:
     """A live path of one section with these readings in order, active for the user and
     quiet for five days; returns (path id, section id)."""
     path = conn.execute(
@@ -280,11 +270,11 @@ def _path_of(
         (path[0],),
     ).fetchone()
     assert section is not None
-    for ordinal, moment in enumerate(moments):
+    for ordinal, item in enumerate(items):
         conn.execute(
-            "insert into path_session (section_id, ordinal, moment_id) "
+            "insert into path_session (section_id, ordinal, content_item_id) "
             "values (%s, %s, %s)",
-            (section[0], ordinal, moment),
+            (section[0], ordinal, item),
         )
     conn.execute(
         "insert into user_path (user_id, path_id, status, started_at, updated_at) "
@@ -301,15 +291,13 @@ def test_a_reading_its_rights_no_longer_allow_is_never_named(
     a_user(conn, "rm9")
     off = _source(conn, "rmoff")
     ok = _source(conn, "rmon")
-    off_item, off_moment = _moment(conn, off, "off")
-    dup_item, dup_moment = _moment(conn, ok, "dup")
-    broken_item, broken_moment = _moment(conn, ok, "broken")
-    _, kept = _moment(conn, ok, "kept")
-    _path_of(conn, "rm9", [off_moment, dup_moment, broken_moment, kept])
+    off_item = _article(conn, off, "off")
+    dup_item = _article(conn, ok, "dup")
+    broken_item = _article(conn, ok, "broken")
+    kept = _article(conn, ok, "kept")
+    _path_of(conn, "rm9", [off_item, dup_item, broken_item, kept])
     conn.execute(
-        "update source set moments_enabled = false, moments_switched_off = true "
-        "where id = %s",
-        (off,),
+        "update source set rights_profile = 'metadata_only' where id = %s", (off,)
     )
     conn.execute(
         "update content_item set duplicate_of = %s where id = %s",
@@ -319,7 +307,7 @@ def test_a_reading_its_rights_no_longer_allow_is_never_named(
         "update content_item set link_broken_at = now() where id = %s", (broken_item,)
     )
     due = PostgresReminders(conn).path_due("rm9", NOW)
-    assert due is not None and due.body == "Section kept"
+    assert due is not None and due.body == "Article kept"
 
 
 def test_a_swap_counts_only_while_its_rights_allow_it(
@@ -328,25 +316,25 @@ def test_a_swap_counts_only_while_its_rights_allow_it(
     a_user(conn, "rm10")
     ok = _source(conn, "rmswapok")
     other = _source(conn, "rmswapdup")
-    original, approved = _moment(conn, ok, "approved")
-    swapped_item, swapped = _moment(conn, other, "swapped")
+    approved = _article(conn, ok, "approved")
+    swapped = _article(conn, other, "swapped")
     _, section = _path_of(conn, "rm10", [approved])
     conn.execute(
-        "insert into user_path_session (user_id, section_id, ordinal, moment_id) "
+        "insert into user_path_session (user_id, section_id, ordinal, content_item_id) "
         "values ('rm10', %s, 0, %s)",
         (section, swapped),
     )
     store = PostgresReminders(conn)
     due = store.path_due("rm10", NOW)
-    assert due is not None and due.body == "Section swapped"
-    # The swap's item is found to be a duplicate (its moment stays, unlike a source
-    # lowered, whose moments go): the approved reading comes back, as on the web.
+    assert due is not None and due.body == "Article swapped"
+    # The swap's article is found to be a duplicate: the approved reading comes back,
+    # as on the web.
     conn.execute(
         "update content_item set duplicate_of = %s where id = %s",
-        (original, swapped_item),
+        (approved, swapped),
     )
     due = store.path_due("rm10", NOW)
-    assert due is not None and due.body == "Section approved"
+    assert due is not None and due.body == "Article approved"
 
 
 def test_a_finish_counts_as_activity_even_once_its_rights_change(
@@ -354,20 +342,15 @@ def test_a_finish_counts_as_activity_even_once_its_rights_change(
 ) -> None:
     a_user(conn, "rm11")
     ok = _source(conn, "rmactive")
-    done_item, done = _moment(conn, ok, "done")
-    _, next_one = _moment(conn, ok, "next")
+    done = _article(conn, ok, "done")
+    next_one = _article(conn, ok, "next")
     _path_of(conn, "rm11", [done, next_one])
-    conn.execute(
-        "insert into user_moment_finished (user_id, moment_id, method, finished_at) "
-        "values ('rm11', %s, 'mark_done', %s)",
-        (done, NOW - timedelta(days=1)),
-    )
-    # Read yesterday; its item has since been found a duplicate of another: the reading
+    _finish(conn, "rm11", done, NOW - timedelta(days=1))
+    # Read yesterday; it has since been found a duplicate of another: the reading
     # leaves the path, but it was still read yesterday.
-    original, _ = _moment(conn, ok, "original")
+    original = _article(conn, ok, "original")
     conn.execute(
-        "update content_item set duplicate_of = %s where id = %s",
-        (original, done_item),
+        "update content_item set duplicate_of = %s where id = %s", (original, done)
     )
     assert PostgresReminders(conn).path_due("rm11", NOW) is None
 

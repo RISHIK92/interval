@@ -47,16 +47,12 @@ vi.mock("../../../env", () => ({
 }));
 
 const card: FeedCard = {
-  kind: "moment",
   itemId: "5",
-  momentId: "9",
   articleTitle: "Raft",
   author: null,
   sourceName: "A blog",
-  sectionTitle: "Leader election",
-  sectionNumber: 2,
-  sectionCount: 5,
   estimatedMinutes: 6,
+  state: "continue_reading",
   reasons: { text: "On your path", kinds: ["goal_match"] },
   projectNote: null,
   saved: false,
@@ -68,7 +64,6 @@ const account: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const chosen = {
   topics: ["distributed-systems"],
   level: "intermediate",
-  breakLength: "3-8",
   onboardedAt: new Date(),
 } as unknown as Preferences;
 const APP = { "expo-origin": "interval://", "interval-platform": "ios" };
@@ -77,24 +72,22 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const get = async (
-  query = "?chip=3-8",
-  headers: Record<string, string> = APP,
-) => {
+const get = async (query = "", headers: Record<string, string> = APP) => {
   const { GET } = await import("./route");
   return GET(
     new Request(`http://localhost:3100/api/feed${query}`, { headers }),
   );
 };
 
-test("the app gets its chip's cards, in the shape it parses, and a feed_viewed from ios", async () => {
+// ADR-0058: one list of article cards, no chip.
+test("the app gets its cards, in the shape it parses, and a feed_viewed from ios", async () => {
   current.mockResolvedValue(account);
   prefs.mockResolvedValue(chosen);
   const response = await get();
   expect(response.status).toBe(200);
   const body = FeedResponse.parse(await response.json());
-  expect(body).toEqual({ chip: "3-8", cards: [card] });
-  expect(read).toHaveBeenCalledWith("u1", "3-8", expect.any(Number));
+  expect(body).toEqual({ cards: [card] });
+  expect(read).toHaveBeenCalledWith("u1", expect.any(Number));
   expect(emit).toHaveBeenCalledWith(
     "feed_viewed",
     { card_count: 1 },
@@ -116,7 +109,7 @@ test("a card already in Continue reading isn't offered again", async () => {
   expect(body.cards.map((c) => c.itemId)).toEqual(["6"]);
 });
 
-test("signed out, a guest, not onboarded, another site or a bad chip: refused", async () => {
+test("signed out, a guest, not onboarded or another site: refused", async () => {
   current.mockResolvedValue(null);
   expect((await get()).status).toBe(401);
   current.mockResolvedValue({ ...account, isGuest: true });
@@ -125,8 +118,7 @@ test("signed out, a guest, not onboarded, another site or a bad chip: refused", 
   prefs.mockResolvedValue(null);
   expect((await get()).status).toBe(409);
   prefs.mockResolvedValue(chosen);
-  expect((await get("?chip=3-8", {})).status).toBe(403);
-  expect((await get("?chip=2-4")).status).toBe(400);
+  expect((await get("", {})).status).toBe(403);
 });
 
 // ADR-0036: the feed's capability, as Home checks it.
@@ -138,13 +130,20 @@ test("a plan without the feed gets 403", async () => {
   expect(can).toHaveBeenCalledWith("u1", "feed.read");
 });
 
-// As Home: the chip the user chose at onboarding when none is asked for; finished live
-// matches applied; a username first.
-test("no chip asked: the onboarding one; a username and setup are named", async () => {
+// ADR-0058: the CLI and the VS Code extension still send ?chip=, even a value that was
+// never a chip; it is ignored. As Home: finished live matches applied; a username
+// first.
+test("a chip sent is ignored; a username and setup are named", async () => {
   current.mockResolvedValue(account);
-  prefs.mockResolvedValue({ ...chosen, breakLength: "1-3" });
-  const body = FeedResponse.parse(await (await get("")).json());
-  expect(body.chip).toBe("1-3");
+  prefs.mockResolvedValue(chosen);
+  for (const query of ["?chip=1-3", "?chip=2-4"]) {
+    const response = await get(query);
+    expect(response.status).toBe(200);
+    expect(FeedResponse.parse(await response.json())).toEqual({
+      cards: [card],
+    });
+  }
+  expect(read).toHaveBeenCalledWith("u1", expect.any(Number));
   expect(applyEvidence).toHaveBeenCalled();
   usernameOf.mockResolvedValueOnce(null);
   const noName = await get();

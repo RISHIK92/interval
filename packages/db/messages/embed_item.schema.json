@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Embed the moments of one item (DB-3, AI-4, P1-W3-S04).",
+  "description": "Embed one item's allowed text as one vector (DB-3, AI-4, P1-W3-S04, ADR-0058).",
   "type": "object",
   "additionalProperties": false,
   "required": ["content_item_id"],

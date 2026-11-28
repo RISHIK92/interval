@@ -59,7 +59,6 @@ beforeEach(() => {
     goals: ["stay-sharp"],
     topics: ["distributed-systems", "databases"],
     level: "intermediate",
-    breakLength: "3-8",
     firstName: "Ada",
   });
 });
@@ -109,12 +108,10 @@ test("Ask and its chips show only with explore.ask; search always does", async (
   expect(latest).toHaveBeenCalledTimes(1);
 });
 
-test("a search lists deep links, and counts itself without the query", async () => {
+test("a search lists article links, and counts itself without the query", async () => {
   search.mockResolvedValueOnce([
     {
       itemId: "5",
-      momentId: "9",
-      title: "Partitioning",
       articleTitle: "Designing data systems",
       sourceName: "DDIA",
       author: null,
@@ -127,9 +124,11 @@ test("a search lists deep links, and counts itself without the query", async () 
   expect(search).toHaveBeenCalledWith("u1", "sharding", 20);
   expect(text(html)).toContain("Results for “sharding”");
   expect(html).toContain(
-    'href="/out?item=5&amp;moment=9&amp;from=explore&amp;target=section"',
+    'href="/out?item=5&amp;from=explore&amp;target=article"',
   );
-  expect(text(html)).toContain("Designing data systems · DDIA · 6 min · Saved");
+  // ADR-0058: the result is the article itself.
+  expect(text(html)).toContain("Designing data systems");
+  expect(text(html)).toContain("DDIA · 6 min · Saved");
   expect(text(html)).toContain("Your note: Ask about rebalancing");
   expect(emit).toHaveBeenCalledWith(
     "explore_searched",
@@ -145,14 +144,13 @@ test("no query, no search and no event", async () => {
   expect(emit).not.toHaveBeenCalled();
 });
 
-test("the gap card names what the user knows and opens its shortest moment", async () => {
+test("the gap card names what the user knows and opens its shortest article", async () => {
   gap.mockResolvedValueOnce({
     conceptId: "77",
     concept: "Consistency models",
     topic: "distributed-systems",
     known: ["Caching", "Replication"],
     itemId: "5",
-    momentId: "9",
     minutes: 6,
   });
   const html = await page();
@@ -221,8 +219,7 @@ test("the last answer is labelled AI and its sources are the cited deep links", 
           kind: "reading",
           passage: "m9",
           itemId: "5",
-          momentId: "9",
-          label: "DDIA · ch. 6 Partitioning",
+          label: "DDIA · Designing data systems",
           topic: "distributed-systems",
         },
         {
@@ -241,14 +238,14 @@ test("the last answer is labelled AI and its sources are the cited deep links", 
     "Shard when one node cannot hold your writes.1 Replicas come first.1,2",
   );
   expect(html).toContain(
-    'href="/out?item=5&amp;moment=9&amp;from=explore&amp;target=section"',
+    'href="/out?item=5&amp;from=explore&amp;target=article"',
   );
   expect(text(html)).toContain("Explainer · Sharding");
   expect(text(html)).toContain("Ask a follow-up");
   expect(html).toContain(
     'href="/explore/session?question=11111111-1111-4111-8111-111111111111"',
   );
-  expect(text(html)).toContain("Make it a 4-min session");
+  expect(text(html)).toContain("Make it a reading session");
 });
 
 test("an answer nothing covered says so and offers the search", async () => {
@@ -266,5 +263,5 @@ test("an answer nothing covered says so and offers the search", async () => {
     'href="/explore?q=Who%20won%20the%201998%20World%20Cup%3F"',
   );
   expect(text(html)).not.toContain("Ask a follow-up");
-  expect(text(html)).not.toContain("Make it a 4-min session");
+  expect(text(html)).not.toContain("Make it a reading session");
 });

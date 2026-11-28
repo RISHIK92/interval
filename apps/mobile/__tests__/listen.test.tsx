@@ -93,11 +93,11 @@ test("Listen queues and plays the first from its saved place, on the lock screen
   const t = store([
     { queue: [explainer("7", 30), explainer("8")], upNext: null },
   ]);
-  expect(await t.listen.enqueue("5", "9")).toBe(true);
+  expect(await t.listen.enqueue("5")).toBe(true);
   expect(t.calls[0]).toEqual({
     method: "POST",
     path: "/api/listen",
-    body: { itemId: "5", momentId: "9" },
+    body: { itemId: "5" },
   });
   expect(t.audio.replace).toHaveBeenCalledWith({
     uri: "http://localhost:3100/media/explainers/c7/7/r/index.m3u8",
@@ -332,21 +332,21 @@ test("the full player draws an approved timeline from the site's /media", async 
   ).toBeOnTheScreen();
 });
 
-test("the reader's Listen queues what's shown and opens the player", async () => {
+test("the reader's Listen queues the article's explainers and opens the player", async () => {
   fetchMock.mockImplementation((url, init) => {
     const path = url.replace("http://localhost:3100", "");
     const method = init?.method ?? "GET";
     if (path.startsWith("/api/read/5"))
       return Promise.resolve(
         Response.json({
-          url: "https://blog.dev/raft#election",
+          url: "https://blog.dev/raft",
           inApp: true,
           title: "Raft",
           domain: "blog.dev",
           saved: false,
-          reached: "9",
-          nextMomentId: null,
+          state: "continue_reading",
           note: null,
+          sectionNotes: [],
           testable: false,
           listen: true,
           measure: null,
@@ -360,16 +360,14 @@ test("the reader's Listen queues what's shown and opens the player", async () =>
       );
     return Promise.resolve(new Response(null, { status: 204 }));
   });
-  await renderRouter("./app", {
-    initialUrl: "/read/5?moment=9&chip=3-8&pos=2",
-  });
+  await renderRouter("./app", { initialUrl: "/read/5?pos=2" });
   await screen.findByText("blog.dev");
   await fireEvent.press(screen.getByRole("button", { name: "Listen" }));
   expect(fetchMock).toHaveBeenCalledWith(
     "http://localhost:3100/api/listen",
     expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ itemId: "5", momentId: "9" }),
+      body: JSON.stringify({ itemId: "5" }),
     }),
   );
   expect(

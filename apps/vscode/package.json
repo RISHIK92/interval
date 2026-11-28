@@ -43,23 +43,6 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Your Interval site, for example `https://interval.example`. https only; plain http only for `localhost`, `127.0.0.1` and `::1`."
-        },
-        "interval.chip": {
-          "type": "string",
-          "default": "",
-          "enum": [
-            "",
-            "1-3",
-            "3-8",
-            "8-15"
-          ],
-          "enumDescriptions": [
-            "The break length you chose on Interval",
-            "1\u20133 minutes",
-            "3\u20138 minutes",
-            "8\u201315 minutes"
-          ],
-          "description": "The break length the suggestions fit."
         }
       }
     }
@@ -75,8 +58,7 @@
     "test:host": "pnpm build && node scripts/stage.mts && esbuild test-host/suite.ts --bundle --format=cjs --platform=node --target=node20 --external:vscode --outfile=dist/test-host/suite.js && node test-host/run.mts"
   },
   "dependencies": {
-    "@interval/api-client": "workspace:*",
-    "zod": "4.6.7"
+    "@interval/api-client": "workspace:*"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",

@@ -23,7 +23,7 @@ from interval_jobs.adapters.memory import (
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
-from interval_jobs.pipeline import ModelJob, moment_text, notes_batched
+from interval_jobs.pipeline import ModelJob, notes_batched, question_passage
 from interval_jobs.ports import (
     BatchItem,
     BatchNotFound,
@@ -31,11 +31,13 @@ from interval_jobs.ports import (
     BatchStatus,
     EstimateDraft,
     ProjectNoteInput,
+    QuestionBatchEntry,
     QuestionDraft,
     Store,
     Usage,
 )
 from interval_jobs.question_batches import Submitted, collect, submit
+from interval_jobs.questions import question_count
 
 from .test_pipeline import NOW, NoEmbeddings, World
 from .test_question_stage import QuestionLlm, question_world
@@ -101,7 +103,14 @@ class FakeBatches:
             "correct": 0,
             "citation": quote,
         }
-        return json.dumps({"questions": [one, {**one, "stem": "And again?"}]})
+        found = re.search(
+            r"Write exactly (\d+) questions", request.messages[0]["content"]
+        )
+        assert found is not None  # the article's count (ADR-0058)
+        count = int(found.group(1))
+        return json.dumps(
+            {"questions": [{**one, "stem": f"Question {n}?"} for n in range(count)]}
+        )
 
     def status(self, batch_id: str) -> BatchStatus:
         if self.mode == "running":
@@ -139,6 +148,12 @@ def batch_setup() -> tuple[InMemoryStore, AiGateway, FakeBatches, InMemoryAi]:
         ledger, QuestionLlm(), NoEmbeddings(), clock=lambda: NOW, batches=batches
     )
     return world.store, gateway, batches, ledger
+
+
+def choice_count(store: InMemoryStore) -> int:
+    """The multiple-choice questions the targets are drafted (ADR-0058)."""
+    found = (store.questions.target(i) for i in store.questions.targets(None))
+    return sum(question_count(t.sections) for t in found if t is not None)
 
 
 def unit_of(store: InMemoryStore) -> Callable[[], AbstractContextManager[Store]]:
@@ -192,7 +207,7 @@ def test_a_draft_batch_then_a_validation_batch_make_questions_live(
     assert submit(unit, gateway, MODEL) == type(sent)(0, 0)
 
 
-def test_a_running_batch_waits_and_a_failed_one_frees_its_moments() -> None:
+def test_a_running_batch_waits_and_a_failed_one_frees_its_articles() -> None:
     store, gateway, batches, _ = batch_setup()
     unit = unit_of(store)
     batches.mode = "running"
@@ -209,11 +224,11 @@ def test_a_batch_not_found_waits_then_is_failed_once_past_its_window() -> None:
     store, gateway, batches, _ = batch_setup()
     unit = unit_of(store)
     first = submit(unit, gateway, MODEL).drafts
-    # OpenRouter reads a new batch as 404 for a moment: it stays open.
+    # OpenRouter reads a new batch as 404 for a while: it stays open.
     batches.mode = "not-found"
     assert collect(unit, gateway, MODEL).failed_batches == 0
     assert submit(unit, gateway, MODEL).drafts == 0
-    # Still unknown two days on (past the 24h window): failed, its moments freed.
+    # Still unknown two days on (past the 24h window): failed, its articles freed.
     (batch_id, kind, _) = store.questions.open_batches()[0]
     store.questions.batches[batch_id] = (kind, True, NOW - timedelta(days=2))
     assert collect(unit, gateway, MODEL).failed_batches == 1
@@ -223,9 +238,9 @@ def test_a_batch_not_found_waits_then_is_failed_once_past_its_window() -> None:
 def test_broken_replies_count_toward_the_cap_and_provider_errors_do_not() -> None:
     store, gateway, batches, _ = batch_setup()
     unit = unit_of(store)
-    # Each moment's multiple-choice and estimate drafts (P3-W13-S03b).
-    moments = len(store.questions.targets(None))
-    requests = 2 * moments
+    # Each article's multiple-choice and estimate drafts (P3-W13-S03b).
+    articles = len(store.questions.targets(None))
+    requests = 2 * articles
     batches.mode = "provider-error"
     submit(unit, gateway, MODEL)
     assert collect(unit, gateway, MODEL).errors == requests
@@ -233,9 +248,9 @@ def test_broken_replies_count_toward_the_cap_and_provider_errors_do_not() -> Non
     batches.mode = "broken"
     for _ in range(5):
         sent = submit(unit, gateway, MODEL)
-        assert (sent.drafts, sent.estimates) == (moments, moments)
+        assert (sent.drafts, sent.estimates) == (articles, articles)
         assert collect(unit, gateway, MODEL).broken == requests
-    # Five broken replies each: no more drafts for those moments.
+    # Five broken replies each: no more drafts for those articles.
     assert submit(unit, gateway, MODEL) == Submitted(0, 0)
 
 
@@ -299,22 +314,51 @@ def test_an_interrupted_collection_records_the_cost_once_and_saves_once() -> Non
     assert {q.id for q in store.questions.rows} == first  # nothing saved twice
 
 
-def test_a_moment_that_changed_before_collection_is_skipped_and_sent_again() -> None:
+def test_an_article_that_changed_before_collection_is_skipped_and_sent_again() -> None:
     store, gateway, _, _ = batch_setup()
     unit = unit_of(store)
-    moments = submit(unit, gateway, MODEL).drafts
-    # Its article's text changes meanwhile (a re-fetch): a new content hash.
-    moment = store.questions.targets(None)[0]
-    item_id = next(m.item_id for m in store.moments.rows if m.id == moment)
+    articles = submit(unit, gateway, MODEL).drafts
+    # Its text changes meanwhile (a re-fetch): a new content hash.
+    item_id = store.questions.targets(None)[0]
     item = store.items.rows[item_id]
     assert item.full_text is not None
-    text = moment_text(store, store.questions.target(moment))
+    text = question_passage(store, store.questions.target(item_id))
     first_word = text.split()[0]
     item.full_text = item.full_text.replace(first_word, first_word + "s", 1)
     collect(unit, gateway, MODEL)
-    assert all(q.moment_id != moment for q in store.questions.rows)
-    assert len({q.moment_id for q in store.questions.rows}) == moments - 1
+    assert all(q.item_id != item_id for q in store.questions.rows)
+    assert len({q.item_id for q in store.questions.rows}) == articles - 1
     assert submit(unit, gateway, MODEL).drafts == 1
+
+
+def test_a_moments_draft_from_before_adr_0058_is_skipped_when_collected() -> None:
+    store, gateway, batches, _ = batch_setup()
+    unit = unit_of(store)
+    item_id = store.questions.targets(None)[0]
+    # A draft batch sent per moment: its entry names the moment's article (stage A)
+    # with the moment's content hash, which no article passage hashes to.
+    entry = QuestionBatchEntry("draft-77", item_id, None, "a-moments-hash")
+    store.questions.record_batch("batch_old", "draft", MODEL, [entry])
+    batches.submitted["batch_old"] = [
+        BatchRequest("draft-77", [{"role": "system", "content": "x"}])
+    ]
+    original = batches.status
+
+    def answered(batch_id: str) -> BatchStatus:
+        if batch_id != "batch_old":
+            return original(batch_id)
+        reply = json.dumps({"questions": []})
+        return BatchStatus(
+            "completed", [BatchItem("draft-77", reply, None, 1, 1)], Decimal(0), None
+        )
+
+    batches.status = answered  # type: ignore[method-assign]
+    got = collect(unit, gateway, MODEL)
+    assert (got.closed, got.saved) == (1, 0)
+    assert store.questions.rows == []
+    assert store.questions.batch_items["batch_old"][0][1] == "skipped"
+    # Freed: the article is drafted per article now.
+    assert submit(unit, gateway, MODEL).drafts == len(store.questions.targets(None))
 
 
 def test_a_validation_that_keeps_breaking_stops_after_five() -> None:
@@ -331,8 +375,8 @@ def test_a_validation_that_keeps_breaking_stops_after_five() -> None:
     assert all(q.status == "pending" for q in store.questions.rows)
 
 
-# P3-W13-S03b (Q-P3-05): a moment's estimate, drafted and validated in the same
-# batches as its multiple-choice pair, but never in place of it.
+# P3-W13-S03b (Q-P3-05): an article's estimate, drafted and validated in the same
+# batches as its multiple-choice questions, but never in place of them.
 def kinds(store: InMemoryStore, kind: type) -> list[StoredQuestion]:
     return [q for q in store.questions.rows if isinstance(q.draft, kind)]
 
@@ -347,12 +391,14 @@ def test_batches_carry_both_kinds_and_a_close_estimate_goes_live() -> None:
     collect(unit, gateway, MODEL)
     estimates = kinds(store, EstimateDraft)
     assert len(estimates) == len(targets)
-    assert {q.moment_id for q in estimates} == set(targets)
+    assert {q.item_id for q in estimates} == set(targets)
     assert all(q.status == "pending" and q.difficulty == "beginner" for q in estimates)
     assert {q.concepts for q in estimates} == {("write-ahead-log",)}
-    assert len(kinds(store, QuestionDraft)) == 2 * len(targets)
+    choices = choice_count(store)
+    assert len(kinds(store, QuestionDraft)) == choices
     sent = submit(unit, gateway, MODEL)
-    assert sent.validations == 3 * len(targets)  # both kinds in one validate batch
+    # Both kinds in one validate batch.
+    assert sent.validations == choices + len(targets)
     collect(unit, gateway, MODEL)
     assert all(q.status == "live" for q in store.questions.rows)
     assert all(q.validator_estimate == 1 for q in kinds(store, EstimateDraft))
@@ -379,8 +425,8 @@ def test_redrafting_one_kind_never_retires_the_other() -> None:
     submit(unit, gateway, MODEL)
     collect(unit, gateway, MODEL)
     moment = store.questions.targets(None)[0]
-    choice = [q for q in kinds(store, QuestionDraft) if q.moment_id == moment]
-    estimate = next(q for q in kinds(store, EstimateDraft) if q.moment_id == moment)
+    choice = [q for q in kinds(store, QuestionDraft) if q.item_id == moment]
+    estimate = next(q for q in kinds(store, EstimateDraft) if q.item_id == moment)
     assert isinstance(choice[0].draft, QuestionDraft)
     assert isinstance(estimate.draft, EstimateDraft)
     slugs = ["write-ahead-log"]
@@ -389,7 +435,7 @@ def test_redrafting_one_kind_never_retires_the_other() -> None:
     assert all(q.status == "retired" for q in choice)
     store.questions.save_estimate(moment, estimate.draft, slugs, "m", "h2", None)
     assert estimate.status == "retired"
-    newest = [q for q in kinds(store, QuestionDraft) if q.moment_id == moment][-1]
+    newest = [q for q in kinds(store, QuestionDraft) if q.item_id == moment][-1]
     assert newest.status == "pending"
 
 
@@ -419,18 +465,17 @@ def test_a_changed_passage_redrafts_its_estimate_and_retires_the_old_one() -> No
     submit(unit, gateway, MODEL)
     collect(unit, gateway, MODEL)
     moment = store.questions.targets(None)[0]
-    old = next(q for q in kinds(store, EstimateDraft) if q.moment_id == moment)
-    item_id = next(m.item_id for m in store.moments.rows if m.id == moment)
-    item = store.items.rows[item_id]
+    old = next(q for q in kinds(store, EstimateDraft) if q.item_id == moment)
+    item = store.items.rows[moment]
     assert item.full_text is not None
-    text = moment_text(store, store.questions.target(moment))
+    text = question_passage(store, store.questions.target(moment))
     first_word = text.split()[0]
     item.full_text = item.full_text.replace(first_word, first_word + "s", 1)
     assert submit(unit, gateway, MODEL).estimates >= 1
     collect(unit, gateway, MODEL)
     assert old.status == "retired"
     assert any(
-        q.moment_id == moment and q.status == "pending"
+        q.item_id == moment and q.status == "pending"
         for q in kinds(store, EstimateDraft)
     )
 
@@ -444,7 +489,7 @@ def test_broken_estimates_stop_only_the_estimate() -> None:
         assert submit(unit, gateway, MODEL).estimates == len(targets)
         collect(unit, gateway, MODEL)
     assert submit(unit, gateway, MODEL).estimates == 0
-    assert len(kinds(store, QuestionDraft)) == 2 * len(targets)
+    assert len(kinds(store, QuestionDraft)) == choice_count(store)
 
 
 def test_an_interrupted_estimate_collection_saves_once() -> None:
@@ -620,9 +665,9 @@ def test_notes_ride_the_validation_batch_when_drafting_is_open() -> None:
 def test_a_mixed_batch_splits_its_cost_by_tokens() -> None:
     store, gateway, _, ledger = notes_setup(items=2)
     unit = unit_of(store)
-    moments = len(store.questions.targets(None))
+    articles = len(store.questions.targets(None))
     sent = submit(unit, gateway, MODEL, notes=True)
-    assert (sent.drafts, sent.estimates, sent.notes) == (moments, moments, 2)
+    assert (sent.drafts, sent.estimates, sent.notes) == (articles, articles, 2)
     drafts = sent.drafts + sent.estimates
     collect(unit, gateway, MODEL)
     by_payer = {(u.feature, u.user_id): u.cost_usd for u in ledger.rows}

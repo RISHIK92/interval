@@ -1,5 +1,5 @@
 """A question trial (Q-P2-13): before the backfill runs on a batch model, the same few
-moments are drafted and blind-validated by it, through the gateway (costs land in
+articles are drafted and blind-validated by it, through the gateway (costs land in
 ai_usage, OPS-4), and nothing is saved to the question bank. The same prompts and
 rules as question_batches; the report says how many replies broke and why, how often
 the validator agreed, and every question to read."""
@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
-from interval_jobs.pipeline import moment_text
+from interval_jobs.pipeline import question_passage
 from interval_jobs.ports import (
     BatchItem,
     BatchRequest,
@@ -25,6 +25,7 @@ from interval_jobs.questions import (
     parse_answer,
     parse_reply,
     prompt,
+    question_count,
     shuffled,
     validation_prompt,
 )
@@ -38,15 +39,16 @@ class TrialError(RuntimeError):
 
 
 @dataclass(frozen=True)
-class TrialMoment:
-    moment_id: int
+class TrialArticle:
+    item_id: int
     text: str
     concepts: list[str]
+    count: int  # questions it is drafted (ADR-0058)
 
 
 @dataclass(frozen=True)
 class TrialQuestion:
-    moment_id: int
+    item_id: int
     stem: str
     options: tuple[str, ...]
     key: int
@@ -57,7 +59,7 @@ class TrialQuestion:
 @dataclass
 class TrialReport:
     model: str
-    moments: int
+    articles: int
     drafted: int = 0
     broken: dict[str, int] = field(default_factory=dict[str, int])
     errors: int = 0
@@ -73,18 +75,25 @@ class TrialReport:
     output_tokens: int = 0
 
 
-def trial_moments(store: Store, limit: int) -> list[TrialMoment]:
-    """The first `limit` target moments with text the rights allow (ING-2), in the
-    store's order, so two trials see the same moments."""
+def trial_articles(store: Store, limit: int) -> list[TrialArticle]:
+    """The first `limit` target articles with text the rights allow (ING-2), in the
+    store's order, so two trials see the same articles."""
     if limit < 1:
-        raise TrialError("the limit must be at least 1")  # 0 would mean every moment
-    chosen: list[TrialMoment] = []
-    for moment_id in store.questions.targets(None):
-        target = store.questions.target(moment_id)
-        text = moment_text(store, target)
+        raise TrialError("the limit must be at least 1")  # 0 would mean every one
+    chosen: list[TrialArticle] = []
+    for item_id in store.questions.targets(None):
+        target = store.questions.target(item_id)
+        text = question_passage(store, target)
         if target is None or not text:
             continue
-        chosen.append(TrialMoment(moment_id, text, [n for _, n in target.concepts]))
+        chosen.append(
+            TrialArticle(
+                item_id,
+                text,
+                [n for _, n in target.concepts],
+                question_count(target.sections),
+            )
+        )
         if len(chosen) == limit:
             break
     return chosen
@@ -93,48 +102,51 @@ def trial_moments(store: Store, limit: int) -> list[TrialMoment]:
 def run_trial(
     gateway: AiGateway,
     model: str,
-    moments: list[TrialMoment],
+    articles: list[TrialArticle],
     sleep: Callable[[float], None] = time.sleep,
     timeout_s: float = TIMEOUT_S,
     draft_batch: str | None = None,
 ) -> TrialReport:
     """`draft_batch` resumes a draft batch already submitted (and paid for) for the
-    same moments, instead of sending a new one.
+    same articles, instead of sending a new one.
 
     shortcut: the trial has no record of which batches it has costed, so resuming a
     batch a trial already collected records its cost in ai_usage twice; resume only
     one that no trial finished reading (the cost is logged with its id when recorded).
     Fine for a one-off comparison; give trials a batch table if they become routine."""
-    report = TrialReport(model, len(moments))
-    if not moments:
+    report = TrialReport(model, len(articles))
+    if not articles:
         return report
-    by_id = {f"draft-{m.moment_id}": m for m in moments}
-    drafted: list[tuple[TrialMoment, QuestionDraft]] = []
+    by_id = {f"draft-{a.item_id}": a for a in articles}
+    drafted: list[tuple[TrialArticle, QuestionDraft]] = []
     for item in _batch(
         gateway,
         model,
-        [BatchRequest(cid, prompt(m.text, m.concepts)) for cid, m in by_id.items()],
+        [
+            BatchRequest(cid, prompt(a.text, a.concepts, a.count))
+            for cid, a in by_id.items()
+        ],
         report,
         sleep,
         timeout_s,
         draft_batch,
     ):
-        moment = by_id.get(item.custom_id)
-        if moment is None:
-            continue  # a resumed batch for other moments: not this trial's
+        article = by_id.get(item.custom_id)
+        if article is None:
+            continue  # a resumed batch for other articles: not this trial's
         if item.text is None:
             report.errors += 1
             continue
         try:
-            drafts = parse_reply(item.text, moment.text)
+            drafts = parse_reply(item.text, article.text, article.count)
         except QuestionReplyError as error:
             reason = str(error).split(":")[0]
             report.broken[reason] = report.broken.get(reason, 0) + 1
             continue
         report.drafted += 1
-        drafted += [(moment, shuffled(d)) for d in drafts]
+        drafted += [(article, shuffled(d)) for d in drafts]
     report.missing = (
-        report.moments - report.drafted - sum(report.broken.values()) - report.errors
+        report.articles - report.drafted - sum(report.broken.values()) - report.errors
     )
     if not drafted:
         return report
@@ -157,13 +169,13 @@ def run_trial(
             answers[item.custom_id] = parse_answer(item.text)
         except QuestionReplyError:
             report.validation_broken += 1
-    for i, (moment, draft) in enumerate(drafted):
+    for i, (article, draft) in enumerate(drafted):
         # None: no usable answer (counted above), not a disagreement.
         answer = answers.get(f"validate-{i}")
         report.agreed += answer == draft.correct
         report.questions.append(
             TrialQuestion(
-                moment.moment_id,
+                article.item_id,
                 draft.stem,
                 draft.options,
                 draft.correct,
