@@ -4,11 +4,11 @@ Walked locally on 2026-10-29 at commit dd1331e, before anything is deployed (ADR
 
 ## Phase 2 "Done when" (docs/roadmap/phase-2.md)
 
-| Metric                                  | Query                                   | Fixture test                    | Local events                                          |
-| --------------------------------------- | --------------------------------------- | ------------------------------- | ----------------------------------------------------- |
-| ≥30% of finished moments lead to a quiz | `packages/events/queries/quiz_rate.sql` | `test_metric_queries.py` passes | runs: developer 5 finished / 0 quizzed, student 2 / 0 |
-| <2% of questions flagged                | `flag_rate.sql`                         | passes                          | runs: 0 answered questions in the window              |
-| Quiz takers return more often           | `quiz_return.sql`                       | passes                          | runs: no cohort old enough yet                        |
+| Metric                                                                  | Query                                   | Fixture test                    | Local events                                          |
+| ----------------------------------------------------------------------- | --------------------------------------- | ------------------------------- | ----------------------------------------------------- |
+| ≥30% of finished readings (completed articles, ADR-0058) lead to a quiz | `packages/events/queries/quiz_rate.sql` | `test_metric_queries.py` passes | runs: developer 5 finished / 0 quizzed, student 2 / 0 |
+| <2% of questions flagged                                                | `flag_rate.sql`                         | passes                          | runs: 0 answered questions in the window              |
+| Quiz takers return more often                                           | `quiz_return.sql`                       | passes                          | runs: no cohort old enough yet                        |
 
 The local numbers come from a handful of test accounts over four days: they show the queries run on real event files, not whether the targets are met. That needs beta traffic after deploy.
 

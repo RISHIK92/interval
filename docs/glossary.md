@@ -24,7 +24,7 @@ Definitions quote or restructure source text. Citations: § = Part I section of 
 
 **Concept graph.** "The core data model": concepts linked by relationships. Content, projects, learner state and questions attach to it. Stored in Postgres as node and edge tables queried with recursive SQL. §3.1, DB-2.
 
-**Continue card.** A feed item for unfinished reading. Moments carry a "continue from here" pointer. §3.2, §5C, Phase 1 Week 5.
+**Continue card.** A feed item for unfinished reading: an opened article not yet completed ("Continue reading"), opening the article's own link. §3.2, §5C, Phase 1 Week 5, ADR-0058.
 
 **Cost budget.** A per-user cap on AI spend, with cost dashboards, present from Phase 1. OPS-4, LOAD-6.
 
@@ -59,16 +59,17 @@ Definitions quote or restructure source text. Citations: § = Part I section of 
 **League.** A weekly activity cohort of about 30 players in one of six tiers (Diamond, Ruby, Sapphire, Gold, Silver, Bronze), separate from skill ratings: points from matches, battles and reading checkpoints, a new league every Monday. ADR-0045. Not the battle mode: §6.2's "league" is the battle mode (ADR-0047).
 
 **Learner state.** Each user's state per concept, "updated by reading, notes, quizzes, and games". §3.1. States:
+
 - **unseen**: listed in §3.1. Not defined further.
 - **explored**: listed in §3.1. Not defined further.
 - **practiced**: set by passing a checkpoint (§5F). Otherwise not defined.
 - **mastered**: listed in §3.1; "how many concepts reach mastered" is a recall metric (§8).
 - **due for review**: scheduled by FSRS (PER-2).
-PER-2 also models mastery as "a probability updated by evidence". How the probability maps to these five states is not specified (docs/questions/phase-1.md Q-P1-05).
+  PER-2 also models mastery as "a probability updated by evidence". How the probability maps to these five states is not specified (docs/questions/phase-1.md Q-P1-05).
 
 **LLD battle.** A low-level design match in desktop browsers, about 45 minutes: live 1v1, 4-player rooms, or tournaments, in Python, JS/TS, Java, C++ and Go. Scored by weighted tests passed, then time. §6.5. See C-03, C-04.
 
-**Moment.** "A self-contained section of an article or book, sized to the time available", with a "continue from here" pointer. For web articles it is "a deep link into the publisher's original page, never a copy". Split at headings into 2 to 8 minute sections. §3.2, ING-4. Not a "chunk", "snippet" or "segment". See C-05.
+**Moment.** Removed by ADR-0058: articles are the only reading unit, and moment-era data (questions, tags, embeddings, notes, progress) is combined per article. Before that: "A self-contained section of an article or book, sized to the time available", with a "continue from here" pointer. For web articles it is "a deep link into the publisher's original page, never a copy". Split at headings into 2 to 8 minute sections. §3.2, ING-4. Not a "chunk", "snippet" or "segment". See C-05.
 
 **Problem family.** An HLD template "with parameter ranges that generate many variants". 6 to 8 at launch (HLDQ-2); about 31 after ADR-0050, each in the practice or the battle pool.
 
@@ -81,25 +82,26 @@ PER-2 also models mastery as "a probability updated by evidence". How the probab
 **Review queue.** The library queue "scheduled by FSRS and fed by reading, quizzes, games, and checkpoints". §5I.
 
 **Rights profile.** Per-source setting that "controls what the pipeline may do". ING-2. Levels:
+
 - **metadata only**
 - **excerpt**
-- **full text for internal processing**: required for moments (§3.2).
+- **full text for internal processing**: required for full-text tagging, article embeddings and questions; dropping below it purges them (ING-2, ADR-0058).
 - **full text for display (partners)**
-The source text gives the level names only. What each permits step by step is open (Q-P1-01).
+  The source text gives the level names only. What each permits step by step is open (Q-P1-01).
 
 **Rubric.** The fixed criteria the AI judge scores trade-off quality against, worth 25 of 100 points. Scored three times, median used. §6.4, CANVAS-6.
 
 **Seed list.** The "hand-curated seed list of 50 to 100 sources" ingestion starts from. §5B, ING-6.
 
-**Source.** A content origin: "technical publications, developer communities, company and independent engineering blogs, postmortems, newsletters, talks, and books the user is authorized to use". Each has a rights profile and a switch that turns moments off. §5B, §3.2.
+**Source.** A content origin: "technical publications, developer communities, company and independent engineering blogs, postmortems, newsletters, talks, and books the user is authorized to use". Each has a rights profile. §5B, §3.2 (its moments switch was removed by ADR-0058).
 
 **Spec sheet.** The public, versioned table of HLD component stats. Changes only at season boundaries. §6.4, CANVAS-4.
 
 **Test layers.** LLD test categories: "visible, hidden, concurrency, extension round". Hidden tests never reach the client. §6.5, LLDQ-4.
 
-**Time budget.** The time the user has, chosen with time chips. It "decides which" format appears: moments for short budgets, full articles for longer ones. Onboarding break lengths are 1–3, 3–8 or 8–15 minutes. §3.2, §5A. See C-23.
+**Time budget.** Removed by ADR-0058, with the time chips and onboarding's break length. Before that: the time the user has, chosen with time chips. It "decides which" format appears: moments for short budgets, full articles for longer ones. Onboarding break lengths are 1–3, 3–8 or 8–15 minutes. §3.2, §5A. See C-23.
 
-**Topic path.** "Ordered sections built from moments across sources. An LLM proposes the order from concept prerequisites, and a person approves it." §5F. See C-25.
+**Topic path.** "Ordered sections built from moments across sources. An LLM proposes the order from concept prerequisites, and a person approves it." §5F. See C-25. Since ADR-0058, sessions are built from articles.
 
 **Topic space.** Something users "can follow" in Explore; also a candidate generator. Not otherwise defined. §5J, REC-1.
 
@@ -107,6 +109,6 @@ The source text gives the level names only. What each permits step by step is op
 
 **Variant.** One generated instance of a problem family. Each must be validated: the reference design passes every scenario, and each flawed design fails exactly its target. HLDQ-2, HLDQ-3.
 
-**Whole article.** The full-article feed format, surfaced by longer time budgets. §3.2. See C-23.
+**Whole article.** The full-article feed format, surfaced by longer time budgets. §3.2. See C-23. Since ADR-0058, the only format.
 
 **Why-this-matters note.** A "short, labeled" note "generated from the ranking signal and the user's project context". It never rewrites the author's content. §5E, REC-5. See C-24.

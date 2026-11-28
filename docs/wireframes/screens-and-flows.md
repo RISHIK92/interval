@@ -12,17 +12,17 @@ Extracted from the `SCREENS` and `FLOWS` arrays in docs/wireframes/interval-blue
 
 ### Mobile · learning
 
-| #   | ID        | Name           | Purpose                                                                                 |
-| --- | --------- | -------------- | --------------------------------------------------------------------------------------- |
-| 01  | `onboard` | Onboarding     | Topics, level, break length and formats in under a minute.                              |
-| 02  | `home`    | For You feed   | Time chips decide what the feed shows: continue cards, moments and the daily challenge. |
-| 03  | `article` | In-app browser | The publisher’s page, untouched. Interval’s context lives in a sheet below it.          |
-| 04  | `explore` | Explore        | Search by concept, follow topic spaces, see what’s trending in them.                    |
-| 05  | `paths`   | Learning paths | Books and topics split into sessions, with checkpoints between sections.                |
-| 06  | `reader`  | Book reader    | Original text badged. AI help sits in dashed boxes, apart from the text.                |
-| 07  | `listen`  | Audio player   | Expands from the mini-player. Two modes, labeled as original or AI.                     |
-| 08  | `library` | Library        | Review queue first, then notes, highlights, history and the knowledge map.              |
-| 09  | `profile` | Profile        | Interests, projects, sources, sessions, games and privacy.                              |
+| #   | ID        | Name           | Purpose                                                                          |
+| --- | --------- | -------------- | -------------------------------------------------------------------------------- |
+| 01  | `onboard` | Onboarding     | Topics, level and formats in under a minute (break length removed, ADR-0058).    |
+| 02  | `home`    | For You feed   | Continue cards, articles and the daily challenge (time chips removed, ADR-0058). |
+| 03  | `article` | In-app browser | The publisher’s page, untouched. Interval’s context lives in a sheet below it.   |
+| 04  | `explore` | Explore        | Search by concept, follow topic spaces, see what’s trending in them.             |
+| 05  | `paths`   | Learning paths | Books and topics split into sessions, with checkpoints between sections.         |
+| 06  | `reader`  | Book reader    | Original text badged. AI help sits in dashed boxes, apart from the text.         |
+| 07  | `listen`  | Audio player   | Expands from the mini-player. Two modes, labeled as original or AI.              |
+| 08  | `library` | Library        | Review queue first, then notes, highlights, history and the knowledge map.       |
+| 09  | `profile` | Profile        | Interests, projects, sources, sessions, games and privacy.                       |
 
 ### Mobile · play
 
@@ -59,15 +59,14 @@ Extracted from the `SCREENS` and `FLOWS` arrays in docs/wireframes/interval-blue
 
 **02 For You feed** (`home`)
 
-- With agent hooks on, a banner shows the agent’s time left, and the feed fits that gap.
-- Every card says whether it fits the chosen time.
+- With agent hooks on, a banner shows the agent’s time left.
+- Since ADR-0058 there are no time chips: cards show Continue reading or Completed, and every article has Quiz me.
 - Save, Test 60s and Why this? stay on the card; tuning controls move to the overflow menu.
 
 **03 In-app browser** (`article`)
 
 - The sheet opens as a one-line peek, so it never covers the author’s page.
-- A section rail shows where the moment sits inside the article.
-- At the end of a section the sheet offers one next step: test or continue.
+- Since ADR-0058 the article is the unit: the sheet has Quiz me at any time, and Done (or reaching the end) marks it Completed.
 
 **04 Explore** (`explore`)
 
@@ -139,7 +138,7 @@ Extracted from the `SCREENS` and `FLOWS` arrays in docs/wireframes/interval-blue
 **W1 Web · For You** (`whome`)
 
 - New screen: most publishers block embedding on the web, so a context panel stays beside the feed for the article open in another tab.
-- Mark section done records progress when the publisher page can’t report it.
+- Done marks the article Completed when the publisher page can’t report it (ADR-0058).
 
 **W2 Web · Play hub** (`whub`)
 
@@ -194,13 +193,13 @@ The use case that gives Interval its identity: a coding agent starts a long task
 
 Reference: Blueprint §3.2, §5D and §8.3
 
-Three minutes free: a moment from a Postgres article, tied to the user’s own project, then a quick test.
+A Postgres article tied to the user’s own project, then a quick test (moments and time chips removed, ADR-0058).
 
-1. `home` (02 For You feed): They pick 3 min. The feed shows a moment that fits, with a note tied to billing-api.
-2. `article` (03 In-app browser): The moment opens on the publisher’s own page. Interval’s sheet stays collapsed.
-3. `article` (03 In-app browser, variant `end`): At the end of the section, the sheet offers a 60-second test or the next section.
+1. `home` (02 For You feed): The feed shows an article with a note tied to billing-api.
+2. `article` (03 In-app browser): The article opens on the publisher’s own page. Interval’s sheet stays collapsed.
+3. `article` (03 In-app browser, variant `end`): At the end of the article, the sheet offers a 60-second test (Quiz me) and marks it Completed.
 4. `ff` (12 Fastest finger, variant `test`): They take Test 60s. Each answer gets instant feedback.
-5. `results` (14 Results, variant `test`): Connection pooling moves to practiced, and the next section is queued.
+5. `results` (14 Results, variant `test`): Connection pooling moves to practiced.
 
 ### Path checkpoint
 
