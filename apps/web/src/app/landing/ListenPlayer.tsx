@@ -45,7 +45,7 @@ export function ListenPlayer() {
             Why your connection pool runs dry
           </span>
           <span className="text-[14px] text-(--ink3)">
-            Postgres Weekly · 6 min episode
+            AI explainer · 6 min
           </span>
         </span>
       </div>
@@ -138,7 +138,7 @@ export function ListenPlayer() {
           >
             <path d="M6 3h12v18l-6-4-6 4z" />
           </svg>
-          Save this moment
+          Add to your queue
         </Link>
       </div>
       <div className="rounded-[16px] bg-(--sf) p-[14px_16px] text-[17px] leading-[1.6]">

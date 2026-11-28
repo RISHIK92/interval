@@ -3,44 +3,63 @@
 import Link from "next/link";
 import { useState } from "react";
 
-// The "Same minutes, different pick" demo: canned picks, nothing is fetched.
+// The "Same feed, different pick" demo: canned picks, nothing is fetched.
 const ROLES = {
   backend: {
     l: "Backend",
     f: "db",
     src: "Databases · Postgres Weekly",
-    title: "Why your connection pool runs dry under load",
+    titles: {
+      beginner: "What a connection pool is, and why Postgres needs one",
+      intermediate: "Why your connection pool runs dry under load",
+      advanced: "Transaction pooling in PgBouncer versus prepared statements",
+    },
     why: "You run FastAPI on Postgres with a pool of 5. This is the limit you’ll hit first.",
   },
   frontend: {
     l: "Frontend",
     f: "ds",
     src: "Distributed systems · Edge caching",
-    title: "What your CDN is really caching for each route",
+    titles: {
+      beginner: "How a CDN decides what to cache",
+      intermediate: "What your CDN is really caching for each route",
+      advanced: "Cache keys, Vary headers and the routes that never hit",
+    },
     why: "Your storefront ships 40 routes from one edge config. Two of them never cache.",
   },
   ml: {
     l: "ML",
     f: "rv",
     src: "AI infra · Model serving",
-    title: "Batching requests without wrecking p99 latency",
+    titles: {
+      beginner: "What request batching does for a model server",
+      intermediate: "Batching requests without wrecking p99 latency",
+      advanced: "Dynamic batching with deadlines, from queueing theory",
+    },
     why: "You serve an embedding model behind a queue. Batch size is your hidden knob.",
   },
   student: {
     l: "Student",
     f: "sd",
-    src: "System design · Solo drill",
-    title: "Design a URL shortener, then defend it",
-    why: "Your goal is interviews in spring. The rubric scores trade-offs, not boxes.",
+    src: "System design · Engineering blog",
+    titles: {
+      beginner: "What a URL shortener has to get right",
+      intermediate: "How a URL shortener handles its first billion links",
+      advanced: "Sharding a URL shortener’s ID space without collisions",
+    },
+    why: "You’re learning system design for interviews in spring. This is the classic first question.",
   },
 };
 type Role = keyof typeof ROLES;
-const PLANS = {
-  3: "2 min reading, then 1 recall question",
-  8: "6 min reading, then a 60-second checkpoint",
-  15: "12 min drill, then 3 min with the rubric",
+// The feed ranks by level ("Your level"), so the level changes the article; what
+// follows is the same for everyone.
+const PLAN = "Then Quiz me. What you miss comes back in review";
+type Level = "beginner" | "intermediate" | "advanced";
+const LEVELS: Record<Level, string> = {
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
 };
-type Minutes = keyof typeof PLANS;
 
 const SEG_ON = {
   background: "var(--seg)",
@@ -56,17 +75,17 @@ const SEG_OFF = {
 
 export function PickDemo() {
   const [role, setRole] = useState<Role>("backend");
-  const [minutes, setMinutes] = useState<Minutes>(8);
-  const { f, ...picked } = ROLES[role];
+  const [level, setLevel] = useState<Level>("intermediate");
+  const { f, titles, ...picked } = ROLES[role];
   const pick = {
     ...picked,
+    title: titles[level],
     T: `var(--${f}T)`,
     L: `var(--${f}L)`,
     M: `var(--${f}M)`,
     S: `var(--${f}S)`,
     D: `var(--${f}D)`,
   };
-  const plan = PLANS[minutes];
   const roles = (Object.keys(ROLES) as Role[]).map((k) => ({
     l: ROLES[k].l,
     on: k === role,
@@ -75,12 +94,12 @@ export function PickDemo() {
       setRole(k);
     },
   }));
-  const mins = ([3, 8, 15] as const).map((v) => ({
-    v,
-    on: v === minutes,
-    st: v === minutes ? SEG_ON : SEG_OFF,
+  const levels = (Object.keys(LEVELS) as Level[]).map((v) => ({
+    l: LEVELS[v],
+    on: v === level,
+    st: v === level ? SEG_ON : SEG_OFF,
     pick: () => {
-      setMinutes(v);
+      setLevel(v);
     },
   }));
   return (
@@ -105,18 +124,18 @@ export function PickDemo() {
         </div>
         <div
           className="h-[52px] p-[4px] box-border rounded-[16px] bg-(--sf) flex gap-[4px]"
-          aria-label="Minutes available"
+          aria-label="Your level"
         >
-          {mins.map((m, i) => (
+          {levels.map((m, i) => (
             <button
               key={i}
-              className="n border-0 rounded-[12px] p-[0_16px] text-[16px]"
+              className="border-0 rounded-[12px] p-[0_16px] text-[16px]"
               type="button"
               aria-pressed={m.on}
               onClick={m.pick}
               style={{ ...m.st }}
             >
-              {m.v} min
+              {m.l}
             </button>
           ))}
         </div>
@@ -186,7 +205,7 @@ export function PickDemo() {
               <circle cx="12" cy="13" r="8" />
               <path d="M12 9v4l2.5 2M10 2h4" />
             </svg>
-            {plan}
+            {PLAN}
           </span>
           <Link
             className="mt-[6px] self-start h-[52px] p-[0_24px] rounded-[999px] bg-(--act) text-(--onact) flex items-center gap-[8px] text-[16px] font-semibold no-underline"

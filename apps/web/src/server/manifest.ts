@@ -7,7 +7,7 @@ export function manifest(): MetadataRoute.Manifest {
   return {
     name: "Interval",
     short_name: "Interval",
-    description: "Engineering reading that fits your breaks.",
+    description: "Engineering reading for the gaps in your day.",
     start_url: "/",
     display: "standalone",
     theme_color: "#1f2933",

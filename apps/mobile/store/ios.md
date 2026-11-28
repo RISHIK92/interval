@@ -12,10 +12,10 @@ PROVISIONAL (2026-11-10): Claude drafted this from docs/product.md §1–2. NOT 
 
 ## Description
 
-Interval turns the short waits in a developer's day into real learning: while a coding agent works, or between meetings, it offers a few minutes of the best existing writing on system design, databases, distributed systems and backend engineering.
+Interval turns the short waits in a developer's day into real learning: while a coding agent works, or between meetings, it offers the best existing writing on system design, databases, distributed systems and backend engineering.
 
-- A feed sized to your break: 1–3, 3–8 or 8–15 minutes.
-- Read the section that matters on the publisher's own page, with your place kept.
+- A For You feed of articles from engineering sources, ranked to your topics and projects.
+- Read on the publisher's own page, with Continue reading and Completed to keep your place, and Quiz me on every article.
 - Paths through topics and your own books, one session at a time.
 - Quick games and live 1v1 matches on what you've read, with boards for friends, countries and universities.
 

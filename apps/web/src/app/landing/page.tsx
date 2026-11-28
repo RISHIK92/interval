@@ -134,7 +134,7 @@ const miniWave = [14, 26, 38, 20, 32, 42, 18, 30, 40, 22, 34, 14, 28, 36].map(
 );
 const phrases = [
   "Your agent is running.",
-  "Eight free minutes.",
+  "A few free minutes.",
   "You read.",
   "You listen.",
   "You take on a rival.",
@@ -303,7 +303,7 @@ const minds = [
   },
   {
     t: "Finishes the chapter.",
-    d: "Long books, short sessions, a finish date you can trust.",
+    d: "Long books, short sessions, a checkpoint after every chapter.",
     T: "var(--dbT)",
     anim: "sway",
     rv: "rv3",
@@ -339,9 +339,9 @@ const ticks = Array.from({ length: 16 }, (_, i) => ({
 }));
 
 const sizes = [
-  { m: "3", l: "a review" },
-  { m: "8", l: "a session" },
-  { m: "15", l: "a drill" },
+  { m: "60s", l: "Quiz me on any article" },
+  { m: "1v1", l: "quick matches" },
+  { m: "HLD", l: "and LLD battles" },
 ];
 const questions = [
   "why does my replica lag behind the leader?",
@@ -354,13 +354,13 @@ const steps = [
   {
     n: "1",
     t: "It notices the gap",
-    d: "From your agent, your build or your calendar. No timer to set.",
+    d: "From your coding agent, through the CLI or the VS Code extension. No timer to set.",
     rv: "rv",
   },
   {
     n: "2",
-    t: "It sizes the pick",
-    d: "3, 8 or 15 minutes of reading, recall or a match. Never a feed.",
+    t: "It offers three picks",
+    d: "Articles from your For You feed, ranked to your topics and projects.",
     rv: "rv2",
   },
   {
@@ -405,14 +405,14 @@ export default function LandingPage() {
               </div>
               <div className="absolute left-[16px] right-[16px] bottom-[34px] p-[10px_12px] rounded-[12px] bg-[#F3F4F6] text-[#101217] text-[14px] font-bold flex items-center gap-[8px] [animation:lp-show_1.2s_cubic-bezier(.2,.8,.2,1)_0.6s_both]">
                 <span className="w-[10px] h-[10px] rounded-[9px] bg-[#35D07F]"></span>
-                8 free minutes
+                Read while you wait
               </div>
             </div>
             <div className="absolute left-[4px] top-[268px] w-[392px] h-[16px] rounded-[0_0_14px_14px] bg-(--ln2) [animation:lp-popIn_0.55s_cubic-bezier(.2,.8,.2,1)_0.1s_both]" />
             <div className="absolute left-[470px] top-[40px] w-[140px] h-[260px] box-border rounded-[26px] bg-(--card) [border:7px_solid_#101217] overflow-hidden text-[#101217] [animation:lp-phoneIn_0.6s_cubic-bezier(.2,.8,.2,1)_0.85s_both]">
               <div className="absolute inset-0 p-[16px_12px] flex flex-col gap-[8px] bg-[#FFFFFF] [animation:lp-show_0.85s_linear_0.95s_both]">
                 <span className="text-[10px] font-semibold text-[#666C78]">
-                  For your 8 minutes
+                  For you
                 </span>
                 <span className="h-[74px] rounded-[12px] bg-[#E9EEFF] flex items-center justify-center">
                   <svg
@@ -685,7 +685,7 @@ export default function LandingPage() {
             <span className="w-[24px] h-[24px] rounded-[999px] bg-(--act) flex items-center justify-center">
               <span className="pulse w-[8px] h-[8px] rounded-[9px] bg-[#35D07F]"></span>
             </span>
-            <span className="mono text-[13px]">agent running · 8 min left</span>
+            <span className="mono text-[13px]">agent running · 4 min</span>
           </span>
           <h1 className="in d2 m-0 text-[length:clamp(46px,6.2vw,86px)] leading-[0.98] font-bold tracking-[-0.045em]">
             While the agent works, you get{" "}
@@ -694,9 +694,9 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="in d3 m-0 text-[20px] leading-[1.5] text-(--ink2) max-w-[520px]">
-            Interval turns the 3, 8 and 15-minute gaps in your day into reading,
-            recall and quick matches. Every pick is sized to the break and tied
-            to the stack you actually ship.
+            Interval turns the gaps in your day into reading, recall and quick
+            matches. Articles from engineering sources, ranked to your topics
+            and the stack you actually ship.
           </p>
           <div className="in d4 flex gap-[10px] flex-wrap">
             <Link
@@ -711,7 +711,7 @@ export default function LandingPage() {
               >
                 <path className="[fill:currentColor]" d="M7 4.5v15l12-7.5z" />
               </svg>
-              Start with 3 minutes
+              Start reading
             </Link>
             <a
               className="h-[56px] p-[0_24px] box-border rounded-[999px] [border:1.5px_solid_var(--ln2)] text-(--ink) flex items-center text-[17px] font-semibold no-underline"
@@ -726,7 +726,7 @@ export default function LandingPage() {
                 <span className="n text-[28px] font-bold tracking-[-0.03em]">
                   {z.m}
                 </span>
-                <span className="text-[14px] text-(--ink3)">min · {z.l}</span>
+                <span className="text-[14px] text-(--ink3)">{z.l}</span>
               </div>
             ))}
           </div>
@@ -852,8 +852,9 @@ export default function LandingPage() {
           </h2>
           <p className="m-0 text-[19px] leading-[1.55] text-(--ink2)">
             Kick off a refactor, a test run or a deploy and you get a few
-            minutes you didn’t plan for. Interval notices, sizes a pick to fit,
-            and hands you back to your code the moment the work is done.
+            minutes you didn’t plan for. Interval notices, offers something
+            worth reading, and hands you back to your code when the work is
+            done.
           </p>
         </div>
         <div className="rv2 rounded-[28px] bg-[#0E1014] text-[#F3F4F6] p-[28px] flex flex-col gap-[22px] relative">
@@ -1063,12 +1064,12 @@ export default function LandingPage() {
               03 · Books
             </span>
             <h2 className="m-0 text-[length:clamp(36px,4.4vw,56px)] leading-[1.02] font-bold tracking-[-0.04em]">
-              Big books, cut into breaks.
+              Big books, in short sessions.
             </h2>
             <p className="m-0 text-[19px] leading-[1.55] text-(--ink2)">
               Pick the book you keep meaning to finish. Interval splits it into
-              short sessions with a checkpoint after each chapter, and tells you
-              when you’ll be done.
+              short sessions with a checkpoint after each chapter, and keeps
+              your place.
             </p>
           </div>
           <div className="rv3 rounded-[24px] bg-(--card) [border:1px_solid_var(--ln)] [box-shadow:var(--shadow)] p-[20px] flex flex-col gap-[14px]">
@@ -1095,8 +1096,8 @@ export default function LandingPage() {
               ))}
             </div>
             <span className="text-[15px] text-(--ink2)">
-              About 6 minutes a session · finishing around{" "}
-              <b className="font-semibold text-(--ink)">Dec 14</b>
+              About 6 minutes a session · up next{" "}
+              <b className="font-semibold text-(--ink)">Ch 5 · Replication</b>
             </span>
             <div className="flex flex-col">
               {chapters.map((c, i) => (
@@ -1128,9 +1129,9 @@ export default function LandingPage() {
             Hands busy? Put it in your ears.
           </h2>
           <p className="m-0 text-[19px] leading-[1.55] text-(--ink2)">
-            Any article or chapter becomes a short episode, with a live
-            transcript and a diagram that follows along. Save a moment without
-            stopping.
+            The concepts behind what you read, explained in short AI audio with
+            a live transcript and a diagram that follows along. Queue them from
+            the reader.
           </p>
         </div>
         <ListenPlayer />
@@ -1594,10 +1595,11 @@ export default function LandingPage() {
             07 · Yours
           </span>
           <h2 className="m-0 text-[length:clamp(36px,4.4vw,56px)] leading-[1.02] font-bold tracking-[-0.04em]">
-            Same minutes. Different person, different pick.
+            Same feed. Different person, different pick.
           </h2>
           <p className="m-0 text-[19px] leading-[1.55] text-(--ink2)">
-            Tell it what you build and how long you have. Watch the pick change.
+            Tell it what you build and what you want to learn. Watch the pick
+            change.
           </p>
         </div>
         <PickDemo />
@@ -1674,16 +1676,16 @@ export default function LandingPage() {
             ))}
             <span className="absolute bottom-[12px] w-[14px] h-[14px] ml-[-7px] rounded-[99px] bg-[#35D07F] [animation:lp-mark_15s_linear_infinite]"></span>
             <span className="n absolute left-0 bottom-[-6px] text-[12px] text-[#8F95A1]">
-              0
+              agent starts
             </span>
             <span className="n absolute left-[20%] bottom-[-6px] text-[12px] text-[#8F95A1]">
-              3
+              read
             </span>
             <span className="n absolute left-[53.3%] bottom-[-6px] text-[12px] text-[#8F95A1]">
-              8
+              recall
             </span>
             <span className="n absolute right-0 bottom-[-6px] text-[12px] text-[#8F95A1]">
-              15 min
+              back to code
             </span>
           </div>
         </div>
